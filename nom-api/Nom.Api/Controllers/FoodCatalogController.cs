@@ -82,11 +82,11 @@ namespace Nom.Api.Controllers
             return Ok(await _relink.ApplyAsync(maxLines));
         }
 
-        /// <summary>Move every recipe line of one curated food to another, except lines containing one of the keep words; each move is written to the audit log.</summary>
+        /// <summary>Move every recipe line of one curated food to another, except lines containing one of the keep words; each move is written to the audit log. With apply=false a dry run: the lines that would move and those the diet guard holds.</summary>
         [HttpPost("relink/food")]
-        public async Task<ActionResult<LineRelinkResult>> RelinkFood([FromQuery, Required] long fromId, [FromQuery, Required] long toId, [FromQuery] string? keep = null)
+        public async Task<ActionResult<LineRelinkResult>> RelinkFood([FromQuery, Required] long fromId, [FromQuery, Required] long toId, [FromQuery] string? keep = null, [FromQuery] bool apply = true)
         {
-            var result = await _relink.MoveFoodAsync(fromId, toId, keep);
+            var result = await _relink.MoveFoodAsync(fromId, toId, keep, apply);
             return result == null ? BadRequest(new { message = "Both must be live curated foods, and the target must have nutrition." }) : Ok(result);
         }
 
@@ -154,7 +154,7 @@ namespace Nom.Api.Controllers
                 .Distinct()
                 .ToList();
 
-        /// <summary>Put back the lines moved, the foods retired, the proposals withdrawn, the rows unfolded and the compound lines split or moved at or after the given UTC time; a dry run (read-only, on a copy in memory) unless apply=true. A dry run stops when the caller goes away.</summary>
+        /// <summary>Put back the lines moved, the foods retired, the proposals withdrawn, the rows unfolded and the compound lines split or moved at or after the given UTC time; a dry run (read-only, on a copy in memory) unless apply=true. Dry runs run one at a time, in the order called; a dry run called while others run or wait says how many were ahead and how long it waited (queuedBehind, queuedSeconds). A dry run stops when the caller goes away, waiting or running.</summary>
         [HttpPost("relink/undo")]
         public async Task<ActionResult<LineRelinkUndoResult>> RelinkUndo([FromQuery, Required] DateTime sinceUtc, [FromQuery] bool apply = false)
         {
@@ -333,6 +333,14 @@ namespace Nom.Api.Controllers
             [FromQuery] string? batch, [FromQuery] string? status = "Pending", [FromQuery] int limit = 200)
         {
             return Ok(await _review.GetProposalsAsync(batch, status, limit));
+        }
+
+        /// <summary>What approving the proposal would do, with nothing written: whether it applies or why not, and for a USDA link the lines its merge would move, the moves the diet guard holds and the restriction types its target would newly count.</summary>
+        [HttpGet("proposals/{id:long}/apply-preview")]
+        public async Task<ActionResult<FoodProposalApplyPreview>> PreviewProposal([Required] long id)
+        {
+            var preview = await _review.PreviewProposalAsync(id, GetCurrentPersonIdRequired());
+            return preview == null ? NotFound() : Ok(preview);
         }
 
         [HttpPost("proposals/{id:long}/apply")]

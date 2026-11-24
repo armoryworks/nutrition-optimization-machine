@@ -55,7 +55,8 @@ namespace Nom.Api.Tests.Golden
         {
             var source = Source(row);
             var lines = row.Value("lines")?.Split(" ¦ ");
-            return ProseCheck.Check(source, Rewrite(source, row["variant"], row), lines, row["stock"] == "none" ? ProseStockIndex.Empty : stock);
+            var finding = ProseCheck.Check(source, Rewrite(source, row["variant"], row), lines, row["stock"] == "none" ? ProseStockIndex.Empty : stock);
+            return ProseCheck.CopyReasons.Contains(row["check2"]) ? finding : ProseFactView.Of(finding);
         }
 
         private static bool Meets(string expect, ProseCheck.Finding finding) => expect switch
@@ -102,9 +103,9 @@ namespace Nom.Api.Tests.Golden
             var stock = Stock();
             var rows = GoldenSet.Read("prose.tsv").Rows.Where(r => r["status2"] is GoldenSet.Ok or GoldenSet.Agent or GoldenSet.Known).ToList();
             var faults = rows.Where(r => r["check2"] != "passed" && !r["check2"].StartsWith('!')).ToList();
-            var ruled = faults.Where(r => !ProseCheck.UnsureReasons.Contains(r["check2"]) && !ProseCheck.FactClasses.Contains(r["check2"])).ToList();
+            var ruled = faults.Where(r => !ProseCheck.UnsureReasons.Contains(r["check2"]) && !ProseCheck.FactClasses.Contains(r["check2"]) && r["check2"] != ProseCheck.CopiedSentences).ToList();
             var facts = faults.Where(r => ProseCheck.FactClasses.Contains(r["check2"])).ToList();
-            var weak = faults.Where(r => ProseCheck.UnsureReasons.Contains(r["check2"])).ToList();
+            var weak = faults.Where(r => ProseCheck.UnsureReasons.Contains(r["check2"]) || r["check2"] == ProseCheck.CopiedSentences).ToList();
             var faithful = rows.Where(r => r["check2"] == "passed").ToList();
 
             var notRefused = ruled.Where(r => !CheckV2(r, stock).Failed).Select(r => r.Id).ToList();
@@ -113,7 +114,7 @@ namespace Nom.Api.Tests.Golden
             using (ProseCheck.AssumeProven(ProseCheck.FactClasses.ToArray()))
                 factNotRefusedOnceProven = facts.Where(r => !CheckV2(r, stock).Failed).Select(r => r.Id).ToList();
             var weakPassed = weak.Where(r => CheckV2(r, stock).Passed).Select(r => r.Id).ToList();
-            var weakToJudge = weak.Where(r => CheckV2(r, stock).Unsure).Select(r => r.Id).ToList();
+            var weakToJudge = weak.Where(r => CheckV2(r, stock) is { Passed: false, Failed: false }).Select(r => r.Id).ToList();
             var falseRejects = faithful.Where(r => !CheckV2(r, stock).Passed).Select(r => r.Id).ToList();
             _output.WriteLine($"check v{ProseCheck.Version}: {notRefused.Count} of {ruled.Count} copy and form fault rows not refused; "
                 + $"{facts.Count} fact fault rows, proven classes {(ProseCheck.ProvenClasses.Count == 0 ? "none" : string.Join(", ", ProseCheck.ProvenClasses))}, {factNotRefusedOnceProven.Count} not refused with every class proven; "

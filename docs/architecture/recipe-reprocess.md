@@ -101,7 +101,23 @@ celui du N. 579") and a price ("twenty cents' worth") are no amount, "one-half o
 `line-builder/11` since the checkpoint-5 round of `cleanup2/ck10-amounts`: the line guard below as revised
 for Q12 and Q1 (an empty rebuilt row never replaces a stored amount, amounts are read in the line's own
 source text, a count of a measure and the first part of "a pound and a half" give way, a reference or
-equipment line takes the amount its source states) and every held line stored as a hold)
+equipment line takes the amount its source states) and every held line stored as a hold;
+`line-builder/12` since the checkpoint-6 round of `cleanup2/ck11-lines`: an ordinal fraction before a measure is
+read whole in the method fill ("one-sixth of a pint" is a third of a cup, never a pint: R1, 133802), one it
+cannot join to its measure ("the sixth of a pint", "a sixth of pepper") gives nothing, the parser reads sevenths,
+ninths, tenths, twelfths and sixteenths, a source entry with no letter or digit ("&nbsp;") is no line, a new
+food's name drops a metric weight glued to its number ("115g mozzarella" is "mozzarella"), and the guard below
+takes the amounts R2 found held although the method proves them);
+`line-builder/13` since the staging read of `cleanup2/ck12-lines-proof` (no new rule in the builder itself; the
+parser, the method finder and the guard it calls changed): the parser reads a spelt fraction with its own number
+("essence violets, one-quarter ounce" is a quarter ounce, not one and a quarter; "one pound and a quarter", "a pint
+and a third", "an eighth of a cupful", "half a quarter of a pint", "a third of a yeast-cake"), a half-pint added to
+quarts as one more cup, and gives no amount for a spelt fraction of another amount ("a third as much soda", "one
+fourth of the flour", "two-thirds Java coffee"), a peck or bushel, a vessel filled in part ("a teacup two thirds
+full"), a size under an inch and a recipe number ("forcemeat No. 1", "sirup No. 3 or 4"); the method finder gives none
+for a line that names what its food is for ("oil for frying"), an oven or fat temperature ("to 350C"), one piece
+named in the singular for a plural line ("on a corn tortilla") or a fraction it cannot read; and the guard reads
+under `reprocess-audit/9` (below)
 is stamped on every journal row. Raise it with any
 change to a rule the builder applies: the detector reads again every recipe an older version read,
 and the lane's signature changes, so its tiers go back to shadow until they qualify under the new
@@ -138,7 +154,13 @@ wording. Each line built from a stored row is compared with that row, and the ve
   `rebuilt-empty-method` (as before, the stored amount grounded only by a method sentence naming the line's
   food or wording, whose number may be another food's: "yellow wax half a pound, Sack six spoonfuls" grounds
   half a pound of Sack; held so the line judge sees it), `rebuilt-ungrounded` (the rebuilt amount does not stand in the line's own source text),
-  `kind` (an empty note, instruction or artefact line: headings and method text take no amount), and
+  `kind` (an empty note, instruction or artefact line: headings and method text take no amount; since
+  `line-builder/12` such a line that is no heading, yield or utensil on its face takes a measure a method
+  sentence states once, right before its own words, read the same again by the guard: `method-measure`, a
+  replace, as "one and one-half cups of boiling water" on a boiling-water line the line lane filed as a note;
+  since `line-builder/13` a note or instruction that is no fold of lines also takes the measure its own line
+  states of the food it names: `line-measure`, a replace, as "White-wine vinegar 3½ quarts" filed as an
+  instruction; an artefact never; a count of pieces never does), and
   `both-grounded` (both stand and differ, as "four or five oranges" or "two pounds or two quarts").
 
 The run counts them per recipe and in total, for rebuilt and for unchanged recipes alike (`guardKept`,
@@ -153,7 +175,11 @@ replace: it never empties a stored amount ("two of sugar" stays two pieces), and
 source line, the reason, the rule version and the writer (`rebuild` on an apply, including an apply that
 changes nothing because every difference is held; `startup-fill` on each start). There is one open hold per
 line and writer: a writer that reads the line again updates it, and resolves it (`released`) when it no longer
-holds the line; a rebuild apply resolves the start-up fill's open holds of its recipe (`rebuilt`). A hold
+holds the line. A line is the same line by its food and its source text wherever it stands (since
+`cleanup2/ck11-lines`, staging checkpoint 6 R22: after the order-only pass the next start released 152
+start-up fill holds and made 152 new rows for the same lines): its hold moves with it to its new position,
+unless another open hold of the writer stands there or another held line takes its old place, and only then
+is a line matched by position alone; a rebuild apply resolves the start-up fill's open holds of its recipe (`rebuilt`). A hold
 writes nothing to the recipe. A dry run stores none. An undo of a rebuild resolves that recipe's open
 rebuild holds (`undone`) in the undo's transaction; the next start-up fill reads the recipe again and records
 its own. A worker that takes a hold still first checks that the row carries the stored amount. `ResolvedAt` and `Resolution` are for
@@ -173,6 +199,24 @@ replaced and 26 held; the 2 wrong amounts end as before (one held, one unchanged
 stated amounts are kept and the eighth was wrong before too; no replaced line is one the reading judged
 right before.
 
+Measured at the checkpoint-6 round (`line-builder/12`, `reprocess-audit/8`, R1 and R2): the 197 start-up fill
+holds of checkpoint 6 (`ck6/holds.csv`, with the full method; the 22 `both-grounded` ones not replayed, their stored
+amount not exported) replayed against `/11`: of 175, **40 held lines are now filled, every one right** by a reading
+of its sentence (10 of them among the 32 holds the checkpoint read, 2 among its Q1 re-test (78123, 82513), with the operator's one doubtful one, "Half a
+Pint of Pippin Jelly", read as right), the other 135 held as before. The 90 start-up fills the checkpoint judged: only
+133802 changes, from 2 cups to a third of a cup. The 133 changed lines of the 80 rebuilt recipes the checkpoint
+read: no verdict changes (one hold changes its reason, `rebuilt-empty` to `rebuilt-empty-method`). A reading
+scan of every line of a staging copy (847,401 lines; the line parser, then the method finder where the start-up
+fill would ask it, old and new side by side) changes 190 readings and none wrongly: 39 new readings, every one an
+ordinal fraction of a measure read whole ("one-sixth pint of white wine", "one-fifth pint of brandy", "four-fifths
+ounce"); 22 changed (18 lines the parser now reads, "one-tenth ounce cassia" a tenth of an ounce and no longer one
+piece, and 4 method readings corrected: three wrong pints, 133802 among them, and "two-fifths of a tablespoonful");
+129 withdrawn, all wrong or not one amount: 126 counts of pieces that were proportions ("two-thirds potatoes and
+one-third fish", "three-quarters full of shaved ice", "a quarter one of pepper", "quarter the apples"), "the fourth
+of a pound of brown sugar" read as a pound, and two lines that took one of two stated amounts (two of the 126,
+"juice of a quarter of lemon" and "the halves of an English walnut", were near right and are now left to the line
+judge). The list is in the `cleanup2/ck11-lines` build report.
+
 Measured at the checkpoint-5 round (`line-builder/11`): on the held-out half of `line-holdout.tsv` the guard
 gives 78 same, 0 kept, 5 replaced and 7 held, none worse, 5 better and **0 replaced wrong**
 (`line-holdout.json`, `guard`; `/10` gave 4 kept, 6 replaced, 2 held, 6 better: one right emptying is now held
@@ -186,6 +230,31 @@ own tablespoon, cream (or milk), Béchamel; "a scant cup of water" twice; "a sma
 "a can of tomatoes"). Three emptyings the reading judged right or doubtful (103590, 110439, 46916) are now
 held (`rebuilt-empty-method`), so the wrong stored amounts wait in the queue: an empty rebuild never replaces. The 42 kept lines of the reading carry no
 rebuilt amount in the log and are not replayed; by the rules a kept line can only stay kept or become held.
+
+Measured at the staging read of `cleanup2/ck12-lines-proof` (`line-builder/13`, `reprocess-audit/9`, read-only on
+the staging copy after checkpoint 6, with the start-up fill's own `Fill` and guard run locally over every scraped
+recipe, the rows put back to their state before checkpoint 6's first start). `reprocess-audit/9` grounds an amount
+after a leading "optional" or "~", with entities and vulgar fractions read, "saltspoonful", "teacupful" (also "tea
+cup"), "a bunch", "a head" or "a stalk" of the food, an article before up to three words that describe the food ("a
+well-beaten egg", "a small chopped onion"; "a chopped half-onion" is no one), "dozen" after a number as its measure
+("one dozen and a half" is 1.5 dozen) and a number hyphened to its measure ("one-half-pint"); A3 takes a count in
+pieces for the juice of a number of fruit ("juice from 2 limes"; not the juice of a can), reads a line's measure
+outside its brackets only ("Juice from 1/2 lemon (about 2 teaspoons)" is a count), and lets cooked, cold or chopped
+bird meat be measured by volume. A slice a method sentence names is still no amount: half of those read are one per
+serving ("a slice of buttered toast" under each egg, "between every two pancakes"). The checkpoint's 3,630 fills
+it could place are all reproduced by the checkpoint build; this build changes 2 of them (133802 and "essence
+violets, one-quarter ounce", 1.25 to 0.25 ounce), drops 14 (proportions read as pieces, "the fourth of a pound",
+amounts that were one of two stated, "a tumbler two-thirds full", "Heat oil in a pan to 350C" as 350 cups of oil,
+one piece per serving for a plural line; three of the 14, "a beaten egg" twice and one olive, were right and are left
+to the line judge)
+and makes 706 more fills over all recipes (the start reads only the recipes no line operation holds). Of six
+fresh draws of 60 fills, the second, third and fourth found one wrong each, fixed by kind; the last two found
+none, and every fill the guard changes let pass was read. The start-up fill's holds fall from 654 to 179 over all recipes and,
+in the recipes checkpoint 6's start read, from 190 to 54 (`rebuilt-ungrounded` 43, `both-grounded` 6, `kind` 5); of
+40 fresh holds read, 16 are right to hold and no held wrong amount passes. The rest are slices the method names,
+both-grounded counts against a measure the line states ("3-4 tablespns.", "a couple of cloves" against a stored 1),
+"wine glass" spelt apart and bird meat whose method alone says it is cooked. The draws are in the
+`cleanup2/ck12-lines-proof` build report.
 
 ## Rebuild
 
@@ -240,7 +309,7 @@ Each keeps the stored lines and is reported as `held` with its reason:
 
 | Reason | Rule |
 |---|---|
-| `person-edit` | the recipe was saved in the editor (`Recipe.Version` above 1) |
+| `person-edit` | the recipe was saved in the editor (`Recipe.Version` above 1). Since `cleanup2/ck11-lines` (staging checkpoint 6, R10) a save that leaves the recipe as it was keeps its version, and a save that brings it back to what it was before the person's first edit (an edit and its revert, nothing else written to the recipe in between) puts that version back: the first edit of a recipe at version 1 or below records the version and a fingerprint of the content before it (name, description, servings, the lines in order with food, amount, unit, text and kind, the step texts) as a `PersonEditBase` audit row. A save rewrites a step's `Summary` only for a step whose text changed, cut to its 255 characters (R4: a step over 255 characters made every save of the recipe fail, and every save overwrote every step's `Summary`). The cut never splits a character outside the basic plane, so an emoji at the 255th place is left out whole. Each step `Summary` an edit replaces is recorded once against the fingerprint it belongs to (`PersonEditBase`, entity `RecipeStep`, property `Summary[n]`), and the revert that puts the version back puts those summaries back too |
 | `rejected` | the recipe is Rejected |
 | `compound-split` | a compound split or alternative pick (`LineSplit`, `LineAlternative`) stands on the recipe; the rebuild does not repeat those rules yet, so it would join the split again |
 | `planned-food-change` | the recipe is in a meal plan from today on and a line would change its food (amounts, order and kinds may change) |
@@ -263,7 +332,11 @@ after three real steps, recipe 22541 at checkpoint 1) has real steps and is only
 issues and a `RuleReject` row in `audit.AuditLogEntry` (entity `Recipe`). The rejection is its own
 journal row of kind `rule-reject` with the state before and after and no rows; when the lines change
 too, a `rebuild` row before it holds them. So `undo?kind=rule-reject` takes back every rule
-rejection and leaves the rebuilt lines, and an undo of the whole batch takes back both.
+rejection and leaves the rebuilt lines, and an undo of the whole batch takes back both. Since
+`cleanup2/ck11-lines` (staging checkpoint 6, R19) `undo?kind=rebuild` takes a rebuild run's rule
+rejections too, since a rebuild run writes them, and its dry run and result count them apart in
+`restoredByKind` (`rule-reject`); before, it restored the lines and left those recipes Rejected
+without saying so.
 
 ### Idempotence
 
@@ -332,7 +405,8 @@ with plain SQL, so the stamps they are given stand. A new row keeps the created 
 the row it was paired with, and is stamped as last changed by the system person.
 
 `POST /api/RecipeReprocess/undo?sinceUtc=&batchId=&kind=&apply=false&batchSize=500&maxBatches=&runId=` takes back the writes made
-at or after `sinceUtc`, or of one batch, newest first, limited to one kind when given. A write is
+at or after `sinceUtc`, or of one batch, newest first, limited to one kind when given (`rebuild` includes the
+same runs' `rule-reject` rows). A write is
 restored only when the recipe's rows (deleted ones included) still equal `NewRows`, and its steps
 `NewSteps` when it replaced them; otherwise it is skipped and its recipe listed. A kind the
 line-classify lane gave since to a row the write left without one does not count as a change: that
@@ -548,7 +622,11 @@ point of a measure's abbreviation ("1/2 pt. of cream") ends no method sentence; 
 of an initial ("J. P. Smith's Curry Powder") ends none either, a method sentence counts when it names the food or
 the line's own wording (a line "sweetbreads" on the USDA food "Veal, variety meats and by-products, thymus, raw"),
 and "a" or "an" counts one also before a can or before a size word and a measure ("a scant teaspoonful", "a large
-tablespoon", and a line opening "scant cup of"). A line that starts with
+tablespoon", and a line opening "scant cup of"); since `reprocess-audit/8` an ordinal fraction is read whole with
+the "of a" after it ("three-quarters of a pint" is 0.75 pint, so the "a" no longer grounds a whole pint; "two and
+one-half pounds" is 2.5), a spoon measure spelt with a hyphen or a space ("table-spoonful", "tea spoonsful") is a
+measure, and a count of a measure may be a fraction, a vulgar fraction, "half a" or "a couple of" ("1/2 pony", "half
+a pony", "a couple of tea-spoonsful"). A line that starts with
 a number or "two cups of" stored with no amount fails. A2 a line moved to another food names that food. A3 pieces only of a food with a weight
 per item and never of a liquid or of a line that states a measure; no volume of a whole bird; a
 volume of a seasoning or leavener (salt, pepper, a ground spice, baking powder or baking soda, yeast;
@@ -595,8 +673,8 @@ tier's auditor is an exact rule (a decision is wrong when a line changed anythin
 or when its rows do not follow the source's order, O1), 10 % sample, qualify 99 %, pause above 2 % over 400.
 
 **Undo.** `ReprocessLaneUndo` takes back the tier's own batches (`rl-`) since the last clean window,
-newest first, through the journal (rule rejections, then rebuilds; order restores for the order
-tier), and marks those candidates `undone`: they wait for the next change of the line rules. An
+newest first, through the journal (rule rejections and rebuilds in one pass by kind `rebuild`, each
+counted once; order restores for the order tier), and marks those candidates `undone`: they wait for the next change of the line rules. An
 operator's rebuild (`rp-`) is never the lane's to undo.
 
 The Pipeline page shows the frame rows of both tiers and a "Recipe rebuild" block: candidates

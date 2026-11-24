@@ -31,7 +31,60 @@ namespace Nom.Api.Tests.Services
             method.Steps[1].Amounts.Should().Equal("Q3", "Q4", "Q5");
             method.Steps[1].Lines.Should().Equal("L3", "L4");
             method.Lines.Select(l => (l.Id, l.Head, l.Name)).Should().StartWith(("L1", "oil", "olive oil"));
-            method.Unmask("Warm [Q1] {L1}, then ⟦Q2⟧.").Should().Be("Warm ½ tablespoon oil, then a minute or two.");
+            method.Unmask("Warm [Q1] {L1}, then ⟦Q2⟧.").Should().Be("Warm ½ tablespoon olive oil, then a minute or two.");
+            method.Unmask("Warm the olive ⟦L1⟧ and the ⟦L2⟧.").Should().Be("Warm the olive oil and the garlic.");
+        }
+
+        [Fact]
+        public void Rules_give_each_sheet_its_heats_in_fixed_phrases_and_which_amount_measures_which_ingredient()
+        {
+            var method = ProseMasking.Mask(GarlicSauce.Method, GarlicSauce.Lines);
+
+            ProseFactSheet.HeatsOf(method.Steps[0].Text).Should().Equal("over medium heat");
+            ProseFactSheet.HeatsOf("Bake in a moderate oven, then serve it cold.").Should().Equal("in a moderate oven", "serve cold");
+            ProseFactSheet.MeasuresOf(method.Steps[0].Text).Should().Equal("⟦Q1⟧ of ⟦L1⟧");
+            ProseFactSheet.MeasuresOf(method.Steps[1].Text).Should().Equal("⟦Q3⟧ ⟦L3⟧", "⟦Q4⟧ ⟦L4⟧");
+            ProseFactSheet.MeasuresOf("Simmer for ⟦Q2⟧ and add the ⟦L2⟧.").Should().BeEmpty();
+            ProseFactSheet.TimingsOf(method, method.Steps[0].Text).Should().Equal("cook for ⟦Q2⟧");
+            ProseFactSheet.TimingsOf(method, method.Steps[1].Text).Should().Equal("simmer for ⟦Q5⟧");
+            ProseFactSheet.InStepOrder("Wash the ⟦L1⟧ well and slice them into rounds.", new[] { "slice", "wash", "trim" }).Should().Equal("wash", "slice", "trim");
+            var sheet = ProseCleanRoom.RuleSheets(method)[0];
+            sheet.Heat.Should().Equal("over medium heat");
+            ProseFactSheet.Render(sheet).Should().Contain("⟦Q1⟧ of ⟦L1⟧").And.Contain("over medium heat");
+        }
+
+        [Fact]
+        public void A_written_step_that_drops_or_changes_its_heat_or_its_oven_fails_the_form_rules_and_a_dropped_measure_is_put_back()
+        {
+            var method = ProseMasking.Mask(GarlicSauce.Method, GarlicSauce.Lines);
+            var sheets = ProseCleanRoom.RuleSheets(method);
+
+            ProseCleanRoom.HeatProblems(method.Steps[0].Text, "Warm ⟦Q1⟧ ⟦L1⟧ and fry the ⟦L2⟧ ⟦Q2⟧.").Should().ContainSingle().Which.Should().Contain("over medium heat");
+            ProseCleanRoom.HeatProblems(method.Steps[0].Text, "Warm ⟦Q1⟧ ⟦L1⟧ on high and fry the ⟦L2⟧ ⟦Q2⟧.").Should().ContainSingle().Which.Should().Contain("another heat");
+            ProseCleanRoom.HeatProblems("Preheat the oven to ⟦Q1⟧.", "Heat to ⟦Q1⟧.").Should().ContainSingle().Which.Should().Contain("oven");
+            ProseCleanRoom.HeatProblems(method.Steps[0].Text, GarlicSauce.Written[0]).Should().BeEmpty();
+            ProseFactSheet.RepairMeasures(sheets[0], "Warm the ⟦L1⟧ over medium heat and fry the ⟦L2⟧ ⟦Q2⟧.").Should().Be("Warm ⟦Q1⟧ of ⟦L1⟧ over medium heat and fry the ⟦L2⟧ ⟦Q2⟧.");
+            ProseFactSheet.RepairMeasures(sheets[0], GarlicSauce.Written[0]).Should().Be(GarlicSauce.Written[0]);
+            ProseFactSheet.RepairMeasures(sheets[1], "Add ⟦Q3⟧ ⟦L3⟧ and ⟦Q4⟧ ⟦L4⟧, then simmer ⟦Q5⟧ of the sauce until a little thicker.").Should().Be("Add ⟦Q3⟧ ⟦L3⟧ and ⟦Q4⟧ ⟦L4⟧, then simmer the sauce for ⟦Q5⟧ until a little thicker.");
+            ProseFactSheet.RepairMeasures(sheets[0], "Warm ⟦Q1⟧ of ⟦L1⟧ and fry ⟦Q2⟧ of ⟦L2⟧ for ⟦Q2⟧.").Should().Be("Warm ⟦Q1⟧ of ⟦L1⟧ and fry ⟦L2⟧ for ⟦Q2⟧.");
+            ProseFactSheet.RepairMeasures(sheets[0], "Warm ⟦Q1⟧ of ⟦L1⟧ and fry ⟦Q2⟧ of ⟦L2⟧ in ⟦Q2⟧ of ⟦L1⟧.").Should().Contain("⟦Q2⟧ of ⟦L2⟧");
+        }
+
+        [Fact]
+        public void Sheets_with_a_slip_are_mended_by_rule_and_keep_the_extractors_cues()
+        {
+            var method = ProseMasking.Mask(GarlicSauce.Method, GarlicSauce.Lines);
+            var sheets = ProseCleanRoom.RuleSheets(method)
+                .Select(s => s.Number == 1 ? s with { Actions = new[] { "heat" }, Objects = new[] { "⟦L1⟧" }, Cues = new[] { "until it smells good", "with ⟦Q2⟧ more" }, Amounts = new[] { "⟦Q1⟧" } } : s)
+                .ToList();
+
+            ProseFactSheet.Problems(method, sheets).Should().NotBeEmpty();
+            var mended = ProseCleanRoom.MendSheets(method, sheets);
+
+            ProseFactSheet.Problems(method, mended).Should().BeEmpty();
+            mended[0].Cues.Should().Equal("until it smells good");
+            mended[0].Objects.Should().Contain("⟦L2⟧");
+            mended[0].Amounts.Should().Equal("⟦Q1⟧", "⟦Q2⟧");
         }
 
         [Fact]
@@ -97,7 +150,7 @@ namespace Nom.Api.Tests.Services
 
             outcome.Passed.Should().BeTrue(string.Join("; ", outcome.Attempts.SelectMany(a => a.Reasons)));
             outcome.Attempts.Should().ContainSingle();
-            outcome.Rewrite!.Steps[0].Should().Be("Warm ½ tablespoon oil in a small pan on medium and fry the garlic a minute or two, just until it smells good.");
+            outcome.Rewrite!.Steps[0].Should().Be("Warm ½ tablespoon olive oil in a small pan on medium and fry the garlic a minute or two, just until it smells good.");
             outcome.Rewrite.Steps[1].Should().Contain("¾ cup cream").And.Contain("7 to 10 minutes");
             outcome.Rewrite.Description.Should().Be("Garlic Cream Sauce, made with heavy cream and butter.");
             judge.Read.Should().ContainSingle();
@@ -129,8 +182,9 @@ namespace Nom.Api.Tests.Services
             outcome.Passed.Should().BeTrue();
             outcome.Attempts.Should().HaveCount(2);
             outcome.Attempts[0].Reasons.Should().Contain(ProseCleanRoom.FormReason)
-                .And.Contain(r => r.Contains("step 2 must use ⟦Q3⟧ exactly once")).And.Contain(r => r.Contains("amount of its own (\"½ cup\")"));
-            writer.Requests[1].Problems.Should().Contain(p => p.Contains("⟦Q3⟧"));
+                .And.Contain(r => r.Contains("amount of its own (\"½ cup\")"));
+            writer.Requests[1].Problems.Should().Contain(p => p.Contains("step 2"));
+            writer.Requests[1].Steps.Should().Equal(1);
             writer.Requests[1].Temperature.Should().BeGreaterThan(0);
         }
 
@@ -207,7 +261,7 @@ namespace Nom.Api.Tests.Services
         }
 
         [Fact]
-        public async Task Sheets_the_extractor_cannot_state_are_built_by_rule_and_then_no_rule_rendering_is_tried()
+        public async Task Sheets_the_extractor_cannot_state_are_built_by_rule_and_their_rule_rendering_is_still_tried()
         {
             var writer = new FakeWriter("{\"steps\":[]}") { Extract = _ => "{}" };
 
@@ -215,8 +269,22 @@ namespace Nom.Api.Tests.Services
 
             outcome.RuleSheets.Should().BeTrue();
             writer.Extracted.Should().HaveCount(2);
-            outcome.Attempts.Should().HaveCount(ProseLanePrompts.Attempts.Count);
-            outcome.FailureClass.Should().Be(ProseCleanRoom.WriterUnreadable);
+            outcome.Attempts.Should().HaveCount(ProseCleanRoom.AttemptCount);
+            outcome.Attempts[^1].Style.Should().Be(ProseLanePrompts.RuleAttempt);
+        }
+
+        [Fact]
+        public async Task A_later_attempt_writes_again_only_the_steps_the_last_one_failed_on()
+        {
+            var writer = new FakeWriter(
+                FakeWriter.Steps(GarlicSauce.Written.Select((s, i) => i == 1 ? string.Empty : s)),
+                FakeWriter.Steps(GarlicSauce.Written.Select((s, i) => i == 1 ? s : "Wrong.")));
+
+            var outcome = await ProseCleanRoom.RunAsync(GarlicSauce.Input(), writer, new FakeJudge());
+
+            outcome.Passed.Should().BeTrue();
+            outcome.Attempts.Should().HaveCount(2);
+            writer.Requests[1].Steps.Should().BeEquivalentTo(new[] { 1 });
         }
 
         [Fact]

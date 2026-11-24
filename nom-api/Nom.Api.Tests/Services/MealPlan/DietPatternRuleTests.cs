@@ -108,9 +108,10 @@ namespace Nom.Api.Tests.Services.MealPlan
                 var pattern = "%" + e.Term + "%";
                 var rule = DietPatternRule.For(pattern, e.Types?[0]);
                 DietCriteriaMatcher.LikeRegex(pattern).IsMatch(e.Phrase).Should().BeTrue($"\"{e.Phrase}\" holds the term {e.Term}, or it needs no exception");
-                rule.IsMatch("1 cup " + e.Phrase).Should().BeFalse($"\"{e.Phrase}\" is a named exception of {e.Term}");
-                rule.IsMatch("1 cup " + e.Phrase.ToUpperInvariant() + ", chopped").Should().BeFalse("an exception is read without case");
-                rule.IsMatch("1 cup " + e.Phrase + " and 2 " + e.Term).Should().BeTrue($"the term {e.Term} beside \"{e.Phrase}\" still counts");
+                var phrase = e.Phrase.Replace("*", "fine");
+                rule.IsMatch("1 cup " + phrase).Should().BeFalse($"\"{e.Phrase}\" is a named exception of {e.Term}");
+                rule.IsMatch("1 cup " + phrase.ToUpperInvariant() + ", chopped").Should().BeFalse("an exception is read without case");
+                rule.IsMatch("1 cup " + phrase + " and 2 " + e.Term).Should().BeTrue($"the term {e.Term} beside \"{e.Phrase}\" still counts");
                 e.Reason.Should().NotBeNullOrWhiteSpace();
             }
             DietPatternRule.For("%goose%").IsMatch("1 cup gooseberries").Should().BeFalse("a phrase ending in y also reads its plural in ies");
@@ -135,6 +136,37 @@ namespace Nom.Api.Tests.Services.MealPlan
             DietPatternRule.All.Select(e => e.Term).Distinct().Where(t => !terms.Contains(t)).Should().BeEquivalentTo(new[] { "pea" }, "Peanut Allergy and the tree nut types hold % nut% since diet-patterns/5, a nut a line does not name (staging checkpoint 5)");
         }
 
+        [Theory]
+        [InlineData("%creme%", "Crème fraîche")]
+        [InlineData("%atun%", "Atún en aceite")]
+        [InlineData("%shrimp%", "Shrimp")]
+        [InlineData("%sesame%", "ajonjolí or sesame")]
+        [InlineData("%bearnaise%", "Sauce Béarnaise")]
+        [InlineData("%oeuf%", "Œufs à la neige")]
+        public void The_postgres_expression_finds_a_name_whose_only_spelling_of_the_term_is_accented_as_the_folded_reading_does(string pattern, string text)
+        {
+            var rule = DietPatternRule.For(pattern);
+            rule.IsMatch(text).Should().BeTrue("the store reads the folded text");
+            var postgres = rule.Expression(DietRegexDialect.Postgres).Replace("[^[:alpha:]]", @"[^\p{L}]").Replace("[[:alpha:]]", @"\p{L}").Replace("[[:space:](-]", @"[\s(-]").Replace("[^[:alnum:]]", @"[^\p{L}\p{N}]");
+            Regex.IsMatch(text, postgres, RegexOptions.IgnoreCase | RegexOptions.CultureInvariant).Should().BeTrue("the database probe reads the stored text unfolded and must return every row the store counts");
+        }
+
+        [Theory]
+        [InlineData("SNACK BAR (Atkins Nutritionals, Inc.)", true, "SNACK BAR")]
+        [InlineData("CORN FLAKES (Kellogg Company Us)", true, "CORN FLAKES")]
+        [InlineData("FIG BARS, FIG (J&J Snack Foods Corp)", true, "FIG BARS, FIG")]
+        [InlineData("TRAIL MIX (PEANUTS, RAISINS)", true, "TRAIL MIX (PEANUTS, RAISINS)")]
+        [InlineData("Pasta (dry)", false, "Pasta (dry)")]
+        public void A_branded_foods_closing_bracket_is_its_maker_only_as_the_import_writes_the_owner(string name, bool branded, string read) =>
+            DietPatternRule.WithoutMaker(name, branded).Trim().Should().Be(read);
+
+        [Fact]
+        public void A_description_bracket_of_a_branded_food_is_still_read_by_its_name()
+        {
+            var peanut = DefaultRestrictionCriteria.ByName["Peanut Allergy"].Patterns.Where(p => !DietCriteriaMatcher.IsWordPattern(p)).Select(p => DietPatternRule.For(p, "Peanut Allergy"));
+            peanut.Any(r => r.IsMatch(DietPatternRule.WithoutMaker("TRAIL MIX (PEANUTS, RAISINS)", true))).Should().BeTrue();
+        }
+
         [Fact]
         public void The_postgres_expressions_are_the_dotnet_ones_with_postgres_letter_and_space_classes()
         {
@@ -147,7 +179,7 @@ namespace Nom.Api.Tests.Services.MealPlan
                 rule.Expression(DietRegexDialect.Postgres).Should().NotContain(@"\p").And.NotContain("(?<");
             }
 
-            static string Swap(string postgres) => postgres.Replace("[^[:alpha:]]", @"[^\p{L}]").Replace("[[:alpha:]]", @"\p{L}").Replace("[[:space:]-]", @"[\s-]");
+            static string Swap(string postgres) => Regex.Replace(Regex.Replace(postgres, @"\(\?:(oe|ae|ss)\|[œæß]\)", "$1"), @"\[([a-z])[àáâãäåèéêëìíîïòóôõöøùúûüçñýÿ]+\]", "$1").Replace("[^[:alpha:]]", @"[^\p{L}]").Replace("[[:alpha:]]", @"\p{L}").Replace("[[:space:]-]", @"[\s-]").Replace("[[:space:](-]", @"[\s(-]").Replace("[^[:alnum:]]", @"[^\p{L}\p{N}]").Replace("[[:alnum:]'’]", @"[\p{L}\p{N}'’]").Replace("[[:space:]&]", @"[\s&]");
         }
 
         [Fact]

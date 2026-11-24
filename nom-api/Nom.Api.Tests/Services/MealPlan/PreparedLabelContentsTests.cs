@@ -127,12 +127,13 @@ namespace Nom.Api.Tests.Services.MealPlan
         public async Task A_word_that_may_hide_an_ingredient_is_never_left_out_so_its_name_stays_unknown()
         {
             using var db = await HouseholdAsync("Fish Allergy");
-            (await JudgeAsync(db, await MealAsync(db, "Rice, crab flavored seafood, salt"))).Held.Should().Be(PreparedContentsHeld.Unresolved);
+            (await JudgeAsync(db, await MealAsync(db, "Rice, crab flavored seafood, salt"))).Held.Should().Be(PreparedContentsHeld.Restricted, "seafood names fish and shellfish together since diet-vocabulary/2 (proof draw 3 of ck11)");
+            (await JudgeAsync(db, await MealAsync(db, "Rice, crab flavored stock, salt"))).Held.Should().Be(PreparedContentsHeld.Unresolved);
             var surimi = await JudgeAsync(db, await MealAsync(db, "Rice, imitation crab, salt"));
             surimi.Held.Should().Be(PreparedContentsHeld.Restricted, "imitation crab is surimi of pollock");
             StatementLabelTerms.Match("breaded chicken").Should().BeNull();
             StatementLabelTerms.Match("vegan cheese").Should().BeNull();
-            StatementLabelTerms.Match("white chocolate").Should().BeNull();
+            StatementLabelTerms.Match("dark chocolate").Should().BeNull();
             StatementLabelTerms.Match("imitation crab")!.Single().Term.Should().Be("surimi");
         }
 
@@ -267,7 +268,7 @@ namespace Nom.Api.Tests.Services.MealPlan
             DefaultRestrictionCriteria.CompositeCompanions.Should().NotBeEmpty();
             foreach (var c in DefaultRestrictionCriteria.CompositeCompanions)
             {
-                var composite = StatementLabelTerms.Composites.Single(t => StatementLabelTerms.PatternsOf(t).Contains(c.Companion));
+                var composite = StatementLabelTerms.Composites.Concat(DietDishes.Composites).Single(t => StatementLabelTerms.PatternsOf(t).Contains(c.Companion));
                 composite.Contains.Should().Contain(w => DietPatternRule.For(c.Pattern, c.Type).IsMatch("1 cup " + w), $"{c.Type}: {c.Pattern} restricts what {composite.Term} is made of");
                 DietPatternRule.For(c.Companion).IsMatch("1 cup " + c.Companion.Trim('%')).Should().BeTrue();
                 DefaultRestrictionCriteria.ByName[c.Type].Patterns.Should().Contain(c.Companion);

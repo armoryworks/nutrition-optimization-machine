@@ -30,6 +30,9 @@ import {
   SourceRightsRecord,
   SourceRightsRun,
   SourceTaken,
+  RecipeRemovalReport,
+  RecipeRemovalRun,
+  RecipeRemovalStatus,
 } from '../core/models/scraping-source.model';
 import { LoadingService } from '../core/services/loading.service';
 
@@ -84,6 +87,9 @@ export class ScrapingSources implements OnInit {
   rightsRun = signal<SourceRightsRun | null>(null);
   stepResult = signal<SourceRecipeStep | null>(null);
   taken = signal<SourceTaken[]>([]);
+  removal = signal<RecipeRemovalStatus | null>(null);
+  removalResult = signal<RecipeRemovalReport | null>(null);
+  backupTaken = new FormControl(false, { nonNullable: true });
   /** Source id whose written-permission form is open. */
   permissionFor = signal<number | null>(null);
   permissionError = signal('');
@@ -150,6 +156,56 @@ export class ScrapingSources implements OnInit {
     this.scrapingSourceService.taken().pipe(takeUntilDestroyed(this.destroyRef)).subscribe({
       next: (taken) => this.taken.set(taken),
       error: () => this.taken.set([]),
+    });
+    this.scrapingSourceService.removalStatus().pipe(takeUntilDestroyed(this.destroyRef)).subscribe({
+      next: (status) => this.removal.set(status),
+      error: () => this.removal.set(null),
+    });
+  }
+
+  retire(sourceId: number | null, apply: boolean): void {
+    this.removalRequest(this.scrapingSourceService.retireRecipes(sourceId, apply), apply);
+  }
+
+  undoRetire(stamp: string, apply: boolean): void {
+    this.removalRequest(this.scrapingSourceService.undoRetire(stamp, apply), apply);
+  }
+
+  purge(sourceId: number | null, apply: boolean): void {
+    if (apply && !this.backupTaken.value) {
+      this.errorMessage.set('A purge cannot be undone: confirm that a database backup was taken first.');
+      return;
+    }
+    this.removalRequest(this.scrapingSourceService.purgeRecipes(sourceId, apply, apply && this.backupTaken.value), apply);
+  }
+
+  removalSkipped(result: RecipeRemovalReport): string[] {
+    return Object.entries(result.skippedByReason ?? {}).map(([reason, count]) => `${count} ${reason}`);
+  }
+
+  runLabel(run: RecipeRemovalRun): string {
+    const scope = run.sourceId != null ? `source ${run.sourceId}` : 'every forbidden source';
+    return `${run.kind} · ${scope} · ${run.done} of ${run.planned}${run.finishedAtUtc ? '' : ' · unfinished'}`;
+  }
+
+  private removalRequest(request: Observable<RecipeRemovalReport>, reload: boolean): void {
+    this.processing.set(true);
+    this.errorMessage.set('');
+    request.pipe(takeUntilDestroyed(this.destroyRef)).subscribe({
+      next: (result) => {
+        this.removalResult.set(result);
+        this.processing.set(false);
+        if (reload) {
+          this.backupTaken.setValue(false);
+          this.load();
+        }
+      },
+      error: (err) => {
+        const refused = err?.error?.refused as string | undefined;
+        if (err?.error?.stage) this.removalResult.set(err.error as RecipeRemovalReport);
+        this.errorMessage.set(refused ?? err?.error?.error ?? 'The removal step failed.');
+        this.processing.set(false);
+      },
     });
   }
 

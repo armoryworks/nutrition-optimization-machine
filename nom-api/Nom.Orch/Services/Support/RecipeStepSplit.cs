@@ -36,6 +36,6 @@ namespace Nom.Orch.Services.Support
         }
 
         public static string Clamp(string value, int maxLength) =>
-            value.Length <= maxLength ? value : value[..maxLength].TrimEnd();
+            value.Length <= maxLength ? value : value[..(char.IsHighSurrogate(value[maxLength - 1]) ? maxLength - 1 : maxLength)].TrimEnd();
     }
 }

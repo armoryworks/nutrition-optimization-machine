@@ -247,6 +247,26 @@ removes the default `%…%` alcohol patterns. A type an admin has edited is left
 patterns stay until an admin changes them). Rolling the release back puts the old patterns back on
 the old release's own start-up, since its defaults are then missing again.
 
+### Staging checkpoint 6 (`alcohol-context/10`)
+
+R13: the alcohol-context tier wrote 2 of 25 fresh rows to a drink that were not drinks: `uva malaga` (Italian for
+Malaga grapes) and `scotch rolled oats`. "uva", "uve" and "uvas" (grape in Italian and Spanish) now read as another
+food, and the Scotch cereal rule allows one or two words of a cereal's style between "Scotch" and barley, oats,
+oatmeal or groats ("Scotch rolled oats", "Scotch steel cut oatmeal", "Scotch steel-cut oats": rolled, steel, cut,
+pinhead, pearl, pot, hulled, whole, quick, instant, cooking, porridge, fine, medium, coarse, ground, milled); the
+other foods of the rule (eggs, broth, kale, pancakes and the like) still follow "Scotch" directly, so a whisky line
+that says what it is for ("2 tablespoons Scotch for the eggs", "scotch per pancake") stays whisky (branch review).
+Golden rows ac-ck11-01 to ac-ck11-10, both sides.
+
+### Fresh draws on staging (`alcohol-context/11`)
+
+Three read-only draws of 25 written and 25 held alcohol-context rows, none in an earlier sample file
+(`ck12-alcohol-proof.md`). Written rows wrong: 2 of 25 (`garam marsala`, `white wine marmalade`), then 3 of 25
+(`white wine vineger`, `brandy coloring`, `porter-house steak`; `malaga` by the pound doubtful), then 1 of 25
+(`scotch pea pulp`), which meets the bar of at most 1 in 20. Now read as no drink: garam masala (also misspelt
+"marsala"), a porterhouse, brandy colouring (burnt sugar), "vineger" and "vinager" as vinegar, Scotch peas, and a
+drink before marmalade, preserves, compote or chutney (a dish). Golden rows ac-ck12a-01 to ac-ck12a-08.
+
 ## Golden set and scorer
 
 - `alcohol-context.tsv`: 207 lines with the expected sense, a food the sense must allow and one it

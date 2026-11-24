@@ -75,8 +75,8 @@ namespace Nom.Api.Tests.Services.MealPlan
         public void The_postgres_expression_reads_free_from_and_free_of_as_the_dotnet_one_does()
         {
             var rule = Rule("%bread%");
-            rule.Expression(DietRegexDialect.Postgres).Should().Contain("(?![[:space:]-]+(?:from|of)(?![[:alpha:]]))");
-            rule.Expression(DietRegexDialect.DotNet).Should().Contain(@"(?![\s-]+(?:from|of)(?!\p{L}))");
+            rule.Expression(DietRegexDialect.Postgres).Should().Contain("(?![[:space:](-]+(?:from|of)(?![[:alpha:]]))");
+            rule.Expression(DietRegexDialect.DotNet).Should().Contain(@"(?![\s(-]+(?:from|of)(?!\p{L}))");
         }
 
         [Theory]

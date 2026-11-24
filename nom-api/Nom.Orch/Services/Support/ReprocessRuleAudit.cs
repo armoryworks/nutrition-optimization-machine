@@ -14,7 +14,9 @@ namespace Nom.Orch.Services.Support
     /// before a measure, a can or the food, a size word such as "scant" or "large" between) times one of the old measures' factors that text names, or as
     /// pounds and ounces it states added up in ounces. A2: a
     /// line the rebuild moved to another food names that food. A3: a count in pieces is not of a
-    /// liquid or of a line that states a measure, a whole bird is not measured by volume, and a volume
+    /// liquid (but for the juice of a number of fruit, "juice from 2 limes") or of a line that states a measure outside its
+    /// brackets ("Juice from 1/2 lemon (about 2 teaspoons)" is a count), a whole
+    /// bird is not measured by volume (cooked, cold or chopped meat of one is), and a volume
     /// of a seasoning or leavener stays within a quart and of a dry staple within a gallon ("1 gallon
     /// of salt" fails). A4 compares a recipe's failures before and after. A6: the kcal per serving lands in 30 to 2,500
     /// or moves no further from that band. An order restore keeps the source's order (O1). No model
@@ -22,7 +24,7 @@ namespace Nom.Orch.Services.Support
     /// </summary>
     public static class ReprocessRuleAudit
     {
-        public const string Version = "reprocess-audit/7";
+        public const string Version = "reprocess-audit/9";
 
         public const string Grounded = "A1";
         public const string Named = "A2";
@@ -45,7 +47,7 @@ namespace Nom.Orch.Services.Support
             (new Regex(@"\bgallons?\b", RegexOptions.Compiled | RegexOptions.IgnoreCase), 16m),
             (new Regex(@"\bquarts?\b|\bqts?\b", RegexOptions.Compiled | RegexOptions.IgnoreCase), 4m),
             (new Regex(@"\bpints?\b|\bpts?\b", RegexOptions.Compiled | RegexOptions.IgnoreCase), 2m),
-            (new Regex(@"\b(?:gills?|jills?|tea-?cups?\w*)\b", RegexOptions.Compiled | RegexOptions.IgnoreCase), 0.5m),
+            (new Regex(@"\b(?:gills?|jills?|tea[\s-]?cups?\w*)\b", RegexOptions.Compiled | RegexOptions.IgnoreCase), 0.5m),
             (new Regex(@"\bwine-?glass\w*\b", RegexOptions.Compiled | RegexOptions.IgnoreCase), 0.25m),
             (new Regex(@"\bdessert-?sp\w*\b", RegexOptions.Compiled | RegexOptions.IgnoreCase), 2m),
             (new Regex(@"\bsalt-?spoon\w*\b", RegexOptions.Compiled | RegexOptions.IgnoreCase), 0.25m),
@@ -83,10 +85,16 @@ namespace Nom.Orch.Services.Support
 
         private static readonly Regex RangeJoin = new(@"^\s*(?:-|–|to|or)\s*$", RegexOptions.Compiled | RegexOptions.IgnoreCase | RegexOptions.CultureInvariant);
 
+        private static readonly HashSet<string> Describing = new(StringComparer.OrdinalIgnoreCase)
+        {
+            "small", "large", "medium", "good", "nice", "fresh", "well", "beaten", "chopped", "minced", "sliced", "grated", "raw",
+            "boiled", "cold", "hot", "fine", "finely", "whole", "ripe", "young", "sweet", "up", "hard", "soft", "peeled", "cooked",
+        };
+
         private static readonly HashSet<string> Articles = new(StringComparer.OrdinalIgnoreCase) { "a", "an", "un", "uno", "una" };
 
         private static readonly Regex Measure = new(
-            @"\b(?:cups?|cupfuls?|tea-?cups?|tumblers?|glass(?:es|fuls?)?|spoons?|spoonfuls?|tablesp\w*|teasp\w*|tbsp?s?|tsps?|tbp|dessertsp\w*|pints?|quarts?|qts?|gallons?|gills?|jills?|pounds?|lbs?|ounces?|oz|grams?|grammi|gr|kilo\w*|kg|litres?|liters?|litro|ml|pinch(?:es)?|dash(?:es)?)\b\.?",
+            @"\b(?:cups?|cupfuls?|tea[\s-]?cup\w*|coffee[\s-]?cup\w*|salt-?spoon\w*|bunch(?:es)?|stalks?|sprigs?|heads?|hearts?|tumblers?|glass(?:es|fuls?)?|spoons?|spoonfuls?|spoonsful|tablesp\w*|teasp\w*|table[- ]spoon\w*|tea[- ]spoon\w*|tbsp?s?|tsps?|tbp|dessertsp\w*|dessert[- ]spoon\w*|pints?|quarts?|qts?|gallons?|gills?|jills?|pounds?|lbs?|ounces?|oz|grams?|grammi|gr|kilo\w*|kg|litres?|liters?|litro|ml|pinch(?:es)?|dash(?:es)?)\b\.?",
             RegexOptions.Compiled | RegexOptions.IgnoreCase | RegexOptions.CultureInvariant);
 
         private static readonly string[] Volume = { "Cup", "Tablespoon", "Teaspoon", "Milliliter", "Liter", "Pint", "Quart", "Gallon", "Fluid Ounce" };
@@ -169,8 +177,11 @@ namespace Nom.Orch.Services.Support
         /// number stated before them ("1 lb. 13 oz. can" is 29, "2 cans (1 lb. 4 oz. each)" 40), or to two
         /// measures joined by "and" added up, in the smaller measure or in the first ("one quart and a pint"
         /// is 6 cups, "1 pound and 2 ounces" 1.125 pounds). "A" or "an" counts one only before a measure, a can or a word of
-        /// <paramref name="named"/> (the food), so a stray article grounds nothing, and a measure the text opens with
-        /// counts one ("pinch of salt", "tablespoonful grated onion"); a size word may stand before the measure ("a scant
+        /// <paramref name="named"/> (the food), also after up to three words that describe it ("a well-beaten egg", "a small
+        /// chopped onion"), so a stray article grounds nothing, and a measure the text opens with counts one ("pinch of salt",
+        /// "tablespoonful grated onion", "saltspoonful salt", "a bunch of parsley", "a head of celery"). A leading "optional" or "~" is read past,
+        /// and entities and vulgar fractions are read ("Optional: &amp;frac14; teaspoon"). "Dozen" right after a number is that
+        /// number's measure, never a second number ("one dozen and a half" is 1.5 dozen); a size word may stand before the measure ("a scant
         /// teaspoonful", "a large tablespoon", "scant cup of water"). A number that names another recipe of the book ("al N. 579",
         /// "du N. 579") is no amount, nor is a price ("twenty cents' worth").
         /// </summary>
@@ -178,7 +189,7 @@ namespace Nom.Orch.Services.Support
         {
             if (quantity <= 0) return true;
             var food = (named ?? Array.Empty<string?>()).Where(n => !string.IsNullOrWhiteSpace(n)).Select(n => n!).ToList();
-            foreach (var text in texts.Where(t => !string.IsNullOrWhiteSpace(t)).Select(t => Price.Replace(CrossReference.Replace(t!, " "), " ")))
+            foreach (var text in texts.Where(t => !string.IsNullOrWhiteSpace(t)).Select(t => NumberHyphen.Replace(Fractions(Price.Replace(CrossReference.Replace(Hedge.Replace(IngredientNameNormalizer.PlainFractions(System.Net.WebUtility.HtmlDecode(t!)), string.Empty), " "), " ")), " ")))
             {
                 var stated = Stated(text, food);
                 var factors = Factors.Where(f => f.Word.IsMatch(text)).Select(f => f.Factor).Prepend(1m).ToList();
@@ -206,6 +217,34 @@ namespace Nom.Orch.Services.Support
             return false;
         }
 
+        private static readonly Dictionary<string, decimal> Denominators = new(StringComparer.OrdinalIgnoreCase)
+        {
+            ["half"] = 2, ["halves"] = 2, ["third"] = 3, ["thirds"] = 3, ["fourth"] = 4, ["fourths"] = 4, ["quarter"] = 4, ["quarters"] = 4,
+            ["fifth"] = 5, ["fifths"] = 5, ["sixth"] = 6, ["sixths"] = 6, ["seventh"] = 7, ["sevenths"] = 7, ["eighth"] = 8, ["eighths"] = 8,
+            ["ninth"] = 9, ["ninths"] = 9, ["tenth"] = 10, ["tenths"] = 10, ["twelfth"] = 12, ["twelfths"] = 12, ["sixteenth"] = 16, ["sixteenths"] = 16,
+        };
+
+        private static readonly Regex OrdinalFraction = new(
+            @"\b(?<n>an?|one|two|three|four|five|six|seven|eight|nine|ten|eleven)[- ](?<d>halves|half|thirds?|fourths?|quarters?|fifths?|sixths?|sevenths?|eighths?|ninths?|tenths?|twelfths?|sixteenths?)\b(?:\s+of)?(?:\s+an?(?=\s+\p{L}))?",
+            RegexOptions.Compiled | RegexOptions.IgnoreCase | RegexOptions.CultureInvariant);
+
+        /// <summary>
+        /// The text with every ordinal fraction written as its number, the words "of a" after it taken in ("one-sixth of a
+        /// pint" is 0.1667 pint, "three-quarters of a teaspoonful" 0.75 teaspoonful, "two thirds of a cup" 0.6667 cup, "two
+        /// and one-half pounds" two and 0.5 pounds), so the fraction is read whole and its "a" never counts a whole measure.
+        /// </summary>
+        public static string Fractions(string text) => OrdinalFraction.Replace(text, m =>
+        {
+            var n = m.Groups["n"].Value.ToLowerInvariant() is "a" or "an" ? 1m : Words[m.Groups["n"].Value];
+            return (n / Denominators[m.Groups["d"].Value]).ToString("0.####", CultureInfo.InvariantCulture);
+        });
+
+        private static readonly Regex NumberHyphen = new(@"(?<=\d)-(?=\p{L})", RegexOptions.Compiled | RegexOptions.CultureInvariant);
+
+        private static readonly Regex Hedge = new(
+            @"^\s*(?:(?:entirely|totally|completely|strictly)\s+)?optional\b\s*[:\-–,]?\s*|^\s*~\s*",
+            RegexOptions.Compiled | RegexOptions.IgnoreCase | RegexOptions.CultureInvariant);
+
         private static readonly Regex CrossReference = new(
             @"\b(?:al|allo|alla|del|nel|dal|vedi|du|au|voir|voyez)\s+N\.\s*\d+",
             RegexOptions.Compiled | RegexOptions.IgnoreCase | RegexOptions.CultureInvariant);
@@ -220,7 +259,16 @@ namespace Nom.Orch.Services.Support
             @"\b(?<a>" + AmountText + @")\s+(?<u1>[\p{L}-]+)\.?\s+and\s+(?<b>" + AmountText + @")\s+(?<u2>[\p{L}-]+)",
             RegexOptions.Compiled | RegexOptions.IgnoreCase | RegexOptions.CultureInvariant);
 
-        private static decimal? Amount(string text) => Read(text) ?? (Words.TryGetValue(text, out var word) ? word : null);
+        private static decimal? Amount(string text)
+        {
+            var words = Regex.Replace(text.Trim(), @"\s+", " ");
+            if (Regex.Match(words, @"^(?<a>\d+)\s*/\s*(?<b>\d+)$") is { Success: true } fraction)
+                return decimal.Parse(fraction.Groups["b"].Value, CultureInfo.InvariantCulture) is > 0 and var den ? decimal.Parse(fraction.Groups["a"].Value, CultureInfo.InvariantCulture) / den : null;
+            if (words.Length == 1 && Vulgar.TryGetValue(words[0], out var vulgar)) return vulgar;
+            if (Regex.IsMatch(words, @"^half an?$", RegexOptions.IgnoreCase)) return 0.5m;
+            if (Regex.IsMatch(words, @"^an? couple of$", RegexOptions.IgnoreCase)) return 2m;
+            return Read(words) ?? (Words.TryGetValue(words, out var word) ? word : null);
+        }
 
         private static decimal FactorOf(string unit) => Factors.FirstOrDefault(f => f.Word.IsMatch(unit)) is { Word: not null } found ? found.Factor : 1m;
 
@@ -246,9 +294,17 @@ namespace Nom.Orch.Services.Support
                 {
                     var rest = Unsized(text[(m.Index + m.Length)..].TrimStart());
                     var ahead = string.Join(" ", matches.Skip(i + 1).Take(2).Where(n => n.Groups["word"].Success).Select(n => n.Value));
+                    var described = string.Join(" ", matches.Skip(i + 1).SkipWhile(n => Describing.Contains(n.Value)).Take(2).Where(n => n.Groups["word"].Success).Select(n => n.Value));
                     if (Measure.Match(rest) is { Success: true, Index: 0 } || Factors.Any(f => f.Word.Match(rest) is { Success: true, Index: 0 }) || CanWord.IsMatch(rest)
-                        || (ahead.Length > 0 && food.Any(f => FoodNameMatcher.NamesFood(ahead, f))))
+                        || (ahead.Length > 0 && food.Any(f => FoodNameMatcher.NamesFood(ahead, f)))
+                        || (described.Length > 0 && matches.Skip(i + 1).TakeWhile(n => Describing.Contains(n.Value)).Count() is > 0 and <= 3
+                            && !Words.ContainsKey(described.Split(' ')[0])
+                            && food.Any(f => FoodNameMatcher.NamesFood(described, f))))
                         value = 1;
+                }
+                else if (m.Value.Equals("dozen", StringComparison.OrdinalIgnoreCase) && lastEnd >= 0 && string.IsNullOrWhiteSpace(text[lastEnd..m.Index]))
+                {
+                    continue;
                 }
                 else if (Words.TryGetValue(m.Value, out var word))
                 {
@@ -273,11 +329,11 @@ namespace Nom.Orch.Services.Support
         private static string Unsized(string text) => Size.Replace(text, string.Empty, 1);
 
         private const string MeasureText =
-            @"cups?|cupfuls?|tea-?cups?\w*|tumblers?|glass(?:es|fuls?)?|wine-?glass\w*|spoons?|spoonfuls?|tablesp\w*|teasp\w*|tbsp?s?|tsps?|tbp|dessertsp\w*|salt-?spoon\w*|" +
+            @"cups?|cupfuls?|tea-?cups?\w*|tumblers?|glass(?:es|fuls?)?|wine-?glass\w*|spoons?|spoonfuls?|spoonsful|tablesp\w*|teasp\w*|table[- ]spoon\w*|tea[- ]spoon\w*|tbsp?s?|tsps?|tbp|dessertsp\w*|dessert[- ]spoon\w*|salt-?spoon\w*|" +
             @"pints?|quarts?|qts?|gallons?|gills?|jills?|pounds?|lbs?|ounces?|oz|grams?|kilo\w*|kg|litres?|liters?|ml|pinch(?:es)?|dash(?:es)?|ponies|pony|cans?";
 
         private static readonly Regex CountOfMeasure = new(
-            @"\b(?<n>" + AmountText + @")\s+" + SizeText + @"(?:" + MeasureText + @")\b\.?(?<rest>(?:\s+[\p{L}'’-]+){1,6})",
+            @"(?<![\p{L}\d/.,])(?<n>\d+\s*/\s*\d+|[¼½¾⅓⅔⅛]|half\s+an?|an?\s+couple\s+of|" + AmountText + @")\s+" + SizeText + @"(?:" + MeasureText + @")\b\.?(?<rest>(?:\s+[\p{L}'’-]+){1,6})",
             RegexOptions.Compiled | RegexOptions.IgnoreCase | RegexOptions.CultureInvariant);
 
         private static readonly Regex MeasureAndPart = new(
@@ -448,17 +504,26 @@ namespace Nom.Orch.Services.Support
             return true;
         }
 
+        private static readonly Regex JuiceOfFruit = new(
+            @"^\W*(?:(?:the\s+)?(?:zest\s+and\s+)?juice(?:\s+and\s+zest)?\s+(?:of|from)\s+(?:\d|[¼½¾]|one|two|three|four|five|six|half|a\b)(?![^,(]*\b(?:cans?|tins?|jars?|bottles?)\b))",
+            RegexOptions.Compiled | RegexOptions.IgnoreCase | RegexOptions.CultureInvariant);
+
+        private static readonly Regex Aside = new(@"\([^()]*(?:\([^()]*\)[^()]*)*\)", RegexOptions.Compiled | RegexOptions.CultureInvariant);
+
+        private static readonly Regex Prepared = new(
+            @"\b(?:cooked|cold|chopped|minced|shredded|diced|flaked)\b", RegexOptions.Compiled | RegexOptions.IgnoreCase | RegexOptions.CultureInvariant);
+
         private static bool UnitSaneFor(Line line)
         {
             var foodWords = Word.Matches(line.Food ?? string.Empty).Select(m => m.Value).ToList();
             if (line.Unit == IngredientLineParser.Piece)
             {
-                if (foodWords.Any(Liquids.Contains) && !(line.GramsPerItem > 0)) return false;
                 var lead = line.Raw.Split(FoldedLine.Separator, 2)[0];
-                if (Measure.IsMatch(lead) && !IngredientLineParser.ReadsPackage(lead) && !(line.GramsPerItem > 0)) return false;
+                if (foodWords.Any(Liquids.Contains) && !(line.GramsPerItem > 0) && !JuiceOfFruit.IsMatch(lead)) return false;
+                if (Measure.IsMatch(Aside.Replace(lead, " ")) && !IngredientLineParser.ReadsPackage(lead) && !(line.GramsPerItem > 0)) return false;
             }
             if (line.Unit != null && Volume.Contains(line.Unit, StringComparer.OrdinalIgnoreCase)
-                && foodWords.Any(Birds.Contains) && !foodWords.Any(BirdParts.Contains))
+                && foodWords.Any(Birds.Contains) && !foodWords.Any(BirdParts.Contains) && !Prepared.IsMatch(line.Raw))
             {
                 return false;
             }

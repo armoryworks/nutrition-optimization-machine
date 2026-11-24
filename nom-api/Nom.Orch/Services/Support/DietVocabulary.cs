@@ -6,12 +6,13 @@ using System.Text.RegularExpressions;
 
 namespace Nom.Orch.Services.Support
 {
-    /// <summary>How a vocabulary term was found: by rule from the USDA categories that carry the class (<see cref="Category"/>), from a coating word of the descriptions (<see cref="Marker"/>), or from an authority's list of label names (<see cref="Label"/>).</summary>
+    /// <summary>How a vocabulary term was found: by rule from the USDA categories that carry the class (<see cref="Category"/>), from a coating word of the descriptions (<see cref="Marker"/>), from an authority's list of label names (<see cref="Label"/>), or as the food's name in a language the staged cookbooks are written in (<see cref="Translation"/>).</summary>
     public static class DietVocabularyBasis
     {
         public const string Category = "category";
         public const string Marker = "marker";
         public const string Label = "label";
+        public const string Translation = "translation";
     }
 
     /// <summary>What a vocabulary term does: its pattern is part of the class's defaults (<see cref="In"/>), another pattern of the class already reads it (<see cref="Covered"/>), or it is free of what the class restricts, by the cited reason (<see cref="Out"/>).</summary>
@@ -54,7 +55,7 @@ namespace Nom.Orch.Services.Support
     /// </summary>
     public static class DietVocabulary
     {
-        public const string Version = "diet-vocabulary/1";
+        public const string Version = "diet-vocabulary/2";
         public const string ResourceName = "Nom.Orch.Contents.diet-vocabulary.tsv";
 
         private static readonly string[] None = Array.Empty<string>();
@@ -230,7 +231,7 @@ namespace Nom.Orch.Services.Support
                 var foods = Cell("foods");
                 var term = new DietVocabularyTerm(Cell("class"), Cell("term"), Cell("pattern"), Cell("basis"), Cell("categories"), foods == "-" ? 0 : int.Parse(foods, System.Globalization.CultureInfo.InvariantCulture), Cell("decision"), Cell("source"));
                 if (Classes.All(c => c.Name != term.Class)) throw new InvalidDataException($"diet-vocabulary.tsv: unknown class {term.Class}");
-                if (term.Basis is not (DietVocabularyBasis.Category or DietVocabularyBasis.Marker or DietVocabularyBasis.Label)) throw new InvalidDataException($"diet-vocabulary.tsv: unknown basis {term.Basis} for {term.Term}");
+                if (term.Basis is not (DietVocabularyBasis.Category or DietVocabularyBasis.Marker or DietVocabularyBasis.Label or DietVocabularyBasis.Translation)) throw new InvalidDataException($"diet-vocabulary.tsv: unknown basis {term.Basis} for {term.Term}");
                 if (term.Decision is not (DietVocabularyDecision.In or DietVocabularyDecision.Covered or DietVocabularyDecision.Out)) throw new InvalidDataException($"diet-vocabulary.tsv: unknown decision {term.Decision} for {term.Term}");
                 if (term.Source.Length == 0 || term.Source == "-") throw new InvalidDataException($"diet-vocabulary.tsv: {term.Term} cites no source");
                 if (!term.Pattern.StartsWith('%') || !term.Pattern.EndsWith('%')) throw new InvalidDataException($"diet-vocabulary.tsv: {term.Pattern} is not a name pattern");

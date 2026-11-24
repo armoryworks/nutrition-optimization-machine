@@ -18,7 +18,7 @@ schema workflow, analogous to SQL Server DACPAC: the repository holds the
 | `fix-trans-fat-nutrient.sql` | One-off data fix for databases seeded before trans fat was added: adds the Trans Fat nutrient (grams, under Fat) so the FDC importers and `--backfill-nutrients` can store FDC nutrient 1257. Skipped when a nutrient named Trans Fat already exists. Run once with `psql -f`. |
 | `fix-alcohol-nutrient.sql` | One-off data fix for databases seeded before alcohol was added: adds the Alcohol nutrient (grams, no parent) so the FDC importers and `--backfill-nutrients` can store FDC nutrient 1018 and the catalog audit can count alcohol energy. Skipped when a nutrient named Alcohol already exists. Run once with `psql -f`. |
 | `fix-container-units.sql` | One-off data fix for databases seeded before container units were told apart: adds Package (a count unit for a box, bag, packet and the rest), Jar and Bottle to `measurement."Measurement"` when no unit of that name exists, and sets `IsContainer` on Can, Package, Jar and Bottle so a line in any of them is weighed only by a stated or an assumed size (`ContainerWeighing`). Safe to run again. Needs the `IsContainer` column (`./db/apply.sh` first) and should be run before the API version that reads packages is started: until the Package, Jar and Bottle rows exist, an imported line in such a unit is stored without an amount (Quantity 0, logged as a warning), never counted in grams. Run once with `psql -f`. |
-| `custom-objects.sql` | DDL not represented in the EF model (currently the `reference."ReferenceGroupView"` view). Input to `sync-from-model.sh`. |
+| `custom-objects.sql` | DDL not represented in the EF model: the `reference."ReferenceGroupView"` view, the trigram indexes, and the diet gate's functions and triggers, which make what a writer touched undecided and log it in `plan."DietGateWrite"` (an EF table) in its own transaction (see `docs/architecture/diet-gate.md`). Input to `sync-from-model.sh`. |
 | `apply.sh` | **Deploy**: creates/provisions an empty database, or diffs an existing one against `schema.sql` (via `pgdiff.py`) and applies only the delta. `--dry-run` prints the delta. |
 | `sync-from-model.sh` | **Build**: re-derives `schema.sql` after C# entity changes (EF `dbcontext script` + custom objects → dump). `--check` mode is a CI drift guard. |
 | `pgdiff.py` | **Internal schema differ** (stdlib Python + `psql`/`pg_dump`, zero third-party dependencies). Compares system catalogs of two live databases and emits delta DDL: schemas, tables, columns (type/null/default/identity), PK/FK/UNIQUE/CHECK constraints, indexes, views. |
@@ -64,11 +64,15 @@ git diff db/schema.sql       # review, then commit
   `dotnet ef database update`. The legacy `refresh_db_and_migration.sh` is
   superseded by `apply.sh` (it still works — it regenerates a migration from
   scratch — but produces nothing that gets committed).
-- `pgdiff.py` diffs schemas, tables, columns, constraints, indexes, and views.
-  It does **not** yet handle functions, triggers, procedures, standalone
-  sequences, or RLS policies (NOM currently has none of these); if they're
-  ever added, put them in `custom-objects.sql` and extend `pgdiff.py`.
-  Renames are expressed as drop + add; identity-mode changes emit a warning
-  comment instead of DDL.
+- `pgdiff.py` diffs schemas, tables, columns, constraints, indexes, views,
+  standalone sequences, functions (not an extension's) and triggers: a new or
+  changed function is emitted as `CREATE OR REPLACE` before the tables, a
+  changed or removed trigger is dropped first and a new or changed one created
+  after the tables, and a removed function or sequence is dropped last. The
+  diet gate's triggers (`custom-objects.sql`) are the first of these. It does
+  **not** handle procedures, extensions or RLS policies; if they're ever added,
+  put them in `custom-objects.sql` and extend `pgdiff.py`. Renames are
+  expressed as drop + add; identity-mode changes emit a warning comment instead
+  of DDL.
 - `seed.sql` intentionally contains demo recipes (144) alongside reference
   data. If you want production seeds without demo content, split it.

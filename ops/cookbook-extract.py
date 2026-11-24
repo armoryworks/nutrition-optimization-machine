@@ -75,6 +75,7 @@ from typing import Callable, Iterable
 DEFAULT_LIMIT = 4000
 HARD_LIMIT = 12000
 USER_AGENT = "nom-cookbook-extract/1.0"
+OLLAMA_OPTIONS = {"temperature": 0, "num_ctx": 16384}
 MATCHED = ("matched", "already-attached")
 
 Ask = Callable[[str, str], str]
@@ -405,7 +406,7 @@ TRANSLATE_PROMPT = (
 def ollama(host: str, model: str, timeout: int = 600) -> Ask:
     """A model call to the operator's Ollama host: system prompt and chunk in, the reply's text out."""
     def ask(system: str, user: str) -> str:
-        body = {"model": model, "stream": False, "format": "json", "options": {"temperature": 0, "num_ctx": 16384},
+        body = {"model": model, "stream": False, "format": "json", "options": OLLAMA_OPTIONS,
                 "messages": [{"role": "system", "content": system}, {"role": "user", "content": user}]}
         request = urllib.request.Request(host.rstrip("/") + "/api/chat", data=json.dumps(body).encode(), method="POST",
                                          headers={"Content-Type": "application/json", "User-Agent": USER_AGENT})

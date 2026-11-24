@@ -15,6 +15,8 @@ import {
   SourceRightsByHandResult,
   SourceRightsRun,
   SourceTaken,
+  RecipeRemovalReport,
+  RecipeRemovalStatus,
   SourceWithholdReport,
 } from '../models/scraping-source.model';
 
@@ -103,5 +105,26 @@ export class ScrapingSourceService {
 
   taken(): Observable<SourceTaken[]> {
     return this.http.get<SourceTaken[]>(`${this.apiUrl}/rights/taken`);
+  }
+
+  removalStatus(): Observable<RecipeRemovalStatus> {
+    return this.http.get<RecipeRemovalStatus>(`${this.apiUrl}/rights/removal`);
+  }
+
+  retireRecipes(sourceId: number | null, apply: boolean, reason?: string): Observable<RecipeRemovalReport> {
+    let params = new HttpParams().set('apply', apply);
+    if (sourceId != null) params = params.set('sourceId', sourceId);
+    return this.http.post<RecipeRemovalReport>(`${this.apiUrl}/rights/removal/retire`, { reason: reason ?? null }, { params });
+  }
+
+  undoRetire(stamp: string, apply: boolean): Observable<RecipeRemovalReport> {
+    const params = new HttpParams().set('stamp', stamp).set('apply', apply);
+    return this.http.post<RecipeRemovalReport>(`${this.apiUrl}/rights/removal/undo`, {}, { params });
+  }
+
+  purgeRecipes(sourceId: number | null, apply: boolean, backupTaken: boolean): Observable<RecipeRemovalReport> {
+    let params = new HttpParams().set('apply', apply).set('backupTaken', backupTaken);
+    if (sourceId != null) params = params.set('sourceId', sourceId);
+    return this.http.post<RecipeRemovalReport>(`${this.apiUrl}/rights/removal/purge`, {}, { params });
   }
 }

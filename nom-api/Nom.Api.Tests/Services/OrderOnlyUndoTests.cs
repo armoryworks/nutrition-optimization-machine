@@ -303,9 +303,9 @@ namespace Nom.Api.Tests.Services
         [Fact]
         public async Task The_link_recheck_line_undo_follows_an_order_only_pass_and_both_undos_restore_the_first_rows()
         {
-            var f = await SetUpAsync(Cake, "Raw Potato Skins");
+            var f = await SetUpAsync(Cake, "Raw Turnip Greens");
             var first = await PrintAsync(f);
-            var (eggs, wrong) = (f.Foods["eggs"], f.Foods["Raw Potato Skins"]);
+            var (eggs, wrong) = (f.Foods["eggs"], f.Foods["Raw Turnip Greens"]);
             await RecipeLineRowWriter.MoveAsync(f.Db, LineMoveDietGuard.Decided, f.RecipeId, eggs, 0, wrong, 0, Operator);
             f.Db.ChangeTracker.Clear();
             var entry = await JournalAsync(f, LineRelinkService.RelinkEntityType, LinkRecheckService.LineChangeType, nameof(RecipeIngredientEntity.IngredientId),

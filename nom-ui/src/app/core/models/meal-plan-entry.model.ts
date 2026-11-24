@@ -5,6 +5,10 @@ export interface MealPlanEntry {
   recipeId: number | null;
   recipeName: string | null;
   recipeImage: string | null;
+  /** The recipe was removed (taken from a forbidden source): the entry keeps its title, the source link and a plain note. */
+  recipeRemoved?: boolean;
+  recipeSourceUrl?: string | null;
+  recipeRemovedNote?: string | null;
   /** Set when this slot holds a standalone whole food (apple, protein bar) instead of a recipe. */
   ingredientId?: number | null;
   ingredientName?: string | null;

@@ -76,5 +76,19 @@ public class DietRecipeStateEntityConfiguration : IEntityTypeConfiguration<DietR
         builder.ToTable("DietRecipeState", schema: "plan");
 
         builder.HasKey(e => new { e.BuildId, e.RecipeId });
+        builder.Property(e => e.ReadXmin).HasColumnType("xid8");
+    }
+}
+
+public class DietGateWriteEntityConfiguration : IEntityTypeConfiguration<DietGateWriteEntity>
+{
+    public void Configure(EntityTypeBuilder<DietGateWriteEntity> builder)
+    {
+        builder.ToTable("DietGateWrite", schema: "plan");
+
+        builder.HasKey(e => e.Id);
+        builder.Property(e => e.WrittenAt).HasDefaultValueSql("now()");
+        builder.Property(e => e.Tx).HasColumnType("xid8").HasDefaultValueSql("pg_current_xact_id()");
+        builder.HasIndex(e => e.RecipeId);
     }
 }

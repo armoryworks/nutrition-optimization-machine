@@ -88,9 +88,63 @@ namespace Nom.Orch.Services
             if (recipe == null) return 0;
 
             var existing = await _db.RecipeNutrition.Where(n => n.RecipeId == recipeId).ToListAsync();
-            var (written, changed) = await DeriveAsync(recipe, existing);
+            var check = await _db.RecipeNutritionChecks.FirstOrDefaultAsync(c => c.RecipeId == recipeId);
+            var (written, changed) = await DeriveAsync(recipe, existing, check);
             if (changed) await _db.SaveChangesAsync();
             return written;
+        }
+
+        /// <summary>
+        /// One line's inputs to the label (<see cref="InputPrint(IEnumerable{InputLine}, long?, decimal?)"/>): the line's food,
+        /// amount, unit, kind and alcohol retention; the unit's category, factor and container mark; the food's weights
+        /// (grams per millilitre, per item, per reference serving); and, for a line in a container unit, the line's text and
+        /// the food's description, which the assumed size is read from.
+        /// </summary>
+        public readonly record struct InputLine(long Food, decimal Quantity, long Measurement, string? Kind, decimal? Retention, string? Basis,
+            long? Category, decimal? Factor, bool Container, decimal? GramsPerMilliliter, decimal? GramsPerItem, decimal? ReferenceServingGrams, string? Text, string? Description);
+
+        /// <summary>
+        /// The fingerprint of what a recipe's label is derived from on its own lines (staging checkpoint 6, R9): every live
+        /// line's <see cref="InputLine"/>, in any order, and the servings. A write that changes none of these (an order-only
+        /// pass, a text or position edit of a line not in a container unit) leaves the label as it is; a writer that gives a
+        /// food a weight and touches its lines (the FDC portion backfill, a relink that inherits measures) changes it
+        /// (review CK11-DM-2).
+        /// </summary>
+        public static long InputPrint(IEnumerable<InputLine> lines, long? servings, decimal? recipeServings)
+        {
+            var hash = new DietFoodCatalog.Fnv();
+            foreach (var line in lines.Select(LinePrint).OrderBy(p => p))
+                hash.Add(line);
+            hash.Add("|").Add(servings).Add(recipeServings);
+            return hash.Value;
+        }
+
+        private static long LinePrint(InputLine l)
+        {
+            var hash = new DietFoodCatalog.Fnv();
+            hash.Add(l.Food).Add(l.Quantity).Add(l.Measurement).Add(l.Kind).Add(l.Retention).Add(l.Basis)
+                .Add(l.Category).Add(l.Factor).Add(l.Container ? 1L : 0L).Add(l.GramsPerMilliliter).Add(l.GramsPerItem).Add(l.ReferenceServingGrams);
+            if (l.Container) hash.Add(l.Text).Add(l.Description);
+            return hash.Value;
+        }
+
+        /// <summary>The <see cref="InputLine"/> of a line read with its measurement and food.</summary>
+        public static InputLine InputOf(RecipeIngredientEntity ri) =>
+            new(ri.IngredientId, ri.Quantity, ri.MeasurementId, ri.LineKind, ri.AlcoholRetention, ri.AlcoholRetentionBasis,
+                ri.Measurement?.MeasurementCategoryId, ri.Measurement?.BaseUnitConversionFactor, ri.Measurement?.IsContainer == true,
+                ri.Ingredient?.GramsPerMilliliter, ri.Ingredient?.GramsPerItem, ri.Ingredient?.ReferenceServingGrams, ri.RawLine, ri.Ingredient?.Description);
+
+        private static long InputPrint(RecipeEntity recipe) =>
+            InputPrint((recipe.RecipeIngredients ?? Enumerable.Empty<RecipeIngredientEntity>()).Where(ri => !ri.IsDeleted).Select(InputOf), recipe.Servings, recipe.RecipeServings);
+
+        private void Checked(RecipeEntity recipe, RecipeNutritionCheckEntity? check, DateTime now)
+        {
+            if (check == null) _db.RecipeNutritionChecks.Add(new RecipeNutritionCheckEntity { RecipeId = recipe.Id, InputPrint = InputPrint(recipe), CheckedAt = now });
+            else
+            {
+                check.InputPrint = InputPrint(recipe);
+                check.CheckedAt = now;
+            }
         }
 
         public async Task<int> RecalculateManyAsync(IReadOnlyCollection<long> recipeIds)
@@ -100,11 +154,12 @@ namespace Nom.Orch.Services
             {
                 var recipes = await Labelled().AsSplitQuery().Where(r => part.Contains(r.Id)).ToDictionaryAsync(r => r.Id);
                 var labels = (await _db.RecipeNutrition.Where(n => part.Contains(n.RecipeId)).ToListAsync()).ToLookup(n => n.RecipeId);
+                var checks = await _db.RecipeNutritionChecks.Where(c => part.Contains(c.RecipeId)).ToDictionaryAsync(c => c.RecipeId);
                 var changed = false;
                 foreach (var id in part)
                 {
                     if (!recipes.TryGetValue(id, out var recipe)) continue;
-                    var (rows, wrote) = await DeriveAsync(recipe, labels[id].ToList());
+                    var (rows, wrote) = await DeriveAsync(recipe, labels[id].ToList(), checks.GetValueOrDefault(id));
                     written += rows;
                     changed |= wrote;
                 }
@@ -113,7 +168,7 @@ namespace Nom.Orch.Services
             return written;
         }
 
-        private async Task<(int Written, bool Changed)> DeriveAsync(RecipeEntity recipe, List<RecipeNutritionEntity> existing)
+        private async Task<(int Written, bool Changed)> DeriveAsync(RecipeEntity recipe, List<RecipeNutritionEntity> existing, RecipeNutritionCheckEntity? check)
         {
             var recipeId = recipe.Id;
             if (existing.Any(n => n.DateCalculated == null))
@@ -149,6 +204,7 @@ namespace Nom.Orch.Services
                 var measured = (recipe.RecipeIngredients ?? Enumerable.Empty<RecipeIngredientEntity>())
                     .Where(ri => (ri.LineKind == null || ri.LineKind == "ingredient") && ri.Quantity > 0)
                     .ToList();
+                Checked(recipe, check, DateTime.UtcNow);
                 if (existing.Count > 0 && measured.Any(ri => ri.Measurement?.IsContainer == true))
                 {
                     _db.RecipeNutrition.RemoveRange(existing);
@@ -156,11 +212,19 @@ namespace Nom.Orch.Services
                     return (0, true);
                 }
                 _logger.LogDebug("Recipe {RecipeId}: no ingredient contributed nutrition; leaving label as-is", recipeId);
-                return (0, false);
+                return (0, true);
             }
 
             var servings = LabelServings(recipe) ?? 1m;
             var now = DateTime.UtcNow;
+            Checked(recipe, check, now);
+
+            if (existing.Count == totals.Count && existing.Select(e => e.NutrientId).Distinct().Count() == existing.Count && existing.All(e => totals.TryGetValue(e.NutrientId, out var t)
+                    && Math.Round(t.amount / servings, 4) == e.Amount && string.Equals(t.unit ?? string.Empty, e.Unit ?? string.Empty, StringComparison.Ordinal)))
+            {
+                _logger.LogDebug("Recipe {RecipeId}: the label derives as it is stored; left as it is", recipeId);
+                return (0, true);
+            }
 
             _db.RecipeNutrition.RemoveRange(existing);
             foreach (var (nutrientId, (amount, unit)) in totals)

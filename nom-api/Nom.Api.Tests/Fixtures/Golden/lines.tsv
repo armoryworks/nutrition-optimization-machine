@@ -11,7 +11,7 @@ cited-09	pack-parenthetical	1 (14-ounce) can sweetened condensed milk	*	*	14 Oun
 cited-10	pack-parenthetical	2 15oz. cans black beans ($1.18)	*	*	30 Ounce	black beans	black beans	ok	known	design:golden-gate	example 10: parse and name
 cited-11	number-word	two drachms of saffron	*	*	*	saffron	saffron	-	known	design:golden-gate	example 11: a drachm is a mass, not a piece
 cited-12	trailing-or-inner-number	Chocolate, 2 squares	2	*	*	Chocolate	Chocolate	known	known	design:golden-gate	example 12
-cited-14	attached-metric	60g cheddar cheese, shredded	60	Gram	*	cheddar cheese, shredded	cheddar cheese	ok	known	design:golden-gate	example 14: the wording should drop the amount
+cited-14	attached-metric	60g cheddar cheese, shredded	60	Gram	*	cheddar cheese, shredded	cheddar cheese	ok	ok	design:golden-gate	example 14: the wording should drop the amount
 cited-15	range	1/2 to 3/4 cup pistachios, chopped roughly	0.5	Cup	*	*	pistachios	ok	known	design:golden-gate	example 15: the bare name drops the preparation
 cited-16	italian	Burro fresco, 185 grammi	185	Gram	*	*	*	ok	-	design:golden-gate	example 16
 size-01	container	1 13oz. can coconut milk ($1.99)	*	*	13 Ounce	*	*	ok	-	design:count-fallback	sized lines: 369 g

@@ -125,6 +125,103 @@ namespace Nom.Orch.Models.Recipe
         public List<ScraperRefusingHost> RefusingHostsList { get; set; } = new();
     }
 
+    /// <summary>What the next discovery run would send, read without a run, a fetch or a write: its seeds, the seeds held, the exclusion list and the refusing hosts held.</summary>
+    public class SourceDiscoveryPreviewModel
+    {
+        /// <summary>Whether the source lane runs (SourceDiscovery:Enabled); with it off no run starts, by the timer or by an admin.</summary>
+        public bool Enabled { get; set; }
+
+        public bool FullChecks { get; set; }
+
+        /// <summary>When the next run may start (IntervalHours after the last run that sent a job), or null when it may start now.</summary>
+        public DateTime? NextRunDueUtc { get; set; }
+
+        /// <summary>The sources a class recorded by hand would be put on before the run plans (the seeds below are read as it leaves them).</summary>
+        public int RecordsApplied { get; set; }
+
+        /// <summary>The seed domains the run would send.</summary>
+        public List<string> Seeds { get; set; } = new();
+
+        /// <summary>Approved seeds that refused an earlier run and are held until an admin looks.</summary>
+        public List<string> SeedsHeldRefusing { get; set; } = new();
+
+        /// <summary>Approved seeds the exclusion list also holds (a fault in NOM's source rows).</summary>
+        public List<string> SeedsHeldBack { get; set; } = new();
+
+        /// <summary>The excludeDomains the run would send.</summary>
+        public List<string> ExcludeDomains { get; set; } = new();
+
+        public int ExcludeLeftOut { get; set; }
+
+        /// <summary>Every host that refused a run and that no admin has looked at since (each is on the exclusion list of a run that sends any seed).</summary>
+        public List<string> RefusingHeld { get; set; } = new();
+
+        /// <summary>Why the run would be skipped, or null when it would start.</summary>
+        public string? Skipped { get; set; }
+
+        /// <summary>Why the run would end failed before sending anything, or null.</summary>
+        public string? Fails { get; set; }
+    }
+
+    /// <summary>
+    /// The dry run of one source journal entry's undo: whether the undo would be done or why it is refused, each field of a
+    /// source, record or refusing host it would change, the recipes it would change by field, and the journal rows it would
+    /// write. Nothing is written.
+    /// </summary>
+    public class SourceUndoPreviewModel
+    {
+        public long EntryId { get; set; }
+
+        public bool WouldUndo { get; set; }
+
+        public bool NotFound { get; set; }
+
+        public string? Refused { get; set; }
+
+        public List<SourceUndoChangeModel> Changes { get; set; } = new();
+
+        /// <summary>The recipes the undo would change.</summary>
+        public int Recipes { get; set; }
+
+        /// <summary>How many recipes the undo would change in each field.</summary>
+        public Dictionary<string, int> RecipeFields { get; set; } = new();
+
+        public List<SourceUndoJournalModel> Journal { get; set; } = new();
+    }
+
+    /// <summary>One field a journal undo would change, with its value now and after.</summary>
+    public class SourceUndoChangeModel
+    {
+        public string Entity { get; set; } = string.Empty;
+        public long Id { get; set; }
+        public string? Name { get; set; }
+        public string Field { get; set; } = string.Empty;
+        public string? Before { get; set; }
+        public string? After { get; set; }
+    }
+
+    /// <summary>A journal row a journal undo would write.</summary>
+    public class SourceUndoJournalModel
+    {
+        public string EntityType { get; set; } = string.Empty;
+        public long EntityId { get; set; }
+        public string ChangeType { get; set; } = string.Empty;
+        public string? Field { get; set; }
+        public string? OldValue { get; set; }
+        public string? NewValue { get; set; }
+    }
+
+    /// <summary>A discovery run an admin started: the run, or why none was started.</summary>
+    public class SourceDiscoveryNowResult
+    {
+        public SourceDiscoveryRunModel? Run { get; set; }
+
+        public string? Refused { get; set; }
+
+        /// <summary>When refused for the lane's pacing, when the next run may start.</summary>
+        public DateTime? NextRunDueUtc { get; set; }
+    }
+
     /// <summary>A rights class an admin recorded by hand for a host, with the deciding words, their page, the date read and who recorded it.</summary>
     public class SourceRightsRecordModel
     {

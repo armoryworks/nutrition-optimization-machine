@@ -15,6 +15,7 @@ using Nom.Orch.Extensions;
 using Nom.Orch.Interfaces;
 using Nom.Orch.Models.Household;
 using Nom.Orch.Models.MealPlan;
+using Nom.Orch.Models.Recipe;
 using Nom.Orch.Services.Support;
 
 namespace Nom.Orch.Services
@@ -45,8 +46,9 @@ namespace Nom.Orch.Services
                 query = query.Where(mp => mp.Date <= DateOnly.FromDateTime(endDate.Value));
 
             var mealPlans = await query.ToListAsync();
+            var removed = await RemovedAsync(mealPlans);
 
-            return mealPlans.Select(mp => new MealPlanResponseModel
+            return mealPlans.Select(mp => Removed(new MealPlanResponseModel
             {
                 Id = mp.Id,
                 HouseholdId = mp.HouseholdId,
@@ -60,7 +62,22 @@ namespace Nom.Orch.Services
                 RecipeName = mp.Recipe?.Name,
                 CreatedDate = mp.CreatedDate,
                 ModifiedDate = mp.LastModifiedDate
-            }).ToList();
+            }, removed)).ToList();
+        }
+
+        private async Task<Dictionary<long, RemovedRecipeModel>> RemovedAsync(IEnumerable<MealPlanEntity> entries) =>
+            await RecipeRemovalService.RemovedAsync(_context, entries.Where(e => e.RecipeId != null && e.Recipe == null).Select(e => e.RecipeId!.Value));
+
+        /// <summary>An entry of a removed recipe keeps its title, the source link and the plain note; nothing of the recipe's wording.</summary>
+        private static MealPlanResponseModel Removed(MealPlanResponseModel model, IReadOnlyDictionary<long, RemovedRecipeModel> removed)
+        {
+            if (model.RecipeId is not { } id || !removed.TryGetValue(id, out var gone)) return model;
+            model.Title = gone.Title;
+            model.RecipeName = gone.Title;
+            model.RecipeRemoved = true;
+            model.RecipeSourceUrl = gone.SourceUrl;
+            model.RecipeRemovedNote = RecipeRemovalService.RemovedNote;
+            return model;
         }
 
         public async Task<MealPlanCreateResponseModel> CreateMealPlanAsync(MealPlanCreateModel model, long authorId)
@@ -113,7 +130,7 @@ namespace Nom.Orch.Services
             if (mealPlan == null)
                 return null;
 
-            return new MealPlanResponseModel
+            return Removed(new MealPlanResponseModel
             {
                 Id = mealPlan.Id,
                 HouseholdId = mealPlan.HouseholdId,
@@ -127,7 +144,7 @@ namespace Nom.Orch.Services
                 RecipeName = mealPlan.Recipe?.Name,
                 CreatedDate = mealPlan.CreatedDate,
                 ModifiedDate = mealPlan.LastModifiedDate
-            };
+            }, await RemovedAsync(new[] { mealPlan }));
         }
 
         public async Task<MealPlanResponseModel?> UpdateMealPlanAsync(long id, MealPlanUpdateModel model)
@@ -1445,6 +1462,7 @@ namespace Nom.Orch.Services
                 .Count();
 
             var activeMealTypes = await ActiveMealTypesAsync(householdId);
+            var removedRecipes = await RemovedAsync(mealPlans);
             var days = new List<MealPlanDayModel>();
             for (int i = 0; i < 7; i++)
             {
@@ -1458,11 +1476,15 @@ namespace Nom.Orch.Services
                     var entryModels = slotEntries.Select(e =>
                     {
                         var isPrepared = e.Ingredient != null && Nom.Data.Nutrition.PreparedFoods.IsPrepared(e.Ingredient);
+                        var gone = e.RecipeId is { } recipeId && removedRecipes.TryGetValue(recipeId, out var r) ? r : null;
                         var entryModel = new MealPlanEntryModel
                         {
                             Id = e.Id,
                             RecipeId = e.RecipeId,
-                            RecipeName = e.Recipe?.Name,
+                            RecipeName = gone?.Title ?? e.Recipe?.Name,
+                            RecipeRemoved = gone != null,
+                            RecipeSourceUrl = gone?.SourceUrl,
+                            RecipeRemovedNote = gone == null ? null : RecipeRemovalService.RemovedNote,
                             RecipeImage = e.Recipe?.Image,
                             IngredientId = e.IngredientId,
                             IngredientName = e.Ingredient?.Name,
@@ -1473,7 +1495,7 @@ namespace Nom.Orch.Services
                             FoodGroupName = e.Ingredient?.FoodGroup?.Name,
                             IsPrepared = isPrepared,
                             ServingsToBuy = isPrepared ? (e.Quantity ?? 1m) * Eaters(date, mt.Id) : null,
-                            Title = ProseWithholding.EntryTitle(e.Title, e.Recipe),
+                            Title = gone?.Title ?? ProseWithholding.EntryTitle(e.Title, e.Recipe),
                             Notes = e.Note,
                             CompletedDate = e.CompletedDate,
                             ShoppingCompletedAt = e.ShoppingCompletedAt,

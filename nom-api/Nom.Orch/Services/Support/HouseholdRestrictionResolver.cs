@@ -24,8 +24,6 @@ namespace Nom.Orch.Services.Support
         public Dictionary<long, int> NamedFoods { get; } = new();
         /// <summary>Whether a food probe the restrictions need is not kept yet (before the diet gate's warm has computed it): the foods are not all known, so <see cref="RecipeIds"/> holds every recipe and <see cref="PreparedContentsGate"/> holds every prepared meal (staging checkpoint 4, P1).</summary>
         public bool Pending { get; set; }
-        /// <summary>The recipe id up to which the line index has read every rule the restrictions need (0 before its first pass): every recipe above it (one made since the last pass) is not yet read and is held in <see cref="RecipeIds"/>; null when the restrictions read no line or no index is used.</summary>
-        public long? ReadUpTo { get; set; }
         /// <summary>The stored restriction sets the restrictions read (staging checkpoint 5, Q2), when requests read the diet gate's stored results: <see cref="IngredientIds"/> and <see cref="RecipeIds"/> then hold only what the restrictions name directly, and <see cref="DietGateStore.WithoutHeld(System.Linq.IQueryable{Nom.Data.Recipe.RecipeEntity}, ApplicationDbContext, RestrictedIngredientSet)"/> reads the rest from the stored rows.</summary>
         public StoredDietGate? Stored { get; set; }
         public static readonly RestrictedIngredientSet Empty = new();
@@ -55,24 +53,20 @@ namespace Nom.Orch.Services.Support
     {
         private readonly ApplicationDbContext _db;
         private readonly DietGateCache? _cache;
-        private readonly DietLineIndex? _index;
         private bool? _store;
 
         /// <summary>
-        /// A resolver on the context; the diet gate's whole-catalog probes go through <paramref name="cache"/>, or
-        /// through <see cref="DietGateCache.Shared"/> on a relational database when none is given. With a line index
-        /// (<paramref name="index"/>, or <see cref="DietLineIndex.Shared"/> on a relational database when neither is
-        /// given), no probe is ever computed in line: the lines are read from the index and the food probes from the
-        /// values the warm keeps, and what is not read yet is held (staging checkpoint 4, P1). With neither, the sets are
-        /// read from the diet gate's stored results (<see cref="DietGateStore"/>, staging checkpoint 5, Q2): always on a
-        /// relational database, and on another once a build is active (or as <paramref name="store"/> says).
+        /// A resolver on the context. Without <paramref name="cache"/>, the sets are read from the diet gate's stored
+        /// results (<see cref="DietGateStore"/>, staging checkpoint 5, Q2): always on a relational database, and on another
+        /// once a build is active (or as <paramref name="store"/> says). With a cache, or with <paramref name="store"/>
+        /// false, they are read in line by the matcher (<see cref="DietCriteriaMatcher"/>), its whole-catalog probes kept in
+        /// the cache: the reading the store is compared with in the tests.
         /// </summary>
-        public HouseholdRestrictionResolver(ApplicationDbContext db, DietGateCache? cache = null, DietLineIndex? index = null, bool? store = null)
+        public HouseholdRestrictionResolver(ApplicationDbContext db, DietGateCache? cache = null, bool? store = null)
         {
             _db = db;
-            _cache = cache ?? (index != null ? DietGateCache.Shared : null);
-            _index = index;
-            _store = cache != null || index != null ? false : store ?? (db.Database.IsRelational() ? true : null);
+            _cache = cache;
+            _store = cache != null ? false : store ?? (db.Database.IsRelational() ? true : null);
         }
 
         public async Task<RestrictedIngredientSet> ResolveAsync(long householdId)
@@ -197,7 +191,7 @@ namespace Nom.Orch.Services.Support
             return result;
         }
 
-        /// <summary>What the criteria of the restriction types forbid at or above a severity, as a household set with those restrictions reads them (the diet gate's count per type, <see cref="DietGateCounts"/>).</summary>
+        /// <summary>What the criteria of the restriction types forbid at or above a severity, as a household set with those restrictions reads them (one type read alone).</summary>
         public async Task<RestrictedIngredientSet> ResolveTypesAsync(IReadOnlyCollection<long> typeIds, int minimumSeverity = 0)
         {
             var result = new RestrictedIngredientSet();
@@ -238,11 +232,6 @@ namespace Nom.Orch.Services.Support
                 else result.Stored = stored;
                 return;
             }
-            if (_index != null)
-            {
-                await AddFromIndexAsync(result, data, _cache!, _index);
-                return;
-            }
             foreach (var probe in (await DietCriteriaMatcher.ProbeAsync(_db, data, cache: _cache)).Values)
             {
                 foreach (var ids in probe.Foods.Values) result.IngredientIds.UnionWith(ids);
@@ -251,52 +240,6 @@ namespace Nom.Orch.Services.Support
             }
             result.RecipeIds.UnionWith(await DietCriteriaMatcher.DrinkLineRecipesAsync(_db, data, result.IngredientIds, _cache));
             result.RecipeIds.UnionWith(await DietCriteriaMatcher.RetainedRecipesAsync(_db, data, _cache));
-        }
-
-        /// <summary>
-        /// The same sets read without a probe: each type's foods from the value the warm keeps
-        /// (<see cref="DietCriteriaMatcher.FoodsProbeAsync"/>), its line and alias-line recipes and the drink lines from
-        /// the line index (<see cref="DietLineIndex.Snapshot"/>), the retained alcohol from the kept counts. A type
-        /// whose foods are not kept yet makes the set <see cref="RestrictedIngredientSet.Pending"/>; every recipe above
-        /// the id up to which the index has read what the set needs (every recipe before its first pass) is held, the
-        /// safe side for a severe restriction: never shown as fine before it is read.
-        /// </summary>
-        private async Task AddFromIndexAsync(RestrictedIngredientSet result, List<DietDataCriterion> data, DietGateCache cache, DietLineIndex index)
-        {
-            var snapshot = index.Current(_db);
-            var readUpTo = snapshot == null ? 0 : long.MaxValue;
-            foreach (var type in data.GroupBy(c => c.RestrictionTypeId))
-            {
-                var list = type.ToList();
-                var probe = await DietCriteriaMatcher.FoodsProbeAsync(_db, list, cache);
-                if (probe == null)
-                {
-                    result.Pending = true;
-                    readUpTo = 0;
-                    continue;
-                }
-                foreach (var ids in probe.Foods.Values) result.IngredientIds.UnionWith(ids);
-                if (snapshot == null) continue;
-                var view = snapshot.ViewOf(list);
-                if (view.Missing.Count > 0) index.Request(_db);
-                result.RecipeIds.UnionWith(view.LineRecipes);
-                if (probe.AliasOnly.Count > 0) result.RecipeIds.UnionWith(snapshot.RecipesOn(probe.AliasOnly).Where(view.Named.Contains));
-                readUpTo = Math.Min(readUpTo, view.ReadUpTo);
-            }
-            if (snapshot != null && DietCriteriaMatcher.ReadsLines(data))
-            {
-                result.RecipeIds.UnionWith(snapshot.DrinkLines.Where(l => !result.IngredientIds.Contains(l.IngredientId)).Select(l => l.RecipeId));
-                readUpTo = Math.Min(readUpTo, snapshot.DrinkReadUpTo);
-            }
-            if (await DietCriteriaMatcher.RetainedPeekAsync(_db, data, cache, index) is { } retained)
-            {
-                result.RecipeIds.UnionWith(retained.Recipes);
-                readUpTo = Math.Min(readUpTo, retained.ReadUpTo);
-            }
-            else readUpTo = 0;
-            if (readUpTo == long.MaxValue) return;
-            result.ReadUpTo = readUpTo;
-            result.RecipeIds.UnionWith(await _db.Recipes.IgnoreQueryFilters().AsNoTracking().Where(r => r.Id > readUpTo).Select(r => r.Id).ToListAsync());
         }
     }
 }

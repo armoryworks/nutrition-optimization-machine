@@ -12,8 +12,10 @@ namespace Nom.Orch.Services.Support
     /// <summary>
     /// The queue of lines the line guard held (<see cref="LineGuardHoldEntity"/>). A writer records the holds it
     /// found on the recipes it read: an open hold of the same line and writer is updated, a new one is added, and
-    /// an open hold of a line the writer no longer holds is resolved. Nothing is saved here; the writer saves
-    /// with its own changes.
+    /// an open hold of a line the writer no longer holds is resolved. A line is the same line by its food and its
+    /// source text wherever it stands: a hold follows its line to a new position (an order pass moved it) unless
+    /// another open hold stands there or another held line takes its old place, and only then is a line matched
+    /// by its position alone. Nothing is saved here; the writer saves with its own changes.
     /// </summary>
     public static class LineGuardHolds
     {
@@ -42,12 +44,39 @@ namespace Nom.Orch.Services.Support
             var open = await db.LineGuardHolds
                 .Where(h => ids.Contains(h.RecipeId) && h.ResolvedAt == null && origins.Contains(h.Origin))
                 .ToListAsync(cancellationToken);
-            var byKey = open.Where(h => h.Origin == origin).GroupBy(Key).ToDictionary(g => g.Key, g => g.First());
+            var own = open.Where(h => h.Origin == origin).ToList();
+            var byKey = own.GroupBy(Key).ToDictionary(g => g.Key, g => g.First());
+            var occupied = own.Select(Key).ToHashSet();
+            var mine = holds.Where(h => ids.Contains(h.RecipeId)).ToList();
+            var targeted = mine.Select(h => (h.RecipeId, h.IngredientId, h.SortOrder)).ToHashSet();
             var kept = new HashSet<LineGuardHoldEntity>(ReferenceEqualityComparer.Instance);
+            var matched = new Dictionary<Held, LineGuardHoldEntity>(ReferenceEqualityComparer.Instance);
 
-            foreach (var hold in holds.Where(h => ids.Contains(h.RecipeId)))
+            foreach (var hold in mine)
             {
-                if (!byKey.TryGetValue((hold.RecipeId, hold.IngredientId, hold.SortOrder), out var row))
+                if (byKey.TryGetValue((hold.RecipeId, hold.IngredientId, hold.SortOrder), out var at) && at.RawLine == hold.RawLine && kept.Add(at)) matched[hold] = at;
+            }
+            foreach (var hold in mine.Where(h => !matched.ContainsKey(h)))
+            {
+                if (occupied.Contains((hold.RecipeId, hold.IngredientId, hold.SortOrder))) continue;
+                var moved = own.FirstOrDefault(h => !kept.Contains(h) && h.RecipeId == hold.RecipeId && h.IngredientId == hold.IngredientId
+                    && h.RawLine == hold.RawLine && !targeted.Contains(Key(h)));
+                if (moved == null) continue;
+                byKey.Remove(Key(moved));
+                moved.SortOrder = hold.SortOrder;
+                byKey[Key(moved)] = moved;
+                occupied.Add(Key(moved));
+                kept.Add(moved);
+                matched[hold] = moved;
+            }
+            foreach (var hold in mine.Where(h => !matched.ContainsKey(h)))
+            {
+                if (byKey.TryGetValue((hold.RecipeId, hold.IngredientId, hold.SortOrder), out var at) && kept.Add(at)) matched[hold] = at;
+            }
+
+            foreach (var hold in mine)
+            {
+                if (!matched.TryGetValue(hold, out var row))
                 {
                     row = new LineGuardHoldEntity
                     {

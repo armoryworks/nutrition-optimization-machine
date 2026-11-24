@@ -11,7 +11,8 @@ are PDFs, scanned books or plain pages with no schema.org Recipe:
 | NCI "Down Home Healthy Cooking" (`nci`) | `www.cancer.gov` | one 52-page PDF | NCI text is free of copyright; credit NCI |
 
 They come in by hand, through `ops/hand-import.py`, never through nom-api's scraper path. The
-script lives in `ops/` because it fetches; nom-api never fetches a recipe site.
+script lives in `ops/` because it fetches; nom-api never fetches a recipe site. It is run from the
+application server, in the `nom-hand-import` image, staging first (see "Where it runs" below).
 
 ## Files
 
@@ -49,9 +50,16 @@ script lives in `ops/` because it fetches; nom-api never fetches a recipe site.
    page has two columns (three or more blocks sharing a left edge in the middle half of the page)
    the left column is read before the right one between full-width blocks, so a recipe card's
    ingredients do not interleave with its directions. A page with fewer than 20 letters and digits
-   has no text layer: it is rendered with `pdftoppm -r 300 -gray` and read by `tesseract -l eng`;
-   without tesseract it is marked `needs-ocr` and counted. Library of Congress books use the
-   Library's own OCR, page by page. HTML pages: the `<main>` content without scripts, navigation and
+   has no text layer: it is rendered with `pdftoppm -r 300 -gray` and read by `tesseract -l eng`.
+   Where tesseract is not installed, such a page is marked `needs-ocr`, the step still writes every
+   document's text, and then **stops** (exit 3) with a message that names each document, its pages
+   without text and the `nom-hand-import` image that reads them; `extract` does not extract a document
+   with a `needs-ocr` page (counted unparsed, `needs OCR: ...`) and stops the same way. A page that
+   needs OCR is never left as a count the operator can miss (staging checkpoints 3 to 6 carried NCI's
+   27 photo pages as a `needs-ocr` count). Library of Congress books use the Library's own OCR text,
+   page by page, and need neither tesseract nor poppler: a page the Library's text leaves blank (a
+   plate, a blank leaf) is marked `loc-blank`, not `needs-ocr` (checkpoints 3 to 6 skipped the books
+   "because tesseract is missing", which they never used). HTML pages: the `<main>` content without scripts, navigation and
    footers, and the page title before its " | site" part. For books, running heads and page numbers
    on a page's first or last line are taken off.
 4. **extract**: `records/<doc>.records.jsonl` and `records/<doc>.rejects.jsonl`, and
@@ -70,8 +78,15 @@ script lives in `ops/` because it fetches; nom-api never fetches a recipe site.
      plain" / "Greek yogurt"; after a list comma only on a line with no amount, "Chopped basil,
      grated" / "Parmesan cheese"), takes the next line unless it starts with an amount, and a line
      that is only a bracket, "(optional)", always joins the line before: P26, 5 of 337) and the Directions
-     section (numbered steps take their block; the first unnumbered block after them, a note, ends
-     them), up to Recipe Notes and the nutrition line. A notes heading is only a line that is the
+     section (numbered steps take their block; a short line before a step numbered 1 heads a part of
+     the method, and that part's steps keep it as their `section`, which the recipe shows as
+     "[Make Dip or Dressing] To make ranch dip, ..."; any other unnumbered block after them, a note,
+     ends them: staging checkpoint 6, R20, `va-ranch-seasoning-mix` kept 2 of its 3 steps and dropped
+     the part "Make Dip or Dressing"), up to Recipe Notes and the nutrition line. A card's record
+     that keeps fewer steps than its method numbers (step-numbered lines from the Directions heading
+     to the notes or nutrition line) is dropped by the number check, `number check: the record keeps
+     N of the M numbered steps ...`: the check otherwise finds only what a record holds in its page,
+     so it passed the ranch card. A notes heading is only a line that is the
      heading alone ("Recipe Notes", "Notes:", "Tips"); a nutrition heading may carry its figures on
      the line but is never followed by a closing bracket. A card whose kept ingredient lines are fewer
      than half the lines of its list (from the Ingredients heading to the next section heading) that
@@ -109,7 +124,24 @@ script lives in `ops/` because it fetches; nom-api never fetches a recipe site.
      that never answered held the NCI run for two 1,800 s timeouts and would have held it a third);
      `--retries` still covers a refused connection or another failure there, and every failure in
      `book` mode. Run `extract` again to ask only
-     what is missing. `ops/cookbook-extract.py` takes the same `--timeout`, `--retries` and
+     what is missing.
+   - Waiting for a shared model host: before every call that is not already answered the host's
+     `/api/ps` is read twice, `--probe` seconds apart (default 2); the host is in use by another job
+     when a model loads between the readings or a loaded model's `expires_at` moves (it moves with
+     the clock while a model's first request after its load is in flight: staging checkpoint 6,
+     section 28). Ollama sets `expires_at` only when a model's last request finishes, so a request
+     on a model already loaded leaves both readings the same (checkpoint 6, 10:42Z: `qwen2.5vl:7b`
+     loaded and in use); when the readings show nothing, the host is asked a one-token request to
+     the same model with the real calls' context size (so the model is not reloaded), and one not
+     answered within `--answer-within` seconds (default 30) counts as in use and is abandoned
+     (review of ck14-hand-import-box, CK14-1). A host that does not answer counts as in use. The
+     first call of a run may also read as in use while the model loads cold; it then waits one
+     `--wait-poll`. While it is in use the call waits, `--wait-poll` seconds at a time
+     (default 60), out of one `--wait-limit` for the whole run (minutes, default 120). Past the limit
+     nothing more is asked: every page or chunk not asked is counted `model host busy`, every record
+     already answered is written, and the run stops with exit 3 and a message to run `extract` again,
+     which asks only what is missing. A busy host never gives up a whole source (checkpoint 6 left
+     NCI unextracted when the host was busy at three checks). `ops/cookbook-extract.py` takes the same `--timeout`, `--retries` and
      `--checkpoint` (default `<out>.answers.jsonl`) and counts `failedChunks`.
 
    Every record of every layout then passes the **number check**: the cookbook extraction's
@@ -164,10 +196,30 @@ retirement. The licence of all four records is `public-domain`, so the recipes a
 re-check and the clean-room prose lane, which take recipes of unknown licence, do not rewrite them.
 Withholding by source applies to them like any other source.
 
-## What must be installed where the script runs
+## Where it runs
 
-- Python 3.10 or later (standard library only).
-- `poppler-utils` (`pdftotext`, `pdftoppm`), GPL: for every PDF.
-- `tesseract-ocr` and `tesseract-ocr-eng`, Apache-2.0: for PDF pages with no text layer (NCI's
-  photo pages; any scanned VA card). Without it those pages are counted as `needs-ocr`.
-- For the `book` and `pages` layouts, an Ollama host serving `qwen2.5:14b-instruct` (Apache-2.0).
+The hand import runs on the application server as a container, and nothing is installed on any
+host. `ops/hand-import.Dockerfile` builds the `nom-hand-import` image from the Python slim image
+(Debian) with `poppler-utils` (`pdftotext`, `pdftoppm`, GPL) and `tesseract-ocr` with
+`tesseract-ocr-eng` (Apache-2.0); the script needs only Python's standard library. The image holds
+the script, the two modules it loads (`cookbook-extract.py`, `recipe-source-attach.py`) and the two
+lists, and nothing else: no secret, no host name, no address. One image serves staging and
+production; only the environment of a run differs.
+
+`ops/hand-import-box.sh` runs every step in it (`fetch`, `links`, `text`, `extract`, `sample`,
+`sources`, `stage`, `withhold`, `release`), and `build` builds it. It reads at run time:
+
+| Variable | Use |
+|---|---|
+| `NOM_HAND_WORK` | the work folder on the server, mounted at `/work` (required for every step with `--out`; `--out` defaults to `/work` and must lie under it) |
+| `NOM_HAND_MODEL_HOST`, `NOM_HAND_MODEL` | the model host and model for `extract`, passed as `--host` and `--model` (model default `qwen2.5:14b-instruct`) |
+| `NOM_API`, `NOM_API_KEY`, `NOM_API_TOKEN` | the NOM API of the environment being imported into, passed into the container by name, never on the command line |
+| `NOM_HAND_NETWORK` | a docker network for the container (`host` when `NOM_API` is a loopback address) |
+| `NOM_HAND_IMAGE` | the image tag (default `nom-hand-import`) |
+| `NOM_HAND_DRY_RUN=1` | print the `docker` command instead of running it |
+
+The container runs as the calling user, read-only, with a private `/tmp`, no capabilities and no new
+privileges, and is removed when the step ends. The import is run from the server, staging first;
+production only in the one rollout, with the same image and the same steps.
+
+For the `book` and `pages` layouts the model host serves `qwen2.5:14b-instruct` (Apache-2.0).

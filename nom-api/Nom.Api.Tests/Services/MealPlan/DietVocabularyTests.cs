@@ -40,7 +40,7 @@ namespace Nom.Api.Tests.Services.MealPlan
         public void The_committed_vocabulary_is_the_derivation_of_the_frozen_catalog()
         {
             var derived = DietVocabulary.Derive(Catalog());
-            var committed = DietVocabulary.All.Where(t => t.Basis != DietVocabularyBasis.Label).ToList();
+            var committed = DietVocabulary.All.Where(t => t.Basis is not (DietVocabularyBasis.Label or DietVocabularyBasis.Translation)).ToList();
 
             var want = derived.Select(d => Key(d.Class, d.Term, d.Basis, Categories(d.Categories), d.Foods)).ToList();
             var have = committed.Select(t => Key(t.Class, t.Term, t.Basis, t.Categories, t.Foods)).ToList();

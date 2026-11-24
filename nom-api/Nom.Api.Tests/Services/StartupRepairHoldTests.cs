@@ -420,16 +420,17 @@ namespace Nom.Api.Tests.Services
         }
 
         [Theory]
-        [InlineData("reference", true)]
-        [InlineData("equipment", true)]
-        [InlineData("ingredient", true)]
-        [InlineData("note", false)]
-        public async Task The_amount_the_method_states_fills_a_line_of_a_kind_that_takes_one_and_a_note_is_held_with_its_reason(string kind, bool filled)
+        [InlineData("reference", "Brown Sauce", true)]
+        [InlineData("equipment", "Brown Sauce", true)]
+        [InlineData("ingredient", "Brown Sauce", true)]
+        [InlineData("note", "Brown Sauce", true)]
+        [InlineData("note", "For the Brown Sauce:", false)]
+        public async Task The_amount_the_method_states_fills_a_line_of_a_kind_that_takes_one_or_a_note_it_measures_and_a_heading_is_held_with_its_reason(string kind, string rawLine, bool filled)
         {
             using var db = await NewContextAsync();
             var foods = await FoodsAsync(db, "Brown Sauce", "Pigeons");
             var recipe = await RecipeAsync(db, foods, new[] { "Make two cups of Brown Sauce and pour it over the pigeons." },
-                ("Brown Sauce", 0, 0m, Gram, "Brown Sauce", kind), ("Pigeons", 1, 4m, Piece, "4 pigeons", null));
+                ("Brown Sauce", 0, 0m, Gram, rawLine, kind), ("Pigeons", 1, 4m, Piece, "4 pigeons", null));
 
             var batch = await new ScrapedRecipeRepairService(db, new RecipeVettingService()).RepairBatchAsync(0, 500);
 
@@ -445,7 +446,7 @@ namespace Nom.Api.Tests.Services
             batch.GuardHeldByReason.Should().Equal(new Dictionary<string, int> { [LineAmountGuard.Reasons.Kind] = 1 });
             var hold = holds.Single();
             (hold.Origin, hold.Reason, hold.RawLine, hold.StoredKind, hold.StoredQuantity, hold.RebuiltQuantity, hold.RebuiltUnit, hold.RebuiltFromMethod)
-                .Should().Be((LineGuardHoldOrigin.StartupFill, LineAmountGuard.Reasons.Kind, "Brown Sauce", "note", 0m, 2m, "Cup", true));
+                .Should().Be((LineGuardHoldOrigin.StartupFill, LineAmountGuard.Reasons.Kind, rawLine, "note", 0m, 2m, "Cup", true));
         }
 
         [Fact]
@@ -454,7 +455,7 @@ namespace Nom.Api.Tests.Services
             using var db = await NewContextAsync();
             var foods = await FoodsAsync(db, "Brine", "Pork");
             var recipe = await RecipeAsync(db, foods, new[] { "Make a cup of brine and pour it over the pork." },
-                ("Brine", 0, 0m, Gram, "brine", "note"), ("Pork", 1, 2m, Pound, "2 lb pork", null));
+                ("Brine", 0, 0m, Gram, "For the brine:", "note"), ("Pork", 1, 2m, Pound, "2 lb pork", null));
 
             await RestartAsync(db, 3);
 
@@ -470,6 +471,33 @@ namespace Nom.Api.Tests.Services
             (await db.RecipeIngredients.AsNoTracking().SingleAsync(ri => ri.RecipeId == recipe && ri.SortOrder == 0)).Quantity.Should().Be(1m);
             var released = await db.LineGuardHolds.AsNoTracking().SingleAsync();
             (released.ResolvedAt != null, released.Resolution).Should().Be((true, LineGuardHolds.Released));
+        }
+
+        [Fact]
+        public async Task A_hold_follows_its_line_to_a_new_position_and_is_neither_released_nor_made_again()
+        {
+            using var db = await NewContextAsync();
+            var foods = await FoodsAsync(db, "Brine", "Pork");
+            var recipe = await RecipeAsync(db, foods, new[] { "Make a cup of brine and pour it over the pork." },
+                ("Brine", 0, 0m, Gram, "For the brine:", "note"), ("Pork", 1, 2m, Pound, "2 lb pork", null));
+            await RestartAsync(db, 1);
+            var held = await db.LineGuardHolds.AsNoTracking().SingleAsync();
+
+            var rows = await db.RecipeIngredients.Where(ri => ri.RecipeId == recipe).ToListAsync();
+            db.RecipeIngredients.RemoveRange(rows);
+            await db.SaveChangesAsync();
+            db.RecipeIngredients.AddRange(rows.Select(r => new RecipeIngredientEntity
+            {
+                RecipeId = r.RecipeId, IngredientId = r.IngredientId, SortOrder = 1 - r.SortOrder, Quantity = r.Quantity, MeasurementId = r.MeasurementId,
+                RawLine = r.RawLine, LineKind = r.LineKind, CreatedDate = r.CreatedDate,
+            }));
+            await db.SaveChangesAsync();
+            db.ChangeTracker.Clear();
+            await RestartAsync(db, 2);
+
+            var holds = await db.LineGuardHolds.AsNoTracking().ToListAsync();
+            holds.Should().ContainSingle("staging checkpoint 6 (R22): after the order pass a start released 152 holds and made 152 new rows for the same lines");
+            (holds[0].Id, holds[0].SortOrder, holds[0].ResolvedAt).Should().Be((held.Id, 1, (DateTime?)null));
         }
     }
 }

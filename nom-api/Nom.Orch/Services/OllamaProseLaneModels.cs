@@ -14,11 +14,13 @@ using Nom.Orch.Services.Support;
 namespace Nom.Orch.Services
 {
     /// <summary>
-    /// The clean-room lane's writer on an Ollama host (<c>/api/chat</c>, answers constrained by a
-    /// JSON schema): the extractor reads the masked method, the writer only the fact sheets, the
-    /// ingredient names and the dish name, with the prompts of <see cref="ProseLanePrompts"/>.
+    /// The prose lane's writer on an Ollama host (<c>/api/chat</c>, answers constrained by a JSON
+    /// schema), with the prompts of <see cref="ProseLanePrompts"/>: the reword writer reads the source
+    /// method, the step and the sentences it rewords (<see cref="ProseLanePrompts.Reword"/>); the
+    /// clean-room extractor and writer of fact sheets, which never see the source wording, remain for
+    /// the rule rendering's sheets and the golden rounds of the earlier design.
     /// </summary>
-    public sealed class OllamaProseWriter : IProseWriter
+    public sealed class OllamaProseWriter : IProseWriter, IProseRewriter
     {
         private readonly HttpClient _http;
         private readonly string _baseUrl;
@@ -40,17 +42,99 @@ namespace Nom.Orch.Services
             return OllamaProseChat.AskAsync(_http, _baseUrl, Model, ProseLanePrompts.Extract, body.ToString(), ExtractSchema(method.Steps.Count), 0, null, cancellationToken);
         }
 
-        public Task<string?> WriteAsync(ProseWriteRequest request, CancellationToken cancellationToken)
+        /// <summary>
+        /// Writes the steps asked for, each in a call of its own (all the sheets shown, the one step
+        /// written, with its checklist line and the problems that name it), and answers them together
+        /// as <c>{"steps":[...]}</c>, a step not asked for left empty for the caller to keep.
+        /// </summary>
+        public async Task<string?> WriteAsync(ProseWriteRequest request, CancellationToken cancellationToken)
+        {
+            var context = new StringBuilder();
+            context.Append("DISH: ").Append(request.Dish).Append("\nINGREDIENTS\n");
+            foreach (var line in request.Lines) context.Append(ProseMasking.Line(line.Id)).Append(" = ").Append(line.Name).Append('\n');
+            context.Append("FACT SHEETS\n").Append(ProseFactSheet.ToJson(request.Sheets)).Append('\n');
+            var checklist = ProseFactSheet.Checklist(request.Sheets).Split('\n');
+            var system = request.Style == ProseLanePrompts.StyleActions ? ProseLanePrompts.WriteActions : ProseLanePrompts.WriteSteps;
+            var steps = new string[request.Sheets.Count];
+            for (var i = 0; i < request.Sheets.Count; i++)
+            {
+                steps[i] = string.Empty;
+                if (request.Steps != null && !request.Steps.Contains(i)) continue;
+                var label = "step " + (i + 1).ToString(CultureInfo.InvariantCulture);
+                var body = new StringBuilder(context.ToString());
+                body.Append("WRITE STEP ").Append((i + 1).ToString(CultureInfo.InvariantCulture)).Append(" ONLY\n");
+                body.Append("CHECKLIST ").Append(i < checklist.Length ? checklist[i] : string.Empty).Append('\n');
+                var own = request.Problems.Where(p => System.Text.RegularExpressions.Regex.IsMatch(p, $@"\b{label}\b", System.Text.RegularExpressions.RegexOptions.IgnoreCase)
+                    || !System.Text.RegularExpressions.Regex.IsMatch(p, @"\bstep \d+\b", System.Text.RegularExpressions.RegexOptions.IgnoreCase)).ToList();
+                if (own.Count > 0) body.Append("Your previous answer was refused: ").Append(string.Join("; ", own)).Append('.');
+                var answer = await OllamaProseChat.AskAsync(_http, _baseUrl, Model, system, body.ToString(), StepSchema, request.Temperature, request.Seed, cancellationToken);
+                if (string.IsNullOrWhiteSpace(answer)) return null;
+                try
+                {
+                    using var document = JsonDocument.Parse(answer);
+                    if (document.RootElement.ValueKind != JsonValueKind.Object || !document.RootElement.TryGetProperty("step", out var step) || step.ValueKind != JsonValueKind.String) return null;
+                    steps[i] = step.GetString() ?? string.Empty;
+                }
+                catch (JsonException)
+                {
+                    return null;
+                }
+            }
+
+            return JsonSerializer.Serialize(new { steps }, new JsonSerializerOptions { Encoder = System.Text.Encodings.Web.JavaScriptEncoder.UnsafeRelaxedJsonEscaping });
+        }
+
+        private static readonly object StepSchema = new
+        {
+            type = "object",
+            properties = new { step = new { type = "string" } },
+            required = new[] { "step" },
+        };
+
+        public Task<string?> RewordAsync(ProseRewordRequest request, CancellationToken cancellationToken)
         {
             var body = new StringBuilder();
-            body.Append("DISH: ").Append(request.Dish).Append("\nINGREDIENTS\n");
-            foreach (var line in request.Lines) body.Append(ProseMasking.Line(line.Id)).Append(" = ").Append(line.Name).Append('\n');
-            body.Append("FACT SHEETS\n").Append(ProseFactSheet.ToJson(request.Sheets));
-            body.Append("\nWrite exactly ").Append(request.Sheets.Count.ToString(CultureInfo.InvariantCulture)).Append(" steps.");
-            if (request.Problems.Count > 0) body.Append("\nYour previous answer was refused: ").Append(string.Join("; ", request.Problems)).Append('.');
-            var system = request.Style == ProseLanePrompts.StyleActions ? ProseLanePrompts.WriteActions : ProseLanePrompts.WriteSteps;
-            return OllamaProseChat.AskAsync(_http, _baseUrl, Model, system, body.ToString(), StepsSchema(request.Sheets.Count), request.Temperature, request.Seed, cancellationToken);
+            body.Append("DISH: ").Append(request.Dish).Append("\nINGREDIENT LINES\n");
+            foreach (var line in request.Lines) body.Append("- ").Append(line).Append('\n');
+            body.Append("METHOD\n");
+            for (var i = 0; i < request.Method.Count; i++) body.Append("Step ").Append((i + 1).ToString(CultureInfo.InvariantCulture)).Append(": ").Append(request.Method[i]).Append('\n');
+            body.Append("\nSTEP ").Append(request.Step.ToString(CultureInfo.InvariantCulture)).Append(" AS IT NOW READS: ").Append(request.StepText).Append("\nSENTENCES TO REWORD\n");
+            foreach (var (number, text, problem) in request.Sentences)
+            {
+                body.Append(number.ToString(CultureInfo.InvariantCulture)).Append(": ").Append(text).Append('\n');
+                if (problem != null) body.Append("   your last rewrite of it was refused: ").Append(problem).Append('\n');
+            }
+
+            return OllamaProseChat.AskAsync(_http, _baseUrl, Model, ProseLanePrompts.Reword, body.ToString(), RewordSchema(request.Sentences.Count), request.Temperature, request.Seed, cancellationToken);
         }
+
+        private static object RewordSchema(int count) => new
+        {
+            type = "object",
+            properties = new
+            {
+                method = new { type = "string" },
+                step = new { type = "string" },
+                sentences = new
+                {
+                    type = "array",
+                    minItems = count,
+                    maxItems = count,
+                    items = new
+                    {
+                        type = "object",
+                        properties = new
+                        {
+                            n = new { type = "integer" },
+                            reading = new { type = "string" },
+                            rewrite = new { type = "string" },
+                        },
+                        required = new[] { "n", "reading", "rewrite" },
+                    },
+                },
+            },
+            required = new[] { "method", "step", "sentences" },
+        };
 
         private static object ExtractSchema(int count) => new
         {
@@ -78,13 +162,6 @@ namespace Nom.Orch.Services
                     },
                 },
             },
-            required = new[] { "steps" },
-        };
-
-        private static object StepsSchema(int count) => new
-        {
-            type = "object",
-            properties = new { steps = new { type = "array", minItems = count, maxItems = count, items = new { type = "string" } } },
             required = new[] { "steps" },
         };
     }
@@ -178,11 +255,14 @@ namespace Nom.Orch.Services
     /// <summary>
     /// The judge of every rewrite (reader B of the roster) on an Ollama host. Rules decide first
     /// (<see cref="ProseJudgeRules.Before"/>: the step count, a fact the prose check fails on, a heat
-    /// conflict), and no model is asked when they find a fault. Otherwise the model reads each step
-    /// pair in a call of its own (<see cref="ProseLanePrompts.JudgeStep"/>, temperature 0, a fixed
-    /// seed): it lists the original step's facts with the rewrite's words for each and what the
-    /// rewrite adds, with the check's weak signals for that step as a note. Each fact it does not
-    /// find as the same, and each thing it reads as added, is asked again on its own
+    /// conflict, a heat or an oven left out), and no model is asked when they find a fault. Otherwise
+    /// the model reads each step pair in a call of its own (<see cref="ProseLanePrompts.JudgeStep"/>,
+    /// temperature 0, a fixed seed): it lists the original step's facts with the rewrite's words for
+    /// each and what the rewrite adds, with the check's weak signals for that step as a note. Each fact
+    /// it does not find as the same and no rule finds (<see cref="ProseJudgeRules.FoundByRule"/>), each
+    /// clause with a word no rule finds (<see cref="ProseJudgeRules.Uncovered"/>), and each thing it
+    /// reads as added that a rule does not find in the original (<see cref="ProseJudgeRules.AddedByRule"/>)
+    /// is asked again on its own with the words no rule finds named
     /// (<see cref="ProseLanePrompts.JudgeKept"/>, <see cref="ProseLanePrompts.JudgeAdded"/>), and a
     /// claim stands unless that answer and its quote hold by rule (<see cref="ProseJudgeRules.Kept"/>,
     /// <see cref="ProseJudgeRules.AlreadySaid"/>). A rule turns the reading into the step's verdict
@@ -217,18 +297,22 @@ namespace Nom.Orch.Services
                 foreach (var note in ProseJudgeRules.Notes(finding, i + 1)) body.Append("NOTE: ").Append(note).Append('\n');
                 var answer = await OllamaProseChat.AskAsync(_http, _baseUrl, Model, ProseLanePrompts.JudgeStep, body.ToString(), StepSchema, 0, ProseLanePrompts.JudgeSeed, cancellationToken, ProseLanePrompts.JudgeContext);
                 if (ProseJudgeRules.Parse(answer) is not { } reading) return null;
+                var agree = ProseJudgeRules.AmountsAgree(finding, i + 1);
                 var facts = new List<ProseStepFact>();
-                foreach (var fact in reading.Facts.Concat(ProseJudgeRules.Unread(original[i], reading.Facts)))
+                var unread = ProseJudgeRules.Unread(original[i], reading.Facts);
+                var read = reading.Facts.Concat(unread).ToList();
+                foreach (var fact in read.Concat(ProseJudgeRules.Uncovered(original[i], rewrite[i], unread, agree)))
                 {
                     if (fact.Match == ProseJudgeRules.Same && ProseJudgeRules.Holds(rewrite[i], fact.Rewrite)) { facts.Add(fact); continue; }
-                    if (ProseJudgeRules.FoundByRule(fact, rewrite[i])) { facts.Add(ProseJudgeRules.Kept(fact, null, original[i], rewrite[i])); continue; }
+                    if (ProseJudgeRules.FoundByRule(fact, rewrite[i], agree)) { facts.Add(ProseJudgeRules.Kept(fact, null, original[i], rewrite[i], agree)); continue; }
                     var check = $"ORIGINAL STEP: {original[i]}\nREWRITE STEP: {rewrite[i]}\nFACT ({fact.Kind}): {fact.Original}\n";
+                    if (ProseJudgeRules.NotFound(fact, rewrite[i], agree) is { Count: > 0 } notFound) check += $"WORDS NOT FOUND: {string.Join(", ", notFound)}\n";
                     var kept = await OllamaProseChat.AskAsync(_http, _baseUrl, Model, ProseLanePrompts.JudgeKept, check, KeptSchema, 0, ProseLanePrompts.JudgeSeed, cancellationToken, ProseLanePrompts.JudgeContext);
-                    facts.Add(ProseJudgeRules.Kept(fact, kept, original[i], rewrite[i]));
+                    facts.Add(ProseJudgeRules.Kept(fact, kept, original[i], rewrite[i], agree));
                 }
 
                 var added = new List<ProseStepFact>();
-                foreach (var fact in reading.Added)
+                foreach (var fact in reading.Added.Where(a => ProseJudgeRules.AddedByRule(a, original[i], agree)))
                 {
                     var check = $"ORIGINAL STEP: {original[i]}\nREWRITE STEP: {rewrite[i]}\nADDED ({fact.Kind}): {fact.Rewrite}\n";
                     var answerAdded = await OllamaProseChat.AskAsync(_http, _baseUrl, Model, ProseLanePrompts.JudgeAdded, check, AddedSchema, 0, ProseLanePrompts.JudgeSeed, cancellationToken, ProseLanePrompts.JudgeContext);
@@ -283,7 +367,7 @@ namespace Nom.Orch.Services
                             kind = new { type = "string", @enum = ProseJudgeRules.Kinds },
                             original = new { type = "string" },
                             rewrite = new { type = "string" },
-                            match = new { type = "string", @enum = new[] { ProseJudgeRules.Same, ProseJudgeRules.Different, ProseJudgeRules.Missing } },
+                            match = new { type = "string", @enum = new[] { ProseJudgeRules.FactKept, ProseJudgeRules.FactChanged, ProseJudgeRules.FactLost } },
                         },
                         required = new[] { "kind", "original", "rewrite", "match" },
                     },

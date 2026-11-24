@@ -156,6 +156,11 @@ namespace Nom.Orch.Services
                 return Fail(result.Error ?? $"Failed to parse recipe data ({result.FailureReason}).");
             }
 
+            if (await RecipeRemovalService.RefusalAsync(_dbContext, result.Recipe.SourceUrl) is { } removed)
+            {
+                return Fail(removed);
+            }
+
             var recipeEntity = await CreateRecipeFromScrapedDataAsync(result.Recipe, sourceUrl: null, request.ImportKeywordsAsTags);
 
             return new RecipeScrapingResponseModel
@@ -332,6 +337,11 @@ namespace Nom.Orch.Services
         /// </summary>
         private async Task<RecipeScrapingResponseModel?> CheckSourceGateAsync(string url)
         {
+            if (await RecipeRemovalService.RefusalAsync(_dbContext, url) is { } removed)
+            {
+                return new RecipeScrapingResponseModel { Success = false, SourcePendingApproval = false, Error = removed };
+            }
+
             if (await _scrapingSources.IsHandSourceAsync(url))
             {
                 return new RecipeScrapingResponseModel
@@ -423,6 +433,7 @@ namespace Nom.Orch.Services
                 ? await _dbContext.ScrapingSources.AsNoTracking().FirstOrDefaultAsync(s => s.Id == sourceId && s.Status == ScrapingSourceStatusEnum.Approved)
                 : null;
             result.PublicDomainFlagIgnored = _stagedGate && request.PublicDomain;
+            var bySource = new SortedDictionary<string, (int Imported, int PublicDomain)>(StringComparer.Ordinal);
 
             foreach (var scraped in request.Recipes)
             {
@@ -431,6 +442,13 @@ namespace Nom.Orch.Services
                     var normalizedUrl = string.IsNullOrWhiteSpace(scraped.SourceUrl)
                         ? null
                         : NormalizeUrl(scraped.SourceUrl);
+
+                    if (await RecipeRemovalService.RefusalAsync(_dbContext, normalizedUrl) is { } removed)
+                    {
+                        result.Refused++;
+                        result.Failures.Add(new StagedImportFailureModel { Name = scraped.Name, Error = "Refused: " + removed });
+                        continue;
+                    }
 
                     var publicDomain = request.PublicDomain;
                     ScrapingSourceEntity? gateSource = null;
@@ -529,6 +547,12 @@ namespace Nom.Orch.Services
 
                     await _dbContext.SaveChangesAsync();
                     result.Imported++;
+                    if (publicDomain) result.ImportedPublicDomain++;
+                    if (gateSource != null)
+                    {
+                        var counted = bySource.GetValueOrDefault(gateSource.Domain);
+                        bySource[gateSource.Domain] = (counted.Imported + 1, counted.PublicDomain + (publicDomain ? 1 : 0));
+                    }
                 }
                 catch (Exception ex)
                 {
@@ -547,8 +571,11 @@ namespace Nom.Orch.Services
             }
 
             _logger.LogInformation(
-                "Staged import: {Imported} imported, {Skipped} duplicates skipped, {Refused} refused by the source gate, {Failed} failed (publicDomain={PublicDomain})",
-                result.Imported, result.SkippedDuplicates, result.Refused, result.Failures.Count - result.Refused, request.PublicDomain);
+                "Staged import: {Imported} imported ({PublicDomainRows} stored PublicDomain, {Quarantined} with the copyright quarantine), {Skipped} duplicates skipped, {Refused} refused by the source gate, {Failed} failed; licence from {LicenceFrom}",
+                result.Imported, result.ImportedPublicDomain, result.Imported - result.ImportedPublicDomain, result.SkippedDuplicates, result.Refused, result.Failures.Count - result.Refused,
+                _stagedGate
+                    ? $"the source record of each row's source ({(bySource.Count == 0 ? "no row imported" : string.Join("; ", bySource.Select(s => $"{s.Key}: {s.Value.Imported} imported, {s.Value.PublicDomain} PublicDomain")))}){(request.PublicDomain ? " (the request's publicDomain=true not read)" : string.Empty)}"
+                    : $"the request (publicDomain={request.PublicDomain})");
             return result;
         }
 

@@ -10,7 +10,7 @@ namespace Nom.Import.Golden
 {
     /// <summary>
     /// Scores one model lane against its golden set on a model host the operator names:
-    /// <c>dotnet run -- --golden-score --lane link-verify --host http://ai-host:11434 --model qwen3:8b [--limit 200] [--golden &lt;dir&gt;] [--out failures.tsv] [--record] [--split working|held-out|all]</c>; a lane of <see cref="ModelLanes.Splittable"/> can be scored on one fixed half of its rows (--split, never with --record); the prose lanes also take <c>[--check-model mistral-nemo]</c>, the judge that checks the writer, and the reader lanes (wording-read, wording-lexicon, alcohol-reading) and link-audit take it as reader B (default the roster's), which the record names; alcohol-reading also takes <c>[--audit-model phi4]</c>, the auditor it scores in the fixed-reading mode (default the roster's).
+    /// <c>dotnet run -- --golden-score --lane link-verify --host http://ai-host:11434 --model qwen3:8b [--limit 200] [--golden &lt;dir&gt;] [--out failures.tsv] [--record] [--split working|held-out|all]</c>; a lane of <see cref="ModelLanes.Splittable"/> can be scored on one fixed half of its rows (--split, never with --record); the prose lanes also take <c>[--check-model mistral-nemo]</c>, the judge that checks the writer, and the reader lanes (wording-read, wording-lexicon, alcohol-reading) and link-audit take it as reader B (default the roster's), which the record names; alcohol-reading also takes <c>[--audit-model phi4]</c>, the auditor it scores in the fixed-reading mode (default the roster's); prose-rewrite on the working half takes <c>[--trace &lt;file&gt;]</c>, where each recipe's sheets and refused steps are written.
     /// Prints the lane's score, its false-accept rate, the floor from <c>model-lanes.json</c> and every
     /// case that passed in the recorded run and fails now, and exits 1 when the lane is below its
     /// floor. <c>--record</c> writes the score file the release gate reads. Refused under CI, and it
@@ -34,7 +34,7 @@ namespace Nom.Import.Golden
             var model = Option(args, "--model") ?? (noModel ? ModelLanes.NoModelVersion(lane!) : null);
             if (lane == null || host == null || model == null || !ModelLanes.Scored.Contains(lane))
             {
-                Console.Error.WriteLine($"usage: {Flag} --lane <{string.Join('|', ModelLanes.Scored)}> --host <url> --model <name> [--limit N] [--golden <dir>] [--out <file>] [--record] [--split <working|held-out|all>] [--check-model <name>] [--audit-model <name>] ({string.Join(", ", ModelLanes.NoModel)} needs no host or model)");
+                Console.Error.WriteLine($"usage: {Flag} --lane <{string.Join('|', ModelLanes.Scored)}> --host <url> --model <name> [--limit N] [--golden <dir>] [--out <file>] [--record] [--split <working|held-out|all>] [--check-model <name>] [--audit-model <name>] [--trace <file>] ({string.Join(", ", ModelLanes.NoModel)} needs no host or model)");
                 return 2;
             }
 
@@ -67,7 +67,7 @@ namespace Nom.Import.Golden
             IReadOnlyList<LaneCaseResult> results;
             try
             {
-                results = await ModelLanes.RunAsync(lane, goldenDir, http, ModelLanes.Config(host, model, Option(args, "--check-model"), Option(args, "--audit-model")), limit, Console.Error.WriteLine, split: split);
+                results = await ModelLanes.RunAsync(lane, goldenDir, http, ModelLanes.Config(host, model, Option(args, "--check-model"), Option(args, "--audit-model"), Option(args, "--trace")), limit, Console.Error.WriteLine, split: split);
             }
             catch (Exception ex) when (ex is HttpRequestException or TaskCanceledException or InvalidOperationException)
             {
@@ -82,6 +82,10 @@ namespace Nom.Import.Golden
 
             Console.WriteLine($"Score {score.Score:P1} ({score.Passed}/{score.Cases}); floor {floor.MinScore:P1}");
             Console.WriteLine($"False accepts {score.FalseAccepts}/{score.FalseAcceptCases} ({score.FalseAcceptRate:P1}); ceiling {(floor.MaxFalseAcceptRate is { } max ? max.ToString("P1") : "none")}");
+            if (ModelLanes.FalseRefusals(lane, results) is { } refusals)
+                Console.WriteLine($"False refusals {refusals.Refused}/{refusals.Faithful} faithful rewrites ({(refusals.Faithful == 0 ? 0 : (double)refusals.Refused / refusals.Faithful):P1}); not part of the floor");
+            if (ModelLanes.RewriteFigures(lane, results) is { } rewrites)
+                Console.WriteLine($"Recipes {rewrites.Recipes}: through the gate at the first attempt {rewrites.FirstTry}, on the rule rendering {rewrites.RuleRendered}, given up {rewrites.GaveUp}; {rewrites.Seconds:0.0} s a recipe");
             if (score.Precision is { } precision)
                 Console.WriteLine($"Accepted {score.Accepted}/{score.Cases}; judged right among them {precision:P1}; floor {(floor.MinPrecision is { } minPrecision ? minPrecision.ToString("P1") : "none")}");
             foreach (var (judge, counts) in score.ByJudge) Console.WriteLine($"  judged by {judge}: {counts[0]}/{counts[1]}");

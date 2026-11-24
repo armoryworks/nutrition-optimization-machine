@@ -20,9 +20,13 @@ namespace Nom.Orch.Services.Support
     /// amount being that measure and the source not also stating the count as a count of the food; it is the
     /// first part of an amount the source states in the same measure ("a pound and a half", "1-1/4 cups");
     /// or it is empty on a line of a kind that takes an amount (an ingredient, a reference such as a sauce
-    /// made by another recipe, or equipment such as boiling water; never a note, an instruction or an
-    /// artefact). Every other difference keeps the stored amount and is held, with its reason, for the line
-    /// judge. No model and no database.
+    /// made by another recipe, or equipment such as boiling water). An empty note, instruction or artefact
+    /// takes an amount only where a method sentence proves it: the line is no heading, yield or utensil on its
+    /// face, and the method states, once and right before the line's own words, a measure of them ("one and
+    /// one-half cups of boiling water"), read the same again here, or, for a note or instruction that is no fold of lines, the
+    /// line itself states a measure of the food it names ("White-wine vinegar 3½ quarts" read as an instruction); a count of
+    /// pieces never. Every other difference keeps the stored amount and is held, with its
+    /// reason, for the line judge. No model and no database.
     /// </summary>
     public static class LineAmountGuard
     {
@@ -57,6 +61,12 @@ namespace Nom.Orch.Services.Support
             /// <summary>Replaced: the stored amount is the first part of the amount the source states.</summary>
             public const string AddedPart = "added-part";
 
+            /// <summary>Replaced: an empty note, instruction or artefact whose own words a method sentence gives a measure of, once and right before them.</summary>
+            public const string MethodMeasure = "method-measure";
+
+            /// <summary>Replaced: an empty note or instruction, no fold, heading, yield or utensil, whose own line states a measure of the food it names.</summary>
+            public const string LineMeasure = "line-measure";
+
             /// <summary>Held: the rebuilt row has no amount and the stored amount is not grounded.</summary>
             public const string RebuiltEmpty = "rebuilt-empty";
 
@@ -66,7 +76,7 @@ namespace Nom.Orch.Services.Support
             /// <summary>Held: the rebuilt amount does not stand in the line's own source text, or its unit is not sane.</summary>
             public const string RebuiltUngrounded = "rebuilt-ungrounded";
 
-            /// <summary>Held: the stored line has no amount and is a note, an instruction or an artefact.</summary>
+            /// <summary>Held: the stored line has no amount and is a note, an instruction or an artefact no method sentence gives a measure of.</summary>
             public const string Kind = "kind";
 
             /// <summary>Held: both amounts stand in the source and differ ("four or five oranges").</summary>
@@ -111,7 +121,9 @@ namespace Nom.Orch.Services.Support
 
             if (stored.Quantity <= 0)
             {
-                return TakesAmount(stored.Kind) ? new Decision(Verdict.Replace, Reasons.Fill) : new Decision(Verdict.Hold, Reasons.Kind);
+                if (TakesAmount(stored.Kind)) return new Decision(Verdict.Replace, Reasons.Fill);
+                if (MethodMeasures(raw, proposed, steps, proposedFromMethod)) return new Decision(Verdict.Replace, Reasons.MethodMeasure);
+                return LineMeasures(raw, proposed, proposedFromMethod) ? new Decision(Verdict.Replace, Reasons.LineMeasure) : new Decision(Verdict.Hold, Reasons.Kind);
             }
 
             if (!storedGrounded) return new Decision(Verdict.Replace, Reasons.StoredUngrounded);
@@ -142,6 +154,23 @@ namespace Nom.Orch.Services.Support
         /// <summary>Whether a line of the kind may take an amount from the source: an ingredient, a line of no kind, a reference or equipment; never a note, an instruction or an artefact.</summary>
         public static bool TakesAmount(string? kind) =>
             kind is null or RecipeIngredientLineKind.Ingredient or RecipeIngredientLineKind.Reference or RecipeIngredientLineKind.Equipment;
+
+        private static bool MethodMeasures(string raw, Amount proposed, IReadOnlyList<string> method, bool fromMethod) =>
+            fromMethod && proposed.Unit != null && !string.Equals(proposed.Unit, IngredientLineParser.Piece, StringComparison.OrdinalIgnoreCase)
+            && RecipeLineClassifier.Classify(FirstPart(raw)) == null
+            && MethodAmountFinder.Find(FirstPart(raw), method) is { } read
+            && string.Equals(read.MeasurementName, proposed.Unit, StringComparison.OrdinalIgnoreCase)
+            && Math.Abs(read.Quantity - proposed.Quantity) <= 0.01m;
+
+        private static bool LineMeasures(string raw, Amount proposed, bool fromMethod) =>
+            !fromMethod && proposed.Kind is RecipeIngredientLineKind.Note or RecipeIngredientLineKind.Instruction
+            && !raw.Contains(FoldedLine.Separator, StringComparison.Ordinal)
+            && proposed.Unit != null && !string.Equals(proposed.Unit, IngredientLineParser.Piece, StringComparison.OrdinalIgnoreCase)
+            && RecipeLineClassifier.Classify(FirstPart(raw)) == null
+            && proposed.Food != null && FoodNameMatcher.NamesFood(FirstPart(raw), proposed.Food)
+            && IngredientLineParser.Parse(FirstPart(raw)) is { } read
+            && string.Equals(read.MeasurementName, proposed.Unit, StringComparison.OrdinalIgnoreCase)
+            && Math.Abs(read.Quantity - proposed.Quantity) <= 0.01m;
 
         private static bool SameAmount(Amount a, Amount b) =>
             (a.Quantity <= 0 && b.Quantity <= 0) || (a.Quantity == b.Quantity && string.Equals(a.Unit, b.Unit, StringComparison.OrdinalIgnoreCase));

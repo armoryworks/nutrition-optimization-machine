@@ -28,6 +28,15 @@ namespace Nom.Api.Tests.Services
             "Let the sauce stand for a half hour before serving.",
         };
 
+        /// <summary>Each sentence of the method reworded from its meaning, as a reword writer that keeps to the rules would answer.</summary>
+        public static readonly IReadOnlyDictionary<string, string> Reworded = new Dictionary<string, string>
+        {
+            [Method[0]] = "Over medium heat, warm ½ tablespoon of the olive oil in a small saucepan, then cook the garlic in it for a minute or two until you can smell it.",
+            [Method[1]] = "Pour ¾ cup cream into the pan along with ¾ teaspoon salt and let the mixture simmer for 7 to 10 minutes, until it has thickened slightly.",
+            [Method[2]] = "Whisk the butter through the sauce once you have lifted the pan off the heat.",
+            [Method[3]] = "Before you serve it, leave the sauce to stand for a half hour.",
+        };
+
         public static readonly string[] Written =
         {
             "Warm ⟦Q1⟧ ⟦L1⟧ in a small pan on medium and fry the ⟦L2⟧ ⟦Q2⟧, just until it smells good.",
@@ -50,7 +59,7 @@ namespace Nom.Api.Tests.Services
     }
 
     /// <summary>A writer whose extractor answers with the rule sheets and whose writer answers from a queue (the last answer repeats), recording what it was given.</summary>
-    internal sealed class FakeWriter : IProseWriter
+    internal sealed class FakeWriter : IProseWriter, IProseRewriter
     {
         private readonly Queue<string?> _written;
         private string? _last;
@@ -73,6 +82,18 @@ namespace Nom.Api.Tests.Services
             if (Throw != null) throw Throw;
             Extracted.Add(method);
             return Task.FromResult(Extract(method));
+        }
+
+        /// <summary>How each sentence asked of the reword writer is answered: <see cref="GarlicSauce.Reworded"/>, or the sentence itself when it is not there.</summary>
+        public Func<string, string> Reword { get; init; } = sentence => GarlicSauce.Reworded.TryGetValue(sentence, out var reworded) ? reworded : sentence;
+        public List<ProseRewordRequest> Reworded { get; } = new();
+
+        public Task<string?> RewordAsync(ProseRewordRequest request, CancellationToken cancellationToken)
+        {
+            if (Throw != null) throw Throw;
+            Reworded.Add(request);
+            var sentences = request.Sentences.Select(x => new { n = x.Number, reading = "what the cook does", rewrite = Reword(x.Text) }).ToList();
+            return Task.FromResult<string?>(JsonSerializer.Serialize(new { method = "a sauce", step = "this step", sentences }));
         }
 
         public Task<string?> WriteAsync(ProseWriteRequest request, CancellationToken cancellationToken)

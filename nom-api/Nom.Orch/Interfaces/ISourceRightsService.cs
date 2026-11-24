@@ -11,8 +11,8 @@ namespace Nom.Orch.Interfaces
     /// and AI reservation derived by rule from the stored source-check report, the written permissions and
     /// facts-only approvals an admin records, the stamps the source's recipes carry, and the recipe steps
     /// that follow from a facts-only class (titles, credit lines, prose retention). Every change is
-    /// journaled and can be undone; every step has a dry run. Nothing here deletes a recipe or decides what
-    /// happens to recipes already taken from a forbidden or permission-needed source.
+    /// journaled and can be undone; every step has a dry run. Nothing here deletes a recipe: the recipes already
+    /// taken from a forbidden source are removed by <see cref="IRecipeRemovalService"/>.
     /// </summary>
     public interface ISourceRightsService
     {

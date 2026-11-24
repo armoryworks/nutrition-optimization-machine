@@ -45,6 +45,11 @@ namespace Nom.Orch.Models.Recipe
         /// <summary>True while the recipe's own description and steps are withheld (they failed the prose check); <see cref="KeyFacts"/> and <see cref="SourceUrl"/> stand in for the method.</summary>
         public bool ProseWithheld { get; set; }
 
+        /// <summary>The recipe was removed (taken from a forbidden source) and is served only as an entry a household still holds: its title, <see cref="SourceUrl"/> and <see cref="RemovedNote"/>.</summary>
+        public bool Removed { get; set; }
+
+        public string? RemovedNote { get; set; }
+
         /// <summary>Rule-built facts of the source method ("oven 350°F", "bake 30 to 40 min"), in step order, while the prose is withheld; null otherwise.</summary>
         public List<string>? KeyFacts { get; set; }
 

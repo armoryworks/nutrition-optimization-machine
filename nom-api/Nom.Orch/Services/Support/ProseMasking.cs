@@ -20,15 +20,41 @@ namespace Nom.Orch.Services.Support
     /// </summary>
     public sealed record MaskedMethod(IReadOnlyList<MaskedStep> Steps, IReadOnlyDictionary<string, string> Amounts, IReadOnlyList<MaskedLine> Lines)
     {
-        /// <summary>The text with every token put back: an amount as the source wrote it, a line token as the line's head word. An unknown token is left as it is.</summary>
+        /// <summary>
+        /// The text with every token put back: an amount as the source wrote it, a line token as the
+        /// line's head word, led by the words of its name the method itself puts before it ("olive" of
+        /// "olive oil") unless the written text already does. An unknown token is left as it is.
+        /// </summary>
         public string Unmask(string text) => ProseMasking.Normalize(text) is var normal
             ? ProseMasking.TokenPattern.Replace(normal, m =>
             {
                 var id = m.Groups["kind"].Value + m.Groups["n"].Value;
                 if (Amounts.TryGetValue(id, out var amount)) return amount;
-                return Lines.FirstOrDefault(l => l.Id == id)?.Head ?? m.Value;
+                if (Lines.FirstOrDefault(l => l.Id == id) is not { } line) return m.Value;
+                var lead = Qualifier(id);
+                if (lead.Length == 0 || normal[..m.Index].TrimEnd().EndsWith(lead, StringComparison.OrdinalIgnoreCase)) return line.Head;
+                return lead + " " + line.Head;
             })
             : text;
+
+        /// <summary>The words of a line's name that the masked method puts right before its token ("olive" in "olive ⟦L1⟧" for "olive oil"); empty when it puts none.</summary>
+        public string Qualifier(string id)
+        {
+            if (Lines.FirstOrDefault(l => l.Id == id) is not { } line) return string.Empty;
+            var nameWords = Regex.Matches(line.Name.ToLowerInvariant(), @"\p{L}+").Select(w => w.Value).ToHashSet(StringComparer.Ordinal);
+            nameWords.Remove(line.Head.ToLowerInvariant());
+            if (nameWords.Count == 0) return string.Empty;
+            foreach (var step in Steps)
+            {
+                var m = Regex.Match(step.Text, @"((?:\p{L}+\s+){1,2})⟦" + id + "⟧");
+                if (!m.Success) continue;
+                var words = Regex.Matches(m.Groups[1].Value, @"\p{L}+").Select(w => w.Value).ToList();
+                var kept = words.SkipWhile(w => !nameWords.Contains(w.ToLowerInvariant())).ToList();
+                if (kept.Count > 0 && kept.All(w => nameWords.Contains(w.ToLowerInvariant()))) return string.Join(" ", kept);
+            }
+
+            return string.Empty;
+        }
     }
 
     /// <summary>
@@ -41,7 +67,7 @@ namespace Nom.Orch.Services.Support
     /// </summary>
     public static class ProseMasking
     {
-        public const string Version = "mask/1";
+        public const string Version = "mask/2";
 
         internal static readonly Regex TokenPattern = new(
             @"(?:⟦|\[\[|\[|\{\{|\{)\s*(?<kind>[QL])\s*(?<n>\d{1,3})\s*(?:⟧|\]\]|\]|\}\}|\})",

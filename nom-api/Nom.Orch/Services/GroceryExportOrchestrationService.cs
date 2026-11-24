@@ -212,13 +212,14 @@ namespace Nom.Orch.Services
                 _logger.LogWarning(ex, "Retail packaging lookup failed; exporting without package hints");
             }
 
+            var removed = await RecipeRemovalService.RemovedAsync(_db, items.Where(i => i.RecipeId != null && i.Recipe == null).Select(i => i.RecipeId!.Value));
             return items.Select(item => new GroceryExportItem
             {
                 Name = item.Name,
                 Quantity = item.Quantity,
                 Unit = item.Measurement?.Name,
                 Category = item.Category?.Name,
-                Note = Support.ShoppingItemNote.Shown(item),
+                Note = Support.ShoppingItemNote.Shown(item, removed),
                 PackageHint = hints.TryGetValue(item.Name, out var hint) ? hint : null,
             }).ToList();
         }

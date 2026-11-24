@@ -2,7 +2,7 @@
 -- PostgreSQL database dump
 --
 
-\restrict qxRWoFqIqbG1kQ1xfYq4Q5uPI7cV5VgU7EZN9EZNaMZgsfXADLAlv6XpGR4FpfL
+\restrict 3VWHudQJ6pZEQCivZKEXJTyng5SAJzsQIUAyay0gQab3ZNbcS7PAcsbSAZuBOlJ
 
 -- Dumped from database version 16.15 (Debian 16.15-1.pgdg13+2)
 -- Dumped by pg_dump version 16.15 (Ubuntu 16.15-0ubuntu0.24.04.1)
@@ -114,6 +114,265 @@ CREATE EXTENSION IF NOT EXISTS pg_trgm WITH SCHEMA public;
 --
 
 COMMENT ON EXTENSION pg_trgm IS 'text similarity measurement and index searching based on trigrams';
+
+
+--
+-- Name: DietGateAliasesWritten(); Type: FUNCTION; Schema: plan; Owner: -
+--
+
+CREATE FUNCTION plan."DietGateAliasesWritten"() RETURNS trigger
+    LANGUAGE plpgsql
+    AS $$
+BEGIN
+    IF TG_OP = 'INSERT' THEN
+        PERFORM plan."DietGateClearFoods"(ARRAY(SELECT n."IngredientId" FROM new_rows n));
+    ELSIF TG_OP = 'DELETE' THEN
+        PERFORM plan."DietGateClearFoods"(ARRAY(SELECT o."IngredientId" FROM old_rows o));
+    ELSE
+        PERFORM plan."DietGateClearFoods"(ARRAY(
+            SELECT n."IngredientId" FROM new_rows n
+            UNION
+            SELECT o."IngredientId" FROM old_rows o));
+    END IF;
+    RETURN NULL;
+END;
+$$;
+
+
+--
+-- Name: DietGateClearFoods(bigint[]); Type: FUNCTION; Schema: plan; Owner: -
+--
+
+CREATE FUNCTION plan."DietGateClearFoods"(food_ids bigint[]) RETURNS void
+    LANGUAGE plpgsql
+    AS $$
+DECLARE
+    foods bigint[];
+BEGIN
+    IF food_ids IS NULL OR cardinality(food_ids) = 0 THEN
+        RETURN;
+    END IF;
+    foods := ARRAY(SELECT DISTINCT f FROM unnest(food_ids) f ORDER BY 1);
+    DELETE FROM plan."DietFoodState" s
+    WHERE s."BuildId" IN (SELECT b."Id" FROM plan."DietGateBuild" b)
+      AND s."IngredientId" = ANY (foods);
+    DELETE FROM plan."DietRecipeState" s
+    WHERE s."BuildId" IN (SELECT b."Id" FROM plan."DietGateBuild" b)
+      AND s."RecipeId" = ANY (ARRAY(
+          SELECT DISTINCT ri."RecipeId" FROM recipe."RecipeIngredient" ri WHERE ri."IngredientId" = ANY (foods) ORDER BY 1));
+    INSERT INTO plan."DietGateWrite" ("IngredientId") SELECT f FROM unnest(foods) f;
+END;
+$$;
+
+
+--
+-- Name: DietGateClearRecipes(bigint[]); Type: FUNCTION; Schema: plan; Owner: -
+--
+
+CREATE FUNCTION plan."DietGateClearRecipes"(recipe_ids bigint[]) RETURNS void
+    LANGUAGE plpgsql
+    AS $$
+BEGIN
+    IF recipe_ids IS NULL OR cardinality(recipe_ids) = 0 THEN
+        RETURN;
+    END IF;
+    DELETE FROM plan."DietRecipeState" s
+    WHERE s."BuildId" IN (SELECT b."Id" FROM plan."DietGateBuild" b)
+      AND s."RecipeId" = ANY (ARRAY(SELECT DISTINCT r FROM unnest(recipe_ids) r ORDER BY 1));
+    INSERT INTO plan."DietGateWrite" ("RecipeId")
+    SELECT DISTINCT r FROM unnest(recipe_ids) r WHERE r IS NOT NULL ORDER BY 1;
+END;
+$$;
+
+
+--
+-- Name: DietGateCriteriaWritten(); Type: FUNCTION; Schema: plan; Owner: -
+--
+
+CREATE FUNCTION plan."DietGateCriteriaWritten"() RETURNS trigger
+    LANGUAGE plpgsql
+    AS $$
+BEGIN
+    INSERT INTO plan."DietGateWrite" ("RecipeId", "IngredientId") VALUES (NULL, NULL);
+    RETURN NULL;
+END;
+$$;
+
+
+--
+-- Name: DietGateFoodsWritten(); Type: FUNCTION; Schema: plan; Owner: -
+--
+
+CREATE FUNCTION plan."DietGateFoodsWritten"() RETURNS trigger
+    LANGUAGE plpgsql
+    AS $$
+BEGIN
+    IF TG_OP = 'INSERT' THEN
+        INSERT INTO plan."DietGateWrite" ("IngredientId") SELECT n."Id" FROM new_rows n ORDER BY 1;
+    ELSIF TG_OP = 'DELETE' THEN
+        PERFORM plan."DietGateClearFoods"(ARRAY(SELECT o."Id" FROM old_rows o));
+    ELSE
+        PERFORM plan."DietGateClearFoods"(ARRAY(
+            SELECT n."Id" FROM new_rows n JOIN old_rows o ON o."Id" = n."Id"
+            WHERE (o."Name", o."IsDeleted", o."FdcCategoryId", o."FdcDataType", o."FdcCategory", o."GramsPerMilliliter", o."GramsPerItem", o."ReferenceServingGrams")
+                  IS DISTINCT FROM (n."Name", n."IsDeleted", n."FdcCategoryId", n."FdcDataType", n."FdcCategory", n."GramsPerMilliliter", n."GramsPerItem", n."ReferenceServingGrams")));
+    END IF;
+    RETURN NULL;
+END;
+$$;
+
+
+--
+-- Name: DietGateLinesWritten(); Type: FUNCTION; Schema: plan; Owner: -
+--
+
+CREATE FUNCTION plan."DietGateLinesWritten"() RETURNS trigger
+    LANGUAGE plpgsql
+    AS $$
+BEGIN
+    IF TG_OP = 'INSERT' THEN
+        PERFORM plan."DietGateClearRecipes"(ARRAY(SELECT n."RecipeId" FROM new_rows n));
+    ELSIF TG_OP = 'DELETE' THEN
+        PERFORM plan."DietGateClearRecipes"(ARRAY(SELECT o."RecipeId" FROM old_rows o));
+    ELSE
+        PERFORM plan."DietGateClearRecipes"(ARRAY(
+            SELECT n."RecipeId" FROM new_rows n
+            WHERE NOT EXISTS (SELECT 1 FROM old_rows o
+                              WHERE o."RecipeId" = n."RecipeId" AND o."IngredientId" = n."IngredientId" AND o."SortOrder" = n."SortOrder"
+                                AND (o."RawLine", o."Quantity", o."MeasurementId", o."LineKind", o."AlcoholRetention", o."AlcoholRetentionBasis", o."IsDeleted")
+                                    IS NOT DISTINCT FROM (n."RawLine", n."Quantity", n."MeasurementId", n."LineKind", n."AlcoholRetention", n."AlcoholRetentionBasis", n."IsDeleted"))
+            UNION
+            SELECT o."RecipeId" FROM old_rows o
+            WHERE NOT EXISTS (SELECT 1 FROM new_rows n
+                              WHERE n."RecipeId" = o."RecipeId" AND n."IngredientId" = o."IngredientId" AND n."SortOrder" = o."SortOrder")));
+    END IF;
+    RETURN NULL;
+END;
+$$;
+
+
+--
+-- Name: DietGateNutrientsWritten(); Type: FUNCTION; Schema: plan; Owner: -
+--
+
+CREATE FUNCTION plan."DietGateNutrientsWritten"() RETURNS trigger
+    LANGUAGE plpgsql
+    AS $$
+BEGIN
+    IF TG_OP = 'INSERT' THEN
+        PERFORM plan."DietGateClearFoods"(ARRAY(
+            SELECT n."IngredientId" FROM new_rows n
+            WHERE n."NutrientId" IN (SELECT c."NutrientId" FROM plan."RestrictionCriterion" c WHERE c."NutrientId" IS NOT NULL)));
+    ELSIF TG_OP = 'DELETE' THEN
+        PERFORM plan."DietGateClearFoods"(ARRAY(
+            SELECT o."IngredientId" FROM old_rows o
+            WHERE o."NutrientId" IN (SELECT c."NutrientId" FROM plan."RestrictionCriterion" c WHERE c."NutrientId" IS NOT NULL)));
+    ELSE
+        PERFORM plan."DietGateClearFoods"(ARRAY(
+            SELECT x."IngredientId" FROM new_rows n JOIN old_rows o ON o."Id" = n."Id"
+                CROSS JOIN LATERAL (VALUES (o."IngredientId", o."NutrientId"), (n."IngredientId", n."NutrientId")) x("IngredientId", "NutrientId")
+            WHERE (o."IngredientId", o."NutrientId", o."Amount", o."IsDeleted") IS DISTINCT FROM (n."IngredientId", n."NutrientId", n."Amount", n."IsDeleted")
+              AND x."NutrientId" IN (SELECT c."NutrientId" FROM plan."RestrictionCriterion" c WHERE c."NutrientId" IS NOT NULL)));
+    END IF;
+    RETURN NULL;
+END;
+$$;
+
+
+--
+-- Name: DietGateRecipesWritten(); Type: FUNCTION; Schema: plan; Owner: -
+--
+
+CREATE FUNCTION plan."DietGateRecipesWritten"() RETURNS trigger
+    LANGUAGE plpgsql
+    AS $$
+BEGIN
+    PERFORM plan."DietGateClearRecipes"(ARRAY(
+        SELECT n."Id" FROM new_rows n JOIN old_rows o ON o."Id" = n."Id"
+        WHERE (o."Servings", o."RecipeServings", o."IsDeleted", o."Name", o."SourceUrl", o."ScrapedAtUtc")
+            IS DISTINCT FROM (n."Servings", n."RecipeServings", n."IsDeleted", n."Name", n."SourceUrl", n."ScrapedAtUtc")));
+    RETURN NULL;
+END;
+$$;
+
+
+--
+-- Name: DietGateStatementsWritten(); Type: FUNCTION; Schema: plan; Owner: -
+--
+
+CREATE FUNCTION plan."DietGateStatementsWritten"() RETURNS trigger
+    LANGUAGE plpgsql
+    AS $$
+BEGIN
+    IF TG_OP = 'INSERT' THEN
+        PERFORM plan."DietGateClearFoods"(ARRAY(SELECT n."IngredientId" FROM new_rows n WHERE n."HouseholdId" IS NULL));
+    ELSIF TG_OP = 'DELETE' THEN
+        PERFORM plan."DietGateClearFoods"(ARRAY(SELECT o."IngredientId" FROM old_rows o WHERE o."HouseholdId" IS NULL));
+    ELSE
+        PERFORM plan."DietGateClearFoods"(ARRAY(
+            SELECT n."IngredientId" FROM new_rows n WHERE n."HouseholdId" IS NULL
+            UNION
+            SELECT o."IngredientId" FROM old_rows o WHERE o."HouseholdId" IS NULL));
+    END IF;
+    RETURN NULL;
+END;
+$$;
+
+
+--
+-- Name: DietGateStepsWritten(); Type: FUNCTION; Schema: plan; Owner: -
+--
+
+CREATE FUNCTION plan."DietGateStepsWritten"() RETURNS trigger
+    LANGUAGE plpgsql
+    AS $$
+BEGIN
+    IF TG_OP = 'INSERT' THEN
+        PERFORM plan."DietGateClearRecipes"(ARRAY(
+            SELECT DISTINCT n."RecipeId" FROM new_rows n JOIN recipe."Recipe" r ON r."Id" = n."RecipeId" WHERE r."ScrapedAtUtc" IS NOT NULL));
+    ELSIF TG_OP = 'DELETE' THEN
+        PERFORM plan."DietGateClearRecipes"(ARRAY(
+            SELECT DISTINCT o."RecipeId" FROM old_rows o JOIN recipe."Recipe" r ON r."Id" = o."RecipeId" WHERE r."ScrapedAtUtc" IS NOT NULL));
+    ELSE
+        PERFORM plan."DietGateClearRecipes"(ARRAY(
+            SELECT DISTINCT x."RecipeId" FROM (
+                SELECT n."RecipeId" FROM new_rows n
+                WHERE NOT EXISTS (SELECT 1 FROM old_rows o
+                                  WHERE o."RecipeId" = n."RecipeId" AND o."StepNumber" = n."StepNumber"
+                                    AND (o."Description", o."IsDeleted") IS NOT DISTINCT FROM (n."Description", n."IsDeleted"))
+                UNION
+                SELECT o."RecipeId" FROM old_rows o
+                WHERE NOT EXISTS (SELECT 1 FROM new_rows n WHERE n."RecipeId" = o."RecipeId" AND n."StepNumber" = o."StepNumber")) x
+            JOIN recipe."Recipe" r ON r."Id" = x."RecipeId" WHERE r."ScrapedAtUtc" IS NOT NULL));
+    END IF;
+    RETURN NULL;
+END;
+$$;
+
+
+--
+-- Name: DietGateUnitsWritten(); Type: FUNCTION; Schema: plan; Owner: -
+--
+
+CREATE FUNCTION plan."DietGateUnitsWritten"() RETURNS trigger
+    LANGUAGE plpgsql
+    AS $$
+BEGIN
+    IF TG_OP = 'DELETE' THEN
+        PERFORM plan."DietGateClearRecipes"(ARRAY(
+            SELECT DISTINCT ri."RecipeId" FROM recipe."RecipeIngredient" ri
+            WHERE ri."MeasurementId" IN (SELECT o."Id" FROM old_rows o)));
+    ELSE
+        PERFORM plan."DietGateClearRecipes"(ARRAY(
+            SELECT DISTINCT ri."RecipeId" FROM recipe."RecipeIngredient" ri
+            WHERE ri."MeasurementId" IN (
+                SELECT n."Id" FROM new_rows n JOIN old_rows o ON o."Id" = n."Id"
+                WHERE (o."MeasurementCategoryId", o."BaseUnitConversionFactor", o."IsContainer", o."IsDeleted")
+                      IS DISTINCT FROM (n."MeasurementCategoryId", n."BaseUnitConversionFactor", n."IsContainer", n."IsDeleted"))));
+    END IF;
+    RETURN NULL;
+END;
+$$;
 
 
 SET default_tablespace = '';
@@ -1205,6 +1464,33 @@ ALTER TABLE plan."DietGateSet" ALTER COLUMN "Id" ADD GENERATED BY DEFAULT AS IDE
 
 
 --
+-- Name: DietGateWrite; Type: TABLE; Schema: plan; Owner: -
+--
+
+CREATE TABLE plan."DietGateWrite" (
+    "Id" bigint NOT NULL,
+    "RecipeId" bigint,
+    "IngredientId" bigint,
+    "WrittenAt" timestamp with time zone DEFAULT now() NOT NULL,
+    "Tx" xid8 DEFAULT pg_current_xact_id() NOT NULL
+);
+
+
+--
+-- Name: DietGateWrite_Id_seq; Type: SEQUENCE; Schema: plan; Owner: -
+--
+
+ALTER TABLE plan."DietGateWrite" ALTER COLUMN "Id" ADD GENERATED BY DEFAULT AS IDENTITY (
+    SEQUENCE NAME plan."DietGateWrite_Id_seq"
+    START WITH 1
+    INCREMENT BY 1
+    NO MINVALUE
+    NO MAXVALUE
+    CACHE 1
+);
+
+
+--
 -- Name: DietRecipeFlag; Type: TABLE; Schema: plan; Owner: -
 --
 
@@ -1226,7 +1512,8 @@ CREATE TABLE plan."DietRecipeState" (
     "BuildId" bigint NOT NULL,
     "RecipeId" bigint NOT NULL,
     "Fingerprint" bigint NOT NULL,
-    "ComputedAt" timestamp with time zone NOT NULL
+    "ComputedAt" timestamp with time zone NOT NULL,
+    "ReadXmin" xid8
 );
 
 
@@ -3000,7 +3287,7 @@ CREATE TABLE recipe."Recipe" (
     "SourceCredit" character varying(1023),
     "ProseCheckVersion" integer,
     "ProseUnsure" boolean DEFAULT false NOT NULL,
-    "ProseCopyUnsure" boolean DEFAULT false NOT NULL,
+    "ProseCopiedSentences" integer DEFAULT 0 NOT NULL,
     "ProseAttempts" integer DEFAULT 0 NOT NULL,
     "ProseLaneVersion" character varying(64),
     "VettingIssues" text,
@@ -3392,6 +3679,17 @@ CREATE TABLE recipe."RecipeNutrition" (
 
 
 --
+-- Name: RecipeNutritionCheck; Type: TABLE; Schema: recipe; Owner: -
+--
+
+CREATE TABLE recipe."RecipeNutritionCheck" (
+    "RecipeId" bigint NOT NULL,
+    "InputPrint" bigint NOT NULL,
+    "CheckedAt" timestamp with time zone NOT NULL
+);
+
+
+--
 -- Name: RecipeNutrition_Id_seq; Type: SEQUENCE; Schema: recipe; Owner: -
 --
 
@@ -3431,6 +3729,97 @@ CREATE TABLE recipe."RecipeRating" (
 
 ALTER TABLE recipe."RecipeRating" ALTER COLUMN "Id" ADD GENERATED BY DEFAULT AS IDENTITY (
     SEQUENCE NAME recipe."RecipeRating_Id_seq"
+    START WITH 1
+    INCREMENT BY 1
+    NO MINVALUE
+    NO MAXVALUE
+    CACHE 1
+);
+
+
+--
+-- Name: RecipeRemoval; Type: TABLE; Schema: recipe; Owner: -
+--
+
+CREATE TABLE recipe."RecipeRemoval" (
+    "Id" bigint NOT NULL,
+    "RecipeId" bigint NOT NULL,
+    "RunId" bigint NOT NULL,
+    "ScrapingSourceId" bigint NOT NULL,
+    "Host" character varying(253) NOT NULL,
+    "SourceUrl" character varying(2047) NOT NULL,
+    "UrlKey" character varying(2047) NOT NULL,
+    "Title" character varying(1023) NOT NULL,
+    "RightsClass" character varying(24) NOT NULL,
+    "WasDeleted" boolean NOT NULL,
+    "RetiredAtUtc" timestamp with time zone NOT NULL,
+    "RetiredByPersonId" bigint NOT NULL,
+    "LinesRetired" integer NOT NULL,
+    "StepsRetired" integer NOT NULL,
+    "DocumentsRetired" integer NOT NULL,
+    "UndoneAtUtc" timestamp with time zone,
+    "UndoneByPersonId" bigint,
+    "PurgedAtUtc" timestamp with time zone,
+    "PurgedByPersonId" bigint,
+    "PurgeRunId" bigint,
+    "PurgeSummary" text,
+    "CreatedDate" timestamp with time zone NOT NULL,
+    "CreatedByPersonId" bigint,
+    "LastModifiedDate" timestamp with time zone,
+    "LastModifiedByPersonId" bigint,
+    "IsDeleted" boolean DEFAULT false NOT NULL,
+    "DeletedAt" timestamp with time zone,
+    "DeletedByPersonId" bigint
+);
+
+
+--
+-- Name: RecipeRemovalRun; Type: TABLE; Schema: recipe; Owner: -
+--
+
+CREATE TABLE recipe."RecipeRemovalRun" (
+    "Id" bigint NOT NULL,
+    "Kind" character varying(16) NOT NULL,
+    "Stamp" timestamp with time zone NOT NULL,
+    "ScrapingSourceId" bigint,
+    "UndoesStamp" timestamp with time zone,
+    "PersonId" bigint NOT NULL,
+    "Reason" character varying(1023),
+    "Planned" integer NOT NULL,
+    "Done" integer NOT NULL,
+    "Skipped" integer NOT NULL,
+    "StartedAtUtc" timestamp with time zone NOT NULL,
+    "FinishedAtUtc" timestamp with time zone,
+    "CreatedDate" timestamp with time zone NOT NULL,
+    "CreatedByPersonId" bigint,
+    "LastModifiedDate" timestamp with time zone,
+    "LastModifiedByPersonId" bigint,
+    "IsDeleted" boolean DEFAULT false NOT NULL,
+    "DeletedAt" timestamp with time zone,
+    "DeletedByPersonId" bigint
+);
+
+
+--
+-- Name: RecipeRemovalRun_Id_seq; Type: SEQUENCE; Schema: recipe; Owner: -
+--
+
+ALTER TABLE recipe."RecipeRemovalRun" ALTER COLUMN "Id" ADD GENERATED BY DEFAULT AS IDENTITY (
+    SEQUENCE NAME recipe."RecipeRemovalRun_Id_seq"
+    START WITH 1
+    INCREMENT BY 1
+    NO MINVALUE
+    NO MAXVALUE
+    CACHE 1
+);
+
+
+--
+-- Name: RecipeRemoval_Id_seq; Type: SEQUENCE; Schema: recipe; Owner: -
+--
+
+ALTER TABLE recipe."RecipeRemoval" ALTER COLUMN "Id" ADD GENERATED BY DEFAULT AS IDENTITY (
+    SEQUENCE NAME recipe."RecipeRemoval_Id_seq"
     START WITH 1
     INCREMENT BY 1
     NO MINVALUE
@@ -5268,6 +5657,14 @@ ALTER TABLE ONLY plan."DietGateSet"
 
 
 --
+-- Name: DietGateWrite PK_DietGateWrite; Type: CONSTRAINT; Schema: plan; Owner: -
+--
+
+ALTER TABLE ONLY plan."DietGateWrite"
+    ADD CONSTRAINT "PK_DietGateWrite" PRIMARY KEY ("Id");
+
+
+--
 -- Name: DietRecipeFlag PK_DietRecipeFlag; Type: CONSTRAINT; Schema: plan; Owner: -
 --
 
@@ -5772,11 +6169,35 @@ ALTER TABLE ONLY recipe."RecipeNutrition"
 
 
 --
+-- Name: RecipeNutritionCheck PK_RecipeNutritionCheck; Type: CONSTRAINT; Schema: recipe; Owner: -
+--
+
+ALTER TABLE ONLY recipe."RecipeNutritionCheck"
+    ADD CONSTRAINT "PK_RecipeNutritionCheck" PRIMARY KEY ("RecipeId");
+
+
+--
 -- Name: RecipeRating PK_RecipeRating; Type: CONSTRAINT; Schema: recipe; Owner: -
 --
 
 ALTER TABLE ONLY recipe."RecipeRating"
     ADD CONSTRAINT "PK_RecipeRating" PRIMARY KEY ("Id");
+
+
+--
+-- Name: RecipeRemoval PK_RecipeRemoval; Type: CONSTRAINT; Schema: recipe; Owner: -
+--
+
+ALTER TABLE ONLY recipe."RecipeRemoval"
+    ADD CONSTRAINT "PK_RecipeRemoval" PRIMARY KEY ("Id");
+
+
+--
+-- Name: RecipeRemovalRun PK_RecipeRemovalRun; Type: CONSTRAINT; Schema: recipe; Owner: -
+--
+
+ALTER TABLE ONLY recipe."RecipeRemovalRun"
+    ADD CONSTRAINT "PK_RecipeRemovalRun" PRIMARY KEY ("Id");
 
 
 --
@@ -6575,6 +6996,13 @@ CREATE INDEX "IX_DietGateBuild_State_Id" ON plan."DietGateBuild" USING btree ("S
 --
 
 CREATE UNIQUE INDEX "IX_DietGateSet_BuildId_CriteriaKey" ON plan."DietGateSet" USING btree ("BuildId", "CriteriaKey");
+
+
+--
+-- Name: IX_DietGateWrite_RecipeId; Type: INDEX; Schema: plan; Owner: -
+--
+
+CREATE INDEX "IX_DietGateWrite_RecipeId" ON plan."DietGateWrite" USING btree ("RecipeId");
 
 
 --
@@ -7544,6 +7972,41 @@ CREATE INDEX "IX_RecipeRating_RecipeId" ON recipe."RecipeRating" USING btree ("R
 
 
 --
+-- Name: IX_RecipeRemovalRun_Kind_Stamp; Type: INDEX; Schema: recipe; Owner: -
+--
+
+CREATE INDEX "IX_RecipeRemovalRun_Kind_Stamp" ON recipe."RecipeRemovalRun" USING btree ("Kind", "Stamp");
+
+
+--
+-- Name: IX_RecipeRemoval_RecipeId; Type: INDEX; Schema: recipe; Owner: -
+--
+
+CREATE INDEX "IX_RecipeRemoval_RecipeId" ON recipe."RecipeRemoval" USING btree ("RecipeId");
+
+
+--
+-- Name: IX_RecipeRemoval_RunId; Type: INDEX; Schema: recipe; Owner: -
+--
+
+CREATE INDEX "IX_RecipeRemoval_RunId" ON recipe."RecipeRemoval" USING btree ("RunId");
+
+
+--
+-- Name: IX_RecipeRemoval_ScrapingSourceId; Type: INDEX; Schema: recipe; Owner: -
+--
+
+CREATE INDEX "IX_RecipeRemoval_ScrapingSourceId" ON recipe."RecipeRemoval" USING btree ("ScrapingSourceId");
+
+
+--
+-- Name: IX_RecipeRemoval_UrlKey; Type: INDEX; Schema: recipe; Owner: -
+--
+
+CREATE INDEX "IX_RecipeRemoval_UrlKey" ON recipe."RecipeRemoval" USING btree ("UrlKey");
+
+
+--
 -- Name: IX_RecipeReprocessJournal_BatchId; Type: INDEX; Schema: recipe; Owner: -
 --
 
@@ -8122,6 +8585,160 @@ CREATE INDEX "IX_ShoppingTrip_StatusId" ON shopping."ShoppingTrip" USING btree (
 --
 
 CREATE INDEX "IX_shopping_trip_meal_index_MealId" ON shopping.shopping_trip_meal_index USING btree ("MealId");
+
+
+--
+-- Name: Measurement DietGateUnitsDeleted; Type: TRIGGER; Schema: measurement; Owner: -
+--
+
+CREATE TRIGGER "DietGateUnitsDeleted" AFTER DELETE ON measurement."Measurement" REFERENCING OLD TABLE AS old_rows FOR EACH STATEMENT EXECUTE FUNCTION plan."DietGateUnitsWritten"();
+
+
+--
+-- Name: Measurement DietGateUnitsUpdated; Type: TRIGGER; Schema: measurement; Owner: -
+--
+
+CREATE TRIGGER "DietGateUnitsUpdated" AFTER UPDATE ON measurement."Measurement" REFERENCING OLD TABLE AS old_rows NEW TABLE AS new_rows FOR EACH STATEMENT EXECUTE FUNCTION plan."DietGateUnitsWritten"();
+
+
+--
+-- Name: IngredientNutrient DietGateNutrientsDeleted; Type: TRIGGER; Schema: nutrient; Owner: -
+--
+
+CREATE TRIGGER "DietGateNutrientsDeleted" AFTER DELETE ON nutrient."IngredientNutrient" REFERENCING OLD TABLE AS old_rows FOR EACH STATEMENT EXECUTE FUNCTION plan."DietGateNutrientsWritten"();
+
+
+--
+-- Name: IngredientNutrient DietGateNutrientsInserted; Type: TRIGGER; Schema: nutrient; Owner: -
+--
+
+CREATE TRIGGER "DietGateNutrientsInserted" AFTER INSERT ON nutrient."IngredientNutrient" REFERENCING NEW TABLE AS new_rows FOR EACH STATEMENT EXECUTE FUNCTION plan."DietGateNutrientsWritten"();
+
+
+--
+-- Name: IngredientNutrient DietGateNutrientsUpdated; Type: TRIGGER; Schema: nutrient; Owner: -
+--
+
+CREATE TRIGGER "DietGateNutrientsUpdated" AFTER UPDATE ON nutrient."IngredientNutrient" REFERENCING OLD TABLE AS old_rows NEW TABLE AS new_rows FOR EACH STATEMENT EXECUTE FUNCTION plan."DietGateNutrientsWritten"();
+
+
+--
+-- Name: RestrictionCriterion DietGateCriteriaWritten; Type: TRIGGER; Schema: plan; Owner: -
+--
+
+CREATE TRIGGER "DietGateCriteriaWritten" AFTER INSERT OR DELETE OR UPDATE ON plan."RestrictionCriterion" FOR EACH STATEMENT EXECUTE FUNCTION plan."DietGateCriteriaWritten"();
+
+
+--
+-- Name: IngredientAlias DietGateAliasesDeleted; Type: TRIGGER; Schema: recipe; Owner: -
+--
+
+CREATE TRIGGER "DietGateAliasesDeleted" AFTER DELETE ON recipe."IngredientAlias" REFERENCING OLD TABLE AS old_rows FOR EACH STATEMENT EXECUTE FUNCTION plan."DietGateAliasesWritten"();
+
+
+--
+-- Name: IngredientAlias DietGateAliasesInserted; Type: TRIGGER; Schema: recipe; Owner: -
+--
+
+CREATE TRIGGER "DietGateAliasesInserted" AFTER INSERT ON recipe."IngredientAlias" REFERENCING NEW TABLE AS new_rows FOR EACH STATEMENT EXECUTE FUNCTION plan."DietGateAliasesWritten"();
+
+
+--
+-- Name: IngredientAlias DietGateAliasesUpdated; Type: TRIGGER; Schema: recipe; Owner: -
+--
+
+CREATE TRIGGER "DietGateAliasesUpdated" AFTER UPDATE ON recipe."IngredientAlias" REFERENCING OLD TABLE AS old_rows NEW TABLE AS new_rows FOR EACH STATEMENT EXECUTE FUNCTION plan."DietGateAliasesWritten"();
+
+
+--
+-- Name: Ingredient DietGateFoodsDeleted; Type: TRIGGER; Schema: recipe; Owner: -
+--
+
+CREATE TRIGGER "DietGateFoodsDeleted" AFTER DELETE ON recipe."Ingredient" REFERENCING OLD TABLE AS old_rows FOR EACH STATEMENT EXECUTE FUNCTION plan."DietGateFoodsWritten"();
+
+
+--
+-- Name: Ingredient DietGateFoodsInserted; Type: TRIGGER; Schema: recipe; Owner: -
+--
+
+CREATE TRIGGER "DietGateFoodsInserted" AFTER INSERT ON recipe."Ingredient" REFERENCING NEW TABLE AS new_rows FOR EACH STATEMENT EXECUTE FUNCTION plan."DietGateFoodsWritten"();
+
+
+--
+-- Name: Ingredient DietGateFoodsUpdated; Type: TRIGGER; Schema: recipe; Owner: -
+--
+
+CREATE TRIGGER "DietGateFoodsUpdated" AFTER UPDATE ON recipe."Ingredient" REFERENCING OLD TABLE AS old_rows NEW TABLE AS new_rows FOR EACH STATEMENT EXECUTE FUNCTION plan."DietGateFoodsWritten"();
+
+
+--
+-- Name: RecipeIngredient DietGateLinesDeleted; Type: TRIGGER; Schema: recipe; Owner: -
+--
+
+CREATE TRIGGER "DietGateLinesDeleted" AFTER DELETE ON recipe."RecipeIngredient" REFERENCING OLD TABLE AS old_rows FOR EACH STATEMENT EXECUTE FUNCTION plan."DietGateLinesWritten"();
+
+
+--
+-- Name: RecipeIngredient DietGateLinesInserted; Type: TRIGGER; Schema: recipe; Owner: -
+--
+
+CREATE TRIGGER "DietGateLinesInserted" AFTER INSERT ON recipe."RecipeIngredient" REFERENCING NEW TABLE AS new_rows FOR EACH STATEMENT EXECUTE FUNCTION plan."DietGateLinesWritten"();
+
+
+--
+-- Name: RecipeIngredient DietGateLinesUpdated; Type: TRIGGER; Schema: recipe; Owner: -
+--
+
+CREATE TRIGGER "DietGateLinesUpdated" AFTER UPDATE ON recipe."RecipeIngredient" REFERENCING OLD TABLE AS old_rows NEW TABLE AS new_rows FOR EACH STATEMENT EXECUTE FUNCTION plan."DietGateLinesWritten"();
+
+
+--
+-- Name: Recipe DietGateRecipesUpdated; Type: TRIGGER; Schema: recipe; Owner: -
+--
+
+CREATE TRIGGER "DietGateRecipesUpdated" AFTER UPDATE ON recipe."Recipe" REFERENCING OLD TABLE AS old_rows NEW TABLE AS new_rows FOR EACH STATEMENT EXECUTE FUNCTION plan."DietGateRecipesWritten"();
+
+
+--
+-- Name: IngredientContents DietGateStatementsDeleted; Type: TRIGGER; Schema: recipe; Owner: -
+--
+
+CREATE TRIGGER "DietGateStatementsDeleted" AFTER DELETE ON recipe."IngredientContents" REFERENCING OLD TABLE AS old_rows FOR EACH STATEMENT EXECUTE FUNCTION plan."DietGateStatementsWritten"();
+
+
+--
+-- Name: IngredientContents DietGateStatementsInserted; Type: TRIGGER; Schema: recipe; Owner: -
+--
+
+CREATE TRIGGER "DietGateStatementsInserted" AFTER INSERT ON recipe."IngredientContents" REFERENCING NEW TABLE AS new_rows FOR EACH STATEMENT EXECUTE FUNCTION plan."DietGateStatementsWritten"();
+
+
+--
+-- Name: IngredientContents DietGateStatementsUpdated; Type: TRIGGER; Schema: recipe; Owner: -
+--
+
+CREATE TRIGGER "DietGateStatementsUpdated" AFTER UPDATE ON recipe."IngredientContents" REFERENCING OLD TABLE AS old_rows NEW TABLE AS new_rows FOR EACH STATEMENT EXECUTE FUNCTION plan."DietGateStatementsWritten"();
+
+
+--
+-- Name: RecipeStep DietGateStepsDeleted; Type: TRIGGER; Schema: recipe; Owner: -
+--
+
+CREATE TRIGGER "DietGateStepsDeleted" AFTER DELETE ON recipe."RecipeStep" REFERENCING OLD TABLE AS old_rows FOR EACH STATEMENT EXECUTE FUNCTION plan."DietGateStepsWritten"();
+
+
+--
+-- Name: RecipeStep DietGateStepsInserted; Type: TRIGGER; Schema: recipe; Owner: -
+--
+
+CREATE TRIGGER "DietGateStepsInserted" AFTER INSERT ON recipe."RecipeStep" REFERENCING NEW TABLE AS new_rows FOR EACH STATEMENT EXECUTE FUNCTION plan."DietGateStepsWritten"();
+
+
+--
+-- Name: RecipeStep DietGateStepsUpdated; Type: TRIGGER; Schema: recipe; Owner: -
+--
+
+CREATE TRIGGER "DietGateStepsUpdated" AFTER UPDATE ON recipe."RecipeStep" REFERENCING OLD TABLE AS old_rows NEW TABLE AS new_rows FOR EACH STATEMENT EXECUTE FUNCTION plan."DietGateStepsWritten"();
 
 
 --
@@ -9976,5 +10593,5 @@ ALTER TABLE ONLY shopping."ShoppingTrip"
 -- PostgreSQL database dump complete
 --
 
-\unrestrict qxRWoFqIqbG1kQ1xfYq4Q5uPI7cV5VgU7EZN9EZNaMZgsfXADLAlv6XpGR4FpfL
+\unrestrict 3VWHudQJ6pZEQCivZKEXJTyng5SAJzsQIUAyay0gQab3ZNbcS7PAcsbSAZuBOlJ
 

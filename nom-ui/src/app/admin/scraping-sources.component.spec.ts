@@ -4,7 +4,7 @@ import { provideHttpClientTesting, HttpTestingController } from '@angular/common
 import { provideNoopAnimations } from '@angular/platform-browser/animations';
 import { provideRouter } from '@angular/router';
 import { ScrapingSources } from './scraping-sources.component';
-import { ScrapingSourceModel, SourceCandidate, SourceCheck, SourceReview, SourceTaken } from '../core/models/scraping-source.model';
+import { RecipeRemovalReport, RecipeRemovalStatus, ScrapingSourceModel, SourceCandidate, SourceCheck, SourceReview, SourceTaken } from '../core/models/scraping-source.model';
 
 const clearCheck: SourceCheck = {
   id: 11, domain: 'www.open.example', purpose: 'candidate', status: 'completed', startedUtc: '2026-11-20T10:00:00Z', finishedUtc: '2026-11-20T10:05:00Z',
@@ -59,10 +59,11 @@ describe('ScrapingSources', () => {
     return fixture;
   }
 
-  function flush(body: SourceReview, taken: SourceTaken[] = []) {
+  function flush(body: SourceReview, taken: SourceTaken[] = [], removal: RecipeRemovalStatus = { retired: 0, purged: 0, bySource: [], runs: [] }) {
     http.expectOne((r) => r.url.endsWith('/ScrapingSource/review')).flush(body);
     http.expectOne((r) => r.url.endsWith('/ScrapingSource') && r.params.get('status') === 'Pending').flush([]);
     http.expectOne((r) => r.url.endsWith('/ScrapingSource/rights/taken')).flush(taken);
+    http.expectOne((r) => r.url.endsWith('/ScrapingSource/rights/removal')).flush(removal);
   }
 
   const byId = (el: HTMLElement, id: string) => el.querySelector(`[data-testid="${id}"]`);
@@ -382,6 +383,103 @@ describe('ScrapingSources', () => {
     flush(review(), taken);
     fixture.detectChanges();
     expect(byId(el, 'scraping-sources-step-undo-btn')).toBeNull();
+  });
+
+  it('retires a forbidden source\'s recipes after a dry run, undoes the run by its stamp, and purges only after the backup is confirmed', () => {
+    const taken: SourceTaken[] = [
+      { sourceId: 9, domain: 'www.blog.example', rightsClass: 'forbidden', rightsQuote: 'No robots.', recipes: 1159, recipesShown: 1159, recipesWithheld: false, removable: true, retired: 0, purged: 0 },
+      { sourceId: 10, domain: 'www.ask.example', rightsClass: 'permission-needed', rightsQuote: null, recipes: 875, recipesShown: 875, recipesWithheld: false, removable: false, retired: 0, purged: 0 },
+    ];
+    const report = (stage: string, applied: boolean, extra: Partial<RecipeRemovalReport> = {}): RecipeRemovalReport => ({
+      stage, applied, stamp: '2026-11-24T12:00:00Z', sourceId: 9, runId: applied ? 4 : null, resumed: false, refused: null, recipes: 1159, skipped: 0, alreadyDone: 0,
+      skippedByReason: {}, recipeIds: [],
+      sources: [{ sourceId: 9, domain: 'www.blog.example', rightsClass: 'forbidden', rightsQuote: 'No robots.', recipes: 1159, alreadyDeleted: 0, approved: 106, approvedByPerson: 2, approvedUnrecorded: 1, editedByPerson: 3, inMealPlans: 4, favourited: 5, inCookbooks: 6, inShoppingLists: 7 }],
+      targets: [], warning: null, ...extra,
+    });
+    TestBed.configureTestingModule({
+      imports: [ScrapingSources],
+      providers: [provideHttpClient(), provideHttpClientTesting(), provideNoopAnimations(), provideRouter([])],
+    });
+    http = TestBed.inject(HttpTestingController);
+    const fixture = TestBed.createComponent(ScrapingSources);
+    fixture.detectChanges();
+    flush(review(), taken);
+    fixture.detectChanges();
+    const el = fixture.nativeElement as HTMLElement;
+
+    const items = el.querySelectorAll('[data-testid="scraping-sources-taken-item"]');
+    expect(items[0].querySelector('[data-testid="scraping-sources-taken-retire-btn"]')).not.toBeNull();
+    expect(items[1].querySelector('[data-testid="scraping-sources-taken-retire-btn"]')).toBeNull();
+
+    (items[0].querySelector('[data-testid="scraping-sources-taken-retire-dry-btn"]') as HTMLButtonElement).click();
+    const dry = http.expectOne((r) => r.url.endsWith('/ScrapingSource/rights/removal/retire'));
+    expect(dry.request.params.get('apply')).toBe('false');
+    expect(dry.request.params.get('sourceId')).toBe('9');
+    dry.flush(report('retire', false));
+    fixture.detectChanges();
+    expect(byId(el, 'scraping-sources-removal-summary')?.textContent).toContain('retire dry run: 1,159 recipe(s)');
+    expect(byId(el, 'scraping-sources-removal-source-item')?.textContent).toContain('in 4 meal plan(s), 5 favourite(s)');
+    expect(byId(el, 'scraping-sources-removal-source-item')?.textContent).toContain('2 by a person, 1 approver not recorded');
+
+    (items[0].querySelector('[data-testid="scraping-sources-taken-retire-btn"]') as HTMLButtonElement).click();
+    const apply = http.expectOne((r) => r.url.endsWith('/ScrapingSource/rights/removal/retire'));
+    expect(apply.request.params.get('apply')).toBe('true');
+    apply.flush(report('retire', true));
+    const run = { id: 4, kind: 'retire', stamp: '2026-11-24T12:00:00Z', sourceId: 9, personId: 7, planned: 1159, done: 1159, skipped: 0, startedAtUtc: '2026-11-24T12:00:00Z', finishedAtUtc: '2026-11-24T12:01:00Z', undoable: 1159 };
+    flush(review(), [{ ...taken[0], recipes: 0, retired: 1159 }, taken[1]], { retired: 1159, purged: 0, bySource: [], runs: [run] });
+    fixture.detectChanges();
+    expect(byId(el, 'scraping-sources-taken-retired')?.textContent).toContain('1,159 retired');
+
+    (byId(el, 'scraping-sources-removal-undo-btn') as HTMLButtonElement).click();
+    const undo = http.expectOne((r) => r.url.endsWith('/ScrapingSource/rights/removal/undo'));
+    expect(undo.request.params.get('stamp')).toBe('2026-11-24T12:00:00Z');
+    expect(undo.request.params.get('apply')).toBe('true');
+    undo.flush(report('retire-undo', true));
+    flush(review(), taken);
+    fixture.detectChanges();
+
+    expect((byId(el, 'scraping-sources-removal-purge-btn') as HTMLButtonElement).disabled).toBe(true);
+    (byId(el, 'scraping-sources-removal-purge-dry-btn') as HTMLButtonElement).click();
+    const purgeDry = http.expectOne((r) => r.url.endsWith('/ScrapingSource/rights/removal/purge'));
+    expect(purgeDry.request.params.get('apply')).toBe('false');
+    purgeDry.flush(report('purge', false, { warning: 'It cannot be undone.', targets: [{ table: 'recipe.RecipeStep', columns: 'Description, Summary (whole rows)', action: 'deleted', rows: 9000 }] }));
+    fixture.detectChanges();
+    expect(byId(el, 'scraping-sources-removal-warning')?.textContent).toContain('cannot be undone');
+    expect(byId(el, 'scraping-sources-removal-target-item')?.textContent).toContain('recipe.RecipeStep');
+
+    (byId(el, 'scraping-sources-removal-backup-check') as HTMLInputElement).click();
+    fixture.detectChanges();
+    (byId(el, 'scraping-sources-removal-purge-btn') as HTMLButtonElement).click();
+    const purge = http.expectOne((r) => r.url.endsWith('/ScrapingSource/rights/removal/purge'));
+    expect(purge.request.params.get('apply')).toBe('true');
+    expect(purge.request.params.get('backupTaken')).toBe('true');
+    expect(purge.request.params.has('sourceId')).toBe(false);
+    purge.flush(report('purge', true));
+    flush(review(), taken);
+  });
+
+  it('resumes a cut-off retire run with its own scope', () => {
+    TestBed.configureTestingModule({
+      imports: [ScrapingSources],
+      providers: [provideHttpClient(), provideHttpClientTesting(), provideNoopAnimations(), provideRouter([])],
+    });
+    http = TestBed.inject(HttpTestingController);
+    const fixture = TestBed.createComponent(ScrapingSources);
+    fixture.detectChanges();
+    const run = { id: 5, kind: 'retire', stamp: '2026-11-24T12:00:00Z', sourceId: 9, personId: 7, planned: 91, done: 40, skipped: 0, startedAtUtc: '2026-11-24T12:00:00Z', finishedAtUtc: null, undoable: 40 };
+    flush(review(), [], { retired: 40, purged: 0, bySource: [], runs: [run], unfinished: run });
+    fixture.detectChanges();
+    const el = fixture.nativeElement as HTMLElement;
+
+    expect(byId(el, 'scraping-sources-removal-unfinished')?.textContent).toContain('a run of another scope is refused');
+    (byId(el, 'scraping-sources-removal-resume-btn') as HTMLButtonElement).click();
+    const resume = http.expectOne((r) => r.url.endsWith('/ScrapingSource/rights/removal/retire'));
+    expect(resume.request.params.get('sourceId')).toBe('9');
+    expect(resume.request.params.get('apply')).toBe('true');
+    resume.flush({ stage: 'retire', applied: true, stamp: run.stamp, sourceId: 9, runId: 5, resumed: true, refused: null, recipes: 51, skipped: 0, alreadyDone: 40, skippedByReason: {}, recipeIds: [], sources: [], targets: [], warning: null });
+    flush(review(), []);
+    fixture.detectChanges();
+    expect(byId(el, 'scraping-sources-removal-summary')?.textContent).toContain('retire applied (resumed): 51 recipe(s)');
   });
 
   it('marks a class recorded by hand beside one derived by rule, offers no terms-only check for it, and withdraws it from its entry', () => {

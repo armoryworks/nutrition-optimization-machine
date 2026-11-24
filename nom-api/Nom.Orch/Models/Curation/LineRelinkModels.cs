@@ -105,5 +105,13 @@ namespace Nom.Orch.Models.Curation
         public int HeldByDiet { get; set; }
         /// <summary>The first moves the diet guard held, with the restriction types each keeps.</summary>
         public List<Nom.Orch.Services.Support.LineMoveHold> DietHolds { get; set; } = new();
+        /// <summary>A dry run: the dry runs already running or waiting when it was called; it ran after them (<see cref="Nom.Orch.Services.Support.RelinkUndoDryRun.QueueAsync"/>).</summary>
+        public int QueuedBehind { get; set; }
+        /// <summary>A dry run: the seconds it waited for the dry runs ahead of it before it started.</summary>
+        public double QueuedSeconds { get; set; }
+        /// <summary>A dry run: the parts it ran in, each in a copy of its own (<see cref="Nom.Orch.Services.Support.RelinkUndoDryRun.Parts"/>).</summary>
+        public int DryRunParts { get; set; }
+        /// <summary>A dry run: the journal entries of its largest part.</summary>
+        public int DryRunLargestPart { get; set; }
     }
 }

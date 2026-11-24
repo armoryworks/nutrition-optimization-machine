@@ -57,7 +57,7 @@ namespace Nom.Orch.Services.Support
     /// </summary>
     public static class AlcoholLineContext
     {
-        public const string Version = "alcohol-context/9";
+        public const string Version = "alcohol-context/11";
 
         public const string NoSense = "none";
         public const string ListSense = "list";
@@ -135,18 +135,21 @@ namespace Nom.Orch.Services.Support
 
         private static readonly (string Sense, string Rule, Regex Pattern)[] NotDrink =
         {
-            ("vinegar", "vinegar", new Regex(@"\bvinegars?\b", Options)),
+            ("vinegar", "vinegar", new Regex(@"\bvin[ae]g[ae]rs?\b|\bvinegre\b", Options)),
             ("vinaigrette", "vinaigrette", new Regex(@"\bvinaigrettes?\b", Options)),
             ("non-alcoholic", "non-alcoholic", new Regex(@"\bnon ?alcoholic\b|\balcohol free\b|\balcohol removed\b|\bde ?alcoholi[sz]ed\b|\bzero proof\b|\bno alcohol\b|\bwithout alcohol\b", Options)),
             ("extract-food", "a meat, fish, malt or yeast extract", new Regex(@"\b(?:meat|beef|malt|yeast|vegetable|chicken|liebig'?s?|anchov(?:y|ies)|shrimps?|fish|mushrooms?|lobster|tomato)\s+(?:extract|essence)\b|\b(?:extract|essence) of (?:meat|beef|malt|yeast|vegetables?|chicken|anchov(?:y|ies)|shrimps?|fish|mushrooms?|lobsters?|tomato(?:es)?)\b", Options)),
             ("yeast", "ale or beer yeast", new Regex(@"\b(?:ale|beer|brewer'?s?|brewers)\s+(?:yeasts?|yests?)\b|\b(?:yeast|yest) of (?:ale|beer)\b|\bbarm\b", Options)),
             ("not-food", "not food", NotFood),
-            ("other", "Scotch barley, oats and the like", new Regex(@"\bscotch\s+(?:barley|oats?|oatmeal|groats|bonnets?|broth|eggs?|kale|pancakes?|woodcock|collops|shortbread|pies?|mist|tape)\b", Options)),
+            ("other", "Scotch barley, oats and the like", new Regex(@"\bscotch\s+(?:(?:rolled|steel|cut|pinhead|pearl(?:ed)?|pot|hulled|whole|quick|instant|cooking|porridge|fine|finely|medium|coarse|coarsely|ground|milled)[\s-]+){1,2}(?:barley|oats?|oatmeal|groats)\b|\bscotch\s+(?:barley|oats?|oatmeal|groats|bonnets?|broth|eggs?|kale|pancakes?|woodcock|collops|shortbread|pies?|mist|tape|peas?)\b", Options)),
+            ("other", "garam masala", new Regex(@"\bgaram\s+mar?sala\b", Options)),
+            ("other", "a porterhouse steak", new Regex(@"\bporter[\s-]?house\b", Options)),
+            ("other", "brandy colouring (burnt sugar)", new Regex(@"\bbrandy\s+colou?ring\b", Options)),
             ("other", "a sack of", new Regex(@"\bsacks? of\b", Options)),
             ("other", "a ham hock", new Regex(@"\b(?:ham|pork|smoked|beef|veal|lamb)\s+hocks?\b|\bhocks? of\b|\bhock end\b|\bhocks\b", Options)),
             ("other", "Port Salut", new Regex(@"\bport salut\b|\bport du salut\b", Options)),
             ("other", "Muscatel or Malaga raisins and grapes", new Regex(@"\b(?:malaga|muscatel|moscatel)\s+(?:raisins?|grapes?)\b|\bmuscatel raisins?\b|\bmuscatels\b", Options)),
-            ("other", "a drink's name for a kind of another food", new Regex(@"\b(?:malaga|tokay|tokaji|muscatel|moscatel|catawba)\s+(?:lemons?|limes?|oranges?|citrons?|grapes?|raisins?|figs?|melons?)\b|\bmanzanilla\s+olives?\b|\bscotch\s+caraways?\b", Options)),
+            ("other", "a drink's name for a kind of another food", new Regex(@"\buv(?:a|e|as)\b|\b(?:malaga|tokay|tokaji|muscatel|moscatel|catawba)\s+(?:lemons?|limes?|oranges?|citrons?|grapes?|raisins?|figs?|melons?)\b|\bmanzanilla\s+olives?\b|\bscotch\s+caraways?\b", Options)),
             ("other", "a food called after a drink", new Regex(@"\b(?:called|named|known as)\s+(?:the\s+)?(?:" + DrinkWords + @")", Options)),
             ("other", "ratafia biscuits", new Regex(@"\bratafias?\s+(?:crumbs?|biscuits?|cakes?|drops?|macaroons?|cookies?|wafers?)\b|\bratafias\b", Options)),
             ("other", "stout as strong", new Regex(@"\bstout\s+(?:\p{L}+\s+)?(?:muslin|cloth|bags?|string|twine|paper|thread|cord|needle|skewer|stick|board|pan|jar|crock|knife|fork|woman|man|hen|fowl|bird)\b", Options)),
@@ -165,7 +168,7 @@ namespace Nom.Orch.Services.Support
         private static readonly Regex OfPart = new(@"\bof\b\s*(.*)$", Options);
 
         private static readonly Regex DishAfterDrink = new(
-            @"\b(?:" + DrinkWords + @")\s+(?:\p{L}+\s+)?(?:brats?|bratwursts?|wursts?|sauce|butter|jell(?:y|ies)|syrup|cakes?|glaze|gravy|cream|custard|paper|punch|sangria|frosting|icing|marinade|trifle|posset|sorbet|granita|batter|bread|salami|sausages?|snaps|balls|truffles?|pudding|soup|reduction|spritzer|cocktail|mustard|jam|cheese|biscuits?|cookies?|caramel|"
+            @"\b(?:" + DrinkWords + @")\s+(?:\p{L}+\s+)?(?:brats?|bratwursts?|wursts?|sauce|butter|jell(?:y|ies)|syrup|cakes?|glaze|gravy|cream|custard|paper|punch|sangria|frosting|icing|marinade|trifle|posset|sorbet|granita|batter|bread|salami|sausages?|snaps|balls|truffles?|pudding|soup|reduction|spritzer|cocktail|mustard|jam|marmalades?|preserves?|compotes?|chutney|cheese|biscuits?|cookies?|caramel|"
             + @"(?:cherr(?:y|ies)|peach(?:es)?|pears?|plums?|prunes?|raisins?|figs?|apricots?|currants?|berr(?:y|ies)|fruits?|oranges?|dates|nuts|walnuts|pecans|almonds|chestnuts)\b(?!\s+(?:" + DrinkWords + @"|liquors?|brand(?:y|ies)|cordials?|schnapps?|spirits?|flavou?r\w*|extracts?|essence)\b))\b",
             Options);
         private static readonly Regex DrinkFlavoured = new(@"\b(?:" + DrinkWords + @")\s+flavou?red\b", Options);

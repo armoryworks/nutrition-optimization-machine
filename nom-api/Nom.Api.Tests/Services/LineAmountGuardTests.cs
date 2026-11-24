@@ -176,10 +176,37 @@ namespace Nom.Api.Tests.Services
         [InlineData("note")]
         [InlineData("instruction")]
         [InlineData("artefact")]
-        public void An_empty_note_instruction_or_artefact_is_held_by_its_kind(string kind)
+        public void An_empty_note_instruction_or_artefact_that_is_a_heading_or_a_count_is_held_by_its_kind(string kind)
         {
-            LineAmountGuard.Judge("brine", A(0, "Piece", "brine", kind: kind), A(1, "Cup", "brine", fromMethod: true, kind: kind), new[] { "Make a cup of brine." })
+            LineAmountGuard.Judge("For the brine:", A(0, "Piece", "brine", kind: kind), A(1, "Cup", "brine", fromMethod: true, kind: kind), new[] { "Make a cup of brine." })
                 .Should().Be(new Decision(Verdict.Hold, Reasons.Kind));
+            LineAmountGuard.Judge("hard-boiled eggs", A(0, "Gram", "Egg", kind: kind), A(2, "Piece", "Egg", fromMethod: true, kind: kind, grams: 50), new[] { "Chop two hard-boiled eggs fine." })
+                .Should().Be(new Decision(Verdict.Hold, Reasons.Kind));
+        }
+
+        [Theory]
+        [InlineData("note", "boiling water", 1.5, "Cup", "Baste the meat after it commences to brown with one and one-half cups of boiling water.")]
+        [InlineData("note", "boiling water", 1, "Cup", "Put into the dripping-pan, pour a cup of boiling water over it, and roast.")]
+        [InlineData("note", "green pulp", 3, "Cup", "Melt one-fourth cup lard, add two tablespoons flour, add three cups green pulp, cook slowly half hour.")]
+        [InlineData("artefact", "grated bread", 0.25, "Cup", "Add salt and pepper, a little onion minced fine, a half teacup grated bread.")]
+        [InlineData("instruction", "Pippin Jelly", 1, "Cup", "Then put in Half a Pint of Pippin Jelly.")]
+        public void An_empty_note_instruction_or_artefact_takes_the_measure_a_method_sentence_states_of_its_own_words(string kind, string line, double quantity, string unit, string step)
+        {
+            LineAmountGuard.Judge(line, A(0, "Gram", line, kind: kind), A((decimal)quantity, unit, line, fromMethod: true, kind: kind), new[] { step })
+                .Should().Be(new Decision(Verdict.Replace, Reasons.MethodMeasure));
+            LineAmountGuard.Judge(line, A(0, "Gram", line, kind: kind), A((decimal)quantity * 2, unit, line, fromMethod: true, kind: kind), new[] { step })
+                .Verdict.Should().Be(Verdict.Hold, "a measure the sentence does not state is no proof");
+        }
+
+        [Theory]
+        [InlineData("1/2 pony Italian Vermouth", 0.5, "Italian Vermouth", 14.787, "Milliliter")]
+        [InlineData("half a pony of good old brandy", 0.5, "brandy", 14.787, "Milliliter")]
+        [InlineData("a couple of tea-spoonsful of saleratus", 2, "saleratus", 2, "Teaspoon")]
+        [InlineData("½ tablespn. chopped parsley", 0.5, "parsley", 0.5, "Tablespoon")]
+        public void A_count_of_a_measure_written_as_a_fraction_half_a_or_a_couple_of_gives_way_to_that_measure(string line, double count, string food, double quantity, string unit)
+        {
+            LineAmountGuard.Judge(line, A((decimal)count, "Piece", food, grams: 30), A((decimal)quantity, unit, food, grams: 30), Array.Empty<string>())
+                .Should().Be(new Decision(Verdict.Replace, Reasons.CountOfMeasure), "staging checkpoint 6 (R2) held these as both-grounded");
         }
 
         [Fact]
@@ -205,6 +232,68 @@ namespace Nom.Api.Tests.Services
             LineAmountGuard.Takes(Verdict.Replace).Should().BeTrue();
             LineAmountGuard.Takes(Verdict.Keep).Should().BeFalse();
             LineAmountGuard.Takes(Verdict.Hold).Should().BeFalse();
+        }
+
+        [Theory]
+        [InlineData("optional pinch salt", 1, "Pinch", "salt")]
+        [InlineData("Optional: &frac14; teaspoon Dijon mustard", 0.25, "Teaspoon", "Dijon Mustard")]
+        [InlineData("saltspoonful salt", 0.25, "Teaspoon", "Salt")]
+        [InlineData("Teacupful vinegar", 0.5, "Cup", "Vinegar")]
+        [InlineData("Juice from 1/2 lemon (about 2 teaspoons)", 0.5, "Piece", "Lemon Juice")]
+        [InlineData("juice from 2 limes", 2, "Piece", "Lime Juice")]
+        [InlineData("cup of cold chicken", 1, "Cup", "chickens")]
+        public void A_line_that_states_its_amount_after_a_hedge_an_old_spoon_or_as_the_juice_of_fruit_is_filled(string line, double quantity, string unit, string food)
+        {
+            LineAmountGuard.Judge(line, A(0, "Gram", food, kind: "ingredient"), A((decimal)quantity, unit, food, kind: "ingredient"), Array.Empty<string>())
+                .Should().Be(new Decision(Verdict.Replace, Reasons.Fill), "staging checkpoint 12 found these right fills held");
+        }
+
+        [Theory]
+        [InlineData("egg", 1, "Piece", "Eggs", "Bind with a well-beaten egg.")]
+        [InlineData("onion", 1, "Piece", "Onion", "Place two ounces of butter in a frying-pan, add a small chopped onion.")]
+        [InlineData("head of celery", 1, "Piece", "Celery", "Add a head of celery, washed, scraped, and minced small.")]
+        [InlineData("tea cup of butter", 0.5, "Cup", "Butter", "Add a tea cup of butter, two of sugar, and a grated nutmeg.")]
+        public void An_article_before_words_that_describe_the_food_or_before_a_head_counts_one(string line, double quantity, string unit, string food, string step)
+        {
+            LineAmountGuard.Judge(line, A(0, "Gram", food, kind: "ingredient"), A((decimal)quantity, unit, food, fromMethod: true, kind: "ingredient", grams: 50), new[] { step })
+                .Should().Be(new Decision(Verdict.Replace, Reasons.Fill));
+        }
+
+        [Theory]
+        [InlineData("chopped half-onion", 1, "Piece", "Onion", "Add to the remainder a mite of crushed garlic and a chopped half-onion.")]
+        [InlineData("fat bacon", 1, "Slice", "Bacon", "Fry the cabbage brown with a slice of fat bacon.")]
+        [InlineData("slices of cold ham", 1, "Slice", "Ham", "Pile them on a dish, with a slice of cold ham between every two pancakes.")]
+        public void A_half_or_a_slice_from_the_method_is_held(string line, double quantity, string unit, string food, string step)
+        {
+            LineAmountGuard.Judge(line, A(0, "Gram", food, kind: "ingredient"), A((decimal)quantity, unit, food, fromMethod: true, kind: "ingredient", grams: 50), new[] { step })
+                .Verdict.Should().Be(Verdict.Hold);
+        }
+
+        [Fact]
+        public void The_juice_of_a_can_is_no_count_of_fruit()
+        {
+            LineAmountGuard.Judge("juice from 1 can of tomatoes", A(0, "Gram", "Tomato Juice", kind: "ingredient"), A(1, "Piece", "Tomato Juice", kind: "ingredient"), Array.Empty<string>())
+                .Verdict.Should().Be(Verdict.Hold);
+        }
+
+        [Theory]
+        [InlineData("instruction", "White-wine vinegar 3½ quarts", 14, "Cup", "White-wine vinegar", "replace")]
+        [InlineData("note", "~2 Tbsp olive oil or avocado oil  ((for cooking))", 2, "Tablespoon", "Olive Oil", "replace")]
+        [InlineData("artefact", "cup of (incomplete)", 1, "Cup", "of", "hold")]
+        [InlineData("note", "Salt ½ teaspoon + Salt 1 teaspoon", 0.5, "Teaspoon", "Salt", "hold")]
+        [InlineData("instruction", "Grate the peel from four oranges, and reserve it for the marmalade", 4, "Piece", "Oranges", "hold")]
+        public void An_empty_note_or_instruction_takes_the_measure_its_own_line_states_of_its_food(string kind, string line, double quantity, string unit, string food, string outcome)
+        {
+            var decision = LineAmountGuard.Judge(line, A(0, "Gram", food, kind: kind), A((decimal)quantity, unit, food, kind: kind), Array.Empty<string>());
+            if (outcome == "replace") decision.Should().Be(new Decision(Verdict.Replace, Reasons.LineMeasure));
+            else decision.Verdict.Should().Be(Verdict.Hold);
+        }
+
+        [Fact]
+        public void A_dozen_and_a_half_replaces_the_dozen_stored_for_it()
+        {
+            LineAmountGuard.Judge("one dozen and a half macaroons", A(1, "Dozen", "Macaroons"), A(1.5m, "Dozen", "Macaroons"), Array.Empty<string>())
+                .Should().Be(new Decision(Verdict.Replace, Reasons.AddedPart));
         }
     }
 }

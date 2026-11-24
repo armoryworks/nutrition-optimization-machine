@@ -137,4 +137,15 @@ namespace Nom.Orch.Models.Curation
         public int Skipped { get; set; }
         public int Remaining { get; set; }
     }
+
+    public class FoodProposalApplyPreview
+    {
+        public long ProposalId { get; set; }
+        public bool Applies { get; set; }
+        public string? Refusal { get; set; }
+        public int Lines { get; set; }
+        public int HeldByDiet { get; set; }
+        public List<Nom.Orch.Services.Support.LineMoveHold> DietHolds { get; set; } = new();
+        public List<string> RaisedTypes { get; set; } = new();
+    }
 }

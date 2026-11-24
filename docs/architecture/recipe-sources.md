@@ -95,6 +95,22 @@ reasons.
    later refusal has held it again: the undo holds the site again). A refusal reported after that holds it again. A refusal makes no candidate, class or
    check.
 
+   **The next run, shown and started by an admin.** `GET api/ScrapingSource/discovery/next` answers what the next
+   discovery run would send, read without a run, a fetch or a write: its seeds, the approved seeds held as refusing
+   hosts or held back, the `excludeDomains` list, every refusing host held, why the run would be skipped
+   (`skipped`) or end failed before sending anything (`fails`: more forbidden or permission-needed hosts than the
+   scraper's `excludeDomains` take), and when it may start (`nextRunDueUtc`). It first puts the classes recorded by
+   hand on the rows of their hosts that lack them, as the run does (`recordsApplied`), with every save held and
+   dropped, so it reads the seeds the run would read. A hold and a release therefore show at once, not only in the
+   run after them. `POST api/ScrapingSource/discovery/run` starts one discovery run now, as the lane's timer does,
+   and answers with the run (it goes on to its end if the caller goes away); it is refused (409) while
+   `SourceDiscovery:Enabled` is false, while no scraper is configured, or while the last run that sent a job
+   started less than `IntervalHours` ago (the answer gives `nextRunDueUtc`), so an admin action never fetches from
+   a lane that is off and never more often than the timer would. The timer reads the same time: it starts a run
+   only `IntervalHours` after the last run that sent a job, an admin's or its own, also after the API starts again.
+   With both routes, a refusing host's hold, its release and the run after it are proven in one start of the API
+   once `IntervalHours` has passed since the last run (staging checkpoint 6 needed a start per run).
+
    A run or check still marked `running` past its budget plus 60 s and a grace of
    `StaleGraceSeconds` (300 s) had its poll cut off (nom-api restarted, or the tick failed): the
    next tick stores the run as `failed` and the check as `lost`, so it is counted and shown with
@@ -304,6 +320,13 @@ detail: `SourceApprove`, `SourceReject`, `SourceHandRecord`, `SourceHarvestPause
   withholding or release, or a hand source's licence facts is undone while the source still holds the entry's new state; the undo
   is journaled and can itself be undone. Probation results and verdict changes are records, not
   actions, and are not undone.
+- **Undo dry run** (`GET /api/ScrapingSource/journal/{entryId}/undo`): the same undo run with every save held
+  (`ApplicationDbContext.HoldWrites`) inside a transaction that is rolled back, so nothing is written. It answers
+  whether the undo would be done or why it is refused, each field of a source, a class recorded by hand or a refusing
+  host it would change (before and after), the recipes it would change by field, and the journal rows it would write.
+  It covers every entry the undo takes: a class recorded by hand, a lane class or AI flag, a facts-only approval, a
+  hand source's licence facts, a withholding, an approval and a refusing host's release (staging checkpoint 6 could
+  only list these undos as handles).
 
 These two actions make either answer to the owner's open question one click per source. The
 lane never removes a source or a recipe on its own.
@@ -330,7 +353,12 @@ takes a recipe only from an approved source: its URL's domain, or, for a recipe 
 source the batch names with `sourceId` (a hand source). Refused recipes are counted (`refused`)
 and listed. The licence comes from the source's record (`PublicDomain` only for `public-domain`,
 `cc0` or `public-domain-mark`); the caller's `publicDomain` flag is not read
-(`publicDomainFlagIgnored`). A named source never covers a URL on another domain. A source whose
+(`publicDomainFlagIgnored`). The answer counts the imported recipes stored `PublicDomain`
+(`importedPublicDomain`), and the API's log line names the same count, the count left with the copyright
+quarantine and where the licence came from: each source whose record gave rows their licence, with its own
+imported and `PublicDomain` counts (a row with a URL takes its URL's source, not the source the batch names), or
+the request with the gate off; never the request's flag alone (staging checkpoint 6, R23: it said
+`publicDomain=False` for 390 rows stored `PublicDomain`). A named source never covers a URL on another domain. A source whose
 harvesting is paused takes nothing, and a source in probation takes no more recipes than its
 probation limit.
 

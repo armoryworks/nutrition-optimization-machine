@@ -30,6 +30,20 @@ namespace Nom.Orch.Interfaces
         /// </summary>
         Task<bool> LowersDietAsync(long sourceId, long targetId);
 
+        /// <summary>
+        /// The moves of the recipe lines of <paramref name="sourceId"/> to <paramref name="targetId"/> the diet guard holds
+        /// (<see cref="Nom.Orch.Services.Support.LineMoveDietGuard"/>), the first of them with the types each keeps, and how
+        /// many lines there are; nothing is written.
+        /// </summary>
+        Task<(int Lines, int Held, IReadOnlyList<Nom.Orch.Services.Support.LineMoveHold> Holds)> DietHoldsAsync(long sourceId, long targetId);
+
+        /// <summary>
+        /// The restriction types for which <paramref name="targetId"/> would newly count once named <paramref name="name"/>
+        /// (null: as it is) and given <paramref name="aliases"/>, as a link's merge leaves it
+        /// (<see cref="Nom.Orch.Services.Support.LineMoveDietGuard.RaisedAsync"/>, staging checkpoint 6, R17).
+        /// </summary>
+        Task<IReadOnlyList<string>> RaisesDietAsync(long targetId, string? name, IReadOnlyList<(string Alias, string? Context)> aliases);
+
         Task<CatalogNormalizeResult> NormalizeAsync(bool apply);
     }
 }

@@ -95,7 +95,7 @@ namespace Nom.Api.Controllers
 
         /// <summary>
         /// Take back the reprocess writes made at or after the given UTC time, or of one batch, newest first,
-        /// limited to one kind when given; a dry run unless apply=true. The entries are taken in batches of
+        /// limited to one kind when given (a rebuild takes its own rule rejections with it); a dry run unless apply=true. The entries are taken in batches of
         /// batchSize (at most maxBatches when given); an apply commits each batch with a progress row, answers
         /// its runId, ends between batches when stopped or when the caller goes away, and goes on under
         /// runId (the filter of that run is used) from the last entry it reached.

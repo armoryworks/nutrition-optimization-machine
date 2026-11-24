@@ -243,7 +243,7 @@ namespace Nom.Orch.Services
             return result;
         }
 
-        public async Task<LineRelinkResult?> MoveFoodAsync(long fromIngredientId, long toIngredientId, string? keepWords = null)
+        public async Task<LineRelinkResult?> MoveFoodAsync(long fromIngredientId, long toIngredientId, string? keepWords = null, bool apply = true)
         {
             if (fromIngredientId == toIngredientId) return null;
             var foods = await _db.Ingredients.AsNoTracking()
@@ -261,7 +261,8 @@ namespace Nom.Orch.Services
             var keep = Words(keepWords ?? string.Empty);
             var (kept, held) = await UnheldAsync(lines.Where(line => keep.Count == 0 || !Words(line.RawLine).Overlaps(keep))
                 .Select(line => new Move(line, string.Empty, toIngredientId)).ToList());
-            return await MoveAsync(kept, int.MaxValue, held);
+            if (apply) return await MoveAsync(kept, int.MaxValue, held);
+            return new LineRelinkResult { Remaining = kept.Count, HeldByDiet = held, DietHolds = (await GuardAsync()).Holds.ToList() };
         }
 
         public async Task<LineRelinkResult> MoveWordingsAsync(IReadOnlyCollection<LineRelinkWordingMove> moves, bool apply = false)
@@ -539,11 +540,20 @@ namespace Nom.Orch.Services
             }
 
             var result = new LineRelinkUndoResult();
+            await using var turn = await RelinkUndoDryRun.QueueAsync(cancellationToken);
+            result.QueuedBehind = turn.Ahead;
+            result.QueuedSeconds = Math.Round(turn.Waited.TotalSeconds, 1);
             var guard = await GuardAsync();
-            foreach (var part in RelinkUndoDryRun.Parts(entries))
+            var parts = RelinkUndoDryRun.Parts(entries);
+            result.DryRunParts = parts.Count;
+            result.DryRunLargestPart = parts.Count == 0 ? 0 : parts.Max(p => p.Count);
+            var settled = new Dictionary<long, IngredientEntity>();
+            foreach (var part in parts)
             {
-                await using var dryRun = await RelinkUndoDryRun.StartAsync(_db, cancellationToken);
+                await using var dryRun = RelinkUndoDryRun.Start(_db, settled);
                 var counted = await new LineRelinkService(dryRun.Copy, _currentUser, guard).UndoEntriesAsync(part, cancellationToken, dryRun.LoadAsync);
+                if (part.All(e => e.EntityType != RelinkEntityType))
+                    foreach (var (id, food) in await dryRun.FoodsAsync(cancellationToken)) settled[id] = food;
                 result.Restored += counted.Restored;
                 result.FoodsRestored += counted.FoodsRestored;
                 result.Refolded += counted.Refolded;

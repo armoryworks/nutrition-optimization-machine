@@ -500,14 +500,8 @@ namespace Nom.Orch.Services
             var kinds = tier == ReprocessTier.Order
                 ? new[] { RecipeReprocessKind.Order }
                 : new[] { RecipeReprocessKind.RuleReject, RecipeReprocessKind.Rebuild };
-            int restored = 0, skipped = 0;
             var recipes = new HashSet<long>();
-            foreach (var kind in kinds)
-            {
-                var result = await _reprocess.UndoAsync(sinceUtc, null, kind, apply, laneOnly: true);
-                restored += result.Restored;
-                skipped += result.Skipped;
-            }
+            var result = await _reprocess.UndoAsync(sinceUtc, null, tier == ReprocessTier.Order ? RecipeReprocessKind.Order : RecipeReprocessKind.Rebuild, apply, laneOnly: true);
             if (apply)
             {
                 var undone = await _db.RecipeReprocessJournals.AsNoTracking()
@@ -529,7 +523,7 @@ namespace Nom.Orch.Services
                 }
                 await _db.SaveChangesAsync(cancellationToken);
             }
-            return new LaneUndoResult(restored, skipped, 0, $"reprocess {tier}: rebuilds of the lane's own batches since {sinceUtc:u}");
+            return new LaneUndoResult(result.Restored, result.Skipped, 0, $"reprocess {tier}: rebuilds of the lane's own batches since {sinceUtc:u}");
         }
     }
 }

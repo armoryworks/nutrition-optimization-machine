@@ -127,7 +127,7 @@ namespace Nom.Orch.Services
 
         public async Task<List<RecipeResponseModel>> GetCookbookRecipesAsync(long cookbookId)
         {
-            return await _db.HouseholdCookbookRecipes
+            var recipes = await _db.HouseholdCookbookRecipes
                 .Where(cr => cr.HouseholdCookbookId == cookbookId && cr.Recipe!.SourceWithheldById == null)
                 .Include(cr => cr.Recipe)
                 .AsNoTracking()
@@ -144,6 +144,24 @@ namespace Nom.Orch.Services
                     CreatedDate = cr.Recipe.CreatedDate
                 })
                 .ToListAsync();
+            var held = await _db.HouseholdCookbookRecipes.AsNoTracking()
+                .Where(cr => cr.HouseholdCookbookId == cookbookId)
+                .Select(cr => cr.RecipeId)
+                .ToListAsync();
+            foreach (var gone in (await RecipeRemovalService.RemovedAsync(_db, held.Except(recipes.Select(r => r.Id)))).Values.OrderBy(r => r.RecipeId))
+            {
+                recipes.Add(new RecipeResponseModel
+                {
+                    Id = gone.RecipeId,
+                    Name = gone.Title,
+                    Description = string.Empty,
+                    SourceUrl = gone.SourceUrl,
+                    Removed = true,
+                    RemovedNote = RecipeRemovalService.RemovedNote,
+                });
+            }
+
+            return recipes;
         }
 
         private static CookbookResponseModel MapCookbook(HouseholdCookbookEntity entity)

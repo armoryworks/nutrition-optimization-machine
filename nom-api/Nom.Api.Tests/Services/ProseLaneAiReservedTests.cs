@@ -37,8 +37,7 @@ namespace Nom.Api.Tests.Services
             var result = await rig.Lane.SweepAsync(LaneMode.Live, Models, writer, judge, 25);
 
             result.Seen.Should().Be(2);
-            writer.Extracted.Should().ContainSingle("only the unreserved recipe's method reaches the extractor");
-            writer.Requests.Should().OnlyContain(r => r.Dish == GarlicSauce.Dish);
+            writer.Reworded.Should().HaveCount(GarlicSauce.Method.Length, "only the unreserved recipe's method reaches the reword writer, one call a step");
             judge.Read.Should().HaveCount(1, "the judge reads only the unreserved recipe's rewrite");
             var decisions = await rig.Db.LaneDecisions.AsNoTracking().ToListAsync();
             decisions.Single(d => d.Subject == ProseLaneService.Subject(reserved)).Tier.Should().Be(ProseLaneService.RuleOnlyTier);

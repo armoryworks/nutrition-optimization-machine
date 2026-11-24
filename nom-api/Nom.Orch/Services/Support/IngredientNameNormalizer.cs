@@ -7,8 +7,9 @@ namespace Nom.Orch.Services.Support
 {
     /// <summary>
     /// Deterministic cleanup of scraped ingredient names before they become (or
-    /// are matched against) catalog rows: strips leading quantities and units,
-    /// parenthetical prep notes and stray punctuation. The recipe's own
+    /// are matched against) catalog rows: strips leading quantities and units
+    /// (a metric weight glued to its number too: "4 ounces / 115g mozzarella" is
+    /// "mozzarella"), parenthetical prep notes and stray punctuation. The recipe's own
     /// RecipeIngredient.RawLine keeps the original text, so nothing is lost.
     /// Pure string rules — no model, no network (see audit N-68/N-79).
     /// </summary>
@@ -24,7 +25,7 @@ namespace Nom.Orch.Services.Support
             @"(?:one|two|three|five|seven)[- ](?:half|halves|thirds?|fourths?|quarters?|eighths?)";
 
         private static readonly Regex LeadingQuantity = new(
-            $@"^\s*(?:(?:and|or|to|about|nearly|circa)\s+)?(?:{Number}(?:\s*(?:-|–|—|to|or)\s*{Number})?(?:-(?=(?:lbs?|ozs?|pounds?|ounces?|pints?|pts?|quarts?|qts?|cups?)\b)|(?=[\s.])[\s.]+)|(?:a\s+(?:couple|pair)(?:\s+of)?|{FractionWord}|an?|one|two|three|four|five|six|seven|eight|nine|ten|eleven|twelve|thirteen|fourteen|fifteen|sixteen|seventeen|eighteen|nineteen|twenty|thirty|forty|fifty|half(?![\s-]+(?:and|&|n|'n'?)[\s-]+half\b)|halves|quarters?|thirds?|(?:couple|pair)(?=\s+of\b)|mezz[oa])(?=[\s.])[\s.]+)",
+            $@"^\s*(?:(?:and|or|to|about|nearly|circa)\s+)?(?:{Number}(?:\s*(?:-|–|—|to|or)\s*{Number})?(?:-(?=(?:lbs?|ozs?|pounds?|ounces?|pints?|pts?|quarts?|qts?|cups?)\b)|(?=(?:g|kg|ml|dl|l)\.?\s+\p{{L}})|(?=[\s.])[\s.]+)|(?:a\s+(?:couple|pair)(?:\s+of)?|{FractionWord}|an?|one|two|three|four|five|six|seven|eight|nine|ten|eleven|twelve|thirteen|fourteen|fifteen|sixteen|seventeen|eighteen|nineteen|twenty|thirty|forty|fifty|half(?![\s-]+(?:and|&|n|'n'?)[\s-]+half\b)|halves|quarters?|thirds?|(?:couple|pair)(?=\s+of\b)|mezz[oa])(?=[\s.])[\s.]+)",
             RegexOptions.IgnoreCase | RegexOptions.CultureInvariant | RegexOptions.Compiled);
 
         private const string Qualifier =

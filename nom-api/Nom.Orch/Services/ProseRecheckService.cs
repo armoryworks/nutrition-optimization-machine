@@ -21,10 +21,14 @@ namespace Nom.Orch.Services
     /// withholds the prose of the ones that fail (<see cref="RecipeEntity.ProseWithheld"/>): the
     /// recipe stays listed and usable, its text is never served, and the rewrite lane takes it up.
     /// Each recipe withheld is journaled (<see cref="WithholdChangeType"/>) with the finding and the
-    /// check version it had, and the undo releases it again. A recipe whose copy measures sit between
-    /// the two lines of the copy rule (copy-unsure) is withheld the same way, its journal row naming the
-    /// outcome and the measures, and is marked <see cref="RecipeEntity.ProseCopyUnsure"/> so the
-    /// Pipeline page counts it apart; the undo clears the mark. A recipe the check is only unsure of on facts is
+    /// check version it had, and the undo releases it again. From check v7 the copy rule reads sentence by
+    /// sentence: a recipe mostly made of copied sentences fails and is withheld; one with only some copied
+    /// sentences is withheld too, in the same batch, and marked with their count
+    /// (<see cref="RecipeEntity.ProseCopiedSentences"/>, journaled as <see cref="RepairChangeType"/>), and
+    /// those sentences are the rewrite lane's work list: a recipe is shown only when all its sentences
+    /// pass. A later pass or a person's edit clears a mark, and the undo puts it back as it was. A
+    /// recipe that states an amount for an ingredient its own ingredient line contradicts
+    /// (<c>contradicts-lines</c>) fails whatever else it keeps. A recipe the check is only unsure of on facts is
     /// never withheld: it is marked (<see cref="RecipeEntity.ProseUnsure"/>, journaled as
     /// <see cref="UnsureChangeType"/>), counted, and left for the prose judge; a later pass or failure
     /// clears the mark, as does a person's edit (journaled as not checked), and the undo puts marks
@@ -41,6 +45,7 @@ namespace Nom.Orch.Services
         public const string WithholdUndoChangeType = "ProseWithholdUndo";
         public const string WithholdEndChangeType = "ProseWithholdEnd";
         public const string UnsureChangeType = "ProseUnsure";
+        public const string RepairChangeType = "ProseCopiedSentences";
         public const string DescriptionByPersonChangeType = "ProseDescriptionByPerson";
         public const string RunEntityType = "ProseRecheck";
         public const string RunChangeType = "ProseRecheckRun";
@@ -69,8 +74,11 @@ namespace Nom.Orch.Services
 
         internal Action<long>? BeforeCheck { get; set; }
 
-        private sealed record Candidate(long Id, string Name, long CurationStatusId, string? Description, int? CheckVersion, bool Unsure = false);
-        private sealed record Failure(Candidate Recipe, ProseCheck.Finding Finding);
+        private sealed record Candidate(long Id, string Name, long CurationStatusId, string? Description, int? CheckVersion, bool Unsure = false, int Copied = 0);
+        private sealed record Failure(Candidate Recipe, ProseCheck.Finding Finding)
+        {
+            public bool Repair => Finding.Repair;
+        }
 
         public async Task<ProseRecheckResult> RecheckAsync(bool apply = false, int maxRecipes = WithholdBatch, int sampleSize = 50, Func<CancellationToken, Task<bool>>? hold = null, CancellationToken cancellationToken = default)
         {
@@ -85,43 +93,28 @@ namespace Nom.Orch.Services
             var candidates = await _db.Recipes.AsNoTracking()
                 .Where(r => !r.ContainsSourceProse && !r.ProseWithheld && r.ScrapedAtUtc != null && r.LicenseStatus == RecipeLicenseStatus.Unknown)
                 .OrderBy(r => r.Id)
-                .Select(r => new Candidate(r.Id, r.Name, r.CurationStatusId, r.Description, r.ProseCheckVersion, r.ProseUnsure))
+                .Select(r => new Candidate(r.Id, r.Name, r.CurationStatusId, r.Description, r.ProseCheckVersion, r.ProseUnsure, r.ProseCopiedSentences))
                 .ToListAsync(cancellationToken);
             result.Examined = candidates.Count;
 
             var failures = new List<Failure>();
             var unsure = new List<Failure>();
+            var repair = new List<Failure>();
+            var unrepaired = new Dictionary<long, string>();
             var unstamped = new List<long>();
             var cleared = new Dictionary<long, string>();
             foreach (var chunk in candidates.Chunk(RecipesPerRead))
             {
-                var ids = chunk.Select(c => c.Id).ToList();
-                var steps = (await _db.RecipeSteps.AsNoTracking()
-                        .Where(s => ids.Contains(s.RecipeId))
-                        .Select(s => new { s.RecipeId, s.StepNumber, s.Description, s.LastModifiedByPersonId })
-                        .ToListAsync(cancellationToken))
-                    .ToLookup(s => s.RecipeId);
-                var sources = (await _db.ScrapedDocuments.AsNoTracking()
-                        .Where(d => ids.Contains(d.RecipeId) && d.Format == ScrapedDocumentFormat.JsonLd)
-                        .OrderBy(d => d.Id)
-                        .Select(d => new { d.RecipeId, d.RawJsonLd })
-                        .ToListAsync(cancellationToken))
-                    .GroupBy(d => d.RecipeId)
-                    .ToDictionary(g => g.Key, g => g.Last().RawJsonLd);
-                var ended = (await _db.AuditLogEntries.AsNoTracking()
-                        .Where(a => a.EntityType == RecipeEntityType && a.ChangeType == WithholdEndChangeType && ids.Contains(a.EntityId))
-                        .Select(a => a.EntityId)
-                        .ToListAsync(cancellationToken))
-                    .ToHashSet();
-
+                var (steps, sources, ended) = await ReadAsync(chunk, cancellationToken);
                 foreach (var candidate in chunk)
                 {
                     var own = steps[candidate.Id].OrderBy(s => s.StepNumber).ToList();
-                    if (ended.Contains(candidate.Id) || own.Any(s => s.LastModifiedByPersonId is { } by && by != SystemConstants.SystemPersonId))
+                    if (ended.Contains(candidate.Id) || EditedByPerson(own))
                     {
                         result.SkippedEditedByPerson++;
                         if (result.SkippedEditedRecipeIds.Count < MaxListedRecipeIds) result.SkippedEditedRecipeIds.Add(candidate.Id);
                         if (candidate.Unsure) cleared[candidate.Id] = ended.Contains(candidate.Id) ? NotCheckedWithholdEnded : NotCheckedEdited;
+                        if (candidate.Copied > 0) unrepaired[candidate.Id] = ended.Contains(candidate.Id) ? NotCheckedWithholdEnded : NotCheckedEdited;
                         continue;
                     }
 
@@ -156,13 +149,32 @@ namespace Nom.Orch.Services
                         result.Passed++;
                         if (candidate.CheckVersion != ProseCheck.Version) unstamped.Add(candidate.Id);
                         if (candidate.Unsure) cleared[candidate.Id] = "passed";
+                        if (candidate.Copied > 0) unrepaired[candidate.Id] = "passed";
                         continue;
                     }
 
-                    if (finding.Unsure)
+                    if (!finding.Failed)
                     {
-                        unsure.Add(new Failure(candidate, finding));
-                        CountUnsure(result, candidate, finding);
+                        if (finding.Repair)
+                        {
+                            repair.Add(new Failure(candidate, finding));
+                            CountRepair(result, candidate, finding);
+                        }
+                        else if (candidate.Copied > 0)
+                        {
+                            unrepaired[candidate.Id] = "no copied sentence";
+                        }
+
+                        if (finding.Unsure)
+                        {
+                            unsure.Add(new Failure(candidate, finding));
+                            CountUnsure(result, candidate, finding);
+                        }
+                        else if (candidate.Unsure)
+                        {
+                            cleared[candidate.Id] = "no fault but copied sentences";
+                        }
+
                         continue;
                     }
 
@@ -171,11 +183,12 @@ namespace Nom.Orch.Services
                 }
             }
 
-            var ordered = failures
+            await CountAlreadyWithheldAsync(result, stock, cancellationToken);
+            var ordered = failures.Concat(repair)
                 .OrderBy(f => f.Recipe.CurationStatusId == (long)CurationStatusEnum.Curated ? 0 : 1)
                 .ThenBy(f => f.Recipe.Id)
                 .ToList();
-            result.Samples = ordered.Take(Math.Clamp(sampleSize, 0, 5000)).Select(Sample).ToList();
+            result.Samples = ordered.Where(f => !f.Repair).Take(Math.Clamp(sampleSize, 0, 5000)).Select(Sample).ToList();
             result.UnsureSamples = unsure
                 .OrderBy(f => f.Recipe.CurationStatusId == (long)CurationStatusEnum.Curated ? 0 : 1)
                 .ThenBy(f => f.Recipe.Id)
@@ -209,6 +222,7 @@ namespace Nom.Orch.Services
                             Timestamp = now,
                             ChangedByPersonId = personId,
                         });
+                        var count = failure.Repair ? failure.Finding.Sentences.Copied : 0;
                         if (recipe.ProseUnsure)
                         {
                             _db.AuditLogEntries.Add(UnsureEntry(recipe.Id, false, $"failed and withheld: {failure.Finding}", stock.Version, now, personId));
@@ -216,8 +230,18 @@ namespace Nom.Orch.Services
                             result.ClearedUnsure++;
                         }
 
+                        if (recipe.ProseCopiedSentences != count)
+                        {
+                            var why = failure.Repair
+                                ? $"withheld until reworded: {failure.Finding.Sentences}: {string.Join(", ", failure.Finding.Sentences.Copies.Select(c => c.Label))}"
+                                : $"failed and withheld: {failure.Finding.Sentences}";
+                            _db.AuditLogEntries.Add(RepairEntry(recipe.Id, recipe.ProseCopiedSentences, count, why, stock.Version, now, personId));
+                            if (count > 0) result.MarkedRepair++;
+                            else result.ClearedRepair++;
+                            recipe.ProseCopiedSentences = count;
+                        }
+
                         recipe.ProseWithheld = true;
-                        recipe.ProseCopyUnsure = failure.Finding.CopyUnsure;
                         recipe.ProseCheckVersion = ProseCheck.Version;
                         recipe.LastModifiedDate = now;
                         recipe.LastModifiedByPersonId = personId;
@@ -235,7 +259,7 @@ namespace Nom.Orch.Services
                     if (tx != null) await tx.CommitAsync(cancellationToken);
                     _db.ChangeTracker.Clear();
                     result.Withheld += batch.Count;
-                    result.WithheldCopyUnsure += batch.Count(f => f.Finding.CopyUnsure);
+                    result.WithheldRepair += batch.Count(f => f.Repair);
                     applied.AddRange(batch);
                 }
 
@@ -245,6 +269,7 @@ namespace Nom.Orch.Services
                     foreach (var failure in ordered.Where(f => f.Recipe.Unsure && !withheld.Contains(f.Recipe.Id)))
                         cleared[failure.Recipe.Id] = $"failed, not withheld in this run: {failure.Finding}";
                     await MarkUnsureAsync(unsure, cleared, stock.Version, personId, result, cancellationToken);
+                    await ClearRepairAsync(unrepaired, stock.Version, personId, result, cancellationToken);
                 }
 
                 foreach (var chunk in result.Held ? Array.Empty<long[]>() : unstamped.Chunk(RecipesPerTransaction))
@@ -267,7 +292,11 @@ namespace Nom.Orch.Services
                     .ToDictionary(g => g.Key, g => g.Count());
             }
 
-            result.Remaining = result.Failed - result.Withheld;
+            result.WithheldIfRepairWithheld += result.Failed + result.Repair;
+            result.WithheldIfRepairShown += result.Failed;
+            result.WithheldIfRepairWithheldApproved += result.FailedApproved + result.RepairApproved;
+            result.WithheldIfRepairShownApproved += result.FailedApproved;
+            result.Remaining = result.Failed + result.Repair - result.Withheld;
             if (result.Applied && !result.Held && result.Remaining == 0)
             {
                 _db.AuditLogEntries.Add(new AuditLogEntryEntity
@@ -276,7 +305,7 @@ namespace Nom.Orch.Services
                     EntityId = ProseCheck.Version,
                     ChangeType = RunChangeType,
                     PropertyName = nameof(ProseRecheckResult.StockVersion),
-                    NewValue = Clamp($"check {ProseCheck.Version} stock {stock.Version}: examined {result.Examined}, passed {result.Passed}, unsure {result.Unsure}, withheld {result.Withheld} (copy-unsure {result.WithheldCopyUnsure}), skipped edited {result.SkippedEditedByPerson}, no source {result.SkippedNoSource}, errored {result.Errored}"),
+                    NewValue = Clamp($"check {ProseCheck.Version} stock {stock.Version}: examined {result.Examined}, passed {result.Passed}, unsure {result.Unsure}, withheld {result.Withheld}, copied sentences {result.Repair} ({result.RepairSentences} sentences), skipped edited {result.SkippedEditedByPerson}, no source {result.SkippedNoSource}, errored {result.Errored}"),
                     Timestamp = DateTime.UtcNow,
                     ChangedByPersonId = _currentUser.PersonIdOrSystem,
                 });
@@ -285,6 +314,81 @@ namespace Nom.Orch.Services
             }
 
             return result;
+        }
+
+        private sealed record Step(long RecipeId, int StepNumber, string Description, long? LastModifiedByPersonId);
+
+        private async Task<(ILookup<long, Step> Steps, Dictionary<long, string?> Sources, HashSet<long> Ended)> ReadAsync(IEnumerable<Candidate> chunk, CancellationToken cancellationToken)
+        {
+            var ids = chunk.Select(c => c.Id).ToList();
+            var steps = (await _db.RecipeSteps.AsNoTracking()
+                    .Where(s => ids.Contains(s.RecipeId))
+                    .Select(s => new Step(s.RecipeId, s.StepNumber, s.Description, s.LastModifiedByPersonId))
+                    .ToListAsync(cancellationToken))
+                .ToLookup(s => s.RecipeId);
+            var sources = (await _db.ScrapedDocuments.AsNoTracking()
+                    .Where(d => ids.Contains(d.RecipeId) && d.Format == ScrapedDocumentFormat.JsonLd)
+                    .OrderBy(d => d.Id)
+                    .Select(d => new { d.RecipeId, d.RawJsonLd })
+                    .ToListAsync(cancellationToken))
+                .GroupBy(d => d.RecipeId)
+                .ToDictionary(g => g.Key, g => (string?)g.Last().RawJsonLd);
+            var ended = (await _db.AuditLogEntries.AsNoTracking()
+                    .Where(a => a.EntityType == RecipeEntityType && a.ChangeType == WithholdEndChangeType && ids.Contains(a.EntityId))
+                    .Select(a => a.EntityId)
+                    .ToListAsync(cancellationToken))
+                .ToHashSet();
+            return (steps, sources, ended);
+        }
+
+        private static bool EditedByPerson(IEnumerable<Step> steps) =>
+            steps.Any(s => s.LastModifiedByPersonId is { } by && by != SystemConstants.SystemPersonId);
+
+        private async Task CountAlreadyWithheldAsync(ProseRecheckResult result, ProseStockIndex stock, CancellationToken cancellationToken)
+        {
+            var withheld = await _db.Recipes.AsNoTracking()
+                .Where(r => !r.ContainsSourceProse && r.ProseWithheld && r.ScrapedAtUtc != null && r.LicenseStatus == RecipeLicenseStatus.Unknown)
+                .OrderBy(r => r.Id)
+                .Select(r => new Candidate(r.Id, r.Name, r.CurationStatusId, r.Description, r.ProseCheckVersion, r.ProseUnsure, r.ProseCopiedSentences))
+                .ToListAsync(cancellationToken);
+            foreach (var chunk in withheld.Chunk(RecipesPerRead))
+            {
+                var (steps, sources, ended) = await ReadAsync(chunk, cancellationToken);
+                foreach (var candidate in chunk)
+                {
+                    var own = steps[candidate.Id].OrderBy(s => s.StepNumber).ToList();
+                    var raw = sources.GetValueOrDefault(candidate.Id);
+                    if (ended.Contains(candidate.Id) || EditedByPerson(own) || RewriteFidelity.Source(raw) is not { } source) continue;
+
+                    result.ExaminedWithheld++;
+                    bool failed, repair;
+                    try
+                    {
+                        var finding = ProseCheck.Check(
+                            source,
+                            new RewriteFidelity.SourceText(candidate.Description ?? string.Empty, own.Select(s => s.Description).ToList(), candidate.Name ?? string.Empty),
+                            ProseCheck.SourceLines(raw),
+                            stock);
+                        failed = finding.Failed;
+                        repair = !finding.Failed && finding.Repair;
+                    }
+                    catch (Exception ex) when (ex is not OperationCanceledException)
+                    {
+                        failed = true;
+                        repair = false;
+                    }
+
+                    if (!failed && !repair) continue;
+                    var approved = candidate.CurationStatusId == (long)CurationStatusEnum.Curated;
+                    result.WithheldIfRepairWithheld++;
+                    result.AlreadyWithheldIfRepairWithheld++;
+                    if (approved) result.WithheldIfRepairWithheldApproved++;
+                    if (!failed) continue;
+                    result.WithheldIfRepairShown++;
+                    result.AlreadyWithheldIfRepairShown++;
+                    if (approved) result.WithheldIfRepairShownApproved++;
+                }
+            }
         }
 
         public async Task<ProseRecheckRun?> LastRunAsync(CancellationToken cancellationToken = default)
@@ -332,6 +436,7 @@ namespace Nom.Orch.Services
             await UndoRequarantineAsync(sinceUtc, apply, result);
             await UndoWithholdAsync(sinceUtc, apply, result);
             await UndoUnsureAsync(sinceUtc, apply, result);
+            await UndoRepairAsync(sinceUtc, apply, result);
             return result;
         }
 
@@ -346,6 +451,72 @@ namespace Nom.Orch.Services
             Timestamp = now,
             ChangedByPersonId = personId,
         };
+
+        private AuditLogEntryEntity RepairEntry(long recipeId, int before, int after, string why, int stockVersion, DateTime now, long personId) => new()
+        {
+            EntityType = RecipeEntityType,
+            EntityId = recipeId,
+            ChangeType = RepairChangeType,
+            PropertyName = nameof(RecipeEntity.ProseCopiedSentences),
+            OldValue = before.ToString(CultureInfo.InvariantCulture),
+            NewValue = Clamp($"{after.ToString(CultureInfo.InvariantCulture)} | check {ProseCheck.Version} stock {stockVersion}: {why}"),
+            Timestamp = now,
+            ChangedByPersonId = personId,
+        };
+
+        private async Task ClearRepairAsync(Dictionary<long, string> cleared, int stockVersion, long personId, ProseRecheckResult result, CancellationToken cancellationToken)
+        {
+            foreach (var chunk in cleared.Keys.Chunk(RecipesPerTransaction))
+            {
+                var recipes = await _db.Recipes.Where(r => chunk.Contains(r.Id) && !r.ProseWithheld && !r.ContainsSourceProse && r.ProseCopiedSentences != 0).ToListAsync(cancellationToken);
+                var now = DateTime.UtcNow;
+                foreach (var recipe in recipes)
+                {
+                    _db.AuditLogEntries.Add(RepairEntry(recipe.Id, recipe.ProseCopiedSentences, 0, cleared[recipe.Id], stockVersion, now, personId));
+                    result.ClearedRepair++;
+                    recipe.ProseCopiedSentences = 0;
+                }
+
+                await _db.SaveChangesAsync(cancellationToken);
+                _db.ChangeTracker.Clear();
+            }
+        }
+
+        private async Task UndoRepairAsync(DateTime sinceUtc, bool apply, ProseRecheckUndoResult result)
+        {
+            var entries = await _db.AuditLogEntries.AsNoTracking()
+                .Where(a => a.EntityType == RecipeEntityType && a.ChangeType == RepairChangeType && a.Timestamp >= sinceUtc)
+                .OrderBy(a => a.Id)
+                .ToListAsync();
+            var earliest = entries.GroupBy(e => e.EntityId)
+                .ToDictionary(g => g.Key, g => int.TryParse(g.First().OldValue, NumberStyles.Integer, CultureInfo.InvariantCulture, out var n) ? n : 0);
+            foreach (var chunk in earliest.Keys.Chunk(RecipesPerTransaction))
+            {
+                var recipes = await _db.Recipes.Where(r => chunk.Contains(r.Id)).ToListAsync();
+                var now = DateTime.UtcNow;
+                foreach (var recipe in recipes.Where(r => r.ProseCopiedSentences != earliest[r.Id]))
+                {
+                    result.RestoredRepair++;
+                    if (!apply) continue;
+                    _db.AuditLogEntries.Add(new AuditLogEntryEntity
+                    {
+                        EntityType = RecipeEntityType,
+                        EntityId = recipe.Id,
+                        ChangeType = RepairChangeType,
+                        PropertyName = nameof(RecipeEntity.ProseCopiedSentences),
+                        OldValue = recipe.ProseCopiedSentences.ToString(CultureInfo.InvariantCulture),
+                        NewValue = earliest[recipe.Id].ToString(CultureInfo.InvariantCulture) + $" | undo since {sinceUtc:O}",
+                        Timestamp = now,
+                        ChangedByPersonId = _currentUser.PersonIdOrSystem,
+                    });
+                    recipe.ProseCopiedSentences = earliest[recipe.Id];
+                }
+
+                if (!apply) continue;
+                await _db.SaveChangesAsync();
+                _db.ChangeTracker.Clear();
+            }
+        }
 
         private async Task MarkUnsureAsync(List<Failure> unsure, Dictionary<long, string> cleared, int stockVersion, long personId, ProseRecheckResult result, CancellationToken cancellationToken)
         {
@@ -483,7 +654,6 @@ namespace Nom.Orch.Services
                         ChangedByPersonId = personId,
                     });
                     recipe.ProseWithheld = false;
-                    recipe.ProseCopyUnsure = false;
                     recipe.ProseCheckVersion = int.TryParse(entry.OldValue, NumberStyles.Integer, CultureInfo.InvariantCulture, out var version) ? version : null;
                     recipe.LastModifiedDate = now;
                     recipe.LastModifiedByPersonId = personId;
@@ -547,11 +717,18 @@ namespace Nom.Orch.Services
 
         public static string Clamp(string value) => value.Length <= JournalLength ? value : value[..JournalLength];
 
+        private static void CountRepair(ProseRecheckResult result, Candidate candidate, ProseCheck.Finding finding)
+        {
+            result.Repair++;
+            result.RepairSentences += finding.Sentences.Copied;
+            if (candidate.CurationStatusId == (long)CurationStatusEnum.Curated) result.RepairApproved++;
+        }
+
         private static void CountUnsure(ProseRecheckResult result, Candidate candidate, ProseCheck.Finding finding)
         {
             result.Unsure++;
             if (candidate.CurationStatusId == (long)CurationStatusEnum.Curated) result.UnsureApproved++;
-            foreach (var reason in finding.Reasons)
+            foreach (var reason in finding.Reasons.Where(r => r != ProseCheck.CopiedSentences))
                 result.UnsureByReason[reason] = result.UnsureByReason.GetValueOrDefault(reason) + 1;
         }
 
@@ -560,12 +737,6 @@ namespace Nom.Orch.Services
             var approved = candidate.CurationStatusId == (long)CurationStatusEnum.Curated;
             result.Failed++;
             if (approved) result.FailedApproved++;
-            if (finding.CopyUnsure)
-            {
-                result.CopyUnsure++;
-                if (approved) result.CopyUnsureApproved++;
-            }
-
             foreach (var reason in finding.FailReasons)
             {
                 result.FailedByReason[reason] = result.FailedByReason.GetValueOrDefault(reason) + 1;

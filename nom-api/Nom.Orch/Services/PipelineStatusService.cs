@@ -126,8 +126,8 @@ namespace Nom.Orch.Services
                 WaitingWithSourceProse = recipeRow.WaitingWithSourceProse,
                 ProseWithheld = recipeRow.ProseWithheld,
                 ProseWithheldApproved = recipeRow.ProseWithheldApproved,
-                ProseCopyUnsure = recipeRow.ProseCopyUnsure,
-                ProseCopyUnsureApproved = recipeRow.ProseCopyUnsureApproved,
+                ProseRepair = recipeRow.ProseRepair,
+                ProseRepairApproved = recipeRow.ProseRepairApproved,
                 ProseUnsure = recipeRow.ProseUnsure,
                 ProseUnsureApproved = recipeRow.ProseUnsureApproved,
                 ProseGaveUp = proseGaveUp,
@@ -537,8 +537,8 @@ namespace Nom.Orch.Services
                     WaitingWithSourceProse = g.Count(r => r.CurationStatusId == NonCurated && r.ContainsSourceProse),
                     ProseWithheld = g.Count(r => r.ProseWithheld),
                     ProseWithheldApproved = g.Count(r => r.ProseWithheld && r.CurationStatusId == Curated),
-                    ProseCopyUnsure = g.Count(r => r.ProseWithheld && r.ProseCopyUnsure),
-                    ProseCopyUnsureApproved = g.Count(r => r.ProseWithheld && r.ProseCopyUnsure && r.CurationStatusId == Curated),
+                    ProseRepair = g.Count(r => r.ProseCopiedSentences > 0 && !r.ContainsSourceProse && !(r.ProseWithheld && r.SourceRights == SourceRightsRule.FactsOnly)),
+                    ProseRepairApproved = g.Count(r => r.ProseCopiedSentences > 0 && !r.ContainsSourceProse && !(r.ProseWithheld && r.SourceRights == SourceRightsRule.FactsOnly) && r.CurationStatusId == Curated),
                     ProseUnsure = g.Count(r => r.ProseUnsure && !r.ProseWithheld),
                     ProseUnsureApproved = g.Count(r => r.ProseUnsure && !r.ProseWithheld && r.CurationStatusId == Curated),
                     RevisionMissingQuantities = g.Count(r => r.CurationStatusId == RequiresRevision && r.VettingIssues != null
@@ -924,8 +924,8 @@ namespace Nom.Orch.Services
             public int WaitingWithSourceProse { get; init; }
             public int ProseWithheld { get; init; }
             public int ProseWithheldApproved { get; init; }
-            public int ProseCopyUnsure { get; init; }
-            public int ProseCopyUnsureApproved { get; init; }
+            public int ProseRepair { get; init; }
+            public int ProseRepairApproved { get; init; }
             public int ProseUnsure { get; init; }
             public int ProseUnsureApproved { get; init; }
             public int RevisionMissingQuantities { get; init; }

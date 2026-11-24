@@ -11,13 +11,17 @@ namespace Nom.Orch.Services.Support
     /// Disease and Wheat Allergy stopped flagging 111 and 128 recipes). A take-back or a move may lower the flag of a
     /// restriction type only when the new food's name or USDA description still names what the type restricts (a composite
     /// food's companion patterns included), or its contents are known by the cited table (<see cref="StatementLabelTerms"/>:
-    /// "chicken thighs" is chicken) and none of them is a word the type restricts. Otherwise the lines stay where they are,
-    /// on the safe side.
+    /// "chicken thighs" is chicken, and "large chicken thighs" with its size words read off) and none of them is a word the
+    /// type restricts, or the wording reads as a plain drink (<see cref="ReadsAsDrink"/>: its own name keeps the drink's
+    /// flags, staging checkpoint 6, R16). Otherwise the lines stay where they are, on the safe side.
     /// </summary>
     public sealed class RecheckDietGuard
     {
         /// <summary>The reason a held take-back carries, before the types it names.</summary>
         public const string HeldReason = "diet flags kept";
+
+        /// <summary>The guard's version, part of the re-check's signature: raise it when what it holds changes (recheck-diet/2: a plain drink and a wording with size words, staging checkpoint 6, R16).</summary>
+        public const string Version = "recheck-diet/2";
 
         private readonly IReadOnlyList<(string Type, IReadOnlyList<DietDataCriterion> Criteria)> _types;
 
@@ -40,8 +44,62 @@ namespace Nom.Orch.Services.Support
             return new RecheckDietGuard(byType.Select(kv => (kv.Key, (IReadOnlyList<DietDataCriterion>)kv.Value)).OrderBy(t => t.Key, StringComparer.Ordinal).ToList());
         }
 
-        /// <summary>Whether a wording's contents are known by the cited label table: the wording, or the wording with its qualifiers and forms read off, is a term of it.</summary>
-        public static bool Known(string wording) => StatementLabelTerms.Match(wording) != null;
+        /// <summary>Whether a wording's contents are known by the cited label table: the wording, or the wording with its qualifiers and forms read off, or with its size words read off ("large chicken thighs"), is a term of it.</summary>
+        public static bool Known(string wording) => Terms(wording) != null;
+
+        /// <summary>
+        /// Whether a wording or a line reads as a plain drink and nothing else (<see cref="AlcoholLineContext.Read"/>: a
+        /// spirit, a wine, a fortified wine, a beer or a cider with a USDA food of its sense, an unclear wine, or a list of
+        /// such drinks), so its own words say what it is: "brandy", "rum", "Madeira or sherry", "dry red or white wine"
+        /// (staging checkpoint 6, R16). The new food is read by the gate by its own name (a drink name counts for the
+        /// drink's types), so a take-back or a move of such a line drops only the flags a wrong food gave it: the cream and
+        /// coffee of a coffee cream liqueur, the vinegar of a red wine vinegar. A liqueur, a vermouth or a country wine is
+        /// flavoured with what its name may not say ("Grand Marnier" is orange, "Kahlúa" coffee), so its flags are kept;
+        /// a vinegar, an extract, a measure, a dish named after a drink and a soft drink are not drinks here. Given the
+        /// name of the food the lines leave (<paramref name="offName"/>), a drink that shares a
+        /// word with it other than a word every drink of its kind may carry ("cherry brandy" off cherries) may owe its
+        /// flags to that word, so it is not read as a drink alone.
+        /// </summary>
+        public static bool ReadsAsDrink(string? text, string? offName = null)
+        {
+            if (string.IsNullOrWhiteSpace(text) || !DrinkAlone(AlcoholLineContext.Read(text))) return false;
+            return string.IsNullOrWhiteSpace(offName) || !ContentWords(text).Overlaps(ContentWords(offName));
+        }
+
+        private static readonly HashSet<string> DrinkKindWords = new(StringComparer.Ordinal)
+        {
+            "liqueur", "liquor", "wine", "brandy", "cordial", "spirit", "schnapps", "red", "white", "rose", "rosé", "dry", "sweet",
+            "dark", "light", "golden", "pale", "good", "best", "old", "fine", "cooking", "and", "the", "with", "glass", "gill",
+            "cup", "pint", "quart", "bottle", "tablespoon", "teaspoon", "tbsp", "tsp", "ounce",
+        };
+
+        private static HashSet<string> ContentWords(string text) =>
+            System.Text.RegularExpressions.Regex.Matches(text.ToLowerInvariant(), @"\p{L}{3,}")
+                .Select(m => m.Value.Length > 4 && m.Value.EndsWith('s') ? m.Value[..^1] : m.Value)
+                .Where(w => !DrinkKindWords.Contains(w))
+                .ToHashSet(StringComparer.Ordinal);
+
+        private static readonly HashSet<string> FlavouredSenses = new(StringComparer.Ordinal) { "coffee-liqueur", "cream-liqueur", "creme-de-menthe" };
+
+        private static bool DrinkAlone(AlcoholReading reading) => reading.Kind switch
+        {
+            AlcoholSenseKind.Drink => !FlavouredSenses.Contains(reading.Sense),
+            AlcoholSenseKind.Unclear => true,
+            AlcoholSenseKind.List => reading.Parts is { Count: > 0 } parts && parts.Any(p => p.Kind != AlcoholSenseKind.None)
+                && parts.All(p => p.Kind == AlcoholSenseKind.None ? false : DrinkAlone(p)),
+            _ => false,
+        };
+
+        private static readonly System.Text.RegularExpressions.Regex SizeWords = new(
+            @"^(?:(?:extra[\s-]+|very\s+)?(?:large|small|medium|big|jumbo|little)\s+)+", System.Text.RegularExpressions.RegexOptions.IgnoreCase | System.Text.RegularExpressions.RegexOptions.CultureInvariant);
+
+        private static IReadOnlyList<LabelTerm>? Terms(string wording)
+        {
+            var terms = StatementLabelTerms.Match(wording);
+            if (terms != null) return terms;
+            var unsized = SizeWords.Replace(wording.Trim(), string.Empty);
+            return unsized.Length > 0 && unsized.Length < wording.Trim().Length ? StatementLabelTerms.Match(unsized) : null;
+        }
 
         /// <summary>
         /// The restriction types that read the lines' recipe as restricted while they sit on <paramref name="food"/> (by its
@@ -65,8 +123,9 @@ namespace Nom.Orch.Services.Support
 
         private IReadOnlyList<string> Lowering(GateFood food, string name, string? description, IEnumerable<string?> lines)
         {
+            if (ReadsAsDrink(name, food.Name + " " + food.Description)) return Array.Empty<string>();
             var texts = lines.Where(l => !string.IsNullOrWhiteSpace(l)).ToList();
-            var terms = StatementLabelTerms.Match(name);
+            var terms = Terms(name);
             var lowered = new List<string>();
             foreach (var (type, criteria) in _types)
             {

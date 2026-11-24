@@ -41,13 +41,13 @@ namespace Nom.Orch.Services.Support
         private static readonly string[] Dairy = new[] { "%milk%", "%cheese%", "%butter%", "%yogurt%", "%yoghurt%", "%cream%", "%whey%", "%casein%", "%ghee%", "%kefir%", "%custard%", "%ice cream%", "%mozzarella%", "%cheddar%", "%parmesan%", "%feta%", "%ricotta%", "%brie%", "%gouda%" }.Concat(DietVocabulary.PatternsOf("milk")).ToArray();
         private static readonly string[] Eggs = new[] { "%egg%", "%mayonnaise%", "%meringue%", "%aioli%" }.Concat(DietVocabulary.PatternsOf("egg")).ToArray();
         private static readonly string[] Honey = { "%honey%" };
-        private static readonly string[] Gluten = new[] { "%wheat%", "%flour%", "%barley%", "%rye%", "%bread%", "%pasta%", "%spaghetti%", "%noodle%", "%couscous%", "%seitan%", "%bulgur%", "%farro%", "%semolina%", "%cracker%", "%tortilla%", "%pita%", "%bagel%", "%croissant%", "%breadcrumb%", "%panko%", "%soy sauce%", "%malt%", "%beer%", "oat%", "% oat%", "%granola%", "%muesli%", "%spelt%", "%kamut%", "%triticale%", "%farina%", "%orzo%", "%gnocchi%" }.Concat(DietVocabulary.PatternsOf("wheat")).Concat(DietVocabulary.PatternsOf("gluten")).ToArray();
+        private static readonly string[] Gluten = new[] { "%wheat%", "%flour%", "paste", "%barley%", "%rye%", "%bread%", "%pasta%", "%spaghetti%", "%noodle%", "%couscous%", "%seitan%", "%bulgur%", "%farro%", "%semolina%", "%cracker%", "%tortilla%", "%pita%", "%bagel%", "%croissant%", "%breadcrumb%", "%panko%", "%soy sauce%", "%malt%", "%beer%", "oat%", "% oat%", "%granola%", "%muesli%", "%spelt%", "%kamut%", "%triticale%", "%farina%", "%orzo%", "%gnocchi%" }.Concat(DietVocabulary.PatternsOf("wheat")).Concat(DietVocabulary.PatternsOf("gluten")).ToArray();
         private static readonly string[] Peanut = new[] { "%peanut%" }.Concat(DietVocabulary.PatternsOf("peanut")).ToArray();
         private static readonly string[] TreeNuts = new[] { "%almond%", "%walnut%", "%cashew%", "%pecan%", "%pistachio%", "%hazelnut%", "%macadamia%", "%brazil nut%", "%pine nut%", "%chestnut%", "%tree nut%", "%mixed nut%", "%nut butter%", "%marzipan%", "%praline%", "%nutella%" }.Concat(DietVocabulary.PatternsOf("treenut")).ToArray();
         private static readonly string[] Soy = new[] { "%soy%", "%tofu%", "%tempeh%", "%edamame%", "%miso%", "%tamari%", "%natto%" }.Concat(DietVocabulary.PatternsOf("soy")).ToArray();
         private static readonly string[] Sesame = new[] { "%sesame%", "%tahini%", "%halva%", "%hummus%" }.Concat(DietVocabulary.PatternsOf("sesame")).ToArray();
         private static readonly string[] Sulfite = new[] { "%wine%", "%dried fruit%", "%dried apricot%", "%raisin%", "%vinegar%", "%pickle%", "%sauerkraut%" }.Concat(DietVocabulary.PatternsOf("sulfite")).ToArray();
-        private static readonly string[] WheatOnly = new[] { "%wheat%", "%flour%", "%bread%", "%pasta%", "%couscous%", "%seitan%", "%bulgur%", "%farro%", "%semolina%", "%breadcrumb%", "%panko%", "%tortilla%", "%cracker%", "%spelt%", "%kamut%", "%triticale%", "%farina%", "%orzo%", "%gnocchi%" }.Concat(DietVocabulary.PatternsOf("wheat")).ToArray();
+        private static readonly string[] WheatOnly = new[] { "%wheat%", "%flour%", "paste", "%bread%", "%pasta%", "%couscous%", "%seitan%", "%bulgur%", "%farro%", "%semolina%", "%breadcrumb%", "%panko%", "%tortilla%", "%cracker%", "%spelt%", "%kamut%", "%triticale%", "%farina%", "%orzo%", "%gnocchi%" }.Concat(DietVocabulary.PatternsOf("wheat")).ToArray();
         private static readonly string[] Corn = { "%corn%", "%maize%", "%polenta%", "%grits%", "%popcorn%", "%tortilla%" };
         private static readonly string[] Coconut = { "%coconut%" };
         private static readonly string[] Mustard = { "%mustard%" };
@@ -219,7 +219,8 @@ namespace Nom.Orch.Services.Support
         /// <summary>
         /// The composite foods a type means because it restricts what they are made of (staging checkpoint 3: Milk
         /// Allergy and Dairy-Free never read "Goldfish crackers", the gluten types never read "licorice" candy): for each
-        /// composite food of the cited table (<see cref="StatementLabelTerms.Composites"/>), a type one of whose patterns
+        /// composite food of the cited table (<see cref="StatementLabelTerms.Composites"/>) and each dish of the derived layer
+        /// (<see cref="DietDishes.Composites"/>, staging checkpoint 6, R5), a type one of whose patterns
         /// names one of its contents ("cheddar cheese", "wheat flour") holds the composite's patterns, at that pattern's
         /// severity, unless a pattern of its own already names the composite. The same reading serves a type of any
         /// name (<see cref="EnsureAsync"/>), so an admin's own type gets them from its own patterns.
@@ -227,7 +228,7 @@ namespace Nom.Orch.Services.Support
         public static IEnumerable<RestrictionCompanion> CompositeCompanionsFor(string type, IEnumerable<string> patterns)
         {
             var likes = patterns.Where(p => !string.IsNullOrWhiteSpace(p) && !DietCriteriaMatcher.IsWordPattern(p)).Select(p => p.Trim()).Distinct(StringComparer.OrdinalIgnoreCase).ToList();
-            foreach (var composite in StatementLabelTerms.Composites)
+            foreach (var composite in StatementLabelTerms.Composites.Concat(DietDishes.Composites))
             {
                 foreach (var pattern in StatementLabelTerms.PatternsOf(composite))
                 {

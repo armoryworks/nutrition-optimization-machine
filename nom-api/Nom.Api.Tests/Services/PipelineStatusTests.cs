@@ -441,21 +441,22 @@ namespace Nom.Api.Tests.Services
         }
 
         [Fact]
-        public async Task Recipes_withheld_as_copy_unsure_are_counted_as_their_own_figure_of_the_withheld()
+        public async Task Recipes_withheld_for_their_copied_sentences_are_counted_as_the_lanes_work_list_and_a_facts_only_one_is_not()
         {
             await using var db = await SeededAsync();
             db.Recipes.AddRange(
-                Recipe("copy-unsure approved", 9003).With(r => { r.ProseWithheld = true; r.ProseCopyUnsure = true; }),
-                Recipe("copy-unsure waiting", 9000).With(r => { r.ProseWithheld = true; r.ProseCopyUnsure = true; }),
-                Recipe("copied", 9003).With(r => r.ProseWithheld = true),
-                Recipe("released, mark left", 9003).With(r => r.ProseCopyUnsure = true));
+                Recipe("some sentences approved", 9003).With(r => { r.ProseWithheld = true; r.ProseCopiedSentences = 2; }),
+                Recipe("some sentences waiting", 9000).With(r => { r.ProseWithheld = true; r.ProseCopiedSentences = 1; }),
+                Recipe("withheld as a whole", 9003).With(r => r.ProseWithheld = true),
+                Recipe("facts-only, count kept", 9003).With(r => { r.ProseWithheld = true; r.SourceRights = Nom.Orch.Services.Support.SourceRightsRule.FactsOnly; r.ProseCopiedSentences = 3; }),
+                Recipe("shown again by an undo, count kept", 9003).With(r => r.ProseCopiedSentences = 1));
             await db.SaveChangesAsync();
 
             var status = await Service(db).GetAsync();
 
-            status.Recipes.ProseWithheld.Should().Be(3);
-            status.Recipes.ProseCopyUnsure.Should().Be(2);
-            status.Recipes.ProseCopyUnsureApproved.Should().Be(1);
+            status.Recipes.ProseWithheld.Should().Be(4);
+            status.Recipes.ProseRepair.Should().Be(3);
+            status.Recipes.ProseRepairApproved.Should().Be(2);
         }
 
         private static AuditLogEntryEntity Audit(long recipeId, string changeType, string newValue, DateTime at) => new()

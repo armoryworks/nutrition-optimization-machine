@@ -71,7 +71,6 @@ namespace Nom.Api.Tests.Golden
                 await DefaultRestrictionCriteria.EnsureAsync(db);
 
                 var set = await new HouseholdRestrictionResolver(db).ResolveAsync(HouseholdId);
-                await Nom.Api.Tests.Services.MealPlan.DietLineIndexTests.AssertIndexAgreesAsync(db, HouseholdId, PersonId);
                 await Nom.Api.Tests.Services.MealPlan.DietGateStoreTests.AssertStoreAgreesAsync(db, HouseholdId, PersonId);
                 set.IngredientIds.Should().NotContain(wording.Id);
                 foreach (var (id, line, named, byName) in recipes)
@@ -148,13 +147,13 @@ namespace Nom.Api.Tests.Golden
         }
 
         [Fact]
-        public void The_rule_reads_no_more_than_ilike_did_beside_the_separators_of_a_term_of_two_words()
+        public void The_rule_reads_no_more_than_ilike_did_beside_the_separators_of_a_term_of_two_words_and_its_accents()
         {
             var texts = GoldenSet.Read("diet-patterns.tsv").Rows.Select(r => r["line"]).Concat(DietPatternRule.All.Select(e => "1 cup " + e.Phrase)).ToList();
             var wider = from p in DefaultRestrictionCriteria.ByName.Values.SelectMany(v => v.Patterns).Where(p => !DietCriteriaMatcher.IsWordPattern(p)).Distinct()
                         let rule = DietPatternRule.For(p)
                         from t in texts
-                        where rule.IsMatch(t) && !DietCriteriaMatcher.LikeRegex(p).IsMatch(Regex.Replace(t, @"[\s\-]+", " "))
+                        where rule.IsMatch(t) && !DietCriteriaMatcher.LikeRegex(DietPatternRule.Fold(p)).IsMatch(DietPatternRule.Fold(Regex.Replace(t, @"[\s\-]+", " ")))
                         select $"{p} on {t}";
 
             wider.Should().BeEmpty();

@@ -12,5 +12,8 @@ namespace Nom.Orch.Models.UserManagement
         public string? Comment { get; set; }
         public DateTime CreatedDate { get; set; }
         public bool IsFavorite { get; set; } = false;
+        public bool RecipeRemoved { get; set; }
+        public string? RecipeSourceUrl { get; set; }
+        public string? RecipeRemovedNote { get; set; }
     }
 } 

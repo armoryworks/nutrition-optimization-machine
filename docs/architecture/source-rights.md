@@ -116,8 +116,11 @@ per source it sets (`SourceRightsByHand` on `Rights`, the source's old class kep
 - **Undo.** Undoing the record's journal row (or a source row it wrote) withdraws the record as a whole: every source
   it set goes back to the class it had before (from that source's own row), a facts-only withhold it made is ended
   where it is still the recipe's latest prose change, each is journaled as `SourceUndo`, and the record is kept,
-  marked withdrawn. The lane then classes the host by its own checks again. Those undo rows cannot themselves be
-  undone: a class they would bring back stood on a record that is withdrawn, so it is recorded again instead.
+  marked withdrawn. A source set back to no class keeps no derived time (`RightsDerivedAtUtc` cleared with the class;
+  staging checkpoint 6, R21). The lane then classes the host by its own checks again. Those undo rows cannot themselves be
+  undone: a class they would bring back stood on a record that is withdrawn, so it is recorded again instead. The
+  withdrawal has a dry run like every journal undo (`GET api/ScrapingSource/journal/{entryId}/undo`, see
+  recipe-sources.md).
 - **Shown** on Admin → Scraping Sources beside the class badge ("Recorded by hand by person N on DATE (read DATE)",
   `scraping-source-rights-by-hand`; a class from a check says "Derived by rule from its check",
   `scraping-source-rights-by-lane`), in the list "Classes recorded by hand" (`scraping-sources-by-hand-item`, with
@@ -366,11 +369,100 @@ or credit "changed since", and an older stamp never undoes a later run of the sa
 
 ## Recipes already taken from forbidden and permission-needed sources
 
-Nothing is done to them by itself. `GET api/ScrapingSource/rights/taken` is the dry run for the owner: per
-forbidden or permission-needed source with no permission, the quote, the recipes taken and how many are
-still shown. A site recorded under both its bare and its `www.` host is listed once, so its recipes are not
-counted twice in the list or in the Pipeline total. The one-click, journaled, undoable "withhold recipes" of `recipe-sources.md` is the action.
-Nothing in this engine deletes a recipe.
+Nothing is done to them by itself. `GET api/ScrapingSource/rights/taken` lists, per forbidden or
+permission-needed source with no permission, the quote, the recipes still taken, how many are shown, and how
+many were retired and purged (`retired`, `purged`), and whether the source's recipes may be removed
+(`removable`). A site recorded under both its bare and its `www.` host is listed once, so its recipes are not
+counted twice in the list or in the Pipeline total.
+
+### Removal of recipes taken from forbidden sources (owner's decision of 2026-11-24)
+
+The owner decided that recipes already taken from forbidden sources are removed. `RecipeRemovalService` does it
+in two stages, each an admin action with a dry run that equals its apply, per source (`sourceId`) or for every
+forbidden source at once. No model takes part.
+
+**Which recipes.** A host qualifies only when every web row of it (the bare and the `www.` row) has the effective
+class **forbidden** (`SourceRightsService.EffectiveClass`): a written permission or a class lifted by a later check
+or record on any row takes the host out, and this is read again before every batch of an apply, so a permission
+recorded during a run stops it. Permission-needed sources are not touched (the owner has not decided them), and
+neither is a facts-only one. The recipes are those whose `SourceUrl` is on the host, with or without `www.`,
+including ones their author had already deleted (their stored text is purged too).
+
+**Stage 1, retire** (`POST api/ScrapingSource/rights/removal/retire?sourceId=&apply=`, body `{reason}`). Each recipe,
+its live lines, its live steps and its live stored documents are soft-deleted with the run's stamp (whole
+milliseconds) as `DeletedAt` and the admin as `DeletedByPersonId`, saved without touching `LastModifiedDate` or
+`LastModifiedByPersonId` (`SaveKeepingModifiedAsync`, so no lane later reads the admin as the editor of a step); its stored diet-gate rows
+(`plan.DietRecipeState`, `plan.DietRecipeFlag`) are dropped; one `recipe.RecipeRemoval` row (recipe id, run, source,
+host, address, the address as compared `UrlKey`, title, class, whether it was already deleted, counts) and one
+journal row (`RecipeRetire` on `IsDeleted`) are written per recipe. Because every read surface and lane reads live
+rows, the recipe leaves search, popular, recent, random, suggestions, the detail and share pages (the anonymous pool
+of `VisibleTo`), a plan's picker and shuffle, cookbooks, the curation queue, the image finder, the bulk export and
+print, the reprocess, prose, wording and link lanes (they read live lines, steps and documents), the prose stock
+index (live documents) and the stored diet gate (its update trigger on `IsDeleted` and the dropped rows). A
+reprocess-journal undo and a rights-step undo (`rights/undo`) skip a removed recipe.
+- The run works in batches (`BatchSize` 200), each committed with its journal rows in one transaction, and is
+  recorded in `recipe.RecipeRemovalRun` (kind, stamp, scope, planned, done, finished). A run an API restart cut off
+  has no finish time. It is resumed, under its own stamp, only by a dry run or apply of the same scope (the same
+  host, or every forbidden source); a run of another scope is refused, naming the cut-off run, until it is resumed or
+  undone, so a dry run always shows what its apply does (admin page: "Resume"). An undo by its stamp also closes it.
+  A cut-off run whose source no longer qualifies (a permission or a lifted class recorded since) is closed as it
+  stands by the next apply, with a warning that the dry run shows too; what it retired stays retired until undone.
+  Only one removal run works at a time.
+- **What a household keeps.** A meal plan entry (`GET api/MealPlan`, `/{id}`, the week view), a favourite (a rating
+  of 4 or more: `GET api/User/self/favorites`, `self/ratings`), a cookbook entry and a shopping-list item of a
+  retired recipe stay. They are served with the recipe's title, its source link and the plain note "This recipe is
+  no longer available here." (`recipeRemoved`, `recipeSourceUrl`, `recipeRemovedNote`; in a cookbook `removed`,
+  `sourceUrl`, `removedNote`; on a shopping item the note "From recipe: TITLE. This recipe is no longer available
+  here. Source: URL", in the smart list and the grocery export). Nothing of the source's wording or images is
+  served: no description, steps, lines or image, and a shopping item named from the source's line text is renamed at
+  retire to its catalog food, or else to its own food words (`ProseWithholding.FoodWords`), the old name journaled
+  (`RecipeRetireItemName`) for the undo.
+- **Undo** (`POST api/ScrapingSource/rights/removal/undo?stamp=&apply=`): every recipe of the run that is not purged
+  is put back exactly (`LastModified*` included): the rows soft-deleted with the stamp are restored, a recipe that was already deleted stays
+  deleted, the item names come back where they still read as the retire wrote them, and the removal row is marked
+  undone (`RecipeRetireUndo`). A repeated undo counts them as already done. The stored diet gate decides the recipe
+  again on its next cycle.
+
+**Stage 2, purge** (`POST api/ScrapingSource/rights/removal/purge?sourceId=&apply=&backupTaken=`): on retired,
+not undone recipes only, irreversible, refused unless `backupTaken=true` (take a database backup first). A
+`sourceId` selects the recipes retired from that source's host, whichever of its rows (bare or `www.`) is named. A cut-off
+purge run is resumed only with its own scope, as for the retire. Its dry run lists every table and column and the
+rows it touches. Per recipe it:
+
+| table | columns | action |
+|---|---|---|
+| `recipe.Recipe` | `Description`, `DescriptionNormalized`, `SourceImageUrl`, `SourceAttribution`, `SourceCredit`, `VettingIssues`, `RecipeYield`, `Image` and its five credit columns, `OrgUrl` | cleared; `Name`, `SourceUrl` and `SourceSite` stay |
+| `recipe.RecipeStep` | `Description`, `Summary` | rows deleted (live and soft-deleted) |
+| `recipe.RecipeIngredient` | `RawLine` and the line | rows deleted |
+| `recipe.ScrapedDocument` | `RawJsonLd`: the stored page data, scraper records, held and reduced prose, the documents the prose stock index reads | rows deleted |
+| `recipe.RecipeReprocessJournal` | `OldSteps`, `NewSteps`, line texts | rows deleted |
+| `recipe.LineGuardHold` | `RawLine`, `StoredFood`, `RebuiltFood` | rows deleted |
+| `recipe.ReprocessCandidate`, `recipe.RecipeImageCandidate`, `recipe.RecipeAsset` (any fetched image or file), `recipe.RecipeAugmentation`, `recipe.RecipeSubstitution` with its step effects | all | rows deleted |
+| `plan.DietRecipeFlag`, `plan.DietRecipeState` | all | rows deleted |
+| `audit.AuditLogEntry` | `OldValue`, `NewValue` of the recipe's rows (`Recipe`, `RecipeStep`, `RecipeIngredient`), its documents' rows (`ScrapedDocument`) and its items' renames | replaced by `(purged with the recipe, sha256:...)`; the removal's own rows stay |
+| `curation.LaneDecision` (subject `recipe:ID`) | `SignalsJson`, `VerdictsJson`, `AuditJson` | cleared |
+| `shopping.ShoppingListItem` | `Name` | renamed to the catalog food or its own food words where it still differs; the household's row stays |
+
+What stays is the `recipe.RecipeRemoval` row (recipe id, source, host, address, title, with `PurgedAtUtc` and a
+`PurgeSummary` of what went, by table) and the recipe row's title and address, so the address is never taken again
+and a household's entries keep their title and link. A purged recipe can no longer be put back: its run's undo skips
+it ("purged"). `RecipeRemovalTests` proves the purge by reading every string column of every entity with a
+`RecipeId`, the recipe row, its journal rows and its lane decisions.
+
+**Never taken again.** URL import, the test scrape, a data import naming the address and the staged import the
+harvester uses refuse an address with a removal that is not undone ("This address was removed: its source HOST
+forbids taking its recipes ..."), compared by `UrlKey` (host without `www.`, path without a trailing slash, any case,
+no query or fragment), even after the source's class is lifted. The source stays forbidden, so nothing is fetched
+from it either.
+
+**Where it shows.** Admin → Scraping Sources, beside the rights report: per removable source "Retire (dry run)",
+"Retire", "Purge (dry run)" and "Purge" (`scraping-sources-taken-*-btn`), "Retire all forbidden" and "Purge all
+retired" with their dry runs, the backup confirmation (`scraping-sources-removal-backup-check`, which the purge
+buttons need), the result with its per-source figures (recipes, approved, approved by a person: a recipe `Approval`
+feedback row by a person other than the system; approver not recorded: curated with no recipe approval row at all,
+such as a curated import or an approval given without notes; edited by a person, in meal plans, favourites, cookbooks and shopping lists) and the purge's tables, the runs with an undo per
+retire run, and an unfinished run (`GET api/ScrapingSource/rights/removal`). Admin → Pipeline, "Source rights":
+retired and purged totals and, per barred source, taken, retired and purged.
 
 ## Every surface that could show a facts-only recipe's text
 
@@ -389,6 +481,8 @@ Walked by tests with a facts-only recipe beside one of another class (`SourceRig
 | plans, cookbooks, curation queue, image finder | description, steps | withheld prose |
 | test scrape (both routes) | the publisher's page as scraped, the scraper's food name | facts-only preview; `FoodWords` |
 | admin pages that show line text (curation queue, reprocess, compound and unfold lines, line labels, the source pages) | line text | `CanManageCuration` only |
+| every surface above, for a recipe **retired** from a forbidden source (`RecipeRemovalTests`) | the whole recipe | soft-deleted recipe, lines, steps and documents; dropped diet-gate rows |
+| meal plan entries, favourites, cookbook entries, shopping items of a retired recipe | the source's wording, a line-named food | title, source link and the removed note only; items renamed at retire |
 
 Search still matches a query against a withheld description or steps (it shows the title only), as the
 withhold design chose; a person's own shopping note and a title a household typed for an entry of a recipe that
@@ -455,9 +549,11 @@ facts-only use before its `source-check/4` re-check.
   host with no address); the
   "Record permission" form and the facts-only approve and withdraw buttons; the "Source rights" section
   with the derive dry run and apply, the titles, credit and retention steps with their dry runs and an
-  undo of the last run, and the recipes taken from barred sources.
-- Admin → Pipeline, "Source rights": sources by class, unclassed and stale ones, AI-reserved sources,
+  undo of the last run, and the recipes taken from barred sources with their retire and purge actions and runs.
+- Admin → Pipeline, "Source rights": sources by class, unclassed and stale ones (a class derived under an older rule
+  version; a class recorded by hand is never stale, since no rule derived it: staging checkpoint 6, R21 counted all
+  ten hand records as stale), AI-reserved sources,
   permissions, facts-only approvals, fetchable sources, facts-only recipes withheld and in NOM's words,
   AI-reserved recipes, prose due for reduction and held, recipes with a credit line, recipes taken from
-  barred sources, and the last class change. "Recipe sources" also counts the sources the weekly re-check skips
+  barred sources, retired and purged (in total and per barred source), and the last class change. "Recipe sources" also counts the sources the weekly re-check skips
   and the terms-only checks waiting.

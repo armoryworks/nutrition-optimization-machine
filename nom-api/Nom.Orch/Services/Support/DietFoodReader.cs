@@ -52,34 +52,51 @@ namespace Nom.Orch.Services.Support
         /// <summary>The statement rows with their text, for the foods <see cref="LoadStatementsAsync"/> loaded.</summary>
         public Dictionary<long, IngredientContentsEntity> StatementRows { get; } = new();
 
-        /// <summary>Reads the catalog; the statements' text is not read here.</summary>
-        public static async Task<DietFoodCatalog> LoadAsync(ApplicationDbContext db, IReadOnlyCollection<long> nutrientIds, CancellationToken cancellationToken = default)
+        /// <summary>Reads the catalog, or with <paramref name="foodIds"/> only those foods; the statements' text is not read here.</summary>
+        public static async Task<DietFoodCatalog> LoadAsync(ApplicationDbContext db, IReadOnlyCollection<long> nutrientIds, CancellationToken cancellationToken = default, IReadOnlyCollection<long>? foodIds = null)
         {
-            var foods = (await db.Ingredients.IgnoreQueryFilters().AsNoTracking()
-                    .Select(i => new { i.Id, i.Name, i.IsDeleted, i.FdcCategoryId, i.FdcDataType, i.FdcCategory, i.GramsPerMilliliter, i.GramsPerItem, i.ReferenceServingGrams })
-                    .ToListAsync(cancellationToken))
-                .ToDictionary(i => i.Id, i => new Food(i.Id, i.Name ?? string.Empty, !i.IsDeleted, i.FdcCategoryId, i.FdcDataType, i.FdcCategory, i.GramsPerMilliliter, i.GramsPerItem, i.ReferenceServingGrams));
-            var aliases = (await db.IngredientAliases.AsNoTracking()
-                    .Select(a => new { a.IngredientId, a.AliasName, a.SourceContext })
-                    .ToListAsync(cancellationToken))
-                .GroupBy(a => a.IngredientId)
-                .ToDictionary(g => g.Key, g => g.Select(a => new Alias(a.IngredientId, a.AliasName ?? string.Empty, a.SourceContext)).ToArray());
+            var scopes = foodIds == null ? new long[]?[] { null } : foodIds.Distinct().Chunk(5000).Select(c => (long[]?)c).ToArray();
             var ids = nutrientIds.Distinct().ToList();
-            var nutrients = ids.Count == 0 ? new Dictionary<long, Dictionary<long, decimal>>() : (await db.IngredientNutrients.AsNoTracking()
-                    .Where(n => ids.Contains(n.NutrientId))
-                    .Select(n => new { n.IngredientId, n.NutrientId, n.Amount })
-                    .ToListAsync(cancellationToken))
-                .GroupBy(n => n.IngredientId)
+            var foods = new Dictionary<long, Food>();
+            var aliasRows = new List<Alias>();
+            var nutrientRows = new List<(long IngredientId, long NutrientId, decimal Amount)>();
+            var statementRows = new List<Statement>();
+            foreach (var scope in scopes)
+            {
+                foreach (var i in await db.Ingredients.IgnoreQueryFilters().AsNoTracking()
+                             .Where(i => scope == null || scope.Contains(i.Id))
+                             .Select(i => new { i.Id, i.Name, i.IsDeleted, i.FdcCategoryId, i.FdcDataType, i.FdcCategory, i.GramsPerMilliliter, i.GramsPerItem, i.ReferenceServingGrams })
+                             .ToListAsync(cancellationToken))
+                    foods[i.Id] = new Food(i.Id, i.Name ?? string.Empty, !i.IsDeleted, i.FdcCategoryId, i.FdcDataType, i.FdcCategory, i.GramsPerMilliliter, i.GramsPerItem, i.ReferenceServingGrams);
+                aliasRows.AddRange((await db.IngredientAliases.AsNoTracking()
+                        .Where(a => scope == null || scope.Contains(a.IngredientId))
+                        .Select(a => new { a.IngredientId, a.AliasName, a.SourceContext })
+                        .ToListAsync(cancellationToken))
+                    .Select(a => new Alias(a.IngredientId, a.AliasName ?? string.Empty, a.SourceContext)));
+                if (ids.Count > 0)
+                    nutrientRows.AddRange((await db.IngredientNutrients.AsNoTracking()
+                            .Where(n => ids.Contains(n.NutrientId) && (scope == null || scope.Contains(n.IngredientId)))
+                            .Select(n => new { n.IngredientId, n.NutrientId, n.Amount })
+                            .ToListAsync(cancellationToken))
+                        .Select(n => (n.IngredientId, n.NutrientId, n.Amount)));
+                statementRows.AddRange((await db.IngredientContents.AsNoTracking()
+                        .Where(c => c.HouseholdId == null && (scope == null || scope.Contains(c.IngredientId)))
+                        .Select(c => new { c.Id, c.IngredientId, c.Outcome, c.ReaderVersion, c.LastModifiedDate })
+                        .ToListAsync(cancellationToken))
+                    .Select(c => new Statement(c.Id, c.IngredientId, c.Outcome, c.ReaderVersion, c.LastModifiedDate)));
+            }
+            var aliases = aliasRows.GroupBy(a => a.IngredientId).ToDictionary(g => g.Key, g => g.ToArray());
+            var nutrients = nutrientRows.GroupBy(n => n.IngredientId)
                 .ToDictionary(g => g.Key, g => g.GroupBy(n => n.NutrientId).ToDictionary(n => n.Key, n => n.Max(x => x.Amount)));
-            var statements = (await db.IngredientContents.AsNoTracking()
-                    .Where(c => c.HouseholdId == null)
-                    .Select(c => new { c.Id, c.IngredientId, c.Outcome, c.ReaderVersion, c.LastModifiedDate })
-                    .ToListAsync(cancellationToken))
-                .GroupBy(c => c.IngredientId)
-                .Select(g => g.OrderByDescending(c => c.Id).First())
-                .ToDictionary(c => c.IngredientId, c => new Statement(c.Id, c.IngredientId, c.Outcome, c.ReaderVersion, c.LastModifiedDate));
+            var statements = statementRows.GroupBy(c => c.IngredientId).ToDictionary(g => g.Key, g => g.OrderByDescending(c => c.Id).First());
             return new DietFoodCatalog(foods, aliases, nutrients, statements);
         }
+
+        /// <summary>A catalog of the given foods as they are (or as a move would make them), with no nutrient and no statement rows beyond those given.</summary>
+        public static DietFoodCatalog Of(IEnumerable<Food> foods, IEnumerable<Alias> aliases, IReadOnlyDictionary<long, Dictionary<long, decimal>>? nutrients = null, IReadOnlyDictionary<long, Statement>? statements = null) =>
+            new(foods.ToDictionary(f => f.Id), aliases.GroupBy(a => a.IngredientId).ToDictionary(g => g.Key, g => g.ToArray()),
+                nutrients?.ToDictionary(kv => kv.Key, kv => kv.Value) ?? new Dictionary<long, Dictionary<long, decimal>>(),
+                statements?.ToDictionary(kv => kv.Key, kv => kv.Value) ?? new Dictionary<long, Statement>());
 
         /// <summary>Loads the text of the latest statement of each of the foods that has a read one, in bounded batches.</summary>
         public async Task LoadStatementsAsync(ApplicationDbContext db, IEnumerable<long> foodIds, CancellationToken cancellationToken = default)
@@ -147,7 +164,9 @@ namespace Nom.Orch.Services.Support
     /// and a live food with no alcohol figure whose own name reads as a drink); a capped alcohol criterion counts only the
     /// latter; a word pattern counts a live food by its name and any food by a trusted alias with no alcohol word, its
     /// measures blanked, unless the food stores a nutrient of the set; a name pattern counts a live food by its name
-    /// (<see cref="DietPatternRule.IsMatch"/>), any food by a trusted alias (<see cref="DietPatternRule.IsAliasMatch"/>,
+    /// (<see cref="DietPatternRule.IsMatch"/>; a branded food's name without the brand owner it closes with, and a name
+    /// that is the food's own USDA description in its orders of speech, <see cref="DietPatternRule.IsDescriptionMatch"/>,
+    /// staging checkpoint 6, R6 and R7), any food by a trusted alias (<see cref="DietPatternRule.IsAliasMatch"/>,
     /// measures blanked), and a live food by its USDA category (<see cref="DietCriteriaMatcher.CategoryPatterns"/>); and a
     /// pattern counts a live food that is not a prepared meal by its latest read FDC statement
     /// (<see cref="PreparedContentsGate.RestrictedNames"/>). Each food is decided from its own data only, so a batch of
@@ -163,6 +182,8 @@ namespace Nom.Orch.Services.Support
         {
             private readonly DietFoodCatalog.Food[] _live;
             private readonly string[] _liveLower;
+            private readonly string[] _liveNames;
+            private readonly bool[] _liveDescribed;
             private readonly bool[] _liveFolds;
             private readonly DietFoodCatalog.Alias[] _aliases;
             private readonly string[] _blanked;
@@ -182,13 +203,16 @@ namespace Nom.Orch.Services.Support
                 Catalog = catalog;
                 FoodIds = foodIds as IReadOnlySet<long> ?? foodIds.ToHashSet();
                 _live = FoodIds.Select(id => catalog.Foods.TryGetValue(id, out var f) ? f : null).OfType<DietFoodCatalog.Food>().Where(f => f.Live).ToArray();
-                _liveLower = _live.Select(f => f.Name.ToLowerInvariant()).ToArray();
-                _liveFolds = _live.Select(f => DietLineIndex.FoldsToAscii(f.Name)).ToArray();
+                _liveNames = _live.Select(f => DietPatternRule.WithoutMaker(f.Name, f.DataType == CatalogAdmissionRule.BrandedFood)).ToArray();
+                _liveDescribed = _live.Select(f => catalog.Aliases.TryGetValue(f.Id, out var a) && a.Any(x => string.Equals(x.Context?.Trim(), IngredientLinkService.UsdaDescriptionContext, StringComparison.OrdinalIgnoreCase)
+                    && string.Equals(x.Text.Trim(), f.Name.Trim(), StringComparison.OrdinalIgnoreCase))).ToArray();
+                _liveLower = _liveNames.Select(n => DietPatternRule.Fold(n).ToLowerInvariant()).ToArray();
+                _liveFolds = _live.Select(f => DietLineRules.FoldsToAscii(f.Name)).ToArray();
                 _aliases = FoodIds.SelectMany(id => catalog.Aliases.TryGetValue(id, out var a) ? a : Array.Empty<DietFoodCatalog.Alias>()).ToArray();
                 _blanked = _aliases.Select(a => DietCriteriaMatcher.AliasText(a.Text)).ToArray();
-                _blankedLower = _blanked.Select(t => t.ToLowerInvariant()).ToArray();
-                _rawLower = _aliases.Select(a => a.Text.ToLowerInvariant()).ToArray();
-                _aliasFolds = _aliases.Select((a, i) => DietLineIndex.FoldsToAscii(a.Text) || DietLineIndex.FoldsToAscii(_blanked[i])).ToArray();
+                _blankedLower = _blanked.Select(t => DietPatternRule.Fold(t).ToLowerInvariant()).ToArray();
+                _rawLower = _aliases.Select(a => DietPatternRule.Fold(a.Text).ToLowerInvariant()).ToArray();
+                _aliasFolds = _aliases.Select((a, i) => DietLineRules.FoldsToAscii(a.Text) || DietLineRules.FoldsToAscii(_blanked[i])).ToArray();
             }
 
             public DietFoodCatalog Catalog { get; }
@@ -201,12 +225,12 @@ namespace Nom.Orch.Services.Support
             {
                 var key = "like:" + rule.Pattern + "\n" + rule.TypeName;
                 if (_rules.TryGetValue(key, out var hit)) return hit;
-                var seed = DietLineIndex.Seed(rule);
+                var seed = DietLineRules.Seed(rule);
                 var names = new HashSet<long>();
                 for (var i = 0; i < _live.Length; i++)
                 {
                     if (seed != null && !_liveFolds[i] && !_liveLower[i].Contains(seed, StringComparison.Ordinal)) continue;
-                    if (rule.IsMatch(_live[i].Name)) names.Add(_live[i].Id);
+                    if (_liveDescribed[i] ? rule.IsDescriptionMatch(_liveNames[i]) : rule.IsMatch(_liveNames[i])) names.Add(_live[i].Id);
                 }
                 var aliases = new List<int>();
                 for (var i = 0; i < _aliases.Length; i++)
@@ -265,7 +289,7 @@ namespace Nom.Orch.Services.Support
 
             internal HashSet<long> Contents(DietDataCriterion criterion)
             {
-                var key = (DietLineIndex.KeyOf(criterion) ?? string.Empty) + "\u0001" + (criterion.Severity >= 4 ? "4" : "0");
+                var key = (DietLineRules.KeyOf(criterion) ?? string.Empty) + "\u0001" + (criterion.Severity >= 4 ? "4" : "0");
                 if (_contents.TryGetValue(key, out var hit)) return hit;
                 var set = new RestrictedIngredientSet();
                 set.Criteria.Add(criterion);

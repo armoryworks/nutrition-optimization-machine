@@ -92,10 +92,13 @@ namespace Nom.Orch.Services
                     .ToListAsync(cancellationToken);
 
                 var touched = new HashSet<long>();
-                foreach (var line in lines.OrderBy(l => l.RecipeId).ThenBy(l => l.SortOrder))
+                var ordered = lines.OrderBy(l => l.RecipeId).ThenBy(l => l.SortOrder).ToList();
+                var readings = ordered.GroupBy(l => l.RecipeId)
+                    .SelectMany(g => g.Zip(AlcoholRetention.ReadRecipe(steps.GetValueOrDefault(g.Key), g.Select(l => l.RawLine).ToList())))
+                    .ToList();
+                foreach (var (line, reading) in readings)
                 {
                     result.Lines++;
-                    var reading = AlcoholRetention.Read(steps.GetValueOrDefault(line.RecipeId), line.RawLine);
                     result.ByKind[reading.Kind] = result.ByKind.GetValueOrDefault(reading.Kind) + 1;
                     if (reading.Estimated) result.Estimated++;
                     if (reading.Unnamed) result.Unnamed++;

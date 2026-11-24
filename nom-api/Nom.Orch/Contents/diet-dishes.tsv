@@ -1,0 +1,94 @@
+# Diet dishes (diet-dishes/2): preparations and dishes that hold what a severe restriction restricts by their definition, derived rather than added by example (staging checkpoint 6, R5: "six toasts", "narrow wafers", "half a pint of Madeira sauce", "caper sauce" and "vinaigrette" were shown to the types they hold).
+# dish: the name as read, lower case, singular. names: other names and spellings, joined by |. made of: what the definition makes it of, joined by |: a word the restriction patterns read (wheat flour, butter, egg yolk, vinegar) or another dish of this file, whose contents it takes (Madeira sauce is demi-glace and Madeira; demi-glace is espagnole; espagnole is a brown roux of butter and wheat flour). DietDishes resolves every dish to the words it holds; a restriction type whose pattern reads one of them holds the dish's patterns (DefaultRestrictionCriteria.CompositeCompanions), like a composite of label-terms.tsv.
+# Sources, all in the public domain: ESCOFFIER = A. Escoffier, A Guide to Modern Cookery (1907, the English edition of Le Guide Culinaire, 1903), the chapter on sauces: the leading sauces (espagnole, velouté, béchamel, tomato) and the small sauces made from them. A dish may be made of a composite of label-terms.tsv (roux, espagnole, veloute, bechamel sauce, supreme sauce, sponge cake, ladyfinger, custard), whose contents it takes. FARMER = Fannie Merritt Farmer, The Boston Cooking-School Cook Book (1896): sauces, batters, pastry, toast, fritters. BEETON = Isabella Beeton, The Book of Household Management (1861): melted butter, caper sauce, forcemeat. WEBSTER = Webster's Revised Unabridged Dictionary (1913): the definition of the word. 21CFR = Title 21, Code of Federal Regulations (166.110 margarine: edible fat or oil with water, milk or milk products). LABEL = the ingredient statement of the leading brand, as USDA FoodData Central's branded file publishes it. ARTUSI = Pellegrino Artusi, La scienza in cucina e l'arte di mangiar bene (1891).
+dish	names	made of	source
+toast	toasts|toast point|toast points|dry toast|buttered toast|round toast|sippet|sippets	bread	WEBSTER: toast, bread sliced and browned before a fire; sippet, a small piece of toast or bread served in soup or gravy; FARMER: toast (stale bread, sliced and browned)
+wafer	wafers|vanilla wafer|vanilla wafers|sugar wafer|sugar wafers|wafer cookie|wafer cookies	wheat flour	WEBSTER: wafer, a thin cake made of flour; LABEL: vanilla wafers (enriched wheat flour)
+crumb	crumbs|fine crumbs|dry crumbs|stale crumbs|soft crumbs|sifted crumbs	bread	WEBSTER: crumb, a small fragment of bread; in old cookbooks bare crumbs are bread crumbs (FARMER: buttered crumbs, bread crumbs)
+panada	panade|bread panada	bread|milk|butter	ESCOFFIER: panadas, of bread soaked in milk, or of flour, butter and water
+forcemeat	force-meat|forced meat|forcemeat balls	bread|egg	BEETON: forcemeat, bread crumbs, suet and herbs bound with egg
+quenelle	quenelles	forcemeat|cream	ESCOFFIER: quenelles, forcemeat of meat or fish bound with panada, egg and cream
+puff paste	puff-paste|short paste|pie paste|tart paste|plain paste|light paste|rich paste|jumble paste|jumble-paste|pâte brisée|pate brisee|pâte feuilletée|pate feuilletee	wheat flour|butter	FARMER: puff paste and plain paste, flour and butter worked with water
+vol-au-vent	vol au vent|vols-au-vent|patty shell|patty shells|bouchée|bouchées	puff paste	ESCOFFIER: vol-au-vent and bouchées, cases of puff paste
+fritter batter	batter for fritters|frying batter|batter for frying	wheat flour|egg|milk	FARMER: fritter batter, flour, milk and egg
+fritter	fritters	fritter batter	FARMER: fritters, food dipped in fritter batter and fried
+brown roux	roux brun|white roux|roux blanc|blond roux|roux blond	roux	ESCOFFIER: brown, blond and white roux, flour cooked in clarified butter
+brown sauce	spanish sauce	espagnole	ESCOFFIER: espagnole, brown stock thickened with a brown roux; FARMER: brown sauce, butter browned with flour and stock
+white sauce	cream sauce|sauce crème|sauce creme|thin white sauce|thick white sauce	bechamel sauce	ESCOFFIER: béchamel, a white roux moistened with milk; FARMER: white sauce, butter, flour and milk; cream sauce, butter, flour and cream
+demi-glace	demi glace|demiglace|half-glaze|half glaze|sauce demi-glace	brown sauce	ESCOFFIER: demi-glace, espagnole reduced with brown stock
+madeira sauce	sauce madère|sauce madere|madère sauce|madere sauce|sauce madeira|madeira wine sauce|sauce au madère|sauce au madere	demi-glace|madeira	ESCOFFIER: Madeira sauce, demi-glace finished with Madeira; "Madeira wine sauce" is the same sauce named with its wine (Mutton Kidneys Sautés à l’Italienne: proof draw 11 of the ck11 review)
+périgueux sauce	perigueux sauce|sauce périgueux|sauce perigueux|périgourdine sauce|perigourdine sauce	madeira sauce	ESCOFFIER: Périgueux sauce, Madeira sauce with chopped truffles
+financière sauce	financiere sauce|sauce financière|sauce financiere	madeira sauce	ESCOFFIER: financière sauce, Madeira sauce with truffle essence
+bordelaise sauce	sauce bordelaise|bordelaise	demi-glace|red wine	ESCOFFIER: Bordelaise sauce, red wine reduced with shallots and demi-glace
+chasseur sauce	sauce chasseur|hunter's sauce|hunter sauce	demi-glace|white wine|butter	ESCOFFIER: chasseur sauce, mushrooms and shallots in white wine, demi-glace, butter
+robert sauce	sauce robert	demi-glace|white wine|mustard	ESCOFFIER: Robert sauce, onions in white wine, demi-glace, mustard
+piquante sauce	sauce piquante|piquant sauce	demi-glace|vinegar|white wine	ESCOFFIER: piquante sauce, white wine and vinegar reduced with shallots, demi-glace, gherkins
+poivrade sauce	sauce poivrade	espagnole|vinegar	ESCOFFIER: poivrade sauce, mirepoix with vinegar and pepper, espagnole
+diable sauce	sauce diable|devil sauce|devilled sauce|deviled sauce	demi-glace|white wine	ESCOFFIER: diable sauce, white wine and shallots reduced, demi-glace, cayenne
+lyonnaise sauce	sauce lyonnaise	demi-glace|white wine|vinegar	ESCOFFIER: Lyonnaise sauce, onions in white wine and vinegar, demi-glace
+bigarade sauce	sauce bigarade	demi-glace	ESCOFFIER: bigarade sauce, duck stock and demi-glace with bitter orange
+italienne sauce	italian sauce|sauce italienne	demi-glace|ham	ESCOFFIER: Italian sauce, duxelles, ham and demi-glace with tomato
+zingara sauce	sauce zingara	demi-glace|ham|madeira	ESCOFFIER: zingara sauce, demi-glace with tomato, ham, tongue, mushrooms and Madeira
+poulette sauce	sauce poulette|à la poulette|a la poulette	veloute|egg yolk|butter	ESCOFFIER: poulette sauce, velouté bound with yolks, finished with butter and lemon
+aurore sauce	sauce aurore	veloute|butter	ESCOFFIER: aurore sauce, velouté with tomato purée, finished with butter
+ivory sauce	sauce ivoire	supreme sauce	ESCOFFIER: ivory sauce, suprême sauce with meat glaze
+bercy sauce	sauce bercy	veloute|white wine|butter|fish	ESCOFFIER: Bercy sauce, shallots and white wine reduced, fish velouté, butter
+normande sauce	sauce normande|normandy sauce	veloute|egg yolk|cream|fish	ESCOFFIER: Normande sauce, fish velouté with mushroom and fish essence, yolks and cream
+white wine sauce	sauce vin blanc|vin blanc sauce	egg yolk|butter|fish|white wine	ESCOFFIER: white wine sauce, fish fumet reduced with yolks and butter
+soubise sauce	sauce soubise|soubise	bechamel sauce|onion	ESCOFFIER: Soubise, onion purée with béchamel
+nantua sauce	sauce nantua	bechamel sauce|cream|crayfish	ESCOFFIER: Nantua sauce, béchamel with cream and crayfish butter
+cardinal sauce	sauce cardinal	bechamel sauce|fish|lobster	ESCOFFIER: cardinal sauce, béchamel with fish fumet and lobster butter
+egg sauce	sauce aux oeufs	bechamel sauce|egg	FARMER: egg sauce, white sauce with chopped hard-boiled eggs
+melted butter sauce	drawn butter|drawn butter sauce|butter sauce|english butter sauce	butter|wheat flour	BEETON: melted butter, butter with flour and water stirred over the fire; FARMER: drawn butter sauce, butter and flour with water
+caper sauce	sauce aux câpres|sauce aux capres|caper butter sauce	melted butter sauce	BEETON: caper sauce, melted butter with capers
+parsley sauce	parsley butter sauce	melted butter sauce	BEETON: parsley and butter sauce, melted butter with parsley
+celery sauce	sauce au céleri|sauce au celeri	bechamel sauce|celery	FARMER: celery sauce, white sauce made with celery and the water it was cooked in; BEETON: white celery sauce, celery stewed in white stock, thickened with butter and flour, finished with cream (Braised Quails, Celery Sauce: proof draw 9 of the ck11 review)
+onion sauce	white onion sauce|sauce à l'oignon|sauce a l'oignon	melted butter sauce|milk|onion	BEETON: white onion sauce, onions boiled and pulped into melted butter with milk; FARMER: onion sauce, white sauce with onions
+anchovy sauce	sauce aux anchois	melted butter sauce|anchovy	BEETON: anchovy sauce, melted butter with anchovy essence
+oyster sauce for fish	english oyster sauce	melted butter sauce|oyster	BEETON: oyster sauce, melted butter with oysters and their liquor
+shrimp sauce	english shrimp sauce|sauce aux crevettes	melted butter sauce|shrimp	BEETON: shrimp sauce, melted butter with shrimps; FARMER: shrimp sauce, drawn butter or white sauce with shrimps (Trout with Shrimp Sauce, and Shrimp Sauce of half a pint of drawn butter or white sauce: proof draw 11 of the ck11 review)
+lobster sauce	sauce homard	melted butter sauce|lobster	BEETON: lobster sauce, melted butter with the meat and coral of a lobster; FARMER: lobster sauce, drawn butter sauce with lobster
+bread sauce	-	bread|milk|butter	BEETON: bread sauce, crumb of bread in milk with butter
+vinaigrette	vinaigrette dressing|vinaigrette sauce|sauce vinaigrette|french dressing|vinegar and oil	vinegar	ESCOFFIER: vinaigrette, oil, vinegar, salt, pepper and herbs; FARMER: French dressing, oil and vinegar
+ravigote sauce	sauce ravigote|ravigote	vinegar	ESCOFFIER: cold ravigote, vinaigrette with capers and herbs
+margarine	oleomargarine|margarine spread|vegetable spread	soybean|milk	21CFR 166.110: margarine, edible fat or oil with water, milk or milk products; LABEL: leading stick and tub margarines (soybean oil, soy lecithin, whey or buttermilk); the owner rule of checkpoint 5 holds refined soybean oil for Soy Allergy, and a margarine that names no milk-free make is held for the types that restrict milk (review ck11-dc-4)
+rice krispies	rice krispie|rice crispies|rice crispy|rice krispy|krispies|crispies|crisp rice cereal|crispy rice cereal|toasted rice cereal	malt|rice	LABEL: Kellogg's Rice Krispies (rice, sugar, salt, malt flavor), the malt of barley that the gluten types restrict
+corn flakes	cornflakes|cornflake|corn flake|cornflake crumbs|corn flake crumbs	malt|corn	LABEL: Kellogg's Corn Flakes (milled corn, sugar, malt flavor)
+macaroon	macaroons|almond macaroon|almond macaroons|ratafia biscuit|ratafia biscuits|ratafias	almond|egg white	FARMER: macaroons, almond paste, sugar and whites of eggs
+frangipane	frangipan|frangipani	almond|butter|egg	ESCOFFIER: frangipan cream, almonds, butter, eggs and flour
+omelet	omelets|omelette|omelettes	egg	WEBSTER: omelet, eggs beaten and fried
+welsh rarebit	welsh rabbit|rarebit	cheese|bread	FARMER: Welsh rarebit, cheese melted with ale and served on toast
+trifle	trifles	sponge cake|custard|cream	BEETON: trifle, sponge cakes soaked in wine with custard and whipped cream
+charlotte russe	charlottes russes	ladyfinger|cream	FARMER: Charlotte Russe, lady fingers lined with whipped cream
+blancmange	blanc-mange|blanc mange	milk	FARMER: blanc-mange, milk thickened with cornstarch or Irish moss
+syllabub	sillabub|syllabubs|sillabubs	cream|wine	BEETON: syllabub, cream whipped with wine and sugar
+kedgeree	kedgaree|kitchiri	fish|egg	BEETON: kedgeree, cold fish with rice, butter and hard-boiled eggs
+fumet	fish fumet|fumet of fish	fish	ESCOFFIER: fish fumet, a stock of fish bones and trimmings
+sun-dried tomato	sun-dried tomatoes|sun dried tomato|sun dried tomatoes|sundried tomato|sundried tomatoes|dried tomato|dried tomatoes	sulfite	LABEL: sun-dried tomatoes (tomatoes, sulfur dioxide); 21CFR 101.100(a)(4): sulfites declared at 10 ppm or more, as dried fruit and vegetables commonly hold
+dried fruit	dried fruits|mixed dried fruit|dried mixed fruit|candied peel|mixed peel	sulfite	LABEL: dried and candied fruit (sulfur dioxide as a preservative); 21CFR 101.100(a)(4)
+blue cheese dressing	bleu cheese dressing|blue cheese salad dressing	mayonnaise|blue cheese|buttermilk	LABEL: blue cheese dressing (soybean oil, blue cheese, buttermilk, egg yolk), a mayonnaise dressing (proof draw 1 of ck11)
+thousand island dressing	thousand island|thousand-island dressing	mayonnaise	LABEL: Thousand Island dressing (soybean oil, egg yolk, pickle relish, vinegar), a mayonnaise dressing
+russian dressing	-	mayonnaise	FARMER: Russian dressing, mayonnaise with chili sauce
+green goddess dressing	green goddess	mayonnaise|sour cream|anchovy	the Palace Hotel dressing (1923): mayonnaise, sour cream, anchovies and herbs
+crust	crusts|upper crust|under crust|top crust|bottom crust|lower crust|pastry crust|short crust	wheat flour	FARMER: crust, the paste of a pie (flour, butter or lard and water: its fat may be lard, so only the flour is certain)
+fennel sauce	fennel and butter sauce	melted butter sauce	BEETON: fennel sauce, melted butter with chopped fennel (proof draw 2 of ck11)
+maître d'hôtel sauce	maitre d'hotel sauce|sauce maître d'hôtel|sauce maitre d'hotel|maître d'hôtel sauce hot	melted butter sauce	BEETON: maître d'hôtel sauce (hot), melted butter with parsley and lemon juice; the cold maître d'hôtel butter is butter alone
+ranch seasoning	ranch seasoning mix|ranch dressing mix|dry ranch dressing|ranch mix|ranch packet|ranch seasoning packet|ranch dip mix	buttermilk	LABEL: Hidden Valley Ranch seasoning mix (buttermilk, salt, ...; contains milk) (proof draw 2 of ck11)
+baking mix	bakery mix|better baking mix|all-purpose baking mix|biscuit baking mix|homemade baking mix	wheat flour	USDA MyPlate: Better Baking Mix (all-purpose flour, nonfat dry milk, baking powder, salt, shortening); a baking mix is flour with its leavening and fat (proof draw 3 of ck11)
+marmite	vegemite	barley|malt	LABEL: Marmite (yeast extract of brewer's yeast, with barley and wheat) and Vegemite (yeast extract from barley); a yeast extract of the brewery holds the gluten of its barley (proof draw 4 of ck11)
+grape nuts	grape-nuts	wheat flour|barley|malt	LABEL: Grape-Nuts (whole grain wheat flour, malted barley flour, salt, dried yeast); a cereal of wheat and barley with no nut (proof draw 5 of ck11)
+chaud-froid sauce	chaudfroid sauce|chaud froid sauce|sauce chaud-froid|sauce chaudfroid	bechamel sauce|gelatin	ESCOFFIER: chaud-froid sauces, a velouté or a béchamel reduced with jelly (Galantine of Turkey, Chaudfroid sauce: proof draw 8 of ck11)
+boiled dressing	cooked dressing|boiled salad dressing|cooked salad dressing	egg|wheat flour|butter|milk	FARMER: cooked dressing, salt, mustard, sugar, flour, egg yolks, butter, milk and vinegar (Waldorf Salad, boiled dressing: proof draw 8 of ck11)
+porter	porter beer|london porter|brown stout	beer	WEBSTER: porter, a malt liquor of dark color, made of malt partly charred (Fine Brandy Shrub, one pint of porter: proof draw 12 of the ck11 review)
+ale	pale ale|old ale|brown ale|strong ale|small ale|india pale ale|ale yeast	beer	WEBSTER: ale, a liquor made from an infusion of malt by fermentation
+stout beer	guinness|guinness stout|irish stout|dry stout|oatmeal stout	beer	WEBSTER: stout, a strong porter; LABEL: Guinness Draught (water, malted barley, roasted barley, hops)
+lager	lager beer|pilsner|pilsener	beer	WEBSTER: lager beer, beer stored for some months before use
+villeroy sauce	sauce villeroy|villeroi sauce|sauce villeroi	allemande sauce	ESCOFFIER: Villeroy sauce, allemande sauce reduced with essence of mushrooms and truffles, for coating (Attereaux de Ris de Veau à la Villeroy: proof draw 13 of the ck11 review)
+anglaise sauce	sauce anglaise|anglaise for egging|english egging	egg	ESCOFFIER: anglaise, eggs beaten with oil, salt and pepper, in which a food is dipped before it is crumbed
+champagne sauce	sauce au champagne|sauce champagne	demi-glace|champagne	ESCOFFIER: champagne sauce, demi-glace finished with champagne (Roast Ham, Champagne sauce: proof draw 13 of the ck11 review)
+quesadilla	quesadillas	tortilla|cheese	LABEL: the leading frozen and restaurant quesadillas (flour tortilla, cheese); a quesadilla is a tortilla folded over cheese (soft taco-size quesadillas: proof draw 13 of the ck11 review)
+italian paste	italian pastes|genoa paste	wheat flour	WEBSTER: Italian paste, macaroni, vermicelli and the like, made of wheat flour (Soup with Italian Paste: proof draw 14 of the ck11 review)
+manchet	manchets|manchet bread	bread	WEBSTER: manchet, a small loaf of fine white bread (three stale Manchets grated, under To make Ginger-bread: proof draw 14 of the ck11 review)
+pappa	pappa col pomodoro|pappa al pomodoro	bread	ARTUSI: pappa, stale bread boiled down in broth or with tomatoes, a Tuscan bread soup (Pappa col Brodo di Muggine, whose lines leave out the bread: proof draw 15 of the ck11 review)
+chateaubriand sauce	sauce chateaubriand|châteaubriand sauce|sauce châteaubriand	white wine|butter	ESCOFFIER: Châteaubriand sauce, white wine reduced with shallots and mushroom parings, finished with demi-glace and maître d'hôtel butter (Moulded Eggs à la Carignan: proof draw 16 of the ck11 review)
+nouilles	nouille|pâte à nouilles|pate a nouilles	wheat flour|egg	ESCOFFIER: nouilles, a paste of flour, whole eggs and yolks, rolled thin and cut in ribbons (With Nouilles: proof draw 17 of the ck11 review)

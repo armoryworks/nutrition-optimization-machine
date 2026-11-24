@@ -586,6 +586,20 @@ namespace Nom.Orch.Services
                         })
                         .ToList();
                 }
+                case LinkRecheckRules.FreeOf:
+                {
+                    var lines = await LinesAsync(ScrapedLines(_db, curatedOnly: true).Where(ContainsAny(LinkRecheckRules.FreeOfStems)), cancellationToken);
+                    var foods = await _gate.GateFoodsAsync(lines.Select(l => l.FoodId).Distinct().ToList(), cancellationToken);
+                    var groups = new Dictionary<(long, string), Group>();
+                    foreach (var line in lines)
+                    {
+                        var wording = WordingOf(line.Raw);
+                        if (wording.Length == 0 || !foods.TryGetValue(line.FoodId, out var food) || LinkRecheckRules.FreeOfHold(wording, food) == null) continue;
+                        if (!groups.TryGetValue((line.FoodId, wording), out var group)) groups[(line.FoodId, wording)] = group = new Group { FoodId = line.FoodId, Wording = wording };
+                        group.Lines.Add(line);
+                    }
+                    return groups.Values.ToList();
+                }
                 default:
                     return await LinkGroupsAsync(set, cancellationToken);
             }

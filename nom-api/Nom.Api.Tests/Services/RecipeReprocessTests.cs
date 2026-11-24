@@ -899,6 +899,52 @@ namespace Nom.Api.Tests.Services
         }
 
         [Fact]
+        public async Task An_undo_of_a_rebuild_by_its_kind_takes_the_runs_rule_rejections_too_and_counts_them_apart()
+        {
+            using var db = await SeededAsync();
+            var flour = await FoodAsync(db, "flour");
+            var sugar = await FoodAsync(db, "sugar");
+            var steps = new[] { "Placeholder text for the method goes here.", "Insert steps here once known." };
+            var rejected = await RecipeAsync(db, Record("Lorem", new[] { "2 cups flour" }, steps), new[] { new Row(flour, "2 cups flour", 2, Cup) },
+                CurationStatusEnum.RequiresRevision, steps);
+            var rebuilt = await RecipeAsync(db, Record("Cake", new[] { "1/2 cup sugar", "2 cups flour" }),
+                new[] { new Row(flour, "2 cups flour", 2, Cup), new Row(sugar, "1/2 cup sugar", 0.5m, Cup, 1) });
+
+            var result = await Service(db).RebuildAsync(For(rejected.Id, rebuilt.Id), apply: true);
+            db.ChangeTracker.Clear();
+            (result.Rejected, result.Rebuilt).Should().Be((1, 1));
+
+            var dry = await Service(db).UndoAsync(null, result.BatchId, RecipeReprocessKind.Rebuild);
+            dry.RestoredByKind.Should().Equal(new Dictionary<string, int> { [RecipeReprocessKind.Rebuild] = 1, [RecipeReprocessKind.RuleReject] = 1 },
+                "staging checkpoint 6 (R19): kind=rebuild left 7 rule rejections of the run Rejected without naming them");
+
+            await Service(db).UndoAsync(null, result.BatchId, RecipeReprocessKind.Rebuild, apply: true);
+            db.ChangeTracker.Clear();
+
+            (await db.Recipes.SingleAsync(r => r.Id == rejected.Id)).CurationStatusId.Should().Be((long)CurationStatusEnum.RequiresRevision);
+            (await LinesAsync(db, rebuilt.Id)).Select(l => l.IngredientId).Should().Equal(flour.Id, sugar.Id);
+        }
+
+        [Fact]
+        public async Task A_blank_source_entry_is_no_line_and_a_new_food_never_keeps_a_gram_figure_in_its_name()
+        {
+            using var db = await SeededAsync();
+            var flour = await FoodAsync(db, "flour");
+            var cheese = await FoodAsync(db, "/ 115g mozzarella", curated: false);
+            var record = Record("Strawberry Cake", new[] { "1 cup flour", "4 ounces / 115g mozzarella", "1/4 cup / 35g almond meal", "&nbsp;" });
+            var recipe = await RecipeAsync(db, record, new[] { new Row(flour, "1 cup flour", 1, Cup), new Row(cheese, "4 ounces / 115g mozzarella", 4, Ounce, 1) });
+
+            var result = (await Service(db).RebuildAsync(For(recipe.Id), apply: true)).Results.Single();
+            db.ChangeTracker.Clear();
+
+            result.Counts.Dropped.Should().Be(1, "staging checkpoint 6 (R11): 51252's junk entry &nbsp; became a line on a new food named &nbsp;");
+            var names = await db.Ingredients.Select(i => i.Name).ToListAsync();
+            names.Should().NotContain(n => n.Contains("nbsp") || n.Trim().Length == 0);
+            names.Should().Contain("almond meal").And.NotContain("35g almond meal", "a new food is named without the gram figure (R11)");
+            (await LinesAsync(db, recipe.Id)).Should().HaveCount(3);
+        }
+
+        [Fact]
         public async Task A_rule_rejection_that_also_changes_lines_is_undone_by_its_kind()
         {
             using var db = await SeededAsync();

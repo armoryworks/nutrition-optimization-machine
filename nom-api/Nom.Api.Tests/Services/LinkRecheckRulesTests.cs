@@ -212,7 +212,7 @@ namespace Nom.Api.Tests.Services
         public void Every_refuting_code_and_every_code_a_set_acts_on_is_a_rule_of_the_gate()
         {
             var codes = typeof(LinkGate).GetFields().Where(f => f.IsLiteral && f.FieldType == typeof(string) && f.Name != nameof(LinkGate.Version))
-                .Select(f => (string)f.GetRawConstantValue()!).ToHashSet();
+                .Select(f => (string)f.GetRawConstantValue()!).Append(LinkRecheckRules.FreeOf).ToHashSet();
             LinkRecheckRules.Refuting.Should().BeSubsetOf(codes);
             LinkRecheckRules.IdentityCodes.Should().BeSubsetOf(codes);
             foreach (var set in LinkRecheckRules.Sets)
@@ -339,6 +339,37 @@ namespace Nom.Api.Tests.Services
             Classes("lr-ck10s-06").Should().NotContain(LinkGate.Group);
         }
 
+        [Theory]
+        [InlineData("sugar, fourteen ounces for each pound of fruit", "sugar")]
+        [InlineData("flour, in the proportion of 1/2 oz. to every 1/2 pint of gravy", "flour")]
+        [InlineData("sugar, 10 oz. for each pound of juice", "sugar")]
+        [InlineData("salt per no. 2 can", "salt")]
+        [InlineData("mace and nutmeg per quart of vinegar", "mace and nutmeg")]
+        [InlineData("butter, softened, per cup of flour", "butter, softened")]
+        [InlineData("orange juice", null)]
+        public void A_ratio_cut_leaves_out_the_amount_before_the_ratio_phrase(string wording, string? cut)
+        {
+            LinkRecheckRules.RatioCut(wording).Should().Be(cut);
+        }
+
+        [Fact]
+        public void The_ratio_shape_proves_nothing_in_the_compound_form_and_part_classes_on_the_checkpoint_6_rows()
+        {
+            var folder = Nom.Api.Tests.Golden.GoldenSet.Folder;
+            var catalog = ModelLanes.GoldenGateCatalog(folder);
+            var foods = ModelLanes.GateFoods(folder).ToDictionary(f => f.Id);
+            var byFdc = foods.Values.Where(f => f.FdcId != null).GroupBy(f => f.FdcId!).ToDictionary(g => g.Key, g => g.First());
+            var rows = LinkRecheckClassScorer.Rows(folder).Where(r => r.Id.StartsWith("lr-ck11-", StringComparison.Ordinal)).ToDictionary(r => r.Id);
+            IReadOnlyList<string> Classes(string id) => LinkRecheckClassScorer.Decide(rows[id], catalog, foods, byFdc).Verdict.Classes ?? Array.Empty<string>();
+
+            Classes("lr-ck11-01").Should().BeEmpty("staging checkpoint 6, R18: the amount and the fruit after for each are no second food");
+            Classes("lr-ck11-02").Should().BeEmpty("the gravy after to every is the measure of the flour");
+            Classes("lr-ck11-03").Should().BeEmpty("the can after per is no form of the salt");
+            Classes("lr-ck11-04").Should().BeEmpty("the meat after to each is no part of the salt");
+            Classes("lr-ck11-05").Should().BeEmpty("the flour after per is the measure");
+            Classes("lr-ck11-06").Should().Contain(LinkGate.Compound, "two spices before per are still two foods");
+        }
+
         [Fact]
         public void A_move_gives_no_alias_that_names_a_restricted_food_its_new_food_does_not()
         {
@@ -356,6 +387,28 @@ namespace Nom.Api.Tests.Services
             foreach (var code in LinkRecheckRules.AlcoholCodes) LinkRecheckRules.ClassOf(Hold(code)).Should().Be(LinkRecheckRules.AlcoholClass);
             LinkRecheckRules.ClassOf(Hold(LinkGate.Part)).Should().Be(LinkGate.Part);
             LinkRecheckRules.ProvenClasses.Should().BeSubsetOf(LinkRecheckRules.Refuting.Select(c => LinkRecheckRules.ClassOf(Hold(c))).Append(LinkRecheckRules.ContainerClass));
+        }
+
+        [Theory]
+        [InlineData("vegan butter", "Butter", "Butter, salted", "vegan against Vegan: %butter%")]
+        [InlineData("dairy-free heavy cream", "Heavy Cream", "Cream, fluid, heavy whipping", "dairy-free against Milk Allergy: %cream%")]
+        [InlineData("gluten-free rolled oats", "Whole Rolled Oats", "Oats, whole grain, rolled, old fashioned", "gluten-free against Celiac Disease: oat%")]
+        [InlineData("gluten free flour blend", "Flour", "Wheat flour, white, all-purpose, enriched, bleached", "gluten-free against Celiac Disease: %wheat%")]
+        [InlineData("vegan marshmallows", "Marshmallows", "Candies, marshmallows", "vegan against Vegan: %marshmallow%")]
+        [InlineData("vegan sour cream", "Imitation Sour Cream", "Sour cream, imitation, cultured", null)]
+        [InlineData("vegan mayonnaise", "Tofu Mayonnaise", "Mayonnaise, made with tofu", null)]
+        [InlineData("non-dairy milk", "Non-Dairy Milk", "Milk, imitation, non-soy", null)]
+        [InlineData("vegan sausage", "Meatless Sausage", "Sausage, meatless", null)]
+        [InlineData("gluten-free pasta", "Gluten-Free Corn Pasta", "Pasta, gluten-free, corn, dry", null)]
+        [InlineData("butter or vegan butter", "Butter", "Butter, salted", null)]
+        [InlineData("large eggs, including the vegan options", "Eggs", "Egg, whole, raw, fresh", null)]
+        [InlineData("vegan dark chocolate", "Dark Chocolate", "Chocolate, dark, 70-85% cacao solids", null)]
+        public void A_wording_marked_free_of_what_its_food_holds_refutes_the_food_and_a_stand_in_or_a_later_item_does_not(string wording, string name, string description, string? detail)
+        {
+            var hold = LinkRecheckRules.FreeOfHold(wording, Food(1, name, description));
+            hold?.Detail.Should().Be(detail);
+            (hold == null).Should().Be(detail == null);
+            if (hold != null) LinkRecheckRules.Refutes(hold, new[] { hold }).Should().BeTrue();
         }
 
         [Fact]

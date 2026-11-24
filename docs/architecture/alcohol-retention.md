@@ -257,10 +257,53 @@ No Alcohol household and kept out for a Halal one (`diet-gate.tsv` dg-33 to dg-4
 - A type with an uncapped alcohol row (Whole30) forbids every alcoholic food and every drink line,
   however long it cooks; an uncapped row on the same type wins over a capped one.
 
+### Staging checkpoint 6: six of 40 fresh recipes wrong, three on the low side (`alcohol-retention/8`)
+
+R14: 40 fresh recipes read 30 right, 6 wrong (3 low, 3 high) and 4 doubtful; 24434, 74588 and 70088 still
+wrong by id. The bar for an apply is at most 1 in 20 wrong and none on the low side. Golden rows are step texts
+written for the rule in the shape the log gives (no staging text copied).
+
+| Kind | Cause and decision | Golden rows |
+|---|---|---|
+| Two lines of one drink (23883 frosting vanilla read with the batter's bake, 24279 whipped cream's vanilla; the low side) | Every line was read from the first sentence naming its drink. A recipe's lines are now read together (`AlcoholRetention.ReadRecipe`, which the run uses): when several lines name the same drink, each but the last reads from the sentence that names it in the same turn, and the last from its turn on, keeping the highest of those readings. A line the steps name no turn for keeps all of it (no heat, estimated). A drink named on one line only reads as before | ar-ck11-01 to ar-ck11-04 (the golden file's `before` and `after` columns hold the recipe's other drink lines) |
+| Heat of the sentence before taken for a new mixture (24434 an icing of sugar and milk after a fry, 73932 brandy after a rind boiled then beaten in a mortar; the low side) | "Stirred in right after a stove step" now needs the stove to be the last act before the drink (a last clause that beats, pounds, chops or the like works the food cold), no "cold" in the drink's clause, and a drink clause that does not start a new mixture (mix, beat, whisk, whip, cream, blend or combine with something other than "it", "the sauce" and the like) | ar-ck11-05 to ar-ck11-08 |
+| A part set aside and later heated (24207 a muffin filling; 22490 a marinade before a stir-fry; the high side) | When the drink's reading stops before any heat, it resumes at the first later sentence that names the part (an icing, filling, sauce, marinade or "x mixture" its sentence names, or, when its reading marinates, soaks or coats, the meat or fish it holds but is not only "for", with "marinade"), read from that name on, or from the sentence's start when only a verb leads to the name ("Grill the lamb chops"); a sentence that serves the part first ("Serve the shrimp with crackers", "before serving it with the sauce") ends the search, and a dipping sauce "for the chicken" never resumes at the chicken's grilling (branch review, the low side); a marinade is read like a soak. Only heat found that way is taken | ar-ck11-09 to ar-ck11-12, ar-ck11-16 to ar-ck11-18 |
+| Heat words the scan did not read (74588 "toss it up till hot through" after the wine; 70088 "make a sauce with butter, flour, strained gravy, sherry"; 72743 port added to the gravy; the high side) | "Till hot", "hot through" and "make it hot" after the drink's sentence are stove heat with no time; a sauce or gravy made with flour, a roux, gravy, stock or broth is cooked; a drink put into gravy goes into a hot liquid | ar-ck11-13 to ar-ck11-15 |
+
+The four doubtful readings (73317, 73581, 17191, 74008) and the high-side 24207's 40 % against the reader's 45 %
+(oven only, under 30 minutes, row 5010, as documented above) were not changed by rule. The fresh draw that proves
+the bar was not run by the builder (see the build report `ck11-alcohol.md`); the operator step is a fresh 40.
+
+### Fresh draws on staging, read-only (`alcohol-retention/9`)
+
+Fifteen draws of 40 recipes each, none in an earlier sample or golden file, were read against their stored steps
+through the read-only staging role (build report `ck12-alcohol-proof.md` lists every draw). No draw met the bar
+(at most 2 of 40 wrong, none on the low side); the best had 2 wrong. Every wrong kind found was fixed, among them:
+
+| Kind | Rule |
+|---|---|
+| Parts that end before another part begins | A part applied to the finished food ("Dip the doughnuts into the frosting") or put into its pan ends at a new mixture or a new bowl; a no-heat reading ends at a new mixture whose next sentences only heat on the stove |
+| Parts that go on to the bake | The reading resumes at a later "x mixture", "x filling" or "x batter" whose x the drink's sentences name, also named by the sentence before when the drink's own sentence does not begin a new mixture ("Whip the cream with the vanilla" is its own part, so a later "cream cheese mixture" is not its bake), at the dough or batter of a reading that mixes flour, at the chilled pieces ("Place scones on the sheet and freeze"), after a chill when a bake follows within three sentences, at the dish taken out of the refrigerator or baked "the next morning", and at the bake of a dish put in its baking dish before a separate topping. Of these the first that heats is taken |
+| Times that are not more cooking | "Out of the oven", cooling or sitting in a turned-off oven, "for the first 20 minutes", a caution ("Do not open the oven", "Check after 18 minutes to avoid over-baking"), "recommended", "if still wiggly, continue baking" (only when more time is needed), a second method ("To bake in the oven:", "for mini muffins") and the shorter of two times joined by "or" |
+| Words that are not heat | "Oven-safe", "baking mats", "no-bake", "if baking", "stewed apricots" as a food, blanching almonds, "to reduce the strength", thickening in the refrigerator, a blowtorch on the sugar, boiling water poured on fruit or into a water bath |
+| Safe side | No heat offered as an alternative ("Refrigerate until firm or bake"), "one hour or overnight" (not stored overnight for certain), a bottled and corked infusion (no overnight loss), chocolate melted in the microwave (warm, not boiling), a custard stirred till cold after the fire, and the highest of several "mix all the ingredients" sentences for a drink the steps never name |
+| More time after "then" | A later "then" clause adds its time only when it heats again ("then lower the oven to 350°F and bake for 25 minutes"); a clause that only names the cooked food or the heat ("let the roast rest", "the baked cake", "from the heat") or lets the dish rest, stand, sit or cool adds nothing (review of this branch, the low side) |
+| Names that are not the drink | "Vanilla bean", "vanilla batter", "vanilla frosting", "vanilla custard sauce" and the like; a sentence that sets the drink aside "for later"; "flavor" as a noun ("For best flavor") |
+
+The rule rows ar-ck12a-01 to -32 pin these (28 fail on `alcohol-retention/8`; 17, 25, 31 and 32 are boundaries that a
+draft of this change broke); ar-ck12a-33 to -36 pin the review's two low-side readings (resting after "then", a
+whipped-cream part taken into another part's bake). The doubtful readings of checkpoint 6 are settled as agent rows from their stored
+cookbook text: 73317 port hashed with gravy, up to 85 %; 73581 and 17191, whose stored steps end before the bake,
+100 % by the text; 74008 pigeons done a quarter of an hour in the wine pickle, 40 %; 74884 brandy and sherry stirred
+into the sauce just thickened over the fire, 85 %. The apply stays held: the bar is not met.
+
 ## Golden set and scorer
 
-`alcohol-retention.tsv` (118 rows since `alcohol-retention/7`: 108 rule-given, `rule:alcohol-retention`, `ok`, ar-ck10s-01 to ar-ck10s-11 from staging checkpoint 5 and its review; 10 realistic methods
-judged by the builder, `agent-review-alcohol-retention-2026-11-21`, `agent`). No-model scorer lane
+`alcohol-retention.tsv` (189 rows since `alcohol-retention/9`: 162 rule-given, `rule:alcohol-retention`, `ok`, ar-ck10s-01 to ar-ck10s-11 from staging checkpoint 5 and its review, ar-ck11-01 to ar-ck11-15 from staging checkpoint 6, ar-ck12a-01 to ar-ck12a-36 from the fresh draws and their review; 9 realistic methods
+judged by the builder, `agent-review-alcohol-retention-2026-11-21`, `agent`, and 17 cookbook recipes from the fresh
+draws plus ar-107 (the fondue kirsch, re-judged from that review's 100 % to 85 %), `agent-review-alcohol-retention-2026-11-24`, `agent`). The optional `before` and `after`
+columns hold the recipe's other drink lines (` | `-joined), which the scorer reads with the row's line through
+`AlcoholRetention.ReadRecipe`. No-model scorer lane
 `alcohol-retention` in `model-lanes.json` (`required`, floor 100 %, no false accept; a false accept is
 a factor below the row's). Record: `dotnet run --project nom-api/Nom.Import -- --golden-score --lane
 alcohol-retention --record`; `GoldenAlcoholRetentionTests` checks every row, that every kind has a

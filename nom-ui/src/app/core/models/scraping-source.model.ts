@@ -201,6 +201,85 @@ export interface SourceTaken {
   recipes: number;
   recipesShown: number;
   recipesWithheld: boolean;
+  removable?: boolean;
+  retired?: number;
+  purged?: number;
+}
+
+export interface RecipeRemovalSource {
+  sourceId: number;
+  domain: string;
+  rightsClass?: string | null;
+  rightsQuote?: string | null;
+  recipes: number;
+  alreadyDeleted: number;
+  approved: number;
+  approvedByPerson: number;
+  approvedUnrecorded: number;
+  editedByPerson: number;
+  inMealPlans: number;
+  favourited: number;
+  inCookbooks: number;
+  inShoppingLists: number;
+}
+
+export interface RecipeRemovalTarget {
+  table: string;
+  columns: string;
+  action: string;
+  rows: number;
+}
+
+export interface RecipeRemovalReport {
+  stage: string;
+  applied: boolean;
+  stamp: string;
+  sourceId?: number | null;
+  runId?: number | null;
+  resumed: boolean;
+  refused?: string | null;
+  recipes: number;
+  skipped: number;
+  alreadyDone: number;
+  skippedByReason: Record<string, number>;
+  sources: RecipeRemovalSource[];
+  targets: RecipeRemovalTarget[];
+  warning?: string | null;
+  recipeIds: number[];
+}
+
+export interface RecipeRemovalRun {
+  id: number;
+  kind: string;
+  stamp: string;
+  sourceId?: number | null;
+  undoesStamp?: string | null;
+  personId: number;
+  reason?: string | null;
+  planned: number;
+  done: number;
+  skipped: number;
+  startedAtUtc: string;
+  finishedAtUtc?: string | null;
+  undoable: number;
+}
+
+export interface RecipeRemovalFigures {
+  sourceId: number;
+  domain: string;
+  rightsClass?: string | null;
+  removable: boolean;
+  taken: number;
+  retired: number;
+  purged: number;
+}
+
+export interface RecipeRemovalStatus {
+  retired: number;
+  purged: number;
+  bySource: RecipeRemovalFigures[];
+  runs: RecipeRemovalRun[];
+  unfinished?: RecipeRemovalRun | null;
 }
 
 export interface SourceRightsStatus {
@@ -222,6 +301,9 @@ export interface SourceRightsStatus {
   retentionHeld: number;
   recipesWithCredit: number;
   takenFromBarredSources: number;
+  recipesRetired?: number;
+  recipesPurged?: number;
+  removalBySource?: RecipeRemovalFigures[];
   lastChangeUtc?: string | null;
   changesLast7d: number;
   proseBySource?: SourceProseFigures[];

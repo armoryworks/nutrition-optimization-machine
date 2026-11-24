@@ -50,7 +50,7 @@
         <div><dt>Waiting, scraped without own image</dt><dd data-testid="pipeline-metric-recipes-waiting-without-image">{{ s.recipes.waitingScrapedWithoutOwnImage | number }}</dd></div>
         <div><dt>Waiting with source prose</dt><dd data-testid="pipeline-metric-recipes-waiting-source-prose">{{ s.recipes.waitingWithSourceProse | number }}</dd></div>
         <div><dt>Prose withheld (approved)</dt><dd data-testid="pipeline-metric-recipes-prose-withheld">{{ s.recipes.proseWithheld | number }} ({{ s.recipes.proseWithheldApproved | number }})</dd></div>
-        <div><dt>Of those, withheld as copy-unsure (approved)</dt><dd data-testid="pipeline-metric-recipes-prose-copy-unsure">{{ s.recipes.proseCopyUnsure | number }} ({{ s.recipes.proseCopyUnsureApproved | number }})</dd></div>
+        <div><dt>Withheld until the rewrite lane rewords their copied sentences (approved)</dt><dd data-testid="pipeline-metric-recipes-prose-repair">{{ s.recipes.proseRepair | number }} ({{ s.recipes.proseRepairApproved | number }})</dd></div>
         <div><dt>Prose the check is unsure of on facts, shown (approved)</dt><dd data-testid="pipeline-metric-recipes-prose-unsure">{{ s.recipes.proseUnsure | number }} ({{ s.recipes.proseUnsureApproved | number }})</dd></div>
         <div><dt>Prose the rewrite lane gave up on</dt><dd data-testid="pipeline-metric-recipes-prose-gave-up">{{ s.recipes.proseGaveUp | number }}</dd></div>
         <div><dt>Revision: missing quantities</dt><dd data-testid="pipeline-metric-recipes-revision-quantities">{{ s.recipes.revisionMissingQuantities | number }}</dd></div>
@@ -722,7 +722,20 @@
           <div><dt>Reductions held for undo</dt><dd data-testid="pipeline-metric-rights-retention-held">{{ sr.retentionHeld | number }}</dd></div>
           <div><dt>Recipes with a credit line</dt><dd data-testid="pipeline-metric-rights-credits">{{ sr.recipesWithCredit | number }}</dd></div>
           <div><dt>Taken from barred sources</dt><dd data-testid="pipeline-metric-rights-taken">{{ sr.takenFromBarredSources | number }}</dd></div>
+          <div><dt>Retired (forbidden sources)</dt><dd data-testid="pipeline-metric-rights-retired">{{ sr.recipesRetired ?? 0 | number }}</dd></div>
+          <div><dt>Purged (forbidden sources)</dt><dd data-testid="pipeline-metric-rights-purged">{{ sr.recipesPurged ?? 0 | number }}</dd></div>
         </dl>
+        @if (sr.removalBySource?.length) {
+          <h3 class="nom-pipeline__subheading">Recipes taken, retired and purged, by barred source</h3>
+          <ul class="nom-pipeline__list" data-testid="pipeline-rights-removal-list">
+            @for (r of sr.removalBySource; track r.sourceId) {
+              <li class="nom-pipeline__list-item" data-testid="pipeline-rights-removal-item">
+                <span>{{ r.domain }} <span class="nom-pipeline__muted">{{ r.rightsClass }}{{ r.removable ? '' : ', not removed' }}</span></span>
+                <span>{{ r.taken | number }} taken · {{ r.retired | number }} retired · {{ r.purged | number }} purged</span>
+              </li>
+            }
+          </ul>
+        }
         @if (sr.proseBySource?.length) {
           <h3 class="nom-pipeline__subheading">Prose a class withholds, by source</h3>
           <ul class="nom-pipeline__list" data-testid="pipeline-rights-prose-list">
@@ -738,8 +751,8 @@
         }
         <a routerLink="/admin/scraping-sources" class="nom-pipeline__link" data-testid="pipeline-source-rights-link">Open source rights</a>
         <p class="nom-pipeline__hint">
-          Classes come from each source's stored check by rule; the weekly re-check derives them again and journals a change. What
-          happens to recipes taken from forbidden and permission-needed sources is the owner's decision.
+          Classes come from each source's stored check by rule; the weekly re-check derives them again and journals a change. Recipes
+          taken from forbidden sources are retired and then purged from Admin → Scraping Sources; those of permission-needed sources are kept.
         </p>
       } @else {
         <p class="nom-pipeline__hint" data-testid="pipeline-source-rights-error">The source rights engine did not report.</p>

@@ -41,6 +41,9 @@ namespace Nom.Orch.Models.Recipe
     public class StagedImportResultModel
     {
         public int Imported { get; set; }
+
+        /// <summary>The imported recipes stored PublicDomain (no copyright quarantine); the rest keep the quarantine.</summary>
+        public int ImportedPublicDomain { get; set; }
         public int SkippedDuplicates { get; set; }
 
         /// <summary>Recipes the staged-import gate refused (each is also listed in <see cref="Failures"/>).</summary>

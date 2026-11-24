@@ -1,10 +1,10 @@
 {
-  "checkVersion": 6,
-  "caseSet": "c8f9c4b464e7e931",
+  "checkVersion": 7,
+  "caseSet": "ec8463beddaac76c",
   "rows": 320,
   "bar": 0.95,
   "minimum": 40,
-  "scoredAtUtc": "2026-11-24T01:21:33.3130792Z",
+  "scoredAtUtc": "2026-11-24T12:14:00.1843581Z",
   "classes": [
     {
       "class": "changed-range",
@@ -52,10 +52,10 @@
     },
     {
       "class": "wrong-amount",
-      "judged": 11,
-      "right": 10,
-      "agentJudged": 11,
-      "agentRight": 10,
+      "judged": 9,
+      "right": 8,
+      "agentJudged": 9,
+      "agentRight": 8,
       "ruleJudged": 0,
       "ruleRight": 0,
       "doubtful": 0,

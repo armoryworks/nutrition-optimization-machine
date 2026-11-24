@@ -11,6 +11,14 @@ namespace Nom.Orch.Models.MealPlan
         public string? RecipeName { get; set; }
         public string? RecipeImage { get; set; }
 
+        /// <summary>The recipe was removed (taken from a forbidden source): the entry keeps its title and source link, never its wording.</summary>
+        public bool RecipeRemoved { get; set; }
+
+        public string? RecipeSourceUrl { get; set; }
+
+        /// <summary>The plain note served beside a removed recipe.</summary>
+        public string? RecipeRemovedNote { get; set; }
+
         /// <summary>Set when this slot holds a standalone whole food (apple, protein bar) instead of a recipe.</summary>
         public long? IngredientId { get; set; }
         public string? IngredientName { get; set; }

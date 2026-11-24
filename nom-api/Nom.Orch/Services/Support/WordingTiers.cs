@@ -102,7 +102,7 @@ namespace Nom.Orch.Services.Support
     /// </summary>
     public static class WordingTiers
     {
-        public const string Version = "wording-tiers/4";
+        public const string Version = "wording-tiers/6";
 
         public const string VerifiedWording = "verified-wording";
         public const string Alias = "alias";
@@ -140,7 +140,7 @@ namespace Nom.Orch.Services.Support
             string.Join('\n', Version, LinkGate.Signature, AlcoholLineContext.Signature, WordingHeadDefaults.SignatureSource(),
                 string.Join(',', LinkAutoApplyGuard.Joiners), string.Join(',', All), string.Join(',', CueRules),
                 string.Join(',', Species.OrderBy(w => w, StringComparer.Ordinal)), NoteForm.ToString(), string.Join(',', NoteForms.OrderBy(w => w, StringComparer.Ordinal)),
-                string.Join(',', NoteParts.OrderBy(w => w, StringComparer.Ordinal)), "note-form:majority", HeadingLine.ToString());
+                string.Join(',', NoteParts.OrderBy(w => w, StringComparer.Ordinal)), "note-form:majority", HeadingLine.ToString(), "alias:reversed-head");
 
         /// <summary>
         /// Harder keys to the one food each names. A name that is its own key ("Ham") owns that key
@@ -246,6 +246,8 @@ namespace Nom.Orch.Services.Support
             var target = catalog.Foods[answer.FoodId];
             if (answer.Tier == HeadDefault && HeadDefaultHold(key!, target) is { } plain) holds.Add(plain);
             if (answer.Tier is NameKey or HeadDefault && NoteFormHold(lines, target) is { } note) holds.Add(note);
+            if (answer.Tier == Alias && ReversedHold(key!, target) is { } reversed) holds.Add(reversed);
+            if (answer.Tier == Alias && CutSpiceHold(wording, target) is { } cut) holds.Add(cut);
             var weighed = gateLines?.Invoke(target);
             var readers = answer.Tier == VerifiedWording;
             holds.AddRange(LinkGate.Check(new GatePair(answer.GateWording, sourceId, target, ReadersAgreed: readers, Lines: weighed), catalog.Gate));
@@ -288,6 +290,39 @@ namespace Nom.Orch.Services.Support
             if (!name.Contains(head)) return new GateHold(LinkGate.Variety, "a head default must be the plain food of its head", $"{head} not in {target.Name}");
             var species = name.FirstOrDefault(w => w != head && Species.Contains(w));
             return species == null ? null : new GateHold(LinkGate.Variety, "a head default may not pick a species the wording does not name", species);
+        }
+
+        /// <summary>
+        /// A hold when a trusted alias answers a wording whose words are the food's in another order, so that the wording's
+        /// head noun (its last word, or the word before "of") is not the food's (the last word of its name before a comma):
+        /// "large fat chicken" is a bird, not Chicken Fat, though the alias "Fat, chicken" gives it the same key (staging
+        /// checkpoint 6, R13). The containment rules read every word as present and so cannot see it.
+        /// </summary>
+        internal static GateHold? ReversedHold(string key, GateFood target)
+        {
+            var words = LinkGate.Words(key).Select(LinkGate.Fold).ToList();
+            var of = words.IndexOf("of");
+            var head = of > 0 ? words[of - 1] : words.LastOrDefault();
+            var name = LinkGate.Words(target.Name).Select(LinkGate.Fold).ToList();
+            var foodHead = LinkGate.Words(target.Name.Split(',')[0]).Select(LinkGate.Fold).LastOrDefault();
+            if (head == null || foodHead == null || head == foodHead || !words.Contains(foodHead) || !name.Contains(head)) return null;
+            return new GateHold(LinkGate.HeadNoun, "the wording names the food's words in another order: its head noun is not the food's", $"{head}, not {foodHead}");
+        }
+
+        private static readonly HashSet<string> CutWords = new(StringComparer.Ordinal) { "sliced", "diced", "seeded", "deseeded", "julienned", "quartered", "halved", "cored", "cubed", "strips" };
+
+        /// <summary>
+        /// A hold when a trusted alias answers a wording that cuts its food ("red pepper, thinly sliced") with a dried spice
+        /// ("red pepper" is an alias of Cayenne Pepper): a sliced, diced or seeded pepper is the fresh vegetable, not the
+        /// ground spice (ck12 fresh draw, the alias tier).
+        /// </summary>
+        internal static GateHold? CutSpiceHold(string wording, GateFood target)
+        {
+            var spice = target.CategoryId == CatalogAdmissionRule.SpicesAndHerbs
+                || (target.Description ?? string.Empty).StartsWith("Spices", StringComparison.OrdinalIgnoreCase);
+            if (!spice) return null;
+            var cut = LinkGate.Words(wording).Select(w => w.ToLowerInvariant()).FirstOrDefault(CutWords.Contains);
+            return cut == null ? null : new GateHold(LinkGate.FreshHerb, "a cut vegetable is not the dried spice", cut);
         }
 
         /// <summary>Parts of a fruit a note may name beside its juice ("1 lemon (zest and juice)"): such a note says what is taken from the whole fruit, not that the wording is a juice.</summary>

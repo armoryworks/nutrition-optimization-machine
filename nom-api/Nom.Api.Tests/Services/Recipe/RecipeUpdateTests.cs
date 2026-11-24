@@ -140,5 +140,119 @@ namespace Nom.Api.Tests.Services.Recipe
 
             (await db.RecipeIngredients.SingleAsync(ri => ri.RecipeId == id && ri.IngredientId == 10)).LastModifiedByPersonId.Should().Be(SystemConstants.SystemPersonId);
         }
+
+        private static async Task<long> SeedScrapedAsync(ApplicationDbContext db, string longStep)
+        {
+            var recipe = new RecipeEntity { Name = "Roasted Potatoes", AuthorId = 6, Servings = 4, ScrapedAtUtc = DateTime.UtcNow };
+            db.Recipes.Add(recipe);
+            await db.SaveChangesAsync();
+            db.RecipeIngredients.Add(new RecipeIngredientEntity { RecipeId = recipe.Id, IngredientId = 10, SortOrder = 0, Quantity = 2, MeasurementId = 1, RawLine = "2 lb potatoes" });
+            db.RecipeIngredients.Add(new RecipeIngredientEntity { RecipeId = recipe.Id, IngredientId = 11, SortOrder = 1, Quantity = 2, MeasurementId = 2, RawLine = "2 tbsp olive oil" });
+            db.RecipeSteps.Add(new RecipeStepEntity { RecipeId = recipe.Id, StepNumber = 1, Summary = "Toss the potatoes in the oil", Description = longStep });
+            db.RecipeSteps.Add(new RecipeStepEntity { RecipeId = recipe.Id, StepNumber = 2, Summary = "Roast until golden", Description = "Roast for forty minutes." });
+            await db.SaveChangesAsync();
+            db.ChangeTracker.Clear();
+            return recipe.Id;
+        }
+
+        private static UpdateRecipeRequest Scraped(long id, decimal oil, string longStep, string secondStep = "Roast for forty minutes.", decimal potatoes = 2) =>
+            new()
+            {
+                Id = id, Name = "Roasted Potatoes", Servings = 4,
+                Ingredients = new() { new() { IngredientId = 10, Quantity = potatoes, MeasurementId = 1 }, new() { IngredientId = 11, Quantity = oil, MeasurementId = 2 } },
+                Steps = new() { new() { Order = 1, Description = longStep }, new() { Order = 2, Description = secondStep } },
+            };
+
+        [Fact]
+        public async Task Update_OfARecipeWithAStepOver255Characters_LeavesUnchangedStepsAndCutsAChangedStepsSummaryTo255()
+        {
+            await using var db = NewContext();
+            var longStep = string.Concat(Enumerable.Repeat("Toss the potatoes with the oil, salt and pepper until every piece is coated. ", 6));
+            var id = await SeedScrapedAsync(db, longStep);
+
+            await NewService(db).UpdateRecipeAsync(id, Scraped(id, 3, longStep));
+            db.ChangeTracker.Clear();
+
+            var steps = await db.RecipeSteps.Where(rs => rs.RecipeId == id).OrderBy(rs => rs.StepNumber).ToListAsync();
+            steps.Select(rs => rs.Summary).Should().Equal(new[] { "Toss the potatoes in the oil", "Roast until golden" },
+                "an edit of a line leaves every step it did not change alone (staging checkpoint 6, R4)");
+
+            await NewService(db).UpdateRecipeAsync(id, Scraped(id, 3, longStep + " Then spread them out.", "Roast for forty-five minutes."));
+            db.ChangeTracker.Clear();
+
+            steps = await db.RecipeSteps.Where(rs => rs.RecipeId == id).OrderBy(rs => rs.StepNumber).ToListAsync();
+            steps[0].Summary.Length.Should().BeLessThanOrEqualTo(255, "RecipeStep.Summary is varchar(255), so a longer one fails the save with 22001");
+            steps[0].Description.Should().EndWith("Then spread them out.");
+            steps[1].Summary.Should().Be("Roast for forty-five minutes.");
+        }
+
+        [Fact]
+        public async Task Update_ThatChangesNothing_OrAnEditAndItsRevert_KeepsTheScrapedRecipesVersion()
+        {
+            await using var db = NewContext();
+            var id = await SeedScrapedAsync(db, "Toss the potatoes in the oil.");
+            async Task<long> VersionAsync()
+            {
+                db.ChangeTracker.Clear();
+                return (await db.Recipes.AsNoTracking().SingleAsync(r => r.Id == id)).Version;
+            }
+
+            await NewService(db).UpdateRecipeAsync(id, Scraped(id, 2, "Toss the potatoes in the oil."));
+            (await VersionAsync()).Should().Be(1, "a save that changes nothing is no person's edit");
+
+            await NewService(db).UpdateRecipeAsync(id, Scraped(id, 3, "Toss the potatoes in the oil."));
+            (await VersionAsync()).Should().Be(2);
+            (await db.AuditLogEntries.CountAsync(a => a.EntityId == id && a.ChangeType == RecipeOrchestrationService.EditBaseChangeType)).Should().Be(1);
+
+            await NewService(db).UpdateRecipeAsync(id, Scraped(id, 2, "Toss the potatoes in the oil."));
+            (await VersionAsync()).Should().Be(1, "an edit and its revert leave the recipe a scraped one, in the rebuild and order sets (staging checkpoint 6, R10)");
+
+            await NewService(db).UpdateRecipeAsync(id, Scraped(id, 3, "Toss the potatoes in the oil."));
+            (await VersionAsync()).Should().Be(2);
+            var potatoes = await db.RecipeIngredients.SingleAsync(ri => ri.RecipeId == id && ri.IngredientId == 10);
+            potatoes.Quantity = 3;
+            await db.SaveChangesAsync();
+            await NewService(db).UpdateRecipeAsync(id, Scraped(id, 2, "Toss the potatoes in the oil.", potatoes: 3));
+            (await VersionAsync()).Should().BeGreaterThan(1, "the recipe is not what it was before the person's edit, so the edit stands");
+        }
+
+        [Fact]
+        public async Task Update_AnEditOfStepTextsAndItsRevert_PutsBackEveryStepsSummaryWithTheVersion()
+        {
+            await using var db = NewContext();
+            var id = await SeedScrapedAsync(db, "Toss the potatoes in the oil.");
+            async Task<List<string>> SummariesAsync()
+            {
+                db.ChangeTracker.Clear();
+                return await db.RecipeSteps.AsNoTracking().Where(rs => rs.RecipeId == id).OrderBy(rs => rs.StepNumber).Select(rs => rs.Summary).ToListAsync();
+            }
+
+            await NewService(db).UpdateRecipeAsync(id, Scraped(id, 2, "Coat the potatoes with the oil."));
+            (await SummariesAsync()).Should().Equal("Coat the potatoes with the oil.", "Roast until golden");
+            await NewService(db).UpdateRecipeAsync(id, Scraped(id, 2, "Coat the potatoes with the oil.", "Roast for an hour."));
+            (await SummariesAsync()).Should().Equal("Coat the potatoes with the oil.", "Roast for an hour.");
+
+            await NewService(db).UpdateRecipeAsync(id, Scraped(id, 2, "Toss the potatoes in the oil."));
+
+            (await db.Recipes.AsNoTracking().SingleAsync(r => r.Id == id)).Version.Should().Be(1);
+            (await SummariesAsync()).Should().Equal(new[] { "Toss the potatoes in the oil", "Roast until golden" },
+                "a revert that puts the version back puts back the summaries the edit replaced (review CK11L-2)");
+        }
+
+        [Fact]
+        public async Task Update_WithAStepWhose255thCharacterStartsAnEmoji_CutsTheSummaryBeforeTheEmoji()
+        {
+            await using var db = NewContext();
+            var id = await SeedScrapedAsync(db, "Toss the potatoes in the oil.");
+            var step = new string('a', 254) + "\U0001F954 and roast them.";
+
+            await NewService(db).UpdateRecipeAsync(id, Scraped(id, 2, step));
+            db.ChangeTracker.Clear();
+
+            var summary = (await db.RecipeSteps.SingleAsync(rs => rs.RecipeId == id && rs.StepNumber == 1)).Summary;
+            summary.Should().Be(new string('a', 254));
+            FluentActions.Invoking(() => new System.Text.UTF8Encoding(false, true).GetBytes(summary)).Should().NotThrow(
+                "Npgsql writes text with a strict UTF-8 encoder, so half an emoji fails the save (review CK11L-3)");
+        }
     }
 }

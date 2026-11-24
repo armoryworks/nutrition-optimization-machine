@@ -8,14 +8,20 @@ needed for the PDF tests, tesseract for the one real OCR test; each is skipped w
 Run: python3 -m unittest discover -s ops/tests
 """
 
+import contextlib
 import importlib.util
+import io
 import json
 import os
+import re
+import shlex
 import shutil
 import subprocess
 import sys
 import tempfile
+import threading
 import unittest
+from http.server import BaseHTTPRequestHandler, ThreadingHTTPServer
 
 OPS = os.path.join(os.path.dirname(__file__), "..")
 _spec = importlib.util.spec_from_file_location("hand_import", os.path.join(OPS, "hand-import.py"))
@@ -316,7 +322,8 @@ class FetchTests(unittest.TestCase):
             self.assertEqual(hand.fetch([book], SOURCES, store, fetcher(site, Clock()))["counts"], {"fetched": 1})
             doc = hand.text_document(book, store)
             self.assertEqual(doc["resourceUrl"], "https://www.loc.gov/resource/gdc.book1/")
-            self.assertEqual([(p["n"], p["method"]) for p in doc["pages"]], [(1, "needs-ocr"), (2, "loc-ocr")])
+            self.assertEqual([(p["n"], p["method"]) for p in doc["pages"]], [(1, "loc-blank"), (2, "loc-ocr")],
+                             "a book's blank page needs no tesseract; checkpoints 3 to 6 skipped the books for it")
 
     def test_index_pages_offer_unlisted_documents_on_their_hosts_only(self):
         page = ('<a href="/NUTRITION/docs/Recipes/A.pdf#">A dish</a><a href="https://www.example.com/x.pdf">x</a>'
@@ -488,6 +495,32 @@ class RecordTests(unittest.TestCase):
         self.assertIsNone(record)
         self.assertIn("reader check", why)
         self.assertIn("Nonstick cooking spray", why)
+
+    def test_a_second_numbered_part_of_the_method_is_kept_with_its_heading_and_a_record_short_of_a_numbered_step_fails_the_check(self):
+        parts = CARD_TEXT.replace("2. Add the onion and beans and cook for 15 minutes.\n",
+                                  "2. Add the onion and beans and cook for 15 minutes.\n\nServe as a Salad\n\n"
+                                  "1. Chill the beans for 1 hour and toss them with\n2 tablespoons vinegar.\n")
+        record, why = hand.parse_card("Garden Bean Skillet", parts)
+        self.assertIsNone(why)
+        self.assertEqual(record["steps"], [
+            {"order": 1, "instruction": "Heat the oil in a skillet."},
+            {"order": 2, "instruction": "Add the onion and beans and cook for 15 minutes."},
+            {"order": 3, "instruction": "Chill the beans for 1 hour and toss them with 2 tablespoons vinegar.", "section": "Serve as a Salad"},
+        ], "staging checkpoint 6, R20: va-ranch-seasoning-mix kept 2 of 3 steps, its 'Make Dip or Dressing' part was dropped")
+        self.assertIsNone(hand.number_check(record, parts))
+        self.assertIsNone(hand.steps_check(record, parts))
+        kept = hand.extract_document(doc("card", [(1, parts)], title="Garden Bean Skillet"), SOURCES["va"])
+        self.assertEqual((len(kept.kept), len(kept.rejects)), (1, 0))
+
+        record["steps"] = record["steps"][:2]
+        self.assertIsNone(hand.number_check(record, parts), "the number check finds only what a record holds in its page")
+        self.assertIn("keeps 2 of the 3 numbered steps", hand.steps_check(record, parts))
+
+        noted = CARD_TEXT.replace("Recipe Notes\n\nAny green bean works.\n", "Any green bean works.\n")
+        record, why = hand.parse_card("Garden Bean Skillet", noted)
+        self.assertEqual([s["instruction"] for s in record["steps"]], ["Heat the oil in a skillet.", "Add the onion and beans and cook for 15 minutes."],
+                         "a block after the steps that heads no part numbered from 1 is still a note")
+        self.assertIsNone(hand.steps_check(record, noted))
 
     def test_each_named_time_of_a_card_header_is_read_and_a_chill_or_inactive_time_is_not_kept_on_its_own(self):
         for header, expected in [
@@ -662,6 +695,300 @@ class RecordTests(unittest.TestCase):
         self.assertTrue(all("HOME COOK BOOK" not in p for p in stripped))
         self.assertTrue(all(p.strip().endswith("One cup of milk.") for p in stripped))
         self.assertIn("RECIPE 21", stripped[1])
+
+
+BOX = os.path.join(OPS, "hand-import-box.sh")
+DOCKERFILE = os.path.join(OPS, "hand-import.Dockerfile")
+PEPPER = "PEPPER RUB\n\nINGREDIENTS\n\n1 teaspoon black pepper\n\nRub on the meat."
+SALT = "SALT RUB\n\nINGREDIENTS\n\n1 teaspoon salt\n\nRub on the fish."
+SAGE = "SAGE RUB\n\nINGREDIENTS\n\n1 teaspoon sage\n\nRub on the pork."
+RUBS = {PEPPER: "Pepper Rub", SALT: "Salt Rub", SAGE: "Sage Rub"}
+
+
+def rub_answer(text):
+    lines = [line for line in text.split("\n") if line]
+    return json.dumps({"recipes": [{"name": RUBS[text], "ingredients": [lines[2]], "steps": [lines[3]]}]})
+
+
+class ModelHostTests(unittest.TestCase):
+    def test_a_host_is_in_use_when_a_loaded_models_expiry_moves_or_a_model_loads_between_two_readings(self):
+        def readings(*answers):
+            queue = list(answers)
+
+            def read():
+                answer = queue.pop(0)
+                if isinstance(answer, Exception):
+                    raise answer
+                return answer
+            return read
+        idle = [{"name": "qwen2.5:14b-instruct", "expires_at": "2026-11-24T11:20:00Z"}]
+        self.assertFalse(hand.host_in_use(readings(idle, idle), sleep=lambda s: None))
+        self.assertFalse(hand.host_in_use(readings([], []), sleep=lambda s: None))
+        moving = [{"name": "mistral-nemo", "expires_at": "2026-11-24T11:15:01Z"}]
+        moved = [{"name": "mistral-nemo", "expires_at": "2026-11-24T11:15:03Z"}]
+        self.assertTrue(hand.host_in_use(readings(moving, moved), sleep=lambda s: None), "staging checkpoint 6, section 28: expires_at moving with the clock")
+        self.assertTrue(hand.host_in_use(readings([], moving), sleep=lambda s: None))
+        self.assertTrue(hand.host_in_use(readings(hand.cookbook.urllib.error.URLError("refused")), sleep=lambda s: None))
+
+    def test_a_warm_model_in_use_leaves_its_expiry_alone_so_the_host_is_asked_a_one_token_request(self):
+        warm = [{"name": "qwen2.5vl:7b", "expires_at": "2026-11-25T10:42:00Z"}]
+
+        def same():
+            return [dict(m) for m in warm]
+        asked = []
+
+        def answers(reply):
+            def answer():
+                asked.append(reply)
+                return reply
+            return answer
+        self.assertTrue(hand.host_in_use(same, sleep=lambda s: None, answers=answers(False)),
+                        "staging checkpoint 6, section 28, 10:42Z: qwen2.5vl:7b loaded and in use, its expires_at unmoved")
+        self.assertFalse(hand.host_in_use(same, sleep=lambda s: None, answers=answers(True)))
+        moving = iter([[{"name": "mistral-nemo", "expires_at": "2026-11-24T11:15:01Z"}], [{"name": "mistral-nemo", "expires_at": "2026-11-24T11:15:03Z"}]])
+        self.assertTrue(hand.host_in_use(lambda: next(moving), sleep=lambda s: None, answers=answers(True)))
+        self.assertEqual(asked, [False, True], "no request of its own is sent to a host the readings already show in use")
+
+    def test_the_one_token_request_uses_the_real_calls_context_size_and_a_host_that_holds_it_past_the_limit_is_in_use(self):
+        bodies, delay = [], [0.0]
+        release = threading.Event()
+
+        class Host(BaseHTTPRequestHandler):
+            def do_POST(self):
+                bodies.append(json.loads(self.rfile.read(int(self.headers["Content-Length"]))))
+                release.wait(delay[0])
+                reply = json.dumps({"message": {"role": "assistant", "content": "1"}}).encode()
+                self.send_response(200)
+                self.send_header("Content-Type", "application/json")
+                self.send_header("Content-Length", str(len(reply)))
+                self.end_headers()
+                self.wfile.write(reply)
+
+            def log_message(self, *args):
+                pass
+        server = ThreadingHTTPServer(("127.0.0.1", 0), Host)
+        threading.Thread(target=server.serve_forever, daemon=True).start()
+        self.addCleanup(server.server_close)
+        self.addCleanup(server.shutdown)
+        self.addCleanup(release.set)
+        url = f"http://127.0.0.1:{server.server_address[1]}"
+        self.assertTrue(hand.ollama_answers(url, "qwen2.5:14b-instruct", timeout=5))
+        delay[0] = 5.0
+        self.assertFalse(hand.ollama_answers(url, "qwen2.5:14b-instruct", timeout=0.3), "a request queued behind another job")
+        self.assertFalse(hand.ollama_answers("http://127.0.0.1:9", "qwen2.5:14b-instruct", timeout=1))
+        self.assertEqual(bodies[0]["model"], "qwen2.5:14b-instruct")
+        self.assertEqual(bodies[0]["options"], {**hand.cookbook.OLLAMA_OPTIONS, "num_predict": 1},
+                         "the same context size as the real calls, so the model is not reloaded")
+
+    def test_extract_reads_the_host_with_its_own_request_within_answer_within(self):
+        seen = {}
+        real = (hand.host_in_use, hand.ollama_answers, hand.ollama_ps)
+        self.addCleanup(lambda: (setattr(hand, "host_in_use", real[0]), setattr(hand, "ollama_answers", real[1]), setattr(hand, "ollama_ps", real[2])))
+
+        def in_use(read, probe, answers=None, **kw):
+            seen["answers"] = answers is not None and answers()
+            return False
+        hand.host_in_use = in_use
+        hand.ollama_answers = lambda host, model, timeout: seen.setdefault("asked", (host, model, timeout)) is not None
+        hand.ollama_ps = lambda host: []
+        gate_calls = []
+        real_gate = hand.HostGate
+
+        class Gate(real_gate):
+            def __call__(self, system, user):
+                gate_calls.append(self.in_use())
+                raise hand.ModelHostBusy("stop")
+        hand.HostGate = Gate
+        self.addCleanup(setattr, hand, "HostGate", real_gate)
+        with tempfile.TemporaryDirectory() as folder:
+            os.makedirs(os.path.join(folder, "text"))
+            books = os.path.join(folder, "books.csv")
+            with open(books, "w", encoding="utf-8") as handle:
+                handle.write("doc_id,source,kind,url,layout,title,attribution\n")
+                handle.write("d1,nci,pdf,https://www.cancer.gov/d1.pdf,pages,Rubs,NCI\n")
+            with open(os.path.join(folder, "text", "d1.pages.json"), "w", encoding="utf-8") as handle:
+                json.dump(doc("pages", [(20, PEPPER)]), handle)
+            with contextlib.redirect_stdout(io.StringIO()), contextlib.redirect_stderr(io.StringIO()):
+                hand.main(["extract", "--out", folder, "--books", books, "--host", "http://model:11434", "--model", "m", "--answer-within", "45"])
+        self.assertEqual(gate_calls, [False])
+        self.assertEqual(seen, {"asked": ("http://model:11434", "m", 45.0), "answers": True})
+
+    def test_a_call_waits_for_a_free_host_and_is_then_asked(self):
+        busy = [True, True, False]
+        slept = []
+        gate = hand.HostGate(lambda system, user: "answer", lambda: busy.pop(0), limit=600, poll=60, sleep=slept.append)
+        self.assertEqual(gate("s", "u"), "answer")
+        self.assertEqual((slept, gate.waited, gate.exhausted), ([60, 60], 120, False))
+
+    def test_past_the_wait_limit_the_run_stops_asking_keeps_its_answers_and_a_later_run_asks_only_the_pages_missing(self):
+        pages = [(20, PEPPER), (21, SALT), (22, SAGE)]
+        asked, readings = [], []
+
+        def host(system, text):
+            asked.append(text)
+            return rub_answer(text)
+
+        def in_use():
+            readings.append(len(asked))
+            return len(asked) >= 1
+        with tempfile.TemporaryDirectory() as folder:
+            checkpoint = os.path.join(folder, "d1.answers.jsonl")
+            gate = hand.HostGate(host, in_use, limit=120, poll=60, sleep=lambda s: None)
+            first = hand.extract_document(doc("pages", pages), SOURCES["nci"], ask=hand.cookbook.resumable(gate, checkpoint, wait=0, sleep=lambda s: None, retry_timeouts=False))
+            self.assertTrue(gate.exhausted)
+            self.assertEqual([r["recipe"]["name"] for r in first.kept], ["Pepper Rub"], "staging checkpoint 6: NCI was given up whole on a busy host")
+            self.assertEqual([(r["page"], r["reason"].split(":")[0]) for r in first.rejects], [(21, "model host busy"), (22, "model host busy")])
+            self.assertEqual(len(readings), 4, "one free reading, then three busy ones within the 120 s limit; page 22 is not waited for again")
+            self.assertEqual(hand.summarize({"nci": [("d1", first)]})["nci"]["droppedByReason"], {"model host busy": 2})
+            free = hand.HostGate(host, lambda: False, limit=120, poll=60, sleep=lambda s: None)
+            second = hand.extract_document(doc("pages", pages), SOURCES["nci"], ask=hand.cookbook.resumable(free, checkpoint, wait=0, sleep=lambda s: None, retry_timeouts=False))
+        self.assertEqual([r["recipe"]["name"] for r in second.kept], ["Pepper Rub", "Salt Rub", "Sage Rub"])
+        self.assertEqual([asked.count(t) for _, t in pages], [1, 1, 1], "an answered page is never asked again")
+
+
+class OcrStopTests(unittest.TestCase):
+    def setUp(self):
+        self.folder = tempfile.mkdtemp()
+        self.addCleanup(shutil.rmtree, self.folder)
+        self.books = os.path.join(self.folder, "books.csv")
+        self.store = hand.Store(os.path.join(self.folder, "work"))
+        real = hand.have
+        self.addCleanup(setattr, hand, "have", real)
+
+    def listed(self, *rows):
+        with open(self.books, "w", encoding="utf-8") as handle:
+            handle.write("doc_id,source,kind,url,layout,title,attribution\n")
+            for row in rows:
+                handle.write(",".join(row) + "\n")
+
+    def add(self, name, data):
+        path = self.store.path(name)
+        with open(path, "wb") as handle:
+            handle.write(data)
+        self.store.add(name, {"size": len(data), "sha256": hand.sha256_file(path), "type": "json" if name.endswith(".json") else "pdf"})
+
+    def main(self, *argv):
+        out, err = io.StringIO(), io.StringIO()
+        with contextlib.redirect_stdout(out), contextlib.redirect_stderr(err):
+            code = hand.main([*argv, "--out", self.store.out, "--books", self.books])
+        return code, out.getvalue(), err.getvalue()
+
+    def test_a_library_book_is_read_into_text_without_tesseract_or_poppler(self):
+        hand.have = lambda tool: False
+        self.listed(("loc-book1", "loc", "loc-item", "https://www.loc.gov/item/book1/", "book", "Book", "Library of Congress. Book"))
+        self.add("loc-book1.item.json", json.dumps({"resources": [{"url": "https://www.loc.gov/resource/gdc.book1/"}]}).encode())
+        self.add("loc-book1.text.json", json.dumps({"1": {"fulltext": ""}, "2": {"fulltext": "GINGERBREAD.\n\nOne cup of molasses."}}).encode())
+        code, out, err = self.main("text")
+        self.assertEqual(code, 0, "staging checkpoints 3 to 6 did not run the Library's books 'because tesseract is missing'")
+        self.assertEqual(json.loads(out), {"documents": 1, "loc-blank": 1, "loc-ocr": 1})
+        self.assertNotIn("tesseract", err)
+
+    @unittest.skipUnless(POPPLER, "pdftotext and pdftoppm (poppler-utils) are not installed")
+    def test_pdf_pages_with_no_text_layer_and_no_tesseract_stop_text_and_extract_naming_the_image(self):
+        hand.have = lambda tool: tool != "tesseract"
+        card = os.path.join(self.folder, "card.pdf")
+        write_pdf(card, [CARD])
+        width, height, gray = gray_of(card, self.folder)
+        scan = os.path.join(self.folder, "scan.pdf")
+        write_pdf(scan, [[(72, 700, 12, "A cover page with words on it for the text layer.")], ("image", width, height, gray)])
+        self.listed(("nci-book", "nci", "pdf", "https://www.cancer.gov/book.pdf", "pages", "Book", "Adapted from National Cancer Institute"))
+        with open(scan, "rb") as handle:
+            self.add("nci-book.pdf", handle.read())
+        code, out, err = self.main("text")
+        self.assertEqual(code, hand.STOPPED, "staging checkpoints 3 to 6: 27 NCI pages were only counted needs-ocr")
+        self.assertEqual(json.loads(out)["needs-ocr"], 1)
+        self.assertIn("nci-book (1)", err)
+        self.assertIn("nom-hand-import image", err)
+        code, out, err = self.main("extract")
+        self.assertEqual(code, hand.STOPPED)
+        self.assertEqual(json.loads(out)["nci"]["unparsedDocuments"], 1)
+        self.assertIn("nom-hand-import image", err)
+        with open(os.path.join(self.store.out, "records", "nci-book.rejects.jsonl"), encoding="utf-8") as handle:
+            self.assertTrue(json.loads(handle.readline())["reason"].startswith("needs OCR: 1 pages"))
+
+
+class BoxTests(unittest.TestCase):
+    def box(self, *argv, **env):
+        base = {"PATH": os.environ.get("PATH", "/usr/bin:/bin"), "NOM_HAND_DRY_RUN": "1"}
+        return subprocess.run(["bash", BOX, *argv], env={**base, **env}, capture_output=True, text=True)
+
+    def test_every_step_runs_in_the_image_with_the_work_folder_api_and_model_from_the_environment(self):
+        with tempfile.TemporaryDirectory() as work:
+            books = os.path.join(work, "books.csv")
+            with open(books, "w", encoding="utf-8") as handle:
+                handle.write("doc_id,source,kind,url,layout,title,attribution\n")
+            done = self.box("extract", "--books", books, "--wait-limit", "90", NOM_HAND_WORK=work, NOM_HAND_MODEL_HOST="http://model.test:11434",
+                            NOM_API="http://api.test", NOM_API_KEY="s3cret-key-value")
+            self.assertEqual(done.returncode, 0, done.stderr)
+            self.assertNotIn("s3cret-key-value", done.stdout, "a secret is passed by name, never on the command line")
+            tokens = shlex.split(done.stdout)
+            self.assertEqual(tokens[:2], ["docker", "run"])
+            at = tokens.index("nom-hand-import")
+            options, tail = tokens[:at], tokens[at + 1:]
+            self.assertIn(f"{os.path.realpath(work)}:/work", options)
+            for name in ("NOM_API", "NOM_API_KEY", "NOM_API_TOKEN"):
+                self.assertIn(["-e", name], [options[i:i + 2] for i in range(len(options) - 1)])
+            self.assertIn("--read-only", options)
+            self.assertEqual(tail, ["extract", "--books", books, "--wait-limit", "90", "--out", "/work", "--host", "http://model.test:11434",
+                                    "--model", "qwen2.5:14b-instruct"])
+            local = [os.path.realpath(work) if t == "/work" else t for t in tail]
+            with contextlib.redirect_stdout(io.StringIO()):
+                self.assertEqual(hand.main(local), 0, "the arguments the wrapper builds are the script's own")
+
+    def test_each_step_of_the_script_is_a_step_of_the_wrapper_and_the_api_steps_need_no_work_folder(self):
+        for step in ("fetch", "links", "text", "extract", "sample", "stage"):
+            with tempfile.TemporaryDirectory() as work:
+                done = self.box(step, NOM_HAND_WORK=work)
+                self.assertEqual(done.returncode, 0, done.stderr)
+                self.assertEqual(shlex.split(done.stdout)[-3:], [step, "--out", "/work"])
+        for step in ("sources", "withhold", "release"):
+            done = self.box(step, "--source-id", "va=25")
+            self.assertEqual(done.returncode, 0, done.stderr)
+            self.assertNotIn("/work", done.stdout)
+        build = shlex.split(self.box("build", NOM_HAND_IMAGE="nom-hand-import:v0.3.130").stdout)
+        self.assertEqual(build, ["docker", "build", "-f", os.path.join(os.path.realpath(OPS), "hand-import.Dockerfile"), "-t", "nom-hand-import:v0.3.130",
+                                 os.path.realpath(OPS)])
+
+    def test_a_missing_work_folder_an_out_folder_outside_it_and_an_unknown_step_are_refused(self):
+        self.assertIn("NOM_HAND_WORK is not set", self.box("text").stderr)
+        with tempfile.TemporaryDirectory() as work:
+            outside = self.box("text", "--out", "/home/someone/hand-import", NOM_HAND_WORK=work)
+            self.assertNotEqual(outside.returncode, 0)
+            self.assertIn("not in the work folder", outside.stderr)
+            kept = self.box("text", "--out", "/work/va", NOM_HAND_WORK=work)
+            self.assertEqual(shlex.split(kept.stdout)[-3:], ["text", "--out", "/work/va"])
+        self.assertNotEqual(self.box("purge").returncode, 0)
+
+    def test_the_image_holds_the_open_source_tools_and_every_file_the_script_loads_and_nothing_secret(self):
+        with open(DOCKERFILE, encoding="utf-8") as handle:
+            dockerfile = handle.read()
+        with open(os.path.join(OPS, "hand-import.py"), encoding="utf-8") as handle:
+            loaded = re.findall(r'_load\("[^"]+", "([^"]+)"\)', handle.read())
+        self.assertTrue(loaded)
+        copied = " ".join(line for line in dockerfile.splitlines() if line.startswith("COPY"))
+        for name in ["hand-import.py", *loaded, "hand-import/sources.csv", "hand-import/books.csv"]:
+            self.assertIn(name, copied)
+        for package in ("poppler-utils", "tesseract-ocr", "tesseract-ocr-eng"):
+            self.assertIn(package, dockerfile)
+        self.assertNotRegex(dockerfile, r"NOM_API|KEY|TOKEN|PASSWORD|\d+\.\d+\.\d+\.\d+:|\.lan\b|\.local\b")
+        self.assertIn('ENTRYPOINT ["python3", "-I", "/app/ops/hand-import.py"]', dockerfile)
+
+    def test_the_files_the_image_copies_run_on_their_own(self):
+        with open(DOCKERFILE, encoding="utf-8") as handle:
+            copies = [line.split()[1:] for line in handle if line.startswith("COPY")]
+        with tempfile.TemporaryDirectory() as root:
+            for parts in copies:
+                *files, target = parts
+                folder = os.path.join(root, target.lstrip("/"))
+                os.makedirs(folder, exist_ok=True)
+                for name in files:
+                    shutil.copy(os.path.join(OPS, name), folder)
+            work = os.path.join(root, "work")
+            os.makedirs(work)
+            done = subprocess.run([sys.executable, "-I", os.path.join(root, "app", "ops", "hand-import.py"), "extract", "--out", work],
+                                  capture_output=True, text=True, cwd=work)
+        self.assertEqual(done.returncode, 0, done.stderr)
+        self.assertEqual(json.loads(done.stdout), {})
 
 
 class StageTests(unittest.TestCase):

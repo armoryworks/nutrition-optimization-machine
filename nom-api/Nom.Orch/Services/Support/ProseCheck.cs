@@ -9,28 +9,22 @@ using System.Threading;
 namespace Nom.Orch.Services.Support
 {
     /// <summary>
-    /// Check v6 of a recipe's prose in our own words against its source, the gate the re-check and
+    /// Check v7 of a recipe's prose in our own words against its source, the gate the re-check and
     /// the rewrite lane share. It answers two questions apart and has four outcomes
-    /// (<see cref="Finding.Outcome"/>: failed, copy-unsure, unsure, passed):
+    /// (<see cref="Finding.Outcome"/>: failed, repair, unsure, passed):
     /// <list type="number">
-    /// <item>Copy, a rule of its own, measured on the whole text and never step by step: the
-    /// rewrite's description and steps are one stream of words and the source's description and
-    /// method another (<see cref="CopyTokens"/>: every amount one token however it is written), every
-    /// word counts in full, ingredient names and amounts included, and stock phrases count like any
-    /// other words (the <see cref="ProseStockIndex"/> version is only recorded). Six measures
-    /// (<see cref="CopyMeasures"/>) find passages anywhere in the streams, so none depends on step
-    /// boundaries or the order of the sentences: the longest common run; the score of the closest
-    /// stretch following the source in order, each word kept adding 1 and each word changed, added
-    /// or dropped costing <see cref="StretchPenalty"/>; that score over the rewrite's word count, for a
-    /// stretch of <see cref="MinimumStretchForShare"/> or more; the share of the words inside common runs of
-    /// <see cref="SharedRun"/> words or more, in a rewrite of <see cref="MinimumWordsForShare"/>
-    /// words or more; the longest run the two descriptions share; and how close a sentence of
-    /// <see cref="SentenceWords"/> words or more comes to a source sentence. Each measure has two
-    /// lines set on the judged rows of prose-check.tsv: at or over a line of <see cref="CopiedLimits"/>
-    /// (above every judged non-copy) the rewrite is <see cref="CopiedText"/>; under every line of
-    /// <see cref="CopyUnsureLimits"/> (below the lowest a judged copy reaches, with a margin) it is
-    /// not copied; between the two it is <see cref="CopyUnsure"/>. Both fail the rewrite, so the
-    /// re-check withholds it and the rewrite lane rewrites it.</item>
+    /// <item>Copy, judged sentence by sentence (<see cref="ProseSentences"/>), each sentence read beside
+    /// the source passage it follows with the facts set aside: a text mostly made of the source's
+    /// sentences lightly edited or kept is <see cref="CopiedText"/> and fails, so the re-check withholds
+    /// it and the rewrite lane rewords it as a whole; a text with only some copied sentences is
+    /// <see cref="CopiedSentences"/>, which fails no rewrite of the lane's but is not shown either: the
+    /// re-check withholds it and those sentences are the rewrite lane's work list. Steps word for word the source's are <see cref="Unchanged"/>. The
+    /// whole-text measures (<see cref="CopyMeasures"/>) are recorded with every finding, with no line
+    /// drawn on them, and stock phrases count like any other words.</item>
+    /// <item>An amount the text, description included, puts before a food whose single ingredient line
+    /// states another amount of that kind, where the source method states none for it, or more than that
+    /// line holds, whatever the source says (<see cref="ContradictsLines"/>), fails the rewrite whatever
+    /// the fact classes prove.</item>
     /// <item>Facts, decided by rule, each reason a class (<see cref="FactClasses"/>) that fails the
     /// rewrite only while it is proven on its judged rows (<see cref="ProvenClasses"/>) and otherwise
     /// marks it unsure: every
@@ -57,37 +51,20 @@ namespace Nom.Orch.Services.Support
     /// </summary>
     public static class ProseCheck
     {
-        public const int Version = 6;
+        public const int Version = 7;
 
         public const int SharedRun = 7;
         public const int MinimumWordsForShare = 40;
         public const int SentenceWords = 15;
         public const decimal StretchPenalty = 1.5m;
         public const decimal MinimumStretchForShare = 15m;
+
+        /// <summary>The closeness at which a sentence of <see cref="SentenceWords"/> words or more counts as kept whole in <see cref="Finding.CopiedSentences"/>, a measure recorded with the finding.</summary>
+        public const decimal KeptSentence = 0.951m;
         public const decimal MinimumLengthRatio = 0.4m;
         public const decimal MaximumLengthRatio = 1.3m;
         public const int MinimumWordsForLength = 25;
         public const int IngredientWindow = 4;
-
-        /// <summary>The share of each copy-unsure line below the lowest value of its measure that a judged copy needs to be caught by it: a copy must clear its line by this margin.</summary>
-        public const decimal CopyUnsureMargin = 0.9m;
-
-        /// <summary>
-        /// The copied lines: a rewrite at or over any of them is <see cref="CopiedText"/>. Each sits just
-        /// above the highest value of its measure on any row of prose-check.tsv judged not a copy or
-        /// doubtful, so no judged non-copy is called copied (a sentence of 0.951 or more stands for a
-        /// source sentence kept whole).
-        /// </summary>
-        public static readonly CopyMeasures CopiedLimits = new(Run: 17, Stretch: 57m, StretchShare: 0.41m, Share: 0.433m, DescriptionRun: 16, Sentence: 0.951m, Words: 0);
-
-        /// <summary>
-        /// The copy-unsure lines: a rewrite under every one of them is not copied, at or over any is at
-        /// least <see cref="CopyUnsure"/>. They are set on the rows of prose-check.tsv judged a copy or
-        /// doubtful, so that each of those rows reaches at least one line by <see cref="CopyUnsureMargin"/>
-        /// (its value times the margin is still at or over the line), with as few rows judged not a copy
-        /// over a line as the lines allow.
-        /// </summary>
-        public static readonly CopyMeasures CopyUnsureLimits = new(Run: 16, Stretch: 17.1m, StretchShare: 0.4m, Share: 0.169m, DescriptionRun: 9, Sentence: 0.865m, Words: 0);
 
         public const string WrongAmount = "wrong-amount";
         public const string ChangedUnit = "changed-unit";
@@ -101,18 +78,19 @@ namespace Nom.Orch.Services.Support
         public const string TooLong = "too-long";
         public const string CopiedText = "copied-text";
         public const string Unchanged = "unchanged";
-        public const string CopyUnsure = "copy-unsure";
+        public const string CopiedSentences = "copied-sentences";
+        public const string ContradictsLines = "contradicts-lines";
         public const string StepMarker = "step-marker";
         public const string EmptyStep = "empty-step";
 
         /// <summary>The reasons that concern amounts, most serious first.</summary>
-        public static readonly IReadOnlyList<string> QuantityReasons = new[] { WrongAmount, ChangedUnit, ChangedRange, LostQuantity, AddedQuantity };
+        public static readonly IReadOnlyList<string> QuantityReasons = new[] { ContradictsLines, WrongAmount, ChangedUnit, ChangedRange, LostQuantity, AddedQuantity };
 
         /// <summary>The weak signals: a fault with one of these reasons marks a rewrite unsure and never fails it.</summary>
         public static readonly IReadOnlySet<string> UnsureReasons = new HashSet<string>(StringComparer.Ordinal) { LostStep, OutOfOrder, AddedQuantity, TooShort, TooLong };
 
-        /// <summary>The reasons of the copy rule: copied, unchanged, and between its two lines.</summary>
-        public static readonly IReadOnlySet<string> CopyReasons = new HashSet<string>(StringComparer.Ordinal) { CopiedText, Unchanged, CopyUnsure };
+        /// <summary>The reasons of the copy rule: mostly copied, unchanged, and some sentences copied (the rewrite lane's work list, which fails nothing).</summary>
+        public static readonly IReadOnlySet<string> CopyReasons = new HashSet<string>(StringComparer.Ordinal) { CopiedText, Unchanged, CopiedSentences };
 
         /// <summary>The reasons of the form rules.</summary>
         public static readonly IReadOnlySet<string> FormReasons = new HashSet<string>(StringComparer.Ordinal) { StepMarker, EmptyStep };
@@ -157,7 +135,7 @@ namespace Nom.Orch.Services.Support
 
         /// <summary>Whether a fault with <paramref name="reason"/> fails a rewrite while <paramref name="proven"/> are the proven fact classes: every reason but a weak signal and a fact class not proven.</summary>
         public static bool Fails(string reason, IReadOnlySet<string> proven) =>
-            !UnsureReasons.Contains(reason) && (!FactClasses.Contains(reason) || proven.Contains(reason));
+            !UnsureReasons.Contains(reason) && reason != CopiedSentences && (!FactClasses.Contains(reason) || proven.Contains(reason));
 
         private static readonly Lazy<(IReadOnlySet<string> Proven, string? Problem)> ProvenValue = new(() =>
             ProseCheckClassRecord.Evaluate(ProseCheckClassRecord.Embedded(), Version));
@@ -260,8 +238,11 @@ namespace Nom.Orch.Services.Support
 
             public decimal CloseStretch { get; init; }
 
-            /// <summary>The copy measures the two lines of the copy rule read (<see cref="CopiedLimits"/>, <see cref="CopyUnsureLimits"/>).</summary>
+            /// <summary>The whole-text copy measures, recorded with every finding; since check v7 no line is drawn on them.</summary>
             public CopyMeasures Measures { get; init; } = CopyMeasures.None;
+
+            /// <summary>The sentence reading of the copy rule (<see cref="ProseSentences"/>): which sentences are copies.</summary>
+            public ProseSentences.Reading Sentences { get; init; } = ProseSentences.Reading.None;
 
             /// <summary>The fact classes that fail this finding: <see cref="ProvenClasses"/> when it was made.</summary>
             public IReadOnlySet<string> Proven { get; init; } = ProvenClasses;
@@ -270,13 +251,14 @@ namespace Nom.Orch.Services.Support
 
             public bool Failed => Faults.Any(f => Fails(f.Reason, Proven));
 
-            public bool Unsure => Faults.Count > 0 && !Failed;
+            /// <summary>Not failed, with a fault other than copied sentences: a fact class not proven or a weak signal, shown and marked for the prose judge.</summary>
+            public bool Unsure => !Failed && Faults.Any(f => f.Reason != ProseCheck.CopiedSentences);
 
-            /// <summary>Failed only because its copy measures sit between the two lines of the copy rule: withheld like a copy, counted apart, and the rewrite lane's to rewrite.</summary>
-            public bool CopyUnsure => Failed && FailReasons.All(r => r == ProseCheck.CopyUnsure);
+            /// <summary>Not failed, but some of its sentences are copies: withheld until the rewrite lane rewords those sentences, which are its work list.</summary>
+            public bool Repair => !Failed && Faults.Any(f => f.Reason == ProseCheck.CopiedSentences);
 
-            /// <summary>"passed", "unsure" (a fact class not proven or a weak signal: shown, marked), "copy-unsure" (<see cref="CopyUnsure"/>: withheld) or "failed".</summary>
-            public string Outcome => Passed ? "passed" : CopyUnsure ? ProseCheck.CopyUnsure : Failed ? "failed" : "unsure";
+            /// <summary>"passed", "repair" (<see cref="Repair"/>), "unsure" (a fact class not proven or a weak signal: shown, marked) or "failed".</summary>
+            public string Outcome => Passed ? "passed" : Failed ? "failed" : Repair ? "repair" : "unsure";
 
             public IReadOnlyList<string> Reasons => Faults.Select(f => f.Reason).Distinct().ToList();
 
@@ -286,7 +268,7 @@ namespace Nom.Orch.Services.Support
             /// <summary>The fact classes whose faults this finding holds but which did not fail it, not being proven.</summary>
             public IReadOnlyList<string> UnprovenReasons => Reasons.Where(r => FactClasses.Contains(r) && !Proven.Contains(r)).ToList();
 
-            /// <summary>Over a copied line of the copy rule, or unchanged; a rewrite only between the two lines is <see cref="CopyUnsure"/>, not copied.</summary>
+            /// <summary>Mostly copied sentence by sentence, or unchanged: withheld as a whole.</summary>
             public bool Copied => Faults.Any(f => f.Reason is CopiedText or Unchanged);
 
             public override string ToString() => Passed ? "passed" : (Failed ? string.Empty : "unsure: ") + string.Join("; ", Faults);
@@ -408,8 +390,19 @@ namespace Nom.Orch.Services.Support
             CheckQuantities(method, sourceDescription, source.Title, steps.Where(s => s.Length > 0).ToList(), description, rewrite.Title, ingredients, faults);
             var lengthRatio = CheckCoverage(method, steps.Where(s => s.Length > 0).ToList(), description, ingredients, verbs, faults);
             var (share, sentences, run, stretch, measures) = CheckCopy(method, sourceDescription, steps.Where(s => s.Length > 0).ToList(), description, faults);
+            var reading = ProseSentences.Read(source, rewrite, ingredientLines);
+            if (!faults.Any(f => f.Reason == Unchanged))
+            {
+                if (reading.Mostly)
+                {
+                    var example = reading.Sentences.First(s => s.Copy || s.NearVerbatim);
+                    faults.Add(new Fault(CopiedText, $"mostly the source's sentences lightly edited: {reading}, such as {example.Label} \"{Excerpt(example.Text)}\""));
+                }
+                else if (reading.Copied > 0)
+                    faults.Add(new Fault(CopiedSentences, $"{reading}: {string.Join(", ", reading.Copies.Select(c => c.Label))}"));
+            }
 
-            return new Finding(faults, share, sentences, run, lengthRatio, stock.Version) { CloseStretch = stretch, Measures = measures };
+            return new Finding(faults, share, sentences, run, lengthRatio, stock.Version) { CloseStretch = stretch, Measures = measures, Sentences = reading };
         }
 
         private static void CheckQuantities(
@@ -456,8 +449,10 @@ namespace Nom.Orch.Services.Support
             {
                 if (!Compared(o) || o.Utensil == Utensil.Holding) continue;
                 if (o.Step < 0 && described.Any(q => ProseQuantities.Equal(q, o.Quantity))) continue;
-
                 var ingredient = IngredientAfter(o, ingredients);
+                if (ingredient != null && !sourceQuantities.Any(s => ProseQuantities.Equal(s.Quantity, o.Quantity)) && ExceedsLine(o.Quantity, ingredient, ingredients) is { } whole)
+                    faults.Add(new Fault(ContradictsLines, $"\"{o.Quantity.Text}\" {ingredient.Head}, more than the line's \"{whole.Text}\""));
+
                 if (ingredient == null)
                 {
                     if (sourceQuantities.Any(s => ProseQuantities.Equal(s.Quantity, o.Quantity))) continue;
@@ -484,7 +479,10 @@ namespace Nom.Orch.Services.Support
                 var lineAmount = ingredient.Amounts.FirstOrDefault(a => a.Family == o.Quantity.Family && !a.Soft);
                 if (lineAmount != null)
                 {
-                    faults.Add(new Fault(WrongAmount, $"\"{o.Quantity.Text}\" {ingredient.Head}, the line says \"{lineAmount.Text}\""));
+                    var contradicts = ingredients.Count(i => i.Head == ingredient.Head) == 1 && !lineAmount.IsRange && !o.Quantity.IsRange && !o.Quantity.Conversion
+                        && !sourceQuantities.Any(s => ProseQuantities.Equal(s.Quantity, o.Quantity));
+                    if (!contradicts || ExceedsLine(o.Quantity, ingredient, ingredients) == null)
+                        faults.Add(new Fault(contradicts ? ContradictsLines : WrongAmount, $"\"{o.Quantity.Text}\" {ingredient.Head}, the line says \"{lineAmount.Text}\""));
                     conflicting.Add(o);
                     continue;
                 }
@@ -585,6 +583,16 @@ namespace Nom.Orch.Services.Support
             var total = same.Sum(a => ProseQuantities.Base(a.Low, a));
             var sum = new ProseQuantity(total, total, q.Family, Base(q.Family), 0, 0, "sum", false, false);
             return ProseQuantities.Equal(sum, q);
+        }
+
+        private static ProseQuantity? ExceedsLine(ProseQuantity q, Ingredient ingredient, List<Ingredient> ingredients)
+        {
+            if (q.Conversion || q.Soft || q.Family is ProseQuantities.Time or ProseQuantities.Temperature or ProseQuantities.Length) return null;
+            if (ingredients.Count(i => i.Head == ingredient.Head) != 1) return null;
+            var line = ingredient.Amounts.FirstOrDefault(a => a.Family == q.Family && !a.Soft && !a.Conversion);
+            if (line == null || ingredient.Amounts.Count(a => a.Family == q.Family && !a.Conversion) != 1) return null;
+            if (q.Family == ProseQuantities.Count && !string.Equals(q.Unit, line.Unit, StringComparison.Ordinal)) return null;
+            return ProseQuantities.Base(q.Low, q) > ProseQuantities.Base(line.High, line) * (1 + ProseQuantities.Tolerance) ? line : null;
         }
 
         private static string Base(string family) => family switch
@@ -705,14 +713,12 @@ namespace Nom.Orch.Services.Support
             var cover = CommonRuns(ours, theirs);
             var copied = new bool[ours.Count];
             var longest = 0;
-            var longestEnd = -1;
             for (var i = 0; i < ours.Count; i++)
             {
                 if (cover[i] >= SharedRun)
                     for (var j = i - cover[i] + 1; j <= i; j++) copied[j] = true;
                 if (cover[i] <= longest) continue;
                 longest = cover[i];
-                longestEnd = i;
             }
 
             var stretch = CloseStretch(ours, theirs);
@@ -720,11 +726,10 @@ namespace Nom.Orch.Services.Support
             var ourDescription = CopyTokens(description);
             var descriptionCover = CommonRuns(ourDescription, CopyTokens(sourceDescription));
             var descriptionRun = 0;
-            var descriptionEnd = -1;
             for (var i = 0; i < ourDescription.Count; i++)
             {
                 if (descriptionCover[i] <= descriptionRun) continue;
-                (descriptionRun, descriptionEnd) = (descriptionCover[i], i);
+                descriptionRun = descriptionCover[i];
             }
 
             var share = ours.Count == 0 ? 0m : Math.Round((decimal)copied.Count(c => c) / ours.Count, 3);
@@ -732,7 +737,6 @@ namespace Nom.Orch.Services.Support
             var sourceSentences = sourceTexts.SelectMany(t => SentenceEnd.Split(t)).Select(s => (Text: s, Tokens: CopyTokens(s))).Where(s => ProsePhrases.WordsOfPrepared(s.Text).Count >= SentenceWords).ToList();
             var sentences = 0;
             var closest = 0m;
-            string? first = null;
             foreach (var sentence in ourTexts.SelectMany(t => SentenceEnd.Split(t)).Where(s => ProsePhrases.WordsOfPrepared(s).Count >= SentenceWords).Select(CopyTokens))
             {
                 var best = sourceSentences
@@ -741,29 +745,12 @@ namespace Nom.Orch.Services.Support
                     .FirstOrDefault();
                 if (best.Text == null) continue;
                 closest = Math.Max(closest, best.Similarity);
-                if (best.Similarity < CopiedLimits.Sentence) continue;
+                if (best.Similarity < KeptSentence) continue;
                 sentences++;
-                first ??= best.Text;
             }
 
             var stretchShare = stretch.Score >= MinimumStretchForShare && ours.Count > 0 ? Math.Round(stretch.Score / ours.Count, 3) : 0m;
             var measures = new CopyMeasures(longest, stretch.Score, stretchShare, ours.Count >= MinimumWordsForShare ? share : 0m, descriptionRun, closest, ours.Count);
-
-            if (longest >= CopiedLimits.Run)
-                faults.Add(new Fault(CopiedText, RunDetail(ours, longestEnd, longest)));
-            if (stretch.Score >= CopiedLimits.Stretch || stretchShare >= CopiedLimits.StretchShare)
-                faults.Add(new Fault(CopiedText, $"a stretch of {stretch.End - stretch.Start + 1} words follows the source in order with a few words changed (score {stretch.Score.ToString("0.#", CultureInfo.InvariantCulture)}): \"{Excerpt(string.Join(" ", ours.Skip(stretch.Start).Take(stretch.End - stretch.Start + 1)))}\""));
-            if (descriptionRun >= CopiedLimits.DescriptionRun)
-                faults.Add(new Fault(CopiedText, "the description keeps " + RunDetail(ourDescription, descriptionEnd, descriptionRun) + " of the source's"));
-            if (measures.Share >= CopiedLimits.Share)
-                faults.Add(new Fault(CopiedText, $"{copied.Count(c => c)} of the rewrite's {ours.Count} words sit in runs of {SharedRun} or more words of the source ({share.ToString("0.###", CultureInfo.InvariantCulture)})"));
-            if (first != null)
-                faults.Add(new Fault(CopiedText, $"{sentences} sentence{(sentences == 1 ? string.Empty : "s")} kept nearly word for word, such as \"{Excerpt(first)}\""));
-
-            var unsure = measures.Over(CopyUnsureLimits);
-            if (!faults.Any(f => f.Reason is CopiedText or Unchanged) && unsure.Count > 0)
-                faults.Add(new Fault(CopyUnsure, $"{string.Join(", ", unsure)}: at or over the line below which no judged copy sits, under every copied line; {measures}"));
-
             return (share, sentences, longest, stretch.Score, measures);
         }
 
@@ -860,9 +847,6 @@ namespace Nom.Orch.Services.Support
 
             return best >= 2 * 2 ? anchor : -1;
         }
-
-        private static string RunDetail(List<string> tokens, int end, int length) =>
-            $"a run of {length} words: \"{string.Join(" ", tokens.Skip(end - length + 1).Take(length))}\"";
 
         private static (decimal Score, int Start, int End) CloseStretch(List<string> ours, List<string> theirs)
         {

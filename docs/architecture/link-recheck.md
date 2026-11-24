@@ -35,6 +35,7 @@ lines of one wording and one reading. Run them in this order (plan 3.3 step 8):
 | `compound` | the same | `compound`, `heading` |
 | `container-form` | every can, tin or jar line on a food whose USDA entry is not canned, and every drained line on the whole can | the container line rule |
 | `prepared` | every line on a prepared food (USDA categories 3, 21, 22, 25) | `prepared` |
+| `free-of` | every line on a curated food whose wording is marked free of what the food's own name holds ("vegan butter" on Butter; `LinkRecheckRules.FreeOfHold`) | `free-of` |
 | `applied-1103` | model links applied on 2026-11-03 | every gate rule |
 | `applied` | every other applied model link | every gate rule |
 | `aliases` | trusted aliases with a `deterministic:recheck:`, `deterministic:recheck2:` or `link:deterministic:` context | every gate rule |
@@ -305,6 +306,74 @@ older gate is checked again when the gate's signature changes. Since `diet-patte
 (`%sherry%` beside `%wine%`) adds no restricted word when every default type that holds it already reads the food
 by another pattern, so "dry sherry" may still become an alias of a dessert wine (staging checkpoint 5, Q13).
 
+### The ratio shape in every class and what each class needs (link-recheck/8, staging checkpoint 6, R18)
+
+The ratio cut of checkpoint 5 (Q15) read only the group and compound holds, and kept an amount between the food
+and the ratio phrase ("sugar, fourteen ounces for each pound of fruit" stayed compound on "fourteen ounces").
+`LinkRecheckRules.RatioCut` now also leaves out comma segments that only state an amount ("fourteen ounces",
+"in the proportion of 1/2 oz."), the lines are cut the same way, and every hold but an alcohol, fresh-herb or
+prepared one is no proof when the cut wording no longer raises it (form "salt per no. 2 can", part "salt, a
+teaspoonful to each pound of meat"). Two foods before the ratio phrase ("mace and nutmeg per quart of vinegar")
+stay compound. Golden rows lr-ck11-01 to lr-ck11-06 (rule-given). The proven classes and their figures are
+unchanged: alcohol, fresh-herb and prepared write; no other class does.
+
+The checkpoint 6 fresh groups (30 per class where 30 exist, judged by the operator) against the bar of 95 % on at
+least 40 judged rows, and what each class needs before it may write:
+
+| Class | Checkpoint 6 fresh (right of read) | Golden record (agent right of judged) | What it needs |
+|---|---|---|---|
+| compound | 10 / 30 | 23 / 35 | Not a rule fix: most wrong refutations are the food's own name read as two foods (Rotel, "tomatoes with green chilies" on that canned food) and the first-named alternative. Needs a reading of a line's alternatives that names the food first (the compound lane's rule) and a check of the food's own name before it is read as a second food; then 40 fresh judged rows at 95 % |
+| group | 13 / 30 | 9 / 12 | The ratio shape is gone; wrong refutations are uses ("water for gravy", "powdered sugar for whipped cream") read as a group. Needs a "for <use>" cut like the ratio cut, then 40 judged rows (the record has 12) |
+| form | 9 / 30 | 15 / 26 | Preparation after the name ("pounded", "powdered", "rinsed", "soaked two hours") read as a USDA form, and canned foods named by their own description. Needs the form rule to read only forms before the name or in the food's own words, then 40 judged rows |
+| part | 14 / 30 (9 doubtful) | 64 / 69 (92.8 %) | Closest to the bar. Needs the doubtful kind decided (parts of a food named as its use, "potatoes, sliced" on skins is right) and then 31 more judged rows all right (64 of 69 now; 95 of 100 meets the bar), which the checkpoint 6 fresh reading (14 of 30) does not give |
+| head-noun | 4 / 24 | 0 / 2 | Wrong in most fresh groups; stays a reason to hold only |
+| head-lead | 11 / 23 | 1 / 1 | Too few judged rows and half wrong fresh |
+| percent | 9 / 19 | 5 / 5 | Ranges holding the food's percent ("85% to 93% lean") read as another percent; needs the range read as a range |
+| polarity | 15 / 16 | 3 / 3 | Right fresh; needs 40 judged rows (staging holds 16 groups) |
+| other-food | 17 / 18 | 11 / 14 | Right fresh; needs 40 judged rows |
+| heading | 8 / 10 | 1 / 1 | Needs 40 judged rows; too few groups on staging |
+| container-form | 21 / 21 | 18 / 18 | Right every time; needs 40 judged rows (staging holds 21 groups), so it stays below the bar on sample size alone |
+
+### The free-of class (link-recheck/8, `cleanup2/ck12-links-small`)
+
+The diet coverage proof draws of checkpoint 6 found wrong links that made the stored gate over-hold or miss
+(`ck11-diet-coverage.md`, "Link errors found" and "Link and data errors found in d9-d18"). Sorted by kind and read
+against the gate and the re-check on the read-only staging copy:
+
+| Kind | Example | Gate today | Re-check before |
+|---|---|---|---|
+| a line marked free of what its food holds | "vegan chocolate ice cream" on Chocolate Ice Cream, "gluten-free rolled oats" on Whole Rolled Oats | held (`containment`) | not proven: no refuting hold |
+| a generic oil on Soybean Oil | "salad oil", "cooking oil", "oil", "sweet-oil" | held (`lead-noun`, `shortlist`) | not proven |
+| another sense of the word | cornflake crumbs on Bread Crumbs, sweet-breads on Pan Dulce, moss on Sea Cucumber, nut meats on Coconut Meat, Protose on meatless luncheon slices, a wheatmeal paste on Sesame Paste | held (`lead-noun`, `containment`, `state`, `variety`) | not proven; the wheatmeal paste a `compound` candidate |
+| a food that adds what the line lacks | "3 rolls" on Egg Dinner Rolls, "lasagna noodles" on Spinach Egg Noodles, "whole grain crackers" on Peanut Butter Sandwich Crackers | held (`variety`, `generic`) | not proven; "large chicken thighs" on Breaded Chicken Thighs is taken back by the proven `prepared` class |
+| a line that lost its food | "1 1/2 sticks,", "2 cups white,", "one pound" | (no food to judge) | data errors, not links |
+
+The gate would let none of them through as a new link; the re-check could prove only the prepared one wrong. The
+first kind is the one with a rule that reads it: the line names a marker (`LinkRecheckRules.FreeMarkers`: vegan or
+plant-based for Vegan, dairy-free or non-dairy for Milk Allergy, lactose-free for Lactose Intolerance, gluten-free for
+Celiac Disease, egg-free for Egg Allergy, nut-free for Tree Nut and Peanut Allergy, soy-free for Soy Allergy, meatless
+for Vegetarian) in its first item (before a bracket, comma, semicolon, colon, "or", slash or spaced dash), the food's own
+name and USDA description carry no marker and do not name it a stand-in (imitation, substitute, meatless, vegetarian,
+tofu, a plant milk), and a default name pattern of the marker's type reads the food. That hold, `free-of`, refutes the
+food. The `free-of` set reads every such line on a curated food, whatever made the link (most of these lines sit on
+their food by an alias with no context, which no link set reads).
+
+On the read-only staging copy the rule reads 52 groups; 48 were judged wrong and 4 doubtful (a cream-cheese-flavour
+frosting, a special dietary pancake mix, graham crackers of plain or honey), 48 of 48 right, so the class holds the bar
+(golden `lr-ck12ls-01` to `lr-ck12ls-52`). Twelve groups the rule keeps are rows judged right (`lr-ck12ls-53` to
+`-64`): an imitation sour cream, a tofu mayonnaise, a non-dairy milk, an imitation cheddar, a meatless sausage and
+meatballs, a gluten-free pasta, tamari, "butter or vegan butter", "flour or gluten-free flour", eggs with a vegan note,
+and a 70 % dark chocolate no pattern reads. A take-back still passes the re-check's diet guard (`RecheckDietGuard`),
+which keeps a line whose take-back would lower a flag its own words do not name: on that copy 24 of the 52 groups (47
+of 148 lines) lower nothing and are taken back (vegan cream cheese, melted vegan butter, vegan Worcestershire, vegan
+pesto, vegan mayonnaise ...); the other 28 stay, counted `diet flags kept`, and hold their recipes on the safe side as
+before. Whether a free-of marker may itself count as the line naming what it is made without is an owner question
+(`ck12-links-small.md`).
+
+The other kinds stay where they are, each a single wording or a few, too few to be a class: they are left to the
+link-audit candidates and the wording lanes, and the generic oils on Soybean Oil match owner rule Q5 (vegetable oil is
+held for Soy) for every type but the identity of the food.
+
 ## Journal and undo
 
 Every write of a run carries the run's stamp (UTC, whole milliseconds): `LinkRecheckLine` entries for
@@ -434,7 +503,7 @@ FDC id read from the database the guard was loaded from, so a dry run on a scrat
 The re-check's own writes pass the guard group by group before its dry run counts them (above), so its writer does not
 read them again line by line (`LineMoveDietGuard.Decided`). A move onto a USDA food with its description, a move onto
 a food whose name or description still names what a type restricts, and a line whose own text names it are never held;
-a move that raises a flag never is. Results carry `heldByDiet` (`relink`, `relink/undo`, `relink/verified`, the
+a move that raises a flag never is (since `cleanup2/ck11-diet-moves` the guard reads both sides as the gate does and a merge that raises its target is held: next section). Results carry `heldByDiet` (`relink`, `relink/undo`, `relink/verified`, the
 retract's and unload's `lines`, LinkRecheck `undo`, `LinkApply/undo-applied` as `linesHeldByDiet`, the compound lines) and, where the
 service moves lines itself, the first 200 holds with the types each keeps (`dietHolds`). Tests:
 `LineMoveDietGuardTests` drives each path with a move that would lower a flag (the Q21 unload and reload round trip
@@ -447,3 +516,49 @@ food had only by those may still drop. The golden scorer of the classes (`--rech
 diet flags, and does not run the guard. `recheck-diet.tsv` runs the prepared set end to end on one constructed
 line of each prepared food the set took lines off at checkpoints 3 and 4, with every default type on its own
 household, and fails when a take-back to a wording of unknown contents lowers a recipe's flag.
+
+### The guard reads a move as the gate does (staging checkpoint 6, R16, R17; `cleanup2/ck11-diet-moves`)
+
+Checkpoint 6 found the guard of the table above blind to moves that lower a flag: `relink/food` moved the 25
+"Franco-American Spaghetti" lines off USDA canned pasta with tomato sauce onto Spaghetti (Nightshade 27 -> 10, IC
+25 -> 1 on those recipes, `heldByDiet` 0, and the route had no dry run), because a USDA target with its description
+was trusted outright; the w01 unload moved "mayonnaise dressing" off Mayonnaise and lowered Soy Allergy during the
+round trip, because the guard took "mayonnaise" as label language while the gate does not read the line that way;
+and a wrong link approval (grape tomatoes -> Coconut Milk) made Coconut Milk itself carry the tomatoes' flags.
+
+`LineMoveDietGuard` now reads both sides as the build job does: each food by the gate's own food decision
+(`DietFoodReader` over the food's catalog row, trusted aliases, USDA category, read statement and nutrients), the line
+by its own text (`DietLineRules`, with its drink reading), for every stored type with a pattern or a nutrient
+criterion and every default type not stored, in both readings (all criteria and those of severity 4 and 5). A move
+is held when, in either reading, the line flags the type on its old food and not on its new one. Nothing is trusted
+for its name or description any more; the only exception is a line whose own text reads as a plain drink (below). A
+food still to be made is read by its name alone, as the gate would read it.
+
+- **Raises (a merge).** A link approval merges the wording's food into its target and keeps the wording's name on the
+  target as an alias (and, for a person's approval, may give the target the wording's friendly name). When that would
+  make the target newly count for a type (`LineMoveDietGuard.RaisedAsync`), every recipe on the target would carry
+  what the wording named, so the approval is held: it stays pending, and no merge or nutrient copy is made.
+- **Dry runs.** `POST relink/food?apply=false` counts the lines that would move and the moves held, with the holds,
+  and writes nothing (`apply` defaults to true, as before). `GET proposals/{id}/apply-preview` says whether approving a
+  proposal would apply, and for a USDA link the lines its merge would move, `heldByDiet` with the holds, and
+  `raisedTypes`.
+- **Plain drinks (R16).** Of the re-check's 108 held groups, 14 of 20 read kept only the wrong food's flags (the
+  coffee and cream of Coffee Cream Liqueur on brandy, rum and wine; the vinegar of Red Wine Vinegar on Madeira or
+  sherry; the breading on "large chicken thighs"). `RecheckDietGuard.ReadsAsDrink` lets a take-back or a move drop
+  flags when its wording or line reads as a plain drink alone (`AlcoholLineContext`: a spirit, a wine, a fortified
+  wine, a beer or a cider with a USDA food of its sense, an unclear wine, or a list of such): the new food is read by
+  its own name, so the drink keeps the drink's flags (No Alcohol, Halal, Sulfite by a wine name) and drops the wrong
+  food's. A liqueur, a vermouth or a country wine is flavoured with what its name may not say (Grand Marnier is orange,
+  Kahlúa coffee) and keeps its flags; so does a drink that shares a content word with the food it leaves ("cherry
+  brandy" off cherries). A wording's size words ("large", "small", "medium", "jumbo") are read off before the label
+  table is asked, so "large chicken thighs" is chicken. The guard's version (`recheck-diet/2`) is part of the
+  re-check's signature, so the record was re-scored (`--recheck-classes --record`, figures unchanged).
+
+What stays held: the elderflower liqueur, Kahlúa and the unnamed liqueurs (contents unknown), "Sazon with achiote" off
+a rice mix, and every move the gate reads as lowering. The rebuild (`RecipeReprocessService`) re-reads a recipe's lines
+from its stored source and is not a move; its lowered flags (33367's frozen ravioli) are right by the line, and its
+writes now make the recipes held at once (`diet-gate.md`, "Every writer, every process").
+
+Tests: `LineMoveGateReadingTests` (the Franco-American relink with its dry run, the mayonnaise move, plain drinks and
+liqueurs, the held approval and its preview); `recheck-diet.tsv` rows `rd-ck11-01` to `rd-ck11-07` run the alcohol set
+too.

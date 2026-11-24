@@ -92,6 +92,26 @@ namespace Nom.Api.Tests.Services
             dry.Applied.Should().BeFalse();
             Counts(dry).Should().Be(Counts(applied));
             (dry.Restored, dry.FoodsRestored, dry.Skipped).Should().Match<(int Restored, int Foods, int Skipped)>(c => c.Restored > 500 && c.Foods > 0 && c.Skipped > 0);
+            dry.DryRunLargestPart.Should().BeLessThanOrEqualTo(100, "staging checkpoint 6, R15: the recipes whose lines name a retired food no longer share one large copy");
+            dry.DryRunParts.Should().Be(RelinkUndoDryRun.Parts(entries).Count);
+        }
+
+        [Fact]
+        public async Task Two_dry_runs_called_together_run_one_after_the_other_and_the_second_says_it_waited()
+        {
+            var first = await SceneAsync(300);
+            var second = await SceneAsync(300);
+            RelinkUndoDryRun.ResetMostRunning();
+
+            var together = await Task.WhenAll(
+                Task.Run(() => new LineRelinkService(first.Db, new ReprocessUndoWorld.Admin()).UndoAsync(first.Started)),
+                Task.Run(() => new LineRelinkService(second.Db, new ReprocessUndoWorld.Admin()).UndoAsync(second.Started)));
+
+            RelinkUndoDryRun.MostRunning.Should().Be(1, "staging checkpoint 6, R15: T1 and T7 took turns part by part and took 636 s and 425 s; whole runs now queue");
+            var later = together.OrderByDescending(r => r.QueuedSeconds).First();
+            later.QueuedBehind.Should().BeGreaterThanOrEqualTo(1, "the run that started second is told it ran behind the other");
+            later.QueuedSeconds.Should().BeGreaterThan(0, "it waited for the whole of the other run");
+            Counts(together[0]).Should().Be(Counts(together[1]), "both scenes are built alike");
         }
 
         [Fact]
@@ -113,7 +133,7 @@ namespace Nom.Api.Tests.Services
         }
 
         [Fact]
-        public async Task Every_recipe_lies_whole_in_one_part_and_the_first_part_holds_every_retirement_with_the_recipes_whose_lines_name_its_food()
+        public async Task Every_recipe_lies_whole_in_one_part_and_the_first_part_holds_the_retirements_and_no_line()
         {
             var scene = await SceneAsync(400);
             var entries = await scene.Db.AuditLogEntries.AsNoTracking().Where(a => a.Timestamp >= scene.Started).ToListAsync();
@@ -123,10 +143,51 @@ namespace Nom.Api.Tests.Services
             parts.SelectMany(p => p).Should().BeEquivalentTo(entries, o => o.ComparingByMembers<AuditLogEntryEntity>());
             var lines = entries.Where(e => e.EntityType == LineRelinkService.RelinkEntityType).ToList();
             lines.GroupBy(e => e.EntityId).Should().OnlyContain(recipe => parts.Count(p => p.Any(e => e.EntityType == LineRelinkService.RelinkEntityType && e.EntityId == recipe.Key)) == 1);
-            parts[0].Should().Contain(entries.Where(e => e.EntityType != LineRelinkService.RelinkEntityType));
+            var foodParts = parts.TakeWhile(p => p.All(e => e.EntityType != LineRelinkService.RelinkEntityType)).ToList();
+            foodParts.SelectMany(p => p).Should().BeEquivalentTo(entries.Where(e => e.EntityType != LineRelinkService.RelinkEntityType), o => o.ComparingByMembers<AuditLogEntryEntity>(),
+                "staging checkpoint 6, R15: the first part held every recipe whose lines name a retired food, most of T1");
             var retired = scene.Foods[1].ToString(System.Globalization.CultureInfo.InvariantCulture) + "@";
-            parts.Skip(1).SelectMany(p => p).Should().NotContain(e => (e.OldValue ?? string.Empty).StartsWith(retired, StringComparison.Ordinal));
-            parts.Skip(1).Should().OnlyContain(p => p.Count <= 100);
+            parts.Skip(1).SelectMany(p => p).Should().Contain(e => (e.OldValue ?? string.Empty).StartsWith(retired, StringComparison.Ordinal));
+            parts.Should().OnlyContain(p => p.Count <= 100);
+        }
+
+        [Fact]
+        public async Task The_food_entries_run_in_parts_of_at_most_the_part_size_each_retirement_whole_and_count_what_the_apply_does()
+        {
+            var scene = await SceneAsync(150);
+            var db = scene.Db;
+            var extra = Enumerable.Range(0, 130).Select(i => new IngredientEntity
+            {
+                Name = "merged " + i, CurationStatusId = (long)CurationStatusEnum.Curated, CreatedDate = Imported, GramsPerMilliliter = i < 65 ? 1.03m : null,
+                IngredientNutrients = new List<IngredientNutrientEntity> { new() { NutrientId = 1, Amount = 1 } },
+            }).ToList();
+            db.Ingredients.AddRange(extra);
+            await db.SaveChangesAsync();
+            db.ChangeTracker.Clear();
+            var relink = new LineRelinkService(db, new ReprocessUndoWorld.Admin());
+            for (var i = 0; i < 60; i++)
+            {
+                (await relink.RetireAsync(extra[i].Id, extra[65 + i].Id, takeName: true))!.Retired.Should().BeTrue();
+                db.ChangeTracker.Clear();
+            }
+            (await relink.RetireAsync(extra[65].Id, extra[125].Id, takeName: true))!.Retired.Should().BeTrue();
+            db.ChangeTracker.Clear();
+            var entries = await db.AuditLogEntries.AsNoTracking().Where(a => a.Timestamp >= scene.Started).ToListAsync();
+            entries.Count(e => e.EntityType != LineRelinkService.RelinkEntityType).Should().BeGreaterThan(100, "the case must hold more food entries than one part");
+
+            var parts = RelinkUndoDryRun.Parts(entries);
+            parts.Should().OnlyContain(p => p.Count <= 100, "review of ck11-small: the first part held every retirement, alias, measure and pick entry of the window with no limit");
+            var chained = new[] { extra[0].Id, extra[65].Id, extra[125].Id };
+            parts.Count(p => p.Any(e => e.EntityType == LineRelinkService.RetireEntityType && chained.Contains(e.EntityId))).Should().Be(1, "a retirement and the one that retired its food again share a food and a name");
+            parts.SkipWhile(p => p.All(e => e.EntityType != LineRelinkService.RelinkEntityType)).Should().OnlyContain(p => p.All(e => e.EntityType == LineRelinkService.RelinkEntityType));
+
+            var dry = await relink.UndoAsync(scene.Started);
+            db.ChangeTracker.Clear();
+            var applied = await relink.UndoAsync(scene.Started, apply: true);
+
+            Counts(dry).Should().Be(Counts(applied));
+            dry.FoodsRestored.Should().BeGreaterThan(60);
+            dry.DryRunLargestPart.Should().BeLessThanOrEqualTo(100);
         }
     }
 }

@@ -1,6 +1,6 @@
-# Diet vocabulary (diet-vocabulary/1): what each severe restriction class restricts, derived and measured rather than added by example (staging checkpoint 5, Q5, Q7, Q19).
+# Diet vocabulary (diet-vocabulary/2): what each severe restriction class restricts, derived and measured rather than added by example (staging checkpoint 5, Q5, Q7, Q19).
 # class: the class of what a restriction restricts; DietVocabulary.Classes gives its reference type and the default types it feeds (DefaultRestrictionCriteria).
-# basis: category = the head term of every food of the frozen USDA catalog (Nom.Api.Tests/Fixtures/Golden/gate-catalog.tsv) in the categories that carry the class, by rule (DietVocabulary.Derive; categories and foods say which and how many gave it; the test checks these rows against the catalog); marker = the term a coating or treatment word of the descriptions gives (battered, sulfured); label = a name an authority lists for the class on labels.
+# basis: category = the head term of every food of the frozen USDA catalog (Nom.Api.Tests/Fixtures/Golden/gate-catalog.tsv) in the categories that carry the class, by rule (DietVocabulary.Derive; categories and foods say which and how many gave it; the test checks these rows against the catalog); marker = the term a coating or treatment word of the descriptions gives (battered, sulfured); label = a name an authority lists for the class on labels; translation = the food's name in a language the staged cookbooks are written in (Italian: Artusi's lines; Spanish and French: the food words of the Spanish and French cookery books), staging checkpoint 6, R5.
 # decision: in = the pattern is part of the class's default patterns; covered = another pattern of the class already reads the term; out = the term is free of what the class restricts, for the cited reason, and no pattern of the class reads it.
 # pattern: the name pattern, read by words (DietPatternRule); "%term %" reads the term only as a whole word, "% term%" only where a word begins.
 # Sources: FALCPA = Federal Food, Drug, and Cosmetic Act 201(qq) and 403(w) as amended by the Food Allergen Labeling and Consumer Protection Act of 2004 and the FASTER Act of 2021. FDA-QA5 = FDA, Questions and Answers Regarding Food Allergens, edition 5 (2025). FDA-SESAME = FDA, Voluntary Disclosure of Sesame as an Allergen: Guidance for Industry (2020), the other names under which sesame appears in ingredient statements. FARE = Food Allergy Research and Education, How to Read a Label (the names of each major allergen in ingredient statements), as given in CDC, Voluntary Guidelines for Managing Food Allergies in Schools and Early Care and Education Programs (2013). 21CFR = Title 21, Code of Federal Regulations (139.110 macaroni products: dough of semolina, durum flour or farina; 136.110 bread, rolls and buns: wheat flour; 182.3616 to 182.3862 the sulfiting agents; 101.100(a)(4) sulfites declared at 10 ppm or more). SR = USDA FoodData Central SR Legacy description. CDF = Celiac Disease Foundation, gluten-free grains and flours.
@@ -42,7 +42,7 @@ wheat	farro	%farro%	category	20	1	in	rule: head of USDA Cereal Grains and Pasta 
 wheat	flour	%flour%	category	20	16	in	rule: head of USDA Cereal Grains and Pasta (16 foods)
 wheat	focaccia	%focaccia%	category	18	1	in	rule: head of USDA Baked Products (1 food)
 wheat	fonio	%fonio%	category	20	1	out	gluten-free (Celiac Disease Foundation, gluten-free grains and flours); no wheat
-wheat	french toast	%french toast%	category	18	2	in	rule: head of USDA Baked Products (2 foods)
+wheat	french toast	%french toast%	category	18	2	covered	rule: head of USDA Baked Products (2 foods)
 wheat	garlic bread	%garlic bread%	category	18	1	covered	rule: head of USDA Baked Products (1 food); another pattern of the class reads it
 wheat	george weston bakery	%george weston bakery%	category	18	2	out	a maker's name, not a food: its foods are judged by the next part of their description and by their own words
 wheat	glutino	%glutino%	category	18	4	out	a maker's name, not a food: its foods are judged by the next part of their description and by their own words
@@ -134,7 +134,7 @@ milk	cream	%cream%	category	1	9	in	rule: head of USDA Dairy and Egg Products (9 
 milk	cream cheese	%cream cheese%	category	1	1	covered	rule: head of USDA Dairy and Egg Products (1 food); another pattern of the class reads it
 milk	cream substitute	%cream substitute%	category	1	7	covered	rule: head of USDA Dairy and Egg Products (7 foods); another pattern of the class reads it
 milk	dessert topping	%dessert topping%	category	1	4	in	rule: head of USDA Dairy and Egg Products (4 foods)
-milk	dulce de leche	%dulce de leche%	category	1	1	in	rule: head of USDA Dairy and Egg Products (1 food)
+milk	dulce de leche	%dulce de leche%	category	1	1	covered	rule: head of USDA Dairy and Egg Products (1 food)
 milk	egg	%egg%	category	1	28	out	21 CFR 160: eggs and egg products hold no milk; the egg types hold them by %egg%
 milk	egg substitute	%egg substitute%	category	1	2	out	SR: egg substitute of egg white; no milk; the egg types hold it by %egg%
 milk	eggnog	%eggnog%	category	1	1	in	rule: head of USDA Dairy and Egg Products (1 food)
@@ -375,7 +375,7 @@ wheat	lavash	%lavash%	label	-	-	in	a flatbread of wheat flour (21CFR 136.110)
 wheat	crumpet	%crumpet%	label	-	-	in	a griddle bread of wheat flour (21CFR 136.110)
 wheat	bun	%bun%	label	-	-	in	21CFR 136.110: buns are bread of wheat flour ("bunch" is a named exception)
 wheat	rusk	%rusk%	label	-	-	in	SR: rusk toast, a twice-baked bread of wheat flour
-wheat	melba toast	%melba toast%	label	-	-	in	SR: melba toast, plain (wheat flour)
+wheat	melba toast	%melba toast%	label	-	-	covered	SR: melba toast, plain (wheat flour)
 wheat	pizza	%pizza%	label	-	-	in	SR: Pizza, cheese topping, regular crust (enriched wheat flour); a pizza is a wheat flour crust (pizza sauce, seasoning and cheese are named exceptions)
 wheat	gravy	%gravy%	label	-	-	in	SR: Gravy, brown, chicken and turkey, dry: thickened with wheat flour; a gravy a line does not say otherwise of is held
 wheat	sandwich	%sandwich%	label	-	-	in	21CFR 136.110: a sandwich is made with bread, rolls or buns (sandwich spread is a named exception)
@@ -392,8 +392,8 @@ milk	lactoferrin	%lactoferrin%	label	-	-	in	FARE: lactoferrin is a milk protein
 milk	lactose	%lactose%	label	-	-	in	FARE: lactose is milk sugar (21CFR 168.122: obtained from whey)
 milk	curd	%curd%	label	-	-	in	FARE: curds are milk (bean curd and soy curd, which are tofu, are named exceptions)
 milk	half and half	%half and half%	label	-	-	in	FARE: half-and-half is milk and cream (21CFR 131.180)
-milk	creme fraiche	%creme fraiche%	label	-	-	in	FARE: cream in all forms; creme fraiche is cultured cream
-milk	crème fraîche	%crème fraîche%	label	-	-	in	FARE: cream in all forms; creme fraiche in the French spelling
+milk	creme fraiche	%creme fraiche%	label	-	-	covered	FARE: cream in all forms; creme fraiche is cultured cream
+milk	crème fraîche	%crème fraîche%	label	-	-	covered	FARE: cream in all forms; creme fraiche in the French spelling
 milk	quark	%quark%	label	-	-	in	a fresh cheese of soured milk (FARE: cheese in all forms)
 milk	skyr	%skyr%	label	-	-	in	a cultured milk product (FARE: yogurt in all forms)
 milk	recaldent	%recaldent%	label	-	-	in	FARE: Recaldent is casein phosphopeptide from milk
@@ -427,7 +427,7 @@ treenut	chinquapin	%chinquapin%	label	-	-	in	FARE: chinquapin is a tree nut (a c
 treenut	nangai	%nangai%	label	-	-	in	FARE: nangai is a tree nut
 treenut	pignoli	%pignoli%	label	-	-	in	FARE: pignoli and pignolia are pine nuts
 treenut	pinon	%pinon%	label	-	-	in	FARE: pinon (pinyon) is a pine nut
-treenut	piñon	%piñon%	label	-	-	in	FARE: pinon in the Spanish spelling
+treenut	piñon	%piñon%	label	-	-	covered	FARE: pinon in the Spanish spelling
 treenut	pinyon	%pinyon%	label	-	-	in	FARE: pinyon is a pine nut
 treenut	hickory nut	%hickory nut%	label	-	-	covered	FARE: hickory nut is a tree nut (SR: Nuts, hickorynuts)
 treenut	pili nut	%pili nut%	label	-	-	covered	FARE: pili nut is a tree nut (SR: Nuts, pilinuts)
@@ -440,6 +440,7 @@ fish	unagi	%unagi%	label	-	-	in	freshwater eel (SR: Fish, eel)
 fish	nam pla	%nam pla%	label	-	-	in	fish sauce (label-terms.tsv: fish sauce, fermented anchovy)
 fish	nuoc mam	%nuoc mam%	label	-	-	in	fish sauce (label-terms.tsv: fish sauce, fermented anchovy)
 fish	tarama	%tarama%	label	-	-	in	salted fish roe, and taramasalata made of it (SR: Fish, roe)
+fish	milt	%milt%	label	-	-	in	the soft roe of a male fish (WEBSTER 1913: milt, the spermatic fluid of fishes; soft roe) (poached slices of milt under Darne de Saumon Valois: proof draw 12 of the ck11 review)
 shellfish	krill	%krill%	label	-	-	in	FARE: krill is a crustacean shellfish
 shellfish	crawdad	%crawdad%	label	-	-	in	FARE: crawdad is crawfish
 shellfish	ecrevisse	%ecrevisse%	label	-	-	in	FARE: ecrevisse is crawfish
@@ -457,15 +458,16 @@ shellfish	escargot	%escargot%	label	-	-	in	FARE: escargot is snail
 sesame	benne	%benne%	label	-	-	in	FDA-SESAME: benne, benne seed, benniseed
 sesame	benniseed	%benniseed%	label	-	-	in	FDA-SESAME: benniseed
 sesame	gingelly	%gingelly%	label	-	-	in	FDA-SESAME: gingelly, gingelly oil
-sesame	sesamol	%sesamol%	label	-	-	in	FDA-SESAME: sesamol
+sesame	sesamol	%sesamol%	label	-	-	covered	FDA-SESAME: sesamol
 sesame	sesamum	%sesamum%	label	-	-	in	FDA-SESAME: Sesamum indicum
 sesame	sim sim	%sim sim%	label	-	-	in	FDA-SESAME: sim sim
-sesame	til	% til%	label	-	-	in	FDA-SESAME: til (a word start: "lentil" and "until" are not; "tilapia" is a named exception)
+sesame	til seed	%til seed%	label	-	-	in	FDA-SESAME: til, read as til seed or til oil: a bare "til" in a recipe is until ("boil til tender", staging checkpoint 6, R6 and the proof draws of ck11)
+sesame	til oil	%til oil%	label	-	-	in	FDA-SESAME: til, the oil of til seed
 sesame	tehina	%tehina%	label	-	-	in	FDA-SESAME: tehina
 sulfite	sulfite	%sulfite%	label	-	-	in	21CFR 101.100(a)(4) and 182.3766-182.3798: sulfites, sodium sulfite, sodium and potassium metabisulfite
 sulfite	sulphite	%sulphite%	label	-	-	in	21CFR 101.100(a)(4): sulfites in the British spelling
-sulfite	bisulfite	%bisulfite%	label	-	-	in	21CFR 182.3616 and 182.3739: potassium and sodium bisulfite
-sulfite	bisulphite	%bisulphite%	label	-	-	in	21CFR 182.3739: bisulfite in the British spelling
+sulfite	bisulfite	%bisulfite%	label	-	-	covered	21CFR 182.3616 and 182.3739: potassium and sodium bisulfite
+sulfite	bisulphite	%bisulphite%	label	-	-	covered	21CFR 182.3739: bisulfite in the British spelling
 sulfite	sulfur dioxide	%sulfur dioxide%	label	-	-	in	21CFR 182.3862: sulfur dioxide
 sulfite	sulphur dioxide	%sulphur dioxide%	label	-	-	in	21CFR 182.3862: sulfur dioxide in the British spelling
 sulfite	sulfured	%sulfured%	label	-	-	in	21CFR 182.3862: a food sulfured is treated with sulfur dioxide (sulfured molasses, sulfured fruit; "unsulfured" is not read)
@@ -474,3 +476,142 @@ sulfite	potato flakes	%potato flakes%	label	-	-	in	LABEL: dehydrated potato flak
 sulfite	instant mashed potato	%instant mashed potato%	label	-	-	in	LABEL: instant mashed potatoes (sodium bisulfite)
 sulfite	sweetened coconut	%sweetened coconut%	label	-	-	in	LABEL: sweetened flaked coconut (Baker's Angel Flake: coconut, sugar, sodium metabisulfite)
 sulfite	dehydrated	%dehydrated%	label	-	-	in	21CFR 182.3862 and 101.100(a)(4): dehydrated fruit and vegetables (potatoes, carrots, apples) are sulfited to keep their colour; dehydrated foods a line names are held
+milk	latte	%latte%	translation	-	-	in	IT: latte, Italian for milk; the staged cookbooks' lines use it (Artusi's La scienza in cucina (1891) lists its ingredients in Italian (staging checkpoint 6, R5: Uova, Latte, Burro))
+milk	burro	%burro%	translation	-	-	in	IT: burro, Italian for butter; the staged cookbooks' lines use it (Artusi's La scienza in cucina (1891) lists its ingredients in Italian (staging checkpoint 6, R5: Uova, Latte, Burro))
+milk	panna	%panna%	translation	-	-	in	IT: panna, Italian for cream; the staged cookbooks' lines use it (Artusi's La scienza in cucina (1891) lists its ingredients in Italian (staging checkpoint 6, R5: Uova, Latte, Burro))
+milk	formaggio	%formaggio%	translation	-	-	in	IT: formaggio, Italian for cheese; the staged cookbooks' lines use it (Artusi's La scienza in cucina (1891) lists its ingredients in Italian (staging checkpoint 6, R5: Uova, Latte, Burro))
+milk	parmigiano	%parmigiano%	translation	-	-	in	IT: parmigiano, Italian for Parmesan cheese; the staged cookbooks' lines use it (Artusi's La scienza in cucina (1891) lists its ingredients in Italian (staging checkpoint 6, R5: Uova, Latte, Burro))
+milk	stracchino	%stracchino%	translation	-	-	in	IT: stracchino, Italian for a soft cow's milk cheese; the staged cookbooks' lines use it (Artusi's La scienza in cucina (1891) lists its ingredients in Italian (staging checkpoint 6, R5: Uova, Latte, Burro))
+milk	caciocavallo	%caciocavallo%	translation	-	-	covered	IT: caciocavallo, Italian for a stretched-curd cheese; the staged cookbooks' lines use it (Artusi's La scienza in cucina (1891) lists its ingredients in Italian (staging checkpoint 6, R5: Uova, Latte, Burro))
+milk	cacio	%cacio%	translation	-	-	in	IT: cacio, Italian for cheese; the staged cookbooks' lines use it (Artusi's La scienza in cucina (1891) lists its ingredients in Italian (staging checkpoint 6, R5: Uova, Latte, Burro))
+milk	provola	%provola%	translation	-	-	in	IT: provola, Italian for a stretched-curd cheese; the staged cookbooks' lines use it (Artusi's La scienza in cucina (1891) lists its ingredients in Italian (staging checkpoint 6, R5: Uova, Latte, Burro))
+milk	crema	%crema%	translation	-	-	in	IT: crema, Italian for cream or custard; the staged cookbooks' lines use it (Artusi's La scienza in cucina (1891) lists its ingredients in Italian (staging checkpoint 6, R5: Uova, Latte, Burro))
+milk	leche	%leche%	translation	-	-	in	ES: leche, Spanish for milk; the staged cookbooks' lines use it (the Spanish of the California Mexican-Spanish cook book)
+milk	mantequilla	%mantequilla%	translation	-	-	in	ES: mantequilla, Spanish for butter; the staged cookbooks' lines use it (the Spanish of the California Mexican-Spanish cook book)
+milk	beurre	%beurre%	translation	-	-	in	FR: beurre, French for butter; the staged cookbooks' lines use it (the French of the French cookery books)
+milk	lait	%lait%	translation	-	-	in	FR: lait, French for milk; the staged cookbooks' lines use it (the French of the French cookery books)
+milk	fromage	%fromage%	translation	-	-	in	FR: fromage, French for cheese; the staged cookbooks' lines use it (the French of the French cookery books)
+milk	crème	%crème%	translation	-	-	in	FR: crème, French for cream; the staged cookbooks' lines use it (the French of the French cookery books)
+egg	uovo	%uovo%	translation	-	-	in	IT: uovo, Italian for egg; the staged cookbooks' lines use it (Artusi's La scienza in cucina (1891) lists its ingredients in Italian (staging checkpoint 6, R5: Uova, Latte, Burro))
+egg	uova	%uova%	translation	-	-	in	IT: uova, Italian for eggs; the staged cookbooks' lines use it (Artusi's La scienza in cucina (1891) lists its ingredients in Italian (staging checkpoint 6, R5: Uova, Latte, Burro))
+egg	tuorlo	%tuorlo%	translation	-	-	in	IT: tuorlo, Italian for egg yolk; the staged cookbooks' lines use it (Artusi's La scienza in cucina (1891) lists its ingredients in Italian (staging checkpoint 6, R5: Uova, Latte, Burro))
+egg	tuorli	%tuorli%	translation	-	-	in	IT: tuorli, Italian for egg yolks; the staged cookbooks' lines use it (Artusi's La scienza in cucina (1891) lists its ingredients in Italian (staging checkpoint 6, R5: Uova, Latte, Burro))
+egg	huevo	%huevo%	translation	-	-	in	ES: huevo, Spanish for egg; the staged cookbooks' lines use it (the Spanish of the California Mexican-Spanish cook book)
+egg	yema	%yema%	translation	-	-	in	ES: yema, Spanish for egg yolk; the staged cookbooks' lines use it (the Spanish of the California Mexican-Spanish cook book)
+egg	oeuf	%oeuf%	translation	-	-	in	FR: oeuf, French for egg; the staged cookbooks' lines use it (the French of the French cookery books)
+egg	œuf	%œuf%	translation	-	-	covered	FR: œuf, French for egg; the staged cookbooks' lines use it (the French of the French cookery books)
+egg	oeufs	%oeufs%	translation	-	-	covered	FR: oeufs, French for eggs; the staged cookbooks' lines use it (the French of the French cookery books)
+egg	œufs	%œufs%	translation	-	-	covered	FR: œufs, French for eggs; the staged cookbooks' lines use it (the French of the French cookery books)
+wheat	pane	%pane%	translation	-	-	in	IT: pane, Italian for bread; the staged cookbooks' lines use it (Artusi's La scienza in cucina (1891) lists its ingredients in Italian (staging checkpoint 6, R5: Uova, Latte, Burro))
+wheat	pangrattato	%pangrattato%	translation	-	-	in	IT: pangrattato, Italian for bread crumbs; the staged cookbooks' lines use it (Artusi's La scienza in cucina (1891) lists its ingredients in Italian (staging checkpoint 6, R5: Uova, Latte, Burro))
+wheat	mollica	%mollica%	translation	-	-	in	IT: mollica, Italian for crumb of bread; the staged cookbooks' lines use it (Artusi's La scienza in cucina (1891) lists its ingredients in Italian (staging checkpoint 6, R5: Uova, Latte, Burro))
+wheat	semola	%semola%	translation	-	-	in	IT: semola, Italian for semolina; the staged cookbooks' lines use it (Artusi's La scienza in cucina (1891) lists its ingredients in Italian (staging checkpoint 6, R5: Uova, Latte, Burro))
+wheat	grissini	%grissini%	translation	-	-	in	IT: grissini, Italian for bread sticks; the staged cookbooks' lines use it (Artusi's La scienza in cucina (1891) lists its ingredients in Italian (staging checkpoint 6, R5: Uova, Latte, Burro))
+wheat	crostini	%crostini%	translation	-	-	in	IT: crostini, Italian for toasted bread; the staged cookbooks' lines use it (Artusi's La scienza in cucina (1891) lists its ingredients in Italian (staging checkpoint 6, R5: Uova, Latte, Burro))
+wheat	pasta frolla	%pasta frolla%	translation	-	-	covered	IT: pasta frolla, Italian for shortcrust pastry; the staged cookbooks' lines use it (Artusi's La scienza in cucina (1891) lists its ingredients in Italian (staging checkpoint 6, R5: Uova, Latte, Burro))
+wheat	pasta sfoglia	%pasta sfoglia%	translation	-	-	covered	IT: pasta sfoglia, Italian for puff pastry; the staged cookbooks' lines use it (Artusi's La scienza in cucina (1891) lists its ingredients in Italian (staging checkpoint 6, R5: Uova, Latte, Burro))
+wheat	harina	%harina%	translation	-	-	in	ES: harina, Spanish for flour; the staged cookbooks' lines use it (the Spanish of the California Mexican-Spanish cook book)
+wheat	farine	%farine%	translation	-	-	in	FR: farine, French for flour; the staged cookbooks' lines use it (the French of the French cookery books)
+fish	acciuga	%acciuga%	translation	-	-	in	IT: acciuga, Italian for anchovy; the staged cookbooks' lines use it (Artusi's La scienza in cucina (1891) lists its ingredients in Italian (staging checkpoint 6, R5: Uova, Latte, Burro))
+fish	acciughe	%acciughe%	translation	-	-	in	IT: acciughe, Italian for anchovies; the staged cookbooks' lines use it (Artusi's La scienza in cucina (1891) lists its ingredients in Italian (staging checkpoint 6, R5: Uova, Latte, Burro))
+fish	tonno	%tonno%	translation	-	-	in	IT: tonno, Italian for tuna; the staged cookbooks' lines use it (Artusi's La scienza in cucina (1891) lists its ingredients in Italian (staging checkpoint 6, R5: Uova, Latte, Burro))
+fish	merluzzo	%merluzzo%	translation	-	-	in	IT: merluzzo, Italian for cod; the staged cookbooks' lines use it (Artusi's La scienza in cucina (1891) lists its ingredients in Italian (staging checkpoint 6, R5: Uova, Latte, Burro))
+fish	sogliola	%sogliola%	translation	-	-	in	IT: sogliola, Italian for sole; the staged cookbooks' lines use it (Artusi's La scienza in cucina (1891) lists its ingredients in Italian (staging checkpoint 6, R5: Uova, Latte, Burro))
+fish	triglia	%triglia%	translation	-	-	in	IT: triglia, Italian for red mullet; the staged cookbooks' lines use it (Artusi's La scienza in cucina (1891) lists its ingredients in Italian (staging checkpoint 6, R5: Uova, Latte, Burro))
+fish	triglie	%triglie%	translation	-	-	in	IT: triglie, Italian for red mullets; the staged cookbooks' lines use it (Artusi's La scienza in cucina (1891) lists its ingredients in Italian (staging checkpoint 6, R5: Uova, Latte, Burro))
+fish	anguilla	%anguilla%	translation	-	-	in	IT: anguilla, Italian for eel; the staged cookbooks' lines use it (Artusi's La scienza in cucina (1891) lists its ingredients in Italian (staging checkpoint 6, R5: Uova, Latte, Burro))
+fish	anguille	%anguille%	translation	-	-	in	IT: anguille, Italian for eels; the staged cookbooks' lines use it (Artusi's La scienza in cucina (1891) lists its ingredients in Italian (staging checkpoint 6, R5: Uova, Latte, Burro))
+fish	aringa	%aringa%	translation	-	-	in	IT: aringa, Italian for herring; the staged cookbooks' lines use it (Artusi's La scienza in cucina (1891) lists its ingredients in Italian (staging checkpoint 6, R5: Uova, Latte, Burro))
+fish	aringhe	%aringhe%	translation	-	-	in	IT: aringhe, Italian for herrings; the staged cookbooks' lines use it (Artusi's La scienza in cucina (1891) lists its ingredients in Italian (staging checkpoint 6, R5: Uova, Latte, Burro))
+fish	pesce	%pesce%	translation	-	-	in	IT: pesce, Italian for fish; the staged cookbooks' lines use it (Artusi's La scienza in cucina (1891) lists its ingredients in Italian (staging checkpoint 6, R5: Uova, Latte, Burro))
+fish	sardelle	%sardelle%	translation	-	-	in	IT: sardelle, Italian for sardines; the staged cookbooks' lines use it (Artusi's La scienza in cucina (1891) lists its ingredients in Italian (staging checkpoint 6, R5: Uova, Latte, Burro))
+fish	stoccafisso	%stoccafisso%	translation	-	-	in	IT: stoccafisso, Italian for stockfish (dried cod); the staged cookbooks' lines use it (Artusi's La scienza in cucina (1891) lists its ingredients in Italian (staging checkpoint 6, R5: Uova, Latte, Burro))
+fish	palombo	%palombo%	translation	-	-	in	IT: palombo, Italian for smooth-hound shark; the staged cookbooks' lines use it (Artusi's La scienza in cucina (1891) lists its ingredients in Italian (staging checkpoint 6, R5: Uova, Latte, Burro))
+fish	pescado	%pescado%	translation	-	-	in	ES: pescado, Spanish for fish; the staged cookbooks' lines use it (the Spanish of the California Mexican-Spanish cook book)
+fish	atún	%atún%	translation	-	-	in	ES: atún, Spanish for tuna; the staged cookbooks' lines use it (the Spanish of the California Mexican-Spanish cook book)
+fish	poisson	%poisson%	translation	-	-	in	FR: poisson, French for fish; the staged cookbooks' lines use it (the French of the French cookery books)
+fish	morue	%morue%	translation	-	-	in	FR: morue, French for salt cod; the staged cookbooks' lines use it (the French of the French cookery books)
+fish	saumon	%saumon%	translation	-	-	in	FR: saumon, French for salmon; the staged cookbooks' lines use it (the French of the French cookery books)
+fish	thon	%thon%	translation	-	-	in	FR: thon, French for tuna; the staged cookbooks' lines use it (the French of the French cookery books)
+fish	anchois	%anchois%	translation	-	-	in	FR: anchois, French for anchovies; the staged cookbooks' lines use it (the French of the French cookery books)
+fish	hareng	%hareng%	translation	-	-	in	FR: hareng, French for herring; the staged cookbooks' lines use it (the French of the French cookery books)
+fish	maquereau	%maquereau%	translation	-	-	in	FR: maquereau, French for mackerel; the staged cookbooks' lines use it (the French of the French cookery books)
+fish	laitance	%laitance%	translation	-	-	in	FR: laitance, French for milt, the soft roe of a fish; the staged cookbooks (Escoffier) use it
+fish	garum	%garum%	translation	-	-	in	LA: garum, the Roman sauce of fish fermented in salt; the staged Apicius uses it (Digestive Garum: proof draw 16 of the ck11 review)
+fish	liquamen	%liquamen%	translation	-	-	in	LA: liquamen, the Roman fish sauce, another name for garum
+shellfish	gamberi	%gamberi%	translation	-	-	in	IT: gamberi, Italian for prawns; the staged cookbooks' lines use it (Artusi's La scienza in cucina (1891) lists its ingredients in Italian (staging checkpoint 6, R5: Uova, Latte, Burro))
+shellfish	gamberetti	%gamberetti%	translation	-	-	in	IT: gamberetti, Italian for shrimps; the staged cookbooks' lines use it (Artusi's La scienza in cucina (1891) lists its ingredients in Italian (staging checkpoint 6, R5: Uova, Latte, Burro))
+shellfish	gamberelli	%gamberelli%	translation	-	-	in	IT: gamberelli, Italian for shrimps; the staged cookbooks' lines use it (Artusi's La scienza in cucina (1891) lists its ingredients in Italian (staging checkpoint 6, R5: Uova, Latte, Burro))
+shellfish	aragosta	%aragosta%	translation	-	-	in	IT: aragosta, Italian for spiny lobster; the staged cookbooks' lines use it (Artusi's La scienza in cucina (1891) lists its ingredients in Italian (staging checkpoint 6, R5: Uova, Latte, Burro))
+shellfish	granchio	%granchio%	translation	-	-	covered	IT: granchio, Italian for crab; the staged cookbooks' lines use it (Artusi's La scienza in cucina (1891) lists its ingredients in Italian (staging checkpoint 6, R5: Uova, Latte, Burro))
+shellfish	granchi	%granchi%	translation	-	-	in	IT: granchi, Italian for crabs; the staged cookbooks' lines use it (Artusi's La scienza in cucina (1891) lists its ingredients in Italian (staging checkpoint 6, R5: Uova, Latte, Burro))
+shellfish	cozze	%cozze%	translation	-	-	in	IT: cozze, Italian for mussels; the staged cookbooks' lines use it (Artusi's La scienza in cucina (1891) lists its ingredients in Italian (staging checkpoint 6, R5: Uova, Latte, Burro))
+shellfish	vongole	%vongole%	translation	-	-	in	IT: vongole, Italian for clams; the staged cookbooks' lines use it (Artusi's La scienza in cucina (1891) lists its ingredients in Italian (staging checkpoint 6, R5: Uova, Latte, Burro))
+shellfish	ostriche	%ostriche%	translation	-	-	in	IT: ostriche, Italian for oysters; the staged cookbooks' lines use it (Artusi's La scienza in cucina (1891) lists its ingredients in Italian (staging checkpoint 6, R5: Uova, Latte, Burro))
+shellfish	polpo	%polpo%	translation	-	-	in	IT: polpo, Italian for octopus; the staged cookbooks' lines use it (Artusi's La scienza in cucina (1891) lists its ingredients in Italian (staging checkpoint 6, R5: Uova, Latte, Burro))
+shellfish	polipo	%polipo%	translation	-	-	in	IT: polipo, Italian for octopus; the staged cookbooks' lines use it (Artusi's La scienza in cucina (1891) lists its ingredients in Italian (staging checkpoint 6, R5: Uova, Latte, Burro))
+shellfish	seppie	%seppie%	translation	-	-	in	IT: seppie, Italian for cuttlefish; the staged cookbooks' lines use it (Artusi's La scienza in cucina (1891) lists its ingredients in Italian (staging checkpoint 6, R5: Uova, Latte, Burro))
+shellfish	arselle	%arselle%	translation	-	-	in	IT: arselle, Italian for clams; the staged cookbooks' lines use it (Artusi's La scienza in cucina (1891) lists its ingredients in Italian (staging checkpoint 6, R5: Uova, Latte, Burro))
+shellfish	telline	%telline%	translation	-	-	in	IT: telline, Italian for wedge clams; the staged cookbooks' lines use it (Artusi's La scienza in cucina (1891) lists its ingredients in Italian (staging checkpoint 6, R5: Uova, Latte, Burro))
+shellfish	canocchie	%canocchie%	translation	-	-	in	IT: canocchie, Italian for mantis shrimps; the staged cookbooks' lines use it (Artusi's La scienza in cucina (1891) lists its ingredients in Italian (staging checkpoint 6, R5: Uova, Latte, Burro))
+shellfish	camarones	%camarones%	translation	-	-	covered	ES: camarones, Spanish for shrimps; the staged cookbooks' lines use it (the Spanish of the California Mexican-Spanish cook book)
+shellfish	camarón	%camarón%	translation	-	-	in	ES: camarón, Spanish for shrimp; the staged cookbooks' lines use it (the Spanish of the California Mexican-Spanish cook book)
+shellfish	langosta	%langosta%	translation	-	-	in	ES: langosta, Spanish for lobster; the staged cookbooks' lines use it (the Spanish of the California Mexican-Spanish cook book)
+shellfish	almejas	%almejas%	translation	-	-	in	ES: almejas, Spanish for clams; the staged cookbooks' lines use it (the Spanish of the California Mexican-Spanish cook book)
+shellfish	ostiones	%ostiones%	translation	-	-	in	ES: ostiones, Spanish for oysters; the staged cookbooks' lines use it (the Spanish of the California Mexican-Spanish cook book)
+shellfish	ostras	%ostras%	translation	-	-	in	ES: ostras, Spanish for oysters; the staged cookbooks' lines use it (the Spanish of the California Mexican-Spanish cook book)
+shellfish	cangrejo	%cangrejo%	translation	-	-	in	ES: cangrejo, Spanish for crab; the staged cookbooks' lines use it (the Spanish of the California Mexican-Spanish cook book)
+shellfish	pulpo	%pulpo%	translation	-	-	in	ES: pulpo, Spanish for octopus; the staged cookbooks' lines use it (the Spanish of the California Mexican-Spanish cook book)
+shellfish	crevettes	%crevettes%	translation	-	-	covered	FR: crevettes, French for shrimps; the staged cookbooks' lines use it (the French of the French cookery books)
+shellfish	homard	%homard%	translation	-	-	in	FR: homard, French for lobster; the staged cookbooks' lines use it (the French of the French cookery books)
+shellfish	moules	%moules%	translation	-	-	in	FR: moules, French for mussels; the staged cookbooks' lines use it (the French of the French cookery books)
+shellfish	huîtres	%huîtres%	translation	-	-	in	FR: huîtres, French for oysters; the staged cookbooks' lines use it (the French of the French cookery books)
+shellfish	crabe	%crabe%	translation	-	-	covered	FR: crabe, French for crab; the staged cookbooks' lines use it (the French of the French cookery books)
+shellfish	écrevisses	%écrevisses%	translation	-	-	covered	FR: écrevisses, French for crayfish; the staged cookbooks' lines use it (the French of the French cookery books)
+treenut	mandorle	%mandorle%	translation	-	-	in	IT: mandorle, Italian for almonds; the staged cookbooks' lines use it (Artusi's La scienza in cucina (1891) lists its ingredients in Italian (staging checkpoint 6, R5: Uova, Latte, Burro))
+treenut	mandorla	%mandorla%	translation	-	-	in	IT: mandorla, Italian for almond; the staged cookbooks' lines use it (Artusi's La scienza in cucina (1891) lists its ingredients in Italian (staging checkpoint 6, R5: Uova, Latte, Burro))
+treenut	noci	%noci%	translation	-	-	in	IT: noci, Italian for walnuts; the staged cookbooks' lines use it (Artusi's La scienza in cucina (1891) lists its ingredients in Italian (staging checkpoint 6, R5: Uova, Latte, Burro))
+treenut	nocciole	%nocciole%	translation	-	-	in	IT: nocciole, Italian for hazelnuts; the staged cookbooks' lines use it (Artusi's La scienza in cucina (1891) lists its ingredients in Italian (staging checkpoint 6, R5: Uova, Latte, Burro))
+treenut	nocciola	%nocciola%	translation	-	-	in	IT: nocciola, Italian for hazelnut; the staged cookbooks' lines use it (Artusi's La scienza in cucina (1891) lists its ingredients in Italian (staging checkpoint 6, R5: Uova, Latte, Burro))
+treenut	pistacchi	%pistacchi%	translation	-	-	in	IT: pistacchi, Italian for pistachios; the staged cookbooks' lines use it (Artusi's La scienza in cucina (1891) lists its ingredients in Italian (staging checkpoint 6, R5: Uova, Latte, Burro))
+treenut	pinoli	%pinoli%	translation	-	-	in	IT: pinoli, Italian for pine nuts; the staged cookbooks' lines use it (Artusi's La scienza in cucina (1891) lists its ingredients in Italian (staging checkpoint 6, R5: Uova, Latte, Burro))
+treenut	castagne	%castagne%	translation	-	-	in	IT: castagne, Italian for chestnuts; the staged cookbooks' lines use it (Artusi's La scienza in cucina (1891) lists its ingredients in Italian (staging checkpoint 6, R5: Uova, Latte, Burro))
+treenut	almendras	%almendras%	translation	-	-	in	ES: almendras, Spanish for almonds; the staged cookbooks' lines use it (the Spanish of the California Mexican-Spanish cook book)
+treenut	nueces	%nueces%	translation	-	-	in	ES: nueces, Spanish for walnuts; the staged cookbooks' lines use it (the Spanish of the California Mexican-Spanish cook book)
+treenut	avellanas	%avellanas%	translation	-	-	in	ES: avellanas, Spanish for hazelnuts; the staged cookbooks' lines use it (the Spanish of the California Mexican-Spanish cook book)
+treenut	piñones	%piñones%	translation	-	-	covered	ES: piñones, Spanish for pine nuts; the staged cookbooks' lines use it (the Spanish of the California Mexican-Spanish cook book)
+treenut	amandes	%amandes%	translation	-	-	in	FR: amandes, French for almonds; the staged cookbooks' lines use it (the French of the French cookery books)
+treenut	noix	%noix%	translation	-	-	in	FR: noix, French for walnuts; the staged cookbooks' lines use it (the French of the French cookery books)
+treenut	pistaches	%pistaches%	translation	-	-	in	FR: pistaches, French for pistachios; the staged cookbooks' lines use it (the French of the French cookery books)
+treenut	marrons	%marrons%	translation	-	-	in	FR: marrons, French for chestnuts; the staged cookbooks' lines use it (the French of the French cookery books)
+treenut	chesnut	%chesnut%	label	-	-	in	chesnut, the old spelling of chestnut in the staged cookbooks (blanched chesnuts under To make a Carp Pye: proof draw 15 of the ck11 review); a tree nut (FDA-QA5)
+peanut	arachidi	%arachidi%	translation	-	-	in	IT: arachidi, Italian for peanuts; the staged cookbooks' lines use it (Artusi's La scienza in cucina (1891) lists its ingredients in Italian (staging checkpoint 6, R5: Uova, Latte, Burro))
+peanut	cacahuate	%cacahuate%	translation	-	-	in	ES: cacahuate, Spanish for peanut; the staged cookbooks' lines use it (the Spanish of the California Mexican-Spanish cook book)
+peanut	cacahuete	%cacahuete%	translation	-	-	in	ES: cacahuete, Spanish for peanut; the staged cookbooks' lines use it (the Spanish of the California Mexican-Spanish cook book)
+peanut	cacahuètes	%cacahuètes%	translation	-	-	covered	FR: cacahuètes, French for peanuts; the staged cookbooks' lines use it (the French of the French cookery books)
+peanut	arachides	%arachides%	translation	-	-	in	FR: arachides, French for peanuts; the staged cookbooks' lines use it (the French of the French cookery books)
+soy	soia	%soia%	translation	-	-	in	IT: soia, Italian for soy; the staged cookbooks' lines use it (Artusi's La scienza in cucina (1891) lists its ingredients in Italian (staging checkpoint 6, R5: Uova, Latte, Burro))
+soy	soja	%soja%	translation	-	-	in	ES: soja, Spanish for soy; the staged cookbooks' lines use it (the Spanish of the California Mexican-Spanish cook book)
+sesame	sesamo	%sesamo%	translation	-	-	in	IT: sesamo, Italian for sesame; the staged cookbooks' lines use it (Artusi's La scienza in cucina (1891) lists its ingredients in Italian (staging checkpoint 6, R5: Uova, Latte, Burro))
+sesame	ajonjolí	%ajonjolí%	translation	-	-	in	ES: ajonjolí, Spanish for sesame; the staged cookbooks' lines use it (the Spanish of the California Mexican-Spanish cook book)
+sulfite	vino	%vino%	translation	-	-	in	IT: vino, Italian for wine; the staged cookbooks' lines use it (Artusi's La scienza in cucina (1891) lists its ingredients in Italian (staging checkpoint 6, R5: Uova, Latte, Burro))
+sulfite	aceto	%aceto%	translation	-	-	in	IT: aceto, Italian for vinegar; the staged cookbooks' lines use it (Artusi's La scienza in cucina (1891) lists its ingredients in Italian (staging checkpoint 6, R5: Uova, Latte, Burro))
+sulfite	uva passa	%uva passa%	translation	-	-	in	IT: uva passa, Italian for raisins; the staged cookbooks' lines use it (Artusi's La scienza in cucina (1891) lists its ingredients in Italian (staging checkpoint 6, R5: Uova, Latte, Burro))
+sulfite	uvetta	%uvetta%	translation	-	-	in	IT: uvetta, Italian for raisins; the staged cookbooks' lines use it (Artusi's La scienza in cucina (1891) lists its ingredients in Italian (staging checkpoint 6, R5: Uova, Latte, Burro))
+sulfite	zibibbo	%zibibbo%	translation	-	-	in	IT: zibibbo, Italian for raisins of Muscat grapes; the staged cookbooks' lines use it (Artusi's La scienza in cucina (1891) lists its ingredients in Italian (staging checkpoint 6, R5: Uova, Latte, Burro))
+sulfite	uva secca	%uva secca%	translation	-	-	in	IT: uva secca, Italian for raisins; the staged cookbooks' lines use it (Artusi's La scienza in cucina (1891) lists its ingredients in Italian (staging checkpoint 6, R5: Uova, Latte, Burro))
+sulfite	vin santo	%vin santo%	translation	-	-	covered	IT: vin santo, Italian for a dessert wine; the staged cookbooks' lines use it (Artusi's La scienza in cucina (1891) lists its ingredients in Italian (staging checkpoint 6, R5: Uova, Latte, Burro))
+sulfite	vinagre	%vinagre%	translation	-	-	in	ES: vinagre, Spanish for vinegar; the staged cookbooks' lines use it (the Spanish of the California Mexican-Spanish cook book)
+sulfite	pasas	%pasas%	translation	-	-	in	ES: pasas, Spanish for raisins; the staged cookbooks' lines use it (the Spanish of the California Mexican-Spanish cook book)
+sulfite	vin	%vin%	translation	-	-	in	FR: vin, French for wine; the staged cookbooks' lines use it (the French of the French cookery books)
+sulfite	vinaigre	%vinaigre%	translation	-	-	in	FR: vinaigre, French for vinegar; the staged cookbooks' lines use it (the French of the French cookery books)
+soy	mayonnaise	%mayonnaise%	label	-	-	covered	SR: Salad dressing, mayonnaise, soybean oil; the owner rule of checkpoint 5 (question 5) holds refined soybean oil for Soy Allergy, so a line that names mayonnaise is held like the Mayonnaise food it is linked to (staging checkpoint 6, proof draw 1 of ck11)
+soy	mayo	%mayo%	label	-	-	in	SR: Salad dressing, mayonnaise, soybean oil; mayo is mayonnaise (owner rule of checkpoint 5, question 5)
+soy	shortening	%shortening%	label	-	-	in	SR: Shortening, ... soybean (hydrogenated); the owner rule of checkpoint 5 (question 5) holds refined soybean oil
+soy	crisco	%crisco%	label	-	-	in	LABEL: Crisco all-vegetable shortening (soybean oil, fully hydrogenated palm oil); owner rule of checkpoint 5 (question 5)
+soy	vegetable oil	%vegetable oil%	label	-	-	in	SR: Oil, vegetable, soybean, refined (the catalog's Vegetable Oil); owner rule of checkpoint 5 (question 5)
+shellfish	seafood	%seafood%	label	-	-	in	FARE: seafood names fish and shellfish together; a seafood mix or seafood stock holds shrimp, squid and mussels (proof draw 3 of ck11)
+fish	seafood	%seafood%	label	-	-	in	FARE: seafood names fish and shellfish together; a seafood mix or stock may hold fish
+fish	pickerel	%pickerel%	label	-	-	in	pickerel, a small pike (Esox), a fish (FALCPA names the species); the staged cookbooks use it (Baked Pickerel: proof draw 17 of the ck11 review)
+shellfish	frutti di mare	%frutti di mare%	translation	-	-	in	IT: frutti di mare, Italian for shellfish; the staged cookbooks' lines use it (Artusi's La scienza in cucina (1891) lists its ingredients in Italian)
+fish	skate	%skate%	label	-	-	in	skate, a ray (Rajidae), a fish (FALCPA names the species); the staged cookbooks use it (Boiled Skate with Oyster Sauce: proof draw 17 of the ck11 review)

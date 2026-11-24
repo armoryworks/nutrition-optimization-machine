@@ -17,6 +17,15 @@ namespace Nom.Orch.Interfaces
         /// <summary>One discovery run: a job with the least recently discovered seeds, polled to its end; a lost or failed job is a failed run, stored with what it found.</summary>
         Task<SourceDiscoveryRunModel> RunDiscoveryAsync(CancellationToken cancellationToken = default);
 
+        /// <summary>What the next discovery run would send (seeds, the seeds held, the exclusion list, the refusing hosts held), read without a run, a fetch or a write.</summary>
+        Task<SourceDiscoveryPreviewModel> PreviewDiscoveryAsync(CancellationToken cancellationToken = default);
+
+        /// <summary>When the next discovery run may start: IntervalHours after the last run that sent a job (by the timer or by an admin); null when none has.</summary>
+        Task<DateTime?> NextDiscoveryDueUtcAsync(CancellationToken cancellationToken = default);
+
+        /// <summary>One discovery run started by an admin, as the lane's timer starts one; refused while the lane is off, no scraper is configured or the last run that sent a job is less than IntervalHours old.</summary>
+        Task<SourceDiscoveryNowResult> RunDiscoveryNowAsync(long personId, CancellationToken cancellationToken = default);
+
         /// <summary>
         /// Runs a terms-only check an admin asked for, if one waits; otherwise checks the next due domain (approved sources
         /// first, then requests, then candidates) under the daily cap. Sources and candidates classed forbidden or
@@ -61,6 +70,9 @@ namespace Nom.Orch.Interfaces
 
         /// <summary>Undoes one journal row of an undoable field while the field still holds the row's new state; a class recorded by hand is withdrawn as a whole.</summary>
         Task<SourceActionResult> UndoAsync(long entryId, long personId);
+
+        /// <summary>The dry run of <see cref="UndoAsync"/>: the same undo run with every save held and taken back, answering what it would change and journal, or why it is refused. Nothing is written.</summary>
+        Task<SourceUndoPreviewModel> PreviewUndoAsync(long entryId, long personId);
 
         /// <summary>An admin has looked at a site that refused discovery: it is no longer held from discovery until it refuses again; null when there is no such row.</summary>
         Task<SourceRefusingHostModel?> ReleaseRefusingHostAsync(long id, long personId, string? note);

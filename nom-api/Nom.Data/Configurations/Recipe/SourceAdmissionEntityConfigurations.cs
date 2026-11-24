@@ -100,3 +100,33 @@ public class SourceRefusingHostEntityConfiguration : IEntityTypeConfiguration<So
         builder.Property(e => e.ReleasedNote).HasMaxLength(1023);
     }
 }
+
+public class RecipeRemovalEntityConfiguration : IEntityTypeConfiguration<RecipeRemovalEntity>
+{
+    public void Configure(EntityTypeBuilder<RecipeRemovalEntity> builder)
+    {
+        builder.ToTable("RecipeRemoval", schema: "recipe");
+
+        builder.Property(e => e.Host).IsRequired().HasMaxLength(253);
+        builder.Property(e => e.SourceUrl).IsRequired().HasMaxLength(2047);
+        builder.Property(e => e.UrlKey).IsRequired().HasMaxLength(2047);
+        builder.Property(e => e.Title).IsRequired().HasMaxLength(1023);
+        builder.Property(e => e.RightsClass).IsRequired().HasMaxLength(24);
+        builder.HasIndex(e => e.RecipeId);
+        builder.HasIndex(e => e.UrlKey);
+        builder.HasIndex(e => e.RunId);
+        builder.HasIndex(e => e.ScrapingSourceId);
+    }
+}
+
+public class RecipeRemovalRunEntityConfiguration : IEntityTypeConfiguration<RecipeRemovalRunEntity>
+{
+    public void Configure(EntityTypeBuilder<RecipeRemovalRunEntity> builder)
+    {
+        builder.ToTable("RecipeRemovalRun", schema: "recipe");
+
+        builder.Property(e => e.Kind).IsRequired().HasMaxLength(16);
+        builder.Property(e => e.Reason).HasMaxLength(1023);
+        builder.HasIndex(e => new { e.Kind, e.Stamp });
+    }
+}

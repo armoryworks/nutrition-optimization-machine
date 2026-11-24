@@ -15,6 +15,7 @@ namespace Nom.Api.Middleware
     {
         private readonly RequestDelegate _next;
         private readonly ILogger<ContainerSecurityMiddleware> _logger;
+        private long _memoryWarnedAt;
 
         private readonly string _formAction;
 
@@ -186,7 +187,8 @@ namespace Nom.Api.Middleware
                 var memoryUsage = GC.GetTotalMemory(false);
                 var cpuUsage = Environment.ProcessorCount;
 
-                if (memoryUsage > 500 * 1024 * 1024) // 500MB threshold
+                var now = Environment.TickCount64;
+                if (memoryUsage > 500 * 1024 * 1024 && now - Interlocked.Read(ref _memoryWarnedAt) >= 60_000 && Interlocked.Exchange(ref _memoryWarnedAt, now) != now)
                 {
                     _logger.LogWarning("High memory usage detected: {MemoryUsage} bytes", memoryUsage);
                 }

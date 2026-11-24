@@ -515,11 +515,10 @@ namespace Nom.Orch.Services
             if (!long.TryParse(p.ProposedValue, out var targetId)) return false;
             var source = await _context.Ingredients.FirstOrDefaultAsync(i => i.Id == p.IngredientId!.Value && !i.IsDeleted);
             var target = await _context.Ingredients.FirstOrDefaultAsync(i => i.Id == targetId && !i.IsDeleted);
-            if (source == null || target == null || target.FdcId == null || target.FdcId != p.FdcId) return false;
-            if (target.CurationStatusId == (long)Nom.Data.Recipe.CurationStatusEnum.Rejected || Nom.Data.Nutrition.PreparedFoods.IsPrepared(target)) return false;
-            if (reviewerPersonId == SystemConstants.SystemPersonId && target.CurationStatusId == (long)Nom.Data.Recipe.CurationStatusEnum.PendingCuration
-                && target.AdmissionReason != null) return false;
-            if (await _cleanup.LowersDietAsync(source.Id, target.Id)) return false;
+            if (LinkRefusal(p, source, target, reviewerPersonId) != null) return false;
+            if (await _cleanup.LowersDietAsync(source!.Id, target!.Id)) return false;
+            var (leftName, leftAliases) = await MergeLeavesAsync(p, source, target, reviewerPersonId);
+            if ((await _cleanup.RaisesDietAsync(target.Id, leftName, leftAliases)).Count > 0) return false;
 
             var before = (Status: target.CurationStatusId, SourceStatus: source.CurationStatusId);
             target.CurationStatusId = (long)Nom.Data.Recipe.CurationStatusEnum.Curated;
@@ -705,6 +704,60 @@ namespace Nom.Orch.Services
                     $"""UPDATE recipe."RecipeIngredient" SET "LastModifiedDate" = now() WHERE "IngredientId" = {ingredient.Id}""");
             }
             return true;
+        }
+
+        private static string? LinkRefusal(FoodCatalogProposalEntity p, Nom.Data.Recipe.IngredientEntity? source, Nom.Data.Recipe.IngredientEntity? target, long reviewerPersonId)
+        {
+            if (source == null || target == null) return "the ingredient or the USDA food is gone";
+            if (target.FdcId == null || target.FdcId != p.FdcId) return "the target is not the proposal's USDA food";
+            if (target.CurationStatusId == (long)Nom.Data.Recipe.CurationStatusEnum.Rejected || Nom.Data.Nutrition.PreparedFoods.IsPrepared(target)) return "the target is rejected or a prepared food";
+            if (reviewerPersonId == SystemConstants.SystemPersonId && target.CurationStatusId == (long)Nom.Data.Recipe.CurationStatusEnum.PendingCuration
+                && target.AdmissionReason != null) return "the admission rule holds the target for a person";
+            return null;
+        }
+
+        private async Task<(string? Name, List<(string Alias, string? Context)> Aliases)> MergeLeavesAsync(FoodCatalogProposalEntity p, Nom.Data.Recipe.IngredientEntity source, Nom.Data.Recipe.IngredientEntity target, long reviewerPersonId)
+        {
+            string? name = null;
+            var aliases = new List<(string Alias, string? Context)>();
+            var friendly = FriendlyName(Support.IngredientNameNormalizer.Normalize(source.Name));
+            if (reviewerPersonId != SystemConstants.SystemPersonId && target.Name.Contains(',') && friendly != null
+                && !await _context.Ingredients.IgnoreQueryFilters().AnyAsync(i => i.Id != source.Id && i.Id != target.Id && i.Name.ToLower() == friendly.ToLower()))
+            {
+                name = friendly;
+                aliases.Add((target.Name, IngredientLinkService.UsdaDescriptionContext));
+            }
+            var alias = Support.IngredientNameNormalizer.Normalize(source.Name);
+            if (!string.Equals(name ?? target.Name, alias, StringComparison.OrdinalIgnoreCase)) aliases.Add((alias, WordingContext(p.Source, reviewerPersonId)));
+            return (name, aliases);
+        }
+
+        public async Task<FoodProposalApplyPreview?> PreviewProposalAsync(long proposalId, long reviewerPersonId)
+        {
+            var p = await _context.FoodCatalogProposals.AsNoTracking().FirstOrDefaultAsync(x => x.Id == proposalId);
+            if (p == null) return null;
+            var preview = new FoodProposalApplyPreview { ProposalId = p.Id };
+            if (p.Status != FoodProposalStatus.Pending) preview.Refusal = "the proposal is not pending";
+            else if (!ProposalPolicy.IsAllowed(p.Field, p.Source, out var why)) preview.Refusal = why ?? "the proposal policy refuses it";
+            else if (p.Action == FoodProposalAction.Update && p.IngredientId.HasValue && string.Equals(p.Field?.Trim(), FdcLinkField, StringComparison.OrdinalIgnoreCase))
+            {
+                var source = await _context.Ingredients.AsNoTracking().FirstOrDefaultAsync(i => i.Id == p.IngredientId!.Value && !i.IsDeleted);
+                var target = long.TryParse(p.ProposedValue, out var targetId) ? await _context.Ingredients.AsNoTracking().FirstOrDefaultAsync(i => i.Id == targetId && !i.IsDeleted) : null;
+                preview.Refusal = LinkRefusal(p, source, target, reviewerPersonId);
+                if (preview.Refusal == null)
+                {
+                    var (lines, held, holds) = await _cleanup.DietHoldsAsync(source!.Id, target!.Id);
+                    var (leftName, leftAliases) = await MergeLeavesAsync(p, source, target, reviewerPersonId);
+                    preview.Lines = lines;
+                    preview.HeldByDiet = held;
+                    preview.DietHolds = holds.ToList();
+                    preview.RaisedTypes = (await _cleanup.RaisesDietAsync(target.Id, leftName, leftAliases)).ToList();
+                    if (held > 0) preview.Refusal = $"{Support.RecheckDietGuard.HeldReason}: {held} of {lines} lines would lower a recipe's diet flags";
+                    else if (preview.RaisedTypes.Count > 0) preview.Refusal = $"{Support.RecheckDietGuard.HeldReason}: the merge would make the target count for {string.Join(", ", preview.RaisedTypes)}";
+                }
+            }
+            preview.Applies = preview.Refusal == null;
+            return preview;
         }
 
         /// <summary>

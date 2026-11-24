@@ -668,15 +668,25 @@ namespace Nom.Api.Tests.Services
         }
 
         [Fact]
-        public async Task A_facts_only_withhold_is_not_counted_as_copy_unsure_whatever_mark_an_earlier_withhold_left()
+        public async Task A_facts_only_withhold_keeps_the_count_of_copied_sentences_an_earlier_check_left_so_its_undo_shows_the_recipe_with_its_work_list()
         {
             await using var db = NewContext();
             await SourceAsync(db, "facts.example", FactsOnlyReport("facts.example"));
-            var released = await RecipeAsync(db, "https://facts.example/chili/", r => r.ProseCopyUnsure = true);
+            var marked = await RecipeAsync(db, "https://facts.example/chili/", r => r.ProseCopiedSentences = 2);
+            var rights = Rights(db);
 
-            await Rights(db).DeriveAsync(apply: true);
+            await rights.DeriveAsync(apply: true);
+            db.ChangeTracker.Clear();
 
-            (await db.Recipes.AsNoTracking().SingleAsync(r => r.Id == released.Id)).Should().Match<RecipeEntity>(r => r.ProseWithheld && !r.ProseCopyUnsure);
+            (await db.Recipes.AsNoTracking().SingleAsync(r => r.Id == marked.Id)).Should().Match<RecipeEntity>(r => r.ProseWithheld && r.ProseCopiedSentences == 2);
+            var row = await db.AuditLogEntries.AsNoTracking().SingleAsync(a => a.ChangeType == SourceRightsService.FactsOnlyWithholdChangeType && a.EntityId == marked.Id);
+
+            (await rights.UndoStepAsync(SourceRightsService.FactsOnlyStep, row.Timestamp, apply: true)).Changed.Should().Be(1);
+            db.ChangeTracker.Clear();
+
+            (await db.Recipes.AsNoTracking().SingleAsync(r => r.Id == marked.Id)).Should().Match<RecipeEntity>(r => !r.ProseWithheld && r.ProseCopiedSentences == 2,
+                "the copied sentences are shown again, so they stay on the lane's work list");
+            (await ProseLaneService.EligibleQuery(db, "v-test").AnyAsync(r => r.Id == marked.Id)).Should().BeTrue();
         }
 
         [Fact]

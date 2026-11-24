@@ -38,13 +38,14 @@ namespace Nom.Orch.Services.Support
     /// </summary>
     public static class LinkRecheckRules
     {
-        public const string Version = "link-recheck/7";
+        public const string Version = "link-recheck/8";
 
         public const string Alcohol = "alcohol";
         public const string PartHerb = "part-herb";
         public const string Compound = "compound";
         public const string ContainerForm = "container-form";
         public const string Prepared = "prepared";
+        public const string FreeOf = "free-of";
         public const string AppliedNovember = "applied-1103";
         public const string Applied = "applied";
         public const string Aliases = "aliases";
@@ -141,7 +142,7 @@ namespace Nom.Orch.Services.Support
         public static readonly DateTime NovemberThird = new(2026, 11, 3, 0, 0, 0, DateTimeKind.Utc);
 
         /// <summary>The rule sets that write, in the order the plan runs them (plan 3.3 step 8), with prepared foods before the applied links.</summary>
-        public static readonly IReadOnlyList<string> Sets = new[] { Alcohol, PartHerb, Compound, ContainerForm, Prepared, AppliedNovember, Applied, Aliases };
+        public static readonly IReadOnlyList<string> Sets = new[] { Alcohol, PartHerb, Compound, ContainerForm, Prepared, FreeOf, AppliedNovember, Applied, Aliases };
 
         /// <summary>Every set the re-check knows, the report-only <see cref="Wordings"/> last.</summary>
         public static readonly IReadOnlyList<string> AllSets = Sets.Append(Wordings).ToList();
@@ -153,7 +154,8 @@ namespace Nom.Orch.Services.Support
         /// it, the wording names a part or form the food contradicts, a fresh herb on the dried
         /// spice, a food made from the wording's head noun or only topped with it, a salted or
         /// sweetened polarity, a stated percent the food lacks, a group word its category
-        /// contradicts, or another curated food's very name. The rest (a word the food lacks, a
+        /// contradicts, another curated food's very name, or a wording marked free of what the food's own name holds
+        /// (<see cref="FreeOfHold"/>: "vegan butter" on Butter). The rest (a word the food lacks, a
         /// state or marked variant the wording does not name, a variety, an incomplete food ...)
         /// only fail to prove the food right: such lines stay and are counted as not proven.
         /// </summary>
@@ -162,7 +164,7 @@ namespace Nom.Orch.Services.Support
             LinkGate.Heading, LinkGate.Compound, LinkGate.Retired, LinkGate.Branded, LinkGate.Prepared,
             LinkGate.AlcoholDrink, LinkGate.AlcoholNoFood, LinkGate.AlcoholNotDrink,
             LinkGate.Part, LinkGate.FreshHerb, LinkGate.Form, LinkGate.HeadLead, LinkGate.HeadNoun, LinkGate.Polarity,
-            LinkGate.Percent, LinkGate.Group, LinkGate.OtherFood,
+            LinkGate.Percent, LinkGate.Group, LinkGate.OtherFood, FreeOf,
         };
 
         /// <summary>The alcohol rules: read by the line in the alcohol set, and elsewhere only when the wording itself refuses the food.</summary>
@@ -180,7 +182,7 @@ namespace Nom.Orch.Services.Support
         /// <summary>The classes whose hold a later alternative of the wording can raise, and which are no proof when the wording names its food first.</summary>
         public static readonly IReadOnlySet<string> AlternativeCodes = new HashSet<string>(StringComparer.Ordinal)
         {
-            LinkGate.Part, LinkGate.Group, LinkGate.Form, LinkGate.Percent, LinkGate.Polarity,
+            LinkGate.Part, LinkGate.Group, LinkGate.Form, LinkGate.Percent, LinkGate.Polarity, FreeOf,
         };
 
         /// <summary>Holds the re-check does not read: it moves lines without their amounts, so grams are not computed for it.</summary>
@@ -203,6 +205,7 @@ namespace Nom.Orch.Services.Support
             [PartHerb] = new[] { LinkGate.Part, LinkGate.FreshHerb },
             [Compound] = new[] { LinkGate.Compound, LinkGate.Heading },
             [Prepared] = new[] { LinkGate.Prepared },
+            [FreeOf] = new[] { FreeOf },
             [ContainerForm] = Array.Empty<string>(),
         };
 
@@ -364,13 +367,14 @@ namespace Nom.Orch.Services.Support
         /// food asked the same way, and <see cref="Decide"/> with <see cref="Refutes"/> (a line of
         /// alternatives one of which is the food is no proof). A fresh-herb hold is no proof when every
         /// fresh cue qualifies a later item of the wording or its lines (<see cref="FreshOfLaterItem"/>),
-        /// and a group or compound hold none when only the part after a ratio phrase raises it
-        /// (<see cref="BeforeRatio"/>). A run and the class scorer both decide through this, so the
+        /// and no hold but an alcohol, fresh-herb, prepared or free-of one is proof when only the part after a ratio phrase, or the amount
+        /// before it, raises it (<see cref="RatioCut"/>; the lines are read cut the same way). The wording's <see cref="FreeOfHold"/> is read
+        /// beside the gate's holds, on the food and on every tier's food. A run and the class scorer both decide through this, so the
         /// judged golden lines measure what a run writes.
         /// </summary>
         public static RecheckVerdict Judge(string set, string wording, GateFood food, IReadOnlyList<GateLine>? lines, GateCatalog catalog, IEnumerable<(string Tier, GateFood Food)> candidates)
         {
-            var holds = ReadHolds(set, wording, food, LinkGate.Check(new GatePair(wording, food.Id, food, Lines: lines), catalog));
+            var holds = WithFreeOf(ReadHolds(set, wording, food, LinkGate.Check(new GatePair(wording, food.Id, food, Lines: lines), catalog)), wording, food);
             var alternative = new Lazy<bool>(() => LinkGate.NamesAlternative(wording, food, catalog));
             var first = new Lazy<bool>(() => LinkGate.NamesFirstAlternative(wording, food, catalog));
             var other = new Lazy<bool>(() => LinkGate.NamesOtherFood(wording, food, catalog));
@@ -380,13 +384,13 @@ namespace Nom.Orch.Services.Support
                 return cued.Count > 0 && cued.All(t => FreshOfLaterItem(t, food));
             });
             var beforeRatio = new Lazy<IReadOnlyList<GateHold>?>(() =>
-                BeforeRatio(wording) is { } cut ? LinkGate.Check(new GatePair(cut, food.Id, food, Lines: lines), catalog) : null);
+                RatioCut(wording) is { } cut ? LinkGate.Check(new GatePair(cut, food.Id, food, Lines: lines?.Select(l => l with { Raw = RatioCut(l.Raw) ?? l.Raw }).ToList()), catalog) : null);
             bool Proof(GateHold h) =>
                 Refutes(h, holds, alternative.Value, AlternativeCodes.Contains(h.Code) && first.Value, h.Code != LinkGate.Compound || other.Value)
                 && !(h.Code == LinkGate.FreshHerb && freshLater.Value)
-                && !(h.Code is LinkGate.Group or LinkGate.Compound && beforeRatio.Value is { } cutHolds && cutHolds.All(c => c.Code != h.Code));
+                && !(!AlcoholCodes.Contains(h.Code) && h.Code is not (LinkGate.FreshHerb or LinkGate.Prepared or FreeOf) && beforeRatio.Value is { } cutHolds && cutHolds.All(c => c.Code != h.Code));
             return Decide(set, holds,
-                () => candidates.Select(c => new RecheckCandidate(c.Tier, c.Food, ReadHolds(set, wording, c.Food, LinkGate.Check(new GatePair(wording, food.Id, c.Food, Lines: lines), catalog)))),
+                () => candidates.Select(c => new RecheckCandidate(c.Tier, c.Food, WithFreeOf(ReadHolds(set, wording, c.Food, LinkGate.Check(new GatePair(wording, food.Id, c.Food, Lines: lines), catalog)), wording, c.Food))),
                 set == ContainerForm, Proof);
         }
 
@@ -405,6 +409,23 @@ namespace Nom.Orch.Services.Support
             if (!match.Success) return null;
             var cut = wording![..match.Index].TrimEnd(' ', ',', ';');
             return LinkGate.Words(cut).Any(w => w.Any(char.IsLetter)) ? cut : null;
+        }
+
+        private static readonly Regex AmountSegment = new(
+            @"^\s*(?:in\s+the\s+proportion\s+of\s+|about\s+|nearly\s+|scant\s+|full\s+)?(?:(?:\d+(?:[./]\d+)?|[½¼¾⅓⅔⅛]|a|an|one|two|three|four|five|six|seven|eight|nine|ten|eleven|twelve|fourteen|fifteen|sixteen|twenty|thirty|half|quarter|and|or|to|-)[\s.]*)+(?:(?:heaping|level|rounded|scant|large|small)\s+)?(?:cups?|cupfuls?|teacups?|teacupfuls?|spoons?|spoonfuls?|teaspoons?|teaspoonfuls?|tablespoons?|tablespoonfuls?|dessertspoons?|dessertspoonfuls?|tsps?|tbsps?|gallons?|quarts?|pints?|gills?|pounds?|lbs?|ounces?|oz|drachms?|grams?|g|kilos?|kg|dozen|handfuls?|pinch(?:es)?|dash(?:es)?|drops?|liters?|litres?|ml)?[\s.]*$",
+            Options);
+
+        /// <summary>
+        /// The wording a ratio phrase measures (<see cref="BeforeRatio"/>) with its amount left out: a segment after a comma
+        /// that only states how much ("sugar, fourteen ounces for each pound of fruit", "flour, in the proportion of 1/2 oz. to
+        /// every 1/2 pint of gravy") names no second food (staging checkpoint 6, R18). Null when the wording has no ratio phrase.
+        /// </summary>
+        public static string? RatioCut(string? wording)
+        {
+            if (wording == null || BeforeRatio(wording) is not { } cut) return null;
+            var segments = cut.Split(',').ToList();
+            while (segments.Count > 1 && AmountSegment.IsMatch(segments[^1])) segments.RemoveAt(segments.Count - 1);
+            return string.Join(",", segments).TrimEnd(' ', ',', ';');
         }
 
         private static readonly Regex ItemBreak = new(@"[,;:()]|\s(?:or|and/or)\s", Options);
@@ -447,6 +468,61 @@ namespace Nom.Orch.Services.Support
             }
             return cues > 0;
         }
+
+        /// <summary>
+        /// The markers that say a food is made without what a default restriction type holds, each with the types whose
+        /// name patterns read what it leaves out (staging checkpoint 6, R6 and the diet coverage report's link errors:
+        /// "vegan chocolate ice cream" on Chocolate Ice Cream, "gluten-free rolled oats" on Whole Rolled Oats).
+        /// </summary>
+        public static readonly IReadOnlyList<(string Marker, Regex Pattern, string[] Types)> FreeMarkers = new (string, Regex, string[])[]
+        {
+            ("vegan", new(@"\b(?:vegan|plant[- ]based)\b", Options), new[] { "Vegan" }),
+            ("dairy-free", new(@"\b(?:dairy[- ]?free|non[- ]?dairy|milk[- ]?free)\b", Options), new[] { "Milk Allergy" }),
+            ("lactose-free", new(@"\blactose[- ]?free\b", Options), new[] { "Lactose Intolerance" }),
+            ("gluten-free", new(@"\bgluten[- ]?free\b", Options), new[] { "Celiac Disease" }),
+            ("egg-free", new(@"\b(?:egg[- ]?free|eggless)\b", Options), new[] { "Egg Allergy" }),
+            ("nut-free", new(@"\bnut[- ]?free\b", Options), new[] { "Tree Nut Allergy", "Peanut Allergy" }),
+            ("soy-free", new(@"\bsoy[- ]?free\b", Options), new[] { "Soy Allergy" }),
+            ("meatless", new(@"\b(?:meatless|meat[- ]?free)\b", Options), new[] { "Vegetarian" }),
+        };
+
+        private static readonly Regex FirstItemEnd = new(@"[(\[,;:]|\s(?:or|and/or)\s|/|\s-+\s", Options);
+
+        private static readonly Regex FreeFood = new(@"\b(?:imitation|substitutes?|meatless|vegetarian|tofu|non[- ]?soy|(?:soy|almond|oat|rice|coconut|cashew|hemp)[- ]?(?:milk|beverage|drink|creamer)s?)\b", Options);
+
+        /// <summary>The stems the free-of set's line query looks for before <see cref="FreeOfHold"/> reads a line.</summary>
+        public static readonly IReadOnlyList<string> FreeOfStems = new[] { "vegan", "plant", "free", "dairy", "eggless", "meatless" };
+
+        /// <summary>Whether a text carries a marker of <see cref="FreeMarkers"/>.</summary>
+        public static bool HasFreeMarker(string? text) => !string.IsNullOrEmpty(text) && FreeMarkers.Any(m => m.Pattern.IsMatch(text));
+
+        /// <summary>
+        /// The <see cref="FreeOf"/> hold of a wording on a food: the wording's first item (before a bracket, a comma, a
+        /// semicolon or colon, an "or", a slash or a spaced dash) carries a marker of <see cref="FreeMarkers"/>, the food's own
+        /// name and USDA description carry no marker and do not name the food as a stand-in (imitation, substitute, meatless,
+        /// vegetarian, tofu, a plant milk), and a name pattern of a type the marker names reads the food's name or description, so the
+        /// food holds what the wording says the cook's food is made without. Null when it does not hold.
+        /// </summary>
+        public static GateHold? FreeOfHold(string wording, GateFood food)
+        {
+            var first = FirstItemEnd.Split(wording ?? string.Empty)[0];
+            var own = food.Name + " " + food.Description;
+            if (FreeFood.IsMatch(own) || HasFreeMarker(own)) return null;
+            foreach (var (marker, pattern, types) in FreeMarkers)
+            {
+                if (!pattern.IsMatch(first)) continue;
+                foreach (var type in types)
+                {
+                    if (!DefaultRestrictionCriteria.ByName.TryGetValue(type, out var criteria)) continue;
+                    var hit = criteria.Patterns.Where(p => !DietCriteriaMatcher.IsWordPattern(p)).Select(p => DietPatternRule.For(p, type)).FirstOrDefault(r => Names(r, food));
+                    if (hit != null) return new GateHold(FreeOf, "wording marked free of what the food holds", $"{marker} against {type}: {hit.Pattern}");
+                }
+            }
+            return null;
+        }
+
+        private static IReadOnlyList<GateHold> WithFreeOf(IReadOnlyList<GateHold> holds, string wording, GateFood food) =>
+            FreeOfHold(wording, food) is { } hold ? holds.Append(hold).ToList() : holds;
 
         /// <summary>The holds of a pair as the set reads them: the alcohol rules only where the set reads them (<see cref="ForSet"/>).</summary>
         public static IReadOnlyList<GateHold> ReadHolds(string set, string wording, GateFood food, IReadOnlyList<GateHold> holds) =>
@@ -623,7 +699,7 @@ namespace Nom.Orch.Services.Support
             if (withProven) parts.Add(string.Join(",", ProvenValue.Value.Proven.OrderBy(c => c, StringComparer.Ordinal)));
             parts.Add(string.Join(",", RestrictionPatterns.Value.Select(p => p.Pattern)));
             parts.Add(DietPatternRule.Version);
-            parts.Add(StatementLabelTerms.Version + ":" + RecheckDietGuard.HeldReason);
+            parts.Add(StatementLabelTerms.Version + ":" + RecheckDietGuard.HeldReason + ":" + RecheckDietGuard.Version);
             parts.Add(string.Create(CultureInfo.InvariantCulture, $"{ClassPrecisionBar}:{ClassMinimumJudged}"));
             parts.Add(string.Join(",", EdibleParts.OrderBy(c => c, StringComparer.Ordinal)));
             parts.Add(string.Join(",", PreparationForms.OrderBy(c => c, StringComparer.Ordinal)));
@@ -641,6 +717,10 @@ namespace Nom.Orch.Services.Support
             parts.Add(string.Join(",", ContainerWords.OrderBy(w => w, StringComparer.Ordinal)));
             parts.Add(NovemberThird.ToString("O"));
             parts.Add(RatioPhrase.ToString());
+            parts.AddRange(FreeMarkers.Select(m => m.Marker + "=" + m.Pattern + "=" + string.Join(",", m.Types)));
+            parts.Add(FirstItemEnd.ToString());
+            parts.Add(FreeFood.ToString());
+            parts.Add(AmountSegment.ToString());
             parts.Add(ItemBreak.ToString());
             parts.Add(string.Join(",", ItemFiller.OrderBy(w => w, StringComparer.Ordinal)));
             parts.Add(string.Join(",", LinkGate.FreshCues.OrderBy(w => w, StringComparer.Ordinal)));

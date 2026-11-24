@@ -111,6 +111,14 @@ namespace Nom.Orch.Models.Recipe
         public int Recipes { get; set; }
         public int RecipesShown { get; set; }
         public bool RecipesWithheld { get; set; }
+
+        /// <summary>Every web row of the source's host is forbidden in effect, so its recipes may be retired and purged.</summary>
+        public bool Removable { get; set; }
+
+        /// <summary>Recipes of the host retired (not undone), the purged ones included.</summary>
+        public int Retired { get; set; }
+
+        public int Purged { get; set; }
     }
 
     /// <summary>The rights engine on the Pipeline page: sources by class, AI reservations, permissions, recipes by class and the steps' state.</summary>
@@ -134,6 +142,15 @@ namespace Nom.Orch.Models.Recipe
         public int RetentionHeld { get; set; }
         public int RecipesWithCredit { get; set; }
         public int TakenFromBarredSources { get; set; }
+
+        /// <summary>Recipes taken from forbidden sources that were retired (not undone), the purged ones included.</summary>
+        public int RecipesRetired { get; set; }
+
+        public int RecipesPurged { get; set; }
+
+        /// <summary>Per barred source the recipes taken, retired and purged.</summary>
+        public List<RecipeRemovalFiguresModel> RemovalBySource { get; set; } = new();
+
         public DateTime? LastChangeUtc { get; set; }
         public int ChangesLast7d { get; set; }
         public List<SourceProseFiguresModel> ProseBySource { get; set; } = new();

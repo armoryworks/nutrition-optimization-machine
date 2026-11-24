@@ -340,10 +340,10 @@ namespace Nom.Api.Tests.Services.Recipe
         }
 
         [Fact]
-        public async Task A_method_a_person_writes_for_a_copy_unsure_recipe_ends_its_withhold_and_its_copy_unsure_mark()
+        public async Task A_method_a_person_writes_for_a_withheld_recipe_ends_its_withhold_and_its_count_of_copied_sentences()
         {
             await using var db = await SeedAsync();
-            (await db.Recipes.SingleAsync(r => r.Id == Withheld)).ProseCopyUnsure = true;
+            (await db.Recipes.SingleAsync(r => r.Id == Withheld)).ProseCopiedSentences = 2;
             await db.SaveChangesAsync();
             db.ChangeTracker.Clear();
             var curator = Mock.Of<ICurrentUserService>(u => u.PersonId == Author && u.PersonIdOrSystem == Author);
@@ -355,7 +355,7 @@ namespace Nom.Api.Tests.Services.Recipe
             });
             db.ChangeTracker.Clear();
 
-            (await db.Recipes.AsNoTracking().SingleAsync(r => r.Id == Withheld)).Should().Match<RecipeEntity>(r => !r.ProseWithheld && !r.ProseCopyUnsure);
+            (await db.Recipes.AsNoTracking().SingleAsync(r => r.Id == Withheld)).Should().Match<RecipeEntity>(r => !r.ProseWithheld && r.ProseCopiedSentences == 0);
         }
 
         [Fact]

@@ -11,14 +11,15 @@ Usage:
               [--exclude-table public.__EFMigrationsHistory] ...
 
 Covered: schemas, tables, columns (type / null / default / identity),
-constraints (PK, FK, UNIQUE, CHECK), indexes, views.
-Not covered (none exist in NOM today; see db/README.md): functions,
-triggers, procedures, standalone sequences, row-level security policies.
-Renames are expressed as drop + add.
+constraints (PK, FK, UNIQUE, CHECK), indexes, views, standalone sequences,
+functions (not those of an extension) and triggers.
+Not covered (see db/README.md): procedures, row-level security policies,
+extensions. Renames are expressed as drop + add.
 
 Exit codes: 0 = ok (delta on stdout, possibly empty), 2 = error.
 """
 import argparse
+import base64
 import os
 import re
 import subprocess
@@ -151,6 +152,44 @@ def get_views(db, args):
     return {(r[0], r[1]): r[2] for r in rows}
 
 
+def get_sequences(db, args):
+    rows = psql(db, """
+        SELECT n.nspname, c.relname
+        FROM pg_class c JOIN pg_namespace n ON n.oid = c.relnamespace
+        WHERE c.relkind = 'S'
+          AND n.nspname NOT IN ('pg_catalog','information_schema')
+          AND NOT EXISTS (SELECT 1 FROM pg_depend d
+                          WHERE d.classid = 'pg_class'::regclass AND d.objid = c.oid
+                            AND d.deptype IN ('a', 'i', 'e'))
+    """, args)
+    return {(r[0], r[1]) for r in rows}
+
+
+def get_functions(db, args):
+    rows = psql(db, """
+        SELECT n.nspname, p.proname, pg_get_function_identity_arguments(p.oid),
+               translate(encode(convert_to(pg_get_functiondef(p.oid), 'UTF8'), 'base64'), E'\\n', '')
+        FROM pg_proc p JOIN pg_namespace n ON n.oid = p.pronamespace
+        WHERE p.prokind = 'f'
+          AND n.nspname NOT IN ('pg_catalog','information_schema')
+          AND NOT EXISTS (SELECT 1 FROM pg_depend d
+                          WHERE d.classid = 'pg_proc'::regclass AND d.objid = p.oid AND d.deptype = 'e')
+    """, args)
+    return {(r[0], r[1], r[2]): base64.b64decode(r[3]).decode("utf-8") for r in rows}
+
+
+def get_triggers(db, args):
+    rows = psql(db, """
+        SELECT n.nspname, c.relname, t.tgname, pg_get_triggerdef(t.oid)
+        FROM pg_trigger t
+        JOIN pg_class c ON c.oid = t.tgrelid
+        JOIN pg_namespace n ON n.oid = c.relnamespace
+        WHERE NOT t.tgisinternal
+          AND n.nspname NOT IN ('pg_catalog','information_schema')
+    """, args)
+    return {(r[0], r[1], r[2]): r[3] for r in rows}
+
+
 # ---------- diff ----------
 
 def column_add_ddl(schema, table, col, meta):
@@ -198,6 +237,12 @@ def main():
     t_idx = {k: v for k, v in get_indexes(args.target, args).items() if keep(k[:2])}
     d_idx = {k: v for k, v in get_indexes(args.desired, args).items() if keep(k[:2])}
     t_views, d_views = get_views(args.target, args), get_views(args.desired, args)
+    t_seqs = {s for s in get_sequences(args.target, args) if keep(s)}
+    d_seqs = {s for s in get_sequences(args.desired, args) if keep(s)}
+    t_funcs = {k: v for k, v in get_functions(args.target, args).items() if k[0] not in excluded_schemas}
+    d_funcs = {k: v for k, v in get_functions(args.desired, args).items() if k[0] not in excluded_schemas}
+    t_trigs = {k: v for k, v in get_triggers(args.target, args).items() if keep(k[:2])}
+    d_trigs = {k: v for k, v in get_triggers(args.desired, args).items() if keep(k[:2])}
 
     new_tables = d_tables - t_tables
     gone_tables = t_tables - d_tables
@@ -211,6 +256,17 @@ def main():
     # (extra schemas in target are left alone -- report only)
     for s in sorted(t_schemas - d_schemas):
         out.append(f"-- NOTE: schema {q(s)} exists in target but not in desired state (left untouched)")
+
+    for key in sorted(d_seqs - t_seqs):
+        out.append(f"CREATE SEQUENCE {qual(*key)};")
+    for key in sorted(t_trigs):
+        if key[:2] in gone_tables:
+            continue
+        if key not in d_trigs or d_trigs[key] != t_trigs[key]:
+            out.append(f"DROP TRIGGER {q(key[2])} ON {qual(key[0], key[1])};")
+    for key in sorted(d_funcs):
+        if t_funcs.get(key) != d_funcs[key]:
+            out.append(d_funcs[key].rstrip().rstrip(";") + ";")
 
     # 2. Drop constraints that changed or disappeared (common tables only)
     cons_to_drop, cons_to_add = [], []
@@ -309,6 +365,16 @@ def main():
     for key in sorted(set(d_views)):
         if t_views.get(key) != d_views[key]:
             out.append(f"CREATE OR REPLACE VIEW {qual(*key)} AS\n{d_views[key]}")
+
+    for key in sorted(d_trigs):
+        if key[:2] in new_tables:
+            continue
+        if t_trigs.get(key) != d_trigs[key]:
+            out.append(d_trigs[key] + ";")
+    for key in sorted(set(t_funcs) - set(d_funcs)):
+        out.append(f"DROP FUNCTION {qual(key[0], key[1])}({key[2]});")
+    for key in sorted(t_seqs - d_seqs):
+        out.append(f"DROP SEQUENCE {qual(*key)};")
 
     print("\n".join(out))
     return 0

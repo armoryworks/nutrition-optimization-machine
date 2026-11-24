@@ -81,7 +81,7 @@ namespace Nom.Api.Services
                     }
                     else
                     {
-                        if (DateTime.UtcNow >= nextDiscovery)
+                        if (DateTime.UtcNow >= nextDiscovery && (await lane.NextDiscoveryDueUtcAsync(stoppingToken) is not { } due || DateTime.UtcNow >= due))
                         {
                             await lane.RunDiscoveryAsync(stoppingToken);
                             nextDiscovery = DateTime.UtcNow + interval;

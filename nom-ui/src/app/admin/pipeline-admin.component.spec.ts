@@ -76,7 +76,7 @@ function status(quietMinutesLeft: number | null = null): PipelineStatus {
       recipes: {
         approved: 22842, waiting: 71185, needsRevision: 27754, pendingReview: 0, rejected: 724,
         waitingBlockedBy: { none: 1238, one: 29568, two: 20445, threeOrMore: 19934 },
-        waitingPublicDomain: 53027, waitingScrapedWithoutOwnImage: 18155, waitingWithSourceProse: 567, proseWithheld: 1710, proseWithheldApproved: 1389, proseCopyUnsure: 404, proseCopyUnsureApproved: 37, proseUnsure: 642, proseUnsureApproved: 88, proseGaveUp: 12, proseGaveUpByClass: { 'copied-text': 9, 'judge:missing': 3 },
+        waitingPublicDomain: 53027, waitingScrapedWithoutOwnImage: 18155, waitingWithSourceProse: 567, proseWithheld: 1710, proseWithheldApproved: 1389, proseRepair: 404, proseRepairApproved: 37, proseUnsure: 642, proseUnsureApproved: 88, proseGaveUp: 12, proseGaveUpByClass: { 'copied-text': 9, 'judge:missing': 3 },
         revisionMissingQuantities: 22932, revisionSteps: 1267, approvedWithUncountedLine: 2716, approvedWithoutImage: 22569,
         withoutNutritionLabel: 24012, lastAutoApprovedAt: null, autoApprovedLast24h: 0, lastScrapedAt: null, createdLast7d: 0,
       },
@@ -166,7 +166,7 @@ describe('PipelineAdmin', () => {
     expect(byId(el, 'pipeline-metric-blocked-none')?.textContent?.trim()).toBe('1,238');
     expect(byId(el, 'pipeline-metric-recipes-prose-withheld')?.textContent?.trim()).toBe('1,710 (1,389)');
     expect(byId(el, 'pipeline-metric-recipes-prose-unsure')?.textContent?.trim()).toBe('642 (88)');
-    expect(byId(el, 'pipeline-metric-recipes-prose-copy-unsure')?.textContent?.trim()).toBe('404 (37)');
+    expect(byId(el, 'pipeline-metric-recipes-prose-repair')?.textContent?.trim()).toBe('404 (37)');
     expect(byId(el, 'pipeline-metric-recipes-prose-gave-up')?.textContent?.trim()).toBe('12');
     expect(Array.from(el.querySelectorAll('[data-testid="pipeline-prose-gave-up-class"]')).map(d => d.parentElement?.textContent?.trim()))
       .toEqual(['copied-text9', 'judge:missing3']);

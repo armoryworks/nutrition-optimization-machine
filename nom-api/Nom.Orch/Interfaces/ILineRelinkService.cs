@@ -20,9 +20,10 @@ namespace Nom.Orch.Interfaces
         /// need to tell apart from its main entry (well water and Water). A line that contains one
         /// of <paramref name="keepWords"/> stays ("delicious" keeps "red delicious apples" on its
         /// variety while "red apples" moves). Returns null when either food is not a live curated
-        /// food or the target has no nutrition.
+        /// food or the target has no nutrition. With <paramref name="apply"/> false nothing is written:
+        /// the result counts the lines that would move and those the diet guard holds, with the holds.
         /// </summary>
-        Task<LineRelinkResult?> MoveFoodAsync(long fromIngredientId, long toIngredientId, string? keepWords = null);
+        Task<LineRelinkResult?> MoveFoodAsync(long fromIngredientId, long toIngredientId, string? keepWords = null, bool apply = true);
 
         /// <summary>
         /// Moves the scraped lines of each given wording from the curated food they are on to the

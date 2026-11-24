@@ -208,6 +208,7 @@ namespace Nom.Orch.Services
                     throw new ArgumentException("Shopping list not found");
                 }
 
+                var removed = await RecipeRemovalService.RemovedAsync(_dbContext, shoppingList.Items.Where(i => i.RecipeId != null && i.Recipe == null).Select(i => i.RecipeId!.Value));
                 var items = shoppingList.Items.Select(i => new SmartShoppingListItemModel
                 {
                     Id = i.Id,
@@ -215,7 +216,7 @@ namespace Nom.Orch.Services
                     Quantity = i.Quantity ?? 0,
                     Unit = i.Measurement?.Name ?? "",
                     Category = i.Category?.Name ?? "Uncategorized",
-                    Notes = Support.ShoppingItemNote.Shown(i),
+                    Notes = Support.ShoppingItemNote.Shown(i, removed),
                     Priority = 1
                 }).ToList();
 

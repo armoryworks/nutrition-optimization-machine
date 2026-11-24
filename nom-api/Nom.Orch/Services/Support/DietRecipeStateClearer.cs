@@ -34,7 +34,7 @@ namespace Nom.Orch.Services.Support
             return result;
         }
 
-        /// <summary>The recipes whose lines or servings the context is about to write.</summary>
+        /// <summary>The recipes whose lines, steps, servings, title or source the context is about to write.</summary>
         internal static HashSet<long> Touched(ApplicationDbContext db)
         {
             var ids = new HashSet<long>();
@@ -45,8 +45,14 @@ namespace Nom.Orch.Services.Support
                     if (line.RecipeId > 0) ids.Add(line.RecipeId);
                     if (entry.State == EntityState.Modified && entry.Property(nameof(RecipeIngredientEntity.RecipeId)).OriginalValue is long before && before > 0) ids.Add(before);
                 }
+                else if (entry.Entity is RecipeStepEntity step && entry.State is EntityState.Added or EntityState.Modified or EntityState.Deleted)
+                {
+                    if (step.RecipeId > 0) ids.Add(step.RecipeId);
+                    if (entry.State == EntityState.Modified && entry.Property(nameof(RecipeStepEntity.RecipeId)).OriginalValue is long before && before > 0) ids.Add(before);
+                }
                 else if (entry.Entity is RecipeEntity recipe && entry.State == EntityState.Modified && recipe.Id > 0
-                    && (entry.Property(nameof(RecipeEntity.Servings)).IsModified || entry.Property(nameof(RecipeEntity.RecipeServings)).IsModified || entry.Property(nameof(RecipeEntity.IsDeleted)).IsModified))
+                    && (entry.Property(nameof(RecipeEntity.Servings)).IsModified || entry.Property(nameof(RecipeEntity.RecipeServings)).IsModified || entry.Property(nameof(RecipeEntity.IsDeleted)).IsModified
+                        || entry.Property(nameof(RecipeEntity.Name)).IsModified || entry.Property(nameof(RecipeEntity.SourceUrl)).IsModified || entry.Property(nameof(RecipeEntity.ScrapedAtUtc)).IsModified))
                     ids.Add(recipe.Id);
             }
             return ids;

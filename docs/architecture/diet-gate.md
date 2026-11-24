@@ -348,6 +348,53 @@ one:
   decides), and so are foods whose contents their name does not say (a branded cereal's grains, a candy bar's
   soy lecithin): name reading cannot know them, and the report counts them.
 
+## Staging checkpoint 6: words, dishes and the recipe's own text (cleanup2/ck11-diet-coverage)
+
+Checkpoint 6 (R3, R5, R6, R7) found the gate reading parts of words ("til" in until, a nut in a maker's name),
+missing what a dish holds by definition (six toasts, a panada, a Béarnaise with its accent), and offering a pie
+whose lines left out the crust. `diet-patterns/6`, `diet-dishes/1`, `diet-vocabulary/2` and `recipe-text/1`:
+
+- **A term is read where a word begins, and to where its meaning ends.** `Nom.Orch/Contents/diet-term-words.tsv`
+  gives each term an end (`start`: any continuation, `flour` in flours and floury; `word`: the whole word and its
+  inflections, `spot` but not spotted) and lists the compound words that are still the food (`in`: cornbread,
+  buckwheat is `out`). Every word of the corpus a term starts is in the table; a word it leaves out becomes a named
+  exception, so nothing substring matching rightly caught is lost unseen. Accents and ligatures fold on both sides
+  (`DietPatternRule.Fold`: crème reads creme, œufs oeufs). A maker in the closing bracket of a name (a company word, or any
+  bracket of a USDA branded food) is not read (`WithoutMaker`); a food whose name is its own USDA description keeps the spoken-order exceptions of a
+  description. `Fixtures/diet-reading-register.tsv` holds every catalog name and description where the word rule
+  and ilike disagree, pattern by pattern; `DietReadingRegisterTests` fails on any change until the register is
+  regenerated from its output and the diff reviewed.
+- **Dishes that hold a food by definition (`DietDishes`, `Contents/diet-dishes.tsv`).** Sauces, pastes, batters
+  and preparations of the public-domain references (Escoffier, Beeton, Farmer, Webster) with what they are made
+  of: a béchamel is a roux of butter and flour with milk, a forcemeat holds bread and egg, Marmite is barley yeast
+  extract. A dish is resolved through other dishes and the label composites into composite companions, so every
+  type that restricts a part holds the dish. Food names in the languages of the staged cookbooks (Italian,
+  Spanish, French: farina, uova, burro, harina, beurre, oeufs) are vocabulary rows with basis `translation`.
+- **The recipe's own text (R3, `DietRecipeText`).** For a book recipe (no web source) the method is read sentence by
+  sentence, and the title for a dish made in a crust or a dough (pie, tart, pasty, dumpling, cheesecake; egg, fish
+  and shellfish species), for a dish the title names as served with it ("Boiled leg of mutton, caper sauce"), and
+  for every rule where the method is empty or a line sends the reader to another recipe ("Sauce made as directed in
+  No. 1"). What a serving clause, an "instead of" or an imitation ("mock turtle") names is not read, nor what an
+  accompaniment's title says it is for ("pour over the fish" under Sauce for Fish). A hold from the title or the
+  method is an Unknown verdict for the severe types only, with its own reason (`DietFlagReason.Title`, `Method`),
+  and the recipe page says it was "named in the title" or "named in the method". A recipe whose every line is an
+  extraction placeholder ("Not specified in the text", "None provided") has no line and is unknown, and so is a book
+  recipe built on another the lines do not give (`DietRecipeText.BuildsOnAnother`: "Make Biscuit dough", "Make like
+  \"Brown Gravy\"", a line "batter as for suet pudding" or "ingredients for oyster sauce", a line that is only an
+  amount, a method that says it is incomplete). Only a recipe imported from a book is read this way (`FromBook`: it
+  has a scrape time and no web source); one a household writes in the app is read by its lines. The per-type counts
+  (`DietStoredTypeCount`, `ops/diet-gate-count.sql`) give the recipes held for no line, an unknown food, the title and
+  the method apart.
+- **Measured, not built: an unrecognised line held for the severe types.** Holding a recipe whose line names no
+  food word would have held 23,968 recipes; for Peanut Allergy 23,514 new holds against 3,476 held, far over the
+  over-flag bar. It stays out; the proof draws below found the lines that matter by kind.
+- **The proof loop.** Eighteen draws read locally with the build's reader against the read-only staging copy (30
+  shown and 20 held per severe type, no recipe of an earlier sample): every miss and over-flag was fixed by kind
+  before the next draw. Draws 1 to 17 each found at least one kind (draw 17: nouilles, an amount-only line, an
+  incomplete method, "ingredients for oyster sauce", oyster mushrooms in a list, "the fish" of a potted-shrimp
+  recipe); draw 18 found no miss and no over-flag of the reader's own, only two link errors and rows judged doubtful.
+  The build report lists every draw and every link error found (links are listed, not patched).
+
 ## Cost and cache
 
 The whole-catalog answer of each type (its foods, its alias-only foods and the recipes their lines
@@ -375,8 +422,10 @@ probes). Since `cleanup2/ck9-diet-speed` the API never computes a probe for a ho
 ## The line index: no request probes the catalog (staging checkpoint 4, P1, P5, P23)
 
 Since `cleanup2/ck10-diet-store` no request reads the line index or the kept probes: the gate's results are stored in
-the database (next section). The build job still reads lines and their rules with the index's matcher, and the
-index itself stays as the oracle the tests compare against.
+the database (next section). After staging checkpoint 6 proved the store, `cleanup2/ck11-diet-moves` removed the index
+(`DietLineIndex`), the cache's peek path (`DietGateCache.PeekAsync`, `EnsureFreshAsync`, the warm of the food probes
+and retained counts) and the old count (`DietGateCounts`). The build job reads lines with `DietLineRules` (the same
+rules and seeded first-word check), and the golden tests compare the store with the in-line matcher only.
 
 On the production-sized copy (843,636 live lines) the joined line probe (`LineRecipeSql`) of a type with a large
 severe set ran past Npgsql's 30 s command timeout: the warm never finished, and search, plans and the prepared check
@@ -519,7 +568,7 @@ one cycle:
    Each food is decided from its own data only, so a batch of changed foods is decided as the whole catalog would
    decide them.
 3. It reads every live line in windows of 2,000 recipe ids. Each changed recipe's lines are read with the line
-   index's matcher (`DietLineIndex.Rules`, the seeded first-word check).
+   rules (`DietLineRules`, the seeded first-word check); since `cleanup2/ck11-diet-moves` only the recipes it decides.
 4. Per set, it decides every recipe whose lines or servings changed, every recipe on a changed food, and every recipe
    for a set not yet built. It counts retained alcohol for those recipes only (`RecipeAlcoholAsync` with a scope).
    It writes 5,000 recipes per transaction, so a recipe's flags and state are replaced together, with `COPY` on
@@ -531,22 +580,30 @@ one cycle:
 5. A new rule version creates a new build beside the active one. Requests keep reading the active build until the new
    one is complete. The old build is then retired, and its rows are removed set by set.
 
-The job keeps what it decided in memory between cycles. After a restart it reloads that from the stored rows, re-reads
-the catalog and the lines, and decides nothing that did not change.
+The job keeps the food and recipe fingerprints and the sets' food facts in memory between cycles; since
+`cleanup2/ck11-diet-moves` it no longer keeps a reading of every recipe (R9). After a restart it reloads them from the
+stored rows, re-reads the catalog and the lines, and decides nothing that did not change. That whole cycle is the
+sweep. Between sweeps a cycle over the changes (`RunChangesAsync`, next section) reads only what a writer made
+undecided.
 
-When the job runs:
+When the job runs (since `cleanup2/ck11-diet-moves`):
 
-- at start;
-- within `DietGate:PollSeconds` (15) of a write this API made to a food, alias, nutrient, statement, line, recipe
-  servings or measurement (the existing `DietGateCacheInvalidator` generation);
-- every `DietGate:SweepSeconds` (300) in any case, for writes of another process (`Nom.Import`, SQL);
+- a whole cycle at start and every `DietGate:SweepSeconds` (900; was 300) as a backstop for a write made with the
+  triggers disabled (`session_replication_role = replica`, a restore); every table the gate reads has its trigger, a
+  measurement's category, factor and container mark included;
+- a cycle over the changes within `DietGate:PollSeconds` (15) of a write to what the gate reads, by this process (the
+  `DietGateCacheInvalidator` generation) or by any other (a committed row of the write log, `plan."DietGateWrite"`,
+  written by the triggers in the writer's transaction);
 - never sooner than `DietGate:MinIntervalSeconds` (20) after the last cycle.
 
 On Postgres one API process builds at a time (`pg_try_advisory_lock`). A failed cycle is logged and noted on the
 build (`Note`), and the job reloads its memory from the stored rows; nothing stored is lost. Each cycle logs one line:
 `Diet gate build B (version) state: S sets; foods F of N decided in x s; recipes R of M decided in y s; cycle z s`.
 Each set built logs its own line with its food and recipe times. `DietGate:Build=false` turns the job off, and
-requests then read what is stored.
+requests then read what is stored; the process then only trims the write log every `DietGate:SweepSeconds` of the rows
+older than `DietGate:WriteLogKeepSeconds` (3600, at least 60), so a log no build reads does not grow without end
+(`DietGateStoreBuilder.TrimWritesAsync`). A process that builds empties the log itself, so the trim never takes a row a
+running build has not read yet unless that build has been down for longer than the age kept.
 
 **What a request reads.** No request runs a pattern, a probe or a build, waits on one, or loses a value because a
 cycle failed:
@@ -560,9 +617,10 @@ cycle failed:
 - A save that writes a recipe's line or servings removes that recipe's `DietRecipeState` rows in the same save
   (`DietRecipeStateClearer`, an EF save interceptor registered in the API and in `Nom.Import`). The edited recipe is
   then held by every set until the build has decided it again, instead of being read with the decision made on its
-  old lines. A write that does not go through the EF change tracker (`ExecuteUpdate`, raw SQL, another tool) is
-  picked up by the next sweep.
-- The food-group top-up and the prepared pool filter foods the same way on `DietFoodFact` and `DietFoodState`.
+  old lines. Since `cleanup2/ck11-diet-moves` every other writer does the same in the database itself (next section).
+- The food-group top-up and the prepared pool filter foods the same way on `DietFoodFact` and `DietFoodState`; a food
+  the build has not decided is held by every set, as a recipe is (since `cleanup2/ck11-diet-moves`; before, only by a
+  set that holds unknowns).
 - The prepared check and the verification lane load the facts of the meals and of their statements' foods
   (`RestrictedIngredientSet.LoadFoodsAsync`).
 - The recipe page reads the facts of the recipe's own foods (`DietGateStore.PageAsync`).
@@ -628,6 +686,95 @@ by food, by text, unknown, not decided, held and held only for unknowns, and the
 /api/DietAdmin/gate-build` gives the builds with their timings and every set's food and recipe seconds (Q3).
 `ops/diet-gate-count.sql` reads the same rows by default, in seconds. The crude-versus-word-rule audit it ran before
 still runs with `-v audit=1` (about 40 minutes, alone, and only for a release that changes the rule).
+
+## Every writer, every process (staging checkpoint 6, R12, R9; `cleanup2/ck11-diet-moves`)
+
+Checkpoint 6 found the raw-SQL line writers (the rebuild, its undo and re-apply, the order-only pass, the re-check sets,
+the relink undo, `Nom.Import`) never clearing `DietRecipeState`: the EF save interceptor never saw them, so moved
+recipes were served from their old state, unheld, for up to 159 s (300 s bound), 17 of them with changed flags (8 that
+gained Soy Allergy).
+
+**Held, not stale, in the writer's own transaction.** `db/custom-objects.sql` carries statement-level triggers
+(transition tables) on every table the gate reads, and `db/schema.sql` carries them by `sync-from-model.sh` (pgdiff
+now diffs standalone sequences, functions and triggers, so `apply.sh` and `--check` carry them too):
+
+| Table | Writes | Made undecided |
+|---|---|---|
+| `recipe."RecipeIngredient"` | insert, delete; an update that changes a line's food, order, text, amount, unit, kind, retention or liveness (a `LastModifiedDate`-only update does not) | the line's recipe (`DietRecipeState`) |
+| `recipe."Recipe"` | an update of `Servings`, `RecipeServings`, `IsDeleted`, or the title and source a book recipe is read by (`Name`, `SourceUrl`, `ScrapedAtUtc`) | the recipe |
+| `recipe."RecipeStep"` | insert, delete; an update of a step's text, number or liveness, on a recipe with a scrape time (a book recipe's method is read, `DietRecipeText`) | the recipe |
+| `recipe."Ingredient"` | delete; an update of name, liveness, USDA category or data type, or a weight | the food (`DietFoodState`) and every recipe with a line on it |
+| `recipe."IngredientAlias"` | insert, update, delete | the food and its recipes |
+| `nutrient."IngredientNutrient"` | a row of a nutrient some criterion reads | the food and its recipes |
+| `recipe."IngredientContents"` | a statement of no household | the food and its recipes |
+| `plan."RestrictionCriterion"` | insert, update, delete | nothing (a log row, so the job sees the criteria) |
+| `measurement."Measurement"` | delete; an update of category, factor, container mark or liveness | every recipe with a line in that unit (retained alcohol weighs drinks by it) |
+
+Every trigger also logs what it touched in `plan."DietGateWrite"` (a recipe id, a food id, or neither for a criterion
+or a new food), the write log every process's build job polls. A log row is a row of the writer's own transaction, so
+the job sees it exactly when the write commits; a rolled-back write takes its clearing and its log rows with it. (The
+first version moved a sequence instead; a sequence moves when the statement runs, not when it commits, so a poll could
+read the count of a write still open, run its cycle before the commit, and then see no reason to run again until the
+sweep, review CK11-DM-1.) The EF interceptor stays (it is what the in-memory tests see). Requests hold an
+undecided recipe or food for every set, so a moved recipe is held from the writer's commit until the next cycle.
+
+**The cycle over the changes.** `DietGateStoreBuilder.RunChangesAsync` first reads the committed rows of the write log
+(at most `WriteBatch`, 100,000), then the foods and recipes the active build has no state for, the logged foods and
+recipes, and the recipes with a line on those foods; it loads the catalog for those foods and the foods of those
+recipes only (`DietFoodCatalog.LoadAsync` with `foodIds`), reads the lines of those recipes only, decides each whose
+fingerprint moved or that has no state, and at the end removes the log rows it read. It falls back to a whole cycle
+when the build or a set is not complete or a type's criteria changed; a whole cycle consumes the log the same way. A
+write that commits while a cycle runs keeps its log row, so the next poll runs again: a recipe whose state the cycle
+built from the lines before that commit is decided again then (its fingerprint moved although it has a state), and a
+recipe the commit left undecided is held until then.
+
+**No verdict from older lines (since `cleanup2/ck12-links-small`).** Before, a recipe whose state the cycle built from
+the lines before such a commit was served from that verdict until the next poll (15 to 35 s). Now each log row carries
+the writer's transaction (`Tx xid8 DEFAULT pg_current_xact_id()`), and the cycle takes a snapshot
+(`pg_current_snapshot()`) before it reads the lines. In the transaction that stores a chunk's states, after the insert,
+one statement removes again the state and the flags of every recipe of the chunk with a log row whose transaction that
+snapshot could not see (`pg_visible_in_snapshot`): a write that committed between the reading and the storing. Such a
+recipe stays undecided, so every set holds it, and the next cycle decides it from the new lines; the cycle line counts
+them (`N written while read left for the next cycle`).
+
+That statement sees only committed log rows. A writer whose transaction is still open when the chunk is stored (its
+trigger ran before the store, found no state row to remove, and its log row is not committed yet; a long batch apply
+is the usual case) commits after it, and nothing it ran can see the new state row (review ck12ls-r1). So each stored
+state also carries `ReadXmin`, the xmin of the cycle's snapshot (the oldest transaction still running when it began to
+read the lines), and requests read a state only while no log row for its recipe has a `Tx` at or above it
+(`DietGateStore.Standing`, used by `WithoutHeld`, the page reading and the counts): from the writer's commit, when its
+log row becomes visible, the recipe is held as undecided, and the next cycle decides it and removes the row. Before
+that commit the stored verdict agrees with every committed line. The test is conservative (a transaction at or above
+the xmin may have committed before the snapshot), which can only hold a recipe until the next cycle. No lock is taken:
+a writer never waits for the build, and the build never waits for a writer. In-memory contexts (the tests) compare the
+log row ids seen before the reading instead of a snapshot and store no `ReadXmin`.
+
+**Memory (R9).** The API held 1.1 to 1.9 GiB after the build and logged `High memory usage detected` up to 38 times a
+minute. Two causes: the build job kept a reading of every recipe (its rules, drink lines with their text, foods) in
+memory between cycles, and every cycle (every ~31 s while the API wrote anything) loaded the whole food catalog and every
+line again. Now the job keeps no recipe reading, reads only the recipes it decides, and a cycle over one change reads a
+few hundred rows; the whole catalog is read at start and once per sweep. The memory warning of
+`ContainerSecurityMiddleware` was logged on every request while the managed heap was above 500 MB; it is now logged at
+most once a minute.
+
+**Measured** (`DietGateStorePostgresTests`, the generated production-sized data on a throwaway `postgres:16` made from
+this branch's `db/schema.sql`):
+
+| Measure | Before (ck10) | Now |
+|---|---|---|
+| First build, 102 sets (the larger pattern sets of ck10-diet-coverage) | 46 to 55 s on ck10's sets | 128.5 s (foods 69.6, recipes 58.7) |
+| Whole cycle after a restart, nothing changed | 6.6 to 8.8 s (every recipe re-read by the matcher) | 2.8 s |
+| Whole cycle, nothing changed | — | 3.9 s |
+| One food changed (whole cycle) | 1.8 to 3.0 s | 1.9 s |
+| Cycle over the changes: 8 raw-SQL writes (order, insert, delete, servings, rename, alias) | — | 0.21 s, 2 foods and 18 recipes, 122 foods read |
+| Cycle over one line change, five times | — | 0.11 to 0.14 s; managed heap 259 -> 260 MiB |
+| Raw update of 200,086 lines' order, with and without the triggers | — | 3.26 s against 2.98 s |
+| Raw update of their `LastModifiedDate` only (nothing cleared) | — | 4.35 s against 3.45 s |
+
+The sweep stays as a backstop only (every table the gate reads has a trigger, the measurement table since review
+CK11-DM-4); at 900 s it reads the catalog four times an hour instead of twelve (and instead of every ~31 s while the
+API wrote). 900 s is the right interval: the sweep now catches only a write made with the triggers off, and raising it
+further gains little, since a whole cycle with nothing changed costs about 3 s.
 
 ## Golden set
 
@@ -800,3 +947,48 @@ Schema: six new tables in `plan` (`DietGateBuild`, `DietGateSet`, `DietFoodFact`
    superseded sets are gone.
 10. `ops/diet-gate-count.sql -v audit=1` is the crude-versus-rule audit of a rule change, as before (about 40 minutes,
    alone).
+
+### Every writer, every process (since `cleanup2/ck11-diet-moves`)
+
+Schema: the write log `plan."DietGateWrite"` (identity `Id`, `RecipeId`, `IngredientId`, `WrittenAt`, and since
+`cleanup2/ck12-links-small` the writer's transaction `Tx`), eleven functions
+in `plan` (`DietGateClearRecipes`, `DietGateClearFoods` and one per table, `DietGateStepsWritten` since the wave 21
+merge), twenty-two triggers (`DietGate*Inserted`,
+`*Updated`, `*Deleted`, `DietGateCriteriaWritten`, and `DietGateUnitsUpdated`/`DietGateUnitsDeleted` on
+`measurement."Measurement"`) and the table `recipe."RecipeNutritionCheck"`, all additive. On staging first:
+
+1. `./db/apply.sh --dry-run` shows exactly those: the two tables with their primary keys (the log's identity
+   sequence `DietGateWrite_Id_seq`), eleven `CREATE OR REPLACE FUNCTION`, and twenty-two `CREATE TRIGGER`. Apply; a second
+   dry run says nothing to do.
+2. Deploy. `DietGate__SweepSeconds` defaults to 900 (was 300); leave it unset. The cycle line now says `whole cycle`
+   or `changes cycle`.
+3. Run a raw-SQL line writer (the order-only pass, a rebuild apply, a re-check set) while sampling
+   `plan."DietRecipeState"` of the touched recipes: the states fall at the writer's commit (checkpoint 6 saw them never
+   fall), the recipes leave every restricted search at once, and a `changes cycle` line follows within 15 to 35 s
+   deciding them. `SELECT count(*) FROM plan."DietGateWrite"` rises at each commit and falls back to 0 after that
+   cycle. Then hold a raw writer's transaction open across a `changes cycle` line and commit after it: the next poll
+   runs another cycle that decides the written recipes (review CK11-DM-1). With `DietGate:Build=false` nothing reads
+   the log; that process trims it every `DietGate:SweepSeconds` of the rows older than `DietGate:WriteLogKeepSeconds`
+   (3600) and logs `Diet gate write log: N rows older than 3600 s removed`.
+3a. Since `cleanup2/ck12-links-small` (column `plan."DietGateWrite"."Tx"`, `xid8`, default `pg_current_xact_id()`; the
+   dry run shows one `ALTER TABLE ... ADD COLUMN`): commit a raw line write while a cycle is between reading and
+   storing (a long whole cycle after a restart is the easiest window). The cycle line says `1 written while read left
+   for the next cycle`, the recipe has no `plan."DietRecipeState"` row from that commit until the next `changes cycle`,
+   and it is held for every restricted search meanwhile. Since review ck12ls-r1 (column `plan."DietRecipeState"."ReadXmin"`,
+   `xid8`, and the index `IX_DietGateWrite_RecipeId`; the dry run shows one `ALTER TABLE ... ADD COLUMN` and one
+   `CREATE INDEX`): open a raw writer's transaction, write a line of a recipe that has no state, let a `changes cycle`
+   line pass (it decides the recipe from the older lines), then commit: the recipe leaves every restricted search at the
+   commit, although its `plan."DietRecipeState"` row is still there, and the next cycle stores it again.
+4. Writes of another process (`Nom.Import --admit`, the prepared-contents re-read): the same, without waiting for the
+   sweep.
+5. `relink/food?fromId=279327&toId=148&apply=false`: the 25 Franco-American lines held (`heldByDiet` 25, Nightshade
+   Sensitivity among the types), nothing written; `relink/wordings` dry run the same. The w01 round trip: no Soy Allergy
+   flag falls during the trip (139211, 139725 stay flagged). `GET proposals/290250/apply-preview`: not applied, the two
+   grape-tomato lines held or Nightshade in `raisedTypes`; approving it leaves it pending.
+6. The link re-check alcohol set dry run (`link-recheck/7`, signature moved): the brandy, rum and wine groups off Coffee
+   Cream Liqueur and the Madeira and sherry groups off Red Wine Vinegar are no longer `diet flags kept`; the liqueurs
+   (elderflower, Kahlúa, Grand Marnier) still are. "large chicken thighs" off Breaded Chicken Thighs moves.
+7. After a start, watch `recipe."RecipeNutrition"`: no rewrite storm (checkpoint 6: about 40,000 inserts a minute for
+   over an hour). The first sweep logs `N recipes recalculated, M unchanged by their inputs` with M large; later
+   sweeps find only recipes whose inputs changed. `docker stats`: the API's memory after the build and at rest, and
+   the count of `High memory usage detected` lines (at most one a minute).

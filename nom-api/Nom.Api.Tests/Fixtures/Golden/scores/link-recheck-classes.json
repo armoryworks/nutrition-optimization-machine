@@ -1,11 +1,11 @@
 {
-  "version": "link-recheck/7",
-  "decisionSignature": "1d60e5587f2b8867",
-  "caseSet": "434634a1392507d3",
-  "rows": 998,
+  "version": "link-recheck/8",
+  "decisionSignature": "c11f0b6fa6ec3570",
+  "caseSet": "a82db1e18a1f3b78",
+  "rows": 1068,
   "bar": 0.95,
   "minimum": 40,
-  "scoredAtUtc": "2026-11-24T02:23:56.2504717Z",
+  "scoredAtUtc": "2026-11-24T20:44:14.5576044Z",
   "classes": [
     {
       "class": "alcohol",
@@ -19,12 +19,12 @@
     },
     {
       "class": "compound",
-      "judged": 35,
-      "right": 23,
+      "judged": 36,
+      "right": 24,
       "agentJudged": 35,
       "agentRight": 23,
-      "ruleJudged": 0,
-      "ruleRight": 0,
+      "ruleJudged": 1,
+      "ruleRight": 1,
       "meetsBar": false
     },
     {
@@ -46,6 +46,16 @@
       "ruleJudged": 0,
       "ruleRight": 0,
       "meetsBar": false
+    },
+    {
+      "class": "free-of",
+      "judged": 48,
+      "right": 48,
+      "agentJudged": 48,
+      "agentRight": 48,
+      "ruleJudged": 0,
+      "ruleRight": 0,
+      "meetsBar": true
     },
     {
       "class": "fresh-herb",
@@ -150,6 +160,7 @@
   ],
   "proven": [
     "alcohol",
+    "free-of",
     "fresh-herb",
     "prepared"
   ]

@@ -413,5 +413,246 @@ namespace Nom.Api.Tests.Services.MealPlan
             typical.Empty.Should().BeLessThanOrEqualTo(noneEmpty.Median + TimeSpan.FromMilliseconds(100), "a restricted search is typically no slower than without one");
             slowestShuffle.Should().BeLessThan(TimeSpan.FromSeconds(1), "the gate's part of a shuffle answers under a second");
         }
+
+        private static async Task<long> ActiveBuildAsync()
+        {
+            await using (var db = NewContext())
+                if (await DietGateStore.ActiveBuildAsync(db) == null) await new DietGateStoreBuilder().RunAsync(db);
+            await using var connection = new NpgsqlConnection(ConnectionString);
+            await connection.OpenAsync();
+            return await ScalarAsync(connection, "SELECT max(\"Id\") FROM plan.\"DietGateBuild\" WHERE \"State\" = 'active'");
+        }
+
+        [DietStorePostgresFact]
+        [Trait("Category", "Performance")]
+        public async Task Every_writer_outside_ef_makes_what_it_touched_undecided_in_its_own_transaction_and_a_cycle_over_the_changes_decides_it_again()
+        {
+            await SeedAsync();
+            var builder = new DietGateStoreBuilder();
+            await using (var db = NewContext()) await builder.RunAsync(db);
+            var build = await ActiveBuildAsync();
+            await using var connection = new NpgsqlConnection(ConnectionString);
+            await connection.OpenAsync();
+            var ids = new List<long>();
+            await using (var command = new NpgsqlCommand("SELECT \"RecipeId\" FROM recipe.\"RecipeIngredient\" WHERE NOT \"IsDeleted\" GROUP BY \"RecipeId\" HAVING count(*) >= 2 ORDER BY \"RecipeId\" DESC LIMIT 8", connection))
+            await using (var reader = await command.ExecuteReaderAsync())
+                while (await reader.ReadAsync()) ids.Add(reader.GetInt64(0));
+            ids.Should().HaveCount(8);
+            Task<long> Decided(long recipe) => ScalarAsync(connection, $"SELECT count(*) FROM plan.\"DietRecipeState\" WHERE \"BuildId\" = {build} AND \"RecipeId\" = {recipe}");
+            Task<long> FoodDecided(long food) => ScalarAsync(connection, $"SELECT count(*) FROM plan.\"DietFoodState\" WHERE \"BuildId\" = {build} AND \"IngredientId\" = {food}");
+            Task<long> FoodOf(long recipe) => ScalarAsync(connection, $"SELECT min(\"IngredientId\") FROM recipe.\"RecipeIngredient\" WHERE \"RecipeId\" = {recipe} AND NOT \"IsDeleted\"");
+            foreach (var id in ids) (await Decided(id)).Should().Be(1);
+            await ExecAsync(connection, "DELETE FROM plan.\"DietGateWrite\"");
+            var renamed = await FoodOf(ids[6]);
+            var aliased = await FoodOf(ids[7]);
+
+            await ExecAsync(connection, $"UPDATE recipe.\"RecipeIngredient\" SET \"SortOrder\" = \"SortOrder\" + 1000 WHERE \"RecipeId\" = {ids[0]}");
+            await ExecAsync(connection, $"UPDATE recipe.\"RecipeIngredient\" SET \"LastModifiedDate\" = now() WHERE \"RecipeId\" = {ids[1]}");
+            await ExecAsync(connection, $"INSERT INTO recipe.\"RecipeIngredient\" (\"RecipeId\", \"IngredientId\", \"SortOrder\", \"Quantity\", \"MeasurementId\", \"RawLine\", \"CreatedDate\") SELECT \"RecipeId\", \"IngredientId\", 9999, 1, \"MeasurementId\", 'ck11 line', now() FROM recipe.\"RecipeIngredient\" WHERE \"RecipeId\" = {ids[2]} LIMIT 1");
+            await ExecAsync(connection, $"DELETE FROM recipe.\"RecipeIngredient\" WHERE \"RecipeId\" = {ids[3]} AND \"SortOrder\" = (SELECT max(\"SortOrder\") FROM recipe.\"RecipeIngredient\" WHERE \"RecipeId\" = {ids[3]})");
+            await ExecAsync(connection, $"UPDATE recipe.\"Recipe\" SET \"Servings\" = coalesce(\"Servings\", 1) + 1 WHERE \"Id\" = {ids[4]}");
+            await ExecAsync(connection, $"UPDATE recipe.\"Recipe\" SET \"Name\" = \"Name\" WHERE \"Id\" = {ids[5]}");
+            await ExecAsync(connection, $"UPDATE recipe.\"Ingredient\" SET \"Name\" = \"Name\" || ' ck11' WHERE \"Id\" = {renamed}");
+            await ExecAsync(connection, $"INSERT INTO recipe.\"IngredientAlias\" (\"IngredientId\", \"AliasName\", \"SourceContext\", \"CreatedDate\") VALUES ({aliased}, 'ck11 alias', 'admin:1', now())");
+
+            (await Decided(ids[0])).Should().Be(0, "an order-only pass by raw SQL makes its recipes undecided");
+            (await Decided(ids[1])).Should().Be(1, "a write that changes nothing the gate reads leaves the state");
+            (await Decided(ids[2])).Should().Be(0, "an inserted line");
+            (await Decided(ids[3])).Should().Be(0, "a deleted line");
+            (await Decided(ids[4])).Should().Be(0, "changed servings");
+            (await Decided(ids[5])).Should().Be(1, "a recipe column the gate does not read");
+            (await FoodDecided(renamed)).Should().Be(0, "a renamed food");
+            (await Decided(ids[6])).Should().Be(0, "a recipe on the renamed food");
+            (await FoodDecided(aliased)).Should().Be(0, "a food that gained an alias");
+
+            await using (var transaction = await connection.BeginTransactionAsync())
+            {
+                await using (var command = new NpgsqlCommand($"UPDATE recipe.\"RecipeIngredient\" SET \"Quantity\" = \"Quantity\" + 1 WHERE \"RecipeId\" = {ids[1]}", connection, transaction))
+                    await command.ExecuteNonQueryAsync();
+                await using (var command = new NpgsqlCommand($"SELECT count(*) FROM plan.\"DietRecipeState\" WHERE \"BuildId\" = {build} AND \"RecipeId\" = {ids[1]}", connection, transaction))
+                    Convert.ToInt64(await command.ExecuteScalarAsync()).Should().Be(0, "the writer's own transaction already sees the recipe undecided");
+                await transaction.RollbackAsync();
+            }
+            (await Decided(ids[1])).Should().Be(1, "a write rolled back takes its clearing with it");
+            (await ScalarAsync(connection, "SELECT count(*) FROM plan.\"DietGateWrite\"")).Should().BeGreaterThan(0, "the committed writes are logged for every process's build job to see");
+
+            DietGateStoreBuilder.CycleReport changes;
+            await using (var db = NewContext()) changes = await builder.RunChangesAsync(db);
+            _output.WriteLine($"cycle over the changes: {changes.Seconds:F2} s, {changes.FoodsDecided} foods and {changes.RecipesDecided} recipes decided, {changes.Foods:N0} foods read");
+            changes.FoodsDecided.Should().Be(2);
+            changes.Foods.Should().BeLessThan(FoodCount / 10, "a cycle over the changes reads the foods it decides and those of its recipes, not the catalog");
+            foreach (var id in ids) (await Decided(id)).Should().Be(1);
+            (await FoodDecided(renamed)).Should().Be(1);
+            (await FoodDecided(aliased)).Should().Be(1);
+            DietGateStoreBuilder.CycleReport idle;
+            await using (var db = NewContext()) idle = await builder.RunChangesAsync(db);
+            (idle.FoodsDecided, idle.RecipesDecided).Should().Be((0, 0));
+
+            var line = await ScalarAsync(connection, $"SELECT min(\"SortOrder\") FROM recipe.\"RecipeIngredient\" WHERE \"RecipeId\" = {ids[5]} AND NOT \"IsDeleted\"");
+            var unitWas = await ScalarAsync(connection, $"SELECT \"MeasurementId\" FROM recipe.\"RecipeIngredient\" WHERE \"RecipeId\" = {ids[5]} AND \"SortOrder\" = {line}");
+            var unit = await ScalarAsync(connection, "SELECT max(\"Id\") + 1 FROM measurement.\"Measurement\"");
+            await ExecAsync(connection, $"INSERT INTO measurement.\"Measurement\" (\"Id\", \"Name\", \"Symbol\", \"MeasurementCategoryId\", \"IsBaseUnit\", \"BaseUnitConversionFactor\", \"IsContainer\", \"MeasurementType\", \"CreatedDate\") SELECT {unit}, 'ck11 unit', \"Symbol\", \"MeasurementCategoryId\", false, \"BaseUnitConversionFactor\", \"IsContainer\", \"MeasurementType\", now() FROM measurement.\"Measurement\" WHERE \"Id\" = {unitWas}");
+            await ExecAsync(connection, $"UPDATE recipe.\"RecipeIngredient\" SET \"MeasurementId\" = {unit} WHERE \"RecipeId\" = {ids[5]} AND \"SortOrder\" = {line}");
+            await using (var db = NewContext()) await builder.RunChangesAsync(db);
+            (await Decided(ids[5])).Should().Be(1);
+            await ExecAsync(connection, $"UPDATE measurement.\"Measurement\" SET \"BaseUnitConversionFactor\" = coalesce(\"BaseUnitConversionFactor\", 1) * 2 WHERE \"Id\" = {unit}");
+            (await Decided(ids[5])).Should().Be(0, "a unit's factor weighs a drink's retained alcohol, so a recipe with a line in it is undecided when it changes (review CK11-DM-4)");
+            await ExecAsync(connection, $"UPDATE measurement.\"Measurement\" SET \"Notes\" = 'ck11' WHERE \"Id\" = {unit}");
+            await using (var db = NewContext()) await builder.RunChangesAsync(db);
+            (await Decided(ids[5])).Should().Be(1);
+            await ExecAsync(connection, $"UPDATE measurement.\"Measurement\" SET \"Notes\" = NULL WHERE \"Id\" = {unit}");
+            (await Decided(ids[5])).Should().Be(1, "a unit column the gate does not read leaves the state");
+            await ExecAsync(connection, $"UPDATE recipe.\"RecipeIngredient\" SET \"MeasurementId\" = {unitWas} WHERE \"RecipeId\" = {ids[5]} AND \"SortOrder\" = {line}");
+            await ExecAsync(connection, $"DELETE FROM measurement.\"Measurement\" WHERE \"Id\" = {unit}");
+
+            await ExecAsync(connection, $"UPDATE recipe.\"RecipeIngredient\" SET \"SortOrder\" = \"SortOrder\" - 1000 WHERE \"RecipeId\" = {ids[0]}");
+            await ExecAsync(connection, $"DELETE FROM recipe.\"RecipeIngredient\" WHERE \"RecipeId\" = {ids[2]} AND \"SortOrder\" = 9999");
+            await ExecAsync(connection, $"UPDATE recipe.\"Recipe\" SET \"Servings\" = \"Servings\" - 1 WHERE \"Id\" = {ids[4]}");
+            await ExecAsync(connection, $"UPDATE recipe.\"Ingredient\" SET \"Name\" = left(\"Name\", length(\"Name\") - 5) WHERE \"Id\" = {renamed}");
+            await ExecAsync(connection, $"DELETE FROM recipe.\"IngredientAlias\" WHERE \"IngredientId\" = {aliased} AND \"AliasName\" = 'ck11 alias'");
+            await using (var db = NewContext()) await builder.RunChangesAsync(db);
+        }
+
+        [DietStorePostgresFact]
+        [Trait("Category", "Performance")]
+        public async Task A_writer_that_commits_between_a_cycles_reading_and_its_writing_leaves_its_recipe_undecided_not_served_from_the_older_lines()
+        {
+            await SeedAsync();
+            await ActiveBuildAsync();
+            var builder = new DietGateStoreBuilder();
+            await using (var db = NewContext()) await builder.RunAsync(db);
+            await using var connection = new NpgsqlConnection(ConnectionString);
+            await connection.OpenAsync();
+            var recipe = await ScalarAsync(connection, "SELECT max(\"RecipeId\") FROM recipe.\"RecipeIngredient\" WHERE NOT \"IsDeleted\"");
+            var other = await ScalarAsync(connection, $"SELECT max(\"RecipeId\") FROM recipe.\"RecipeIngredient\" WHERE NOT \"IsDeleted\" AND \"RecipeId\" < {recipe}");
+            Task<long> Decided(long id) => ScalarAsync(connection, $"SELECT count(*) FROM plan.\"DietRecipeState\" s JOIN plan.\"DietGateBuild\" b ON b.\"Id\" = s.\"BuildId\" WHERE b.\"State\" = 'active' AND s.\"RecipeId\" = {id}");
+            await ExecAsync(connection, $"UPDATE recipe.\"RecipeIngredient\" SET \"RawLine\" = \"RawLine\" || ' ' WHERE \"RecipeId\" IN ({recipe}, {other})");
+
+            builder.AfterLinesRead = async ct =>
+            {
+                await using var writer = new NpgsqlConnection(ConnectionString);
+                await writer.OpenAsync(ct);
+                await ExecAsync(writer, $"UPDATE recipe.\"RecipeIngredient\" SET \"RawLine\" = \"RawLine\" || 'y' WHERE \"RecipeId\" = {recipe}");
+            };
+            DietGateStoreBuilder.CycleReport raced;
+            await using (var db = NewContext()) raced = await builder.RunChangesAsync(db);
+            builder.AfterLinesRead = null;
+
+            (raced.RecipesDecided, raced.RecipesLate).Should().Be((1, 1), "the other recipe is stored; the one the writer committed after the cycle read its lines is not");
+            (await Decided(other)).Should().Be(1);
+            (await Decided(recipe)).Should().Be(0, "the trigger removed its state at the writer's commit, and the cycle's statement that stores the states saw the write in the log and did not store the verdict made from the older lines");
+            DietGateStoreBuilder.CycleReport next;
+            await using (var db = NewContext()) next = await builder.RunChangesAsync(db);
+            (next.RecipesDecided, next.RecipesLate).Should().Be((1, 0));
+            (await Decided(recipe)).Should().Be(1);
+            (await ScalarAsync(connection, "SELECT count(*) FROM plan.\"DietGateWrite\"")).Should().Be(0);
+
+            await ExecAsync(connection, $"UPDATE recipe.\"RecipeIngredient\" SET \"RawLine\" = left(\"RawLine\", length(\"RawLine\") - 2) WHERE \"RecipeId\" = {recipe}");
+            await ExecAsync(connection, $"UPDATE recipe.\"RecipeIngredient\" SET \"RawLine\" = left(\"RawLine\", length(\"RawLine\") - 1) WHERE \"RecipeId\" = {other}");
+            await using (var db = NewContext()) await builder.RunChangesAsync(db);
+        }
+
+        [DietStorePostgresFact]
+        [Trait("Category", "Performance")]
+        public async Task A_writer_whose_transaction_stays_open_across_the_cycles_writing_makes_the_stored_verdict_stand_no_longer_from_its_commit()
+        {
+            await SeedAsync();
+            await ActiveBuildAsync();
+            var builder = new DietGateStoreBuilder();
+            await using (var db = NewContext()) await builder.RunAsync(db);
+            await using var connection = new NpgsqlConnection(ConnectionString);
+            await connection.OpenAsync();
+            var recipe = await ScalarAsync(connection, "SELECT max(\"RecipeId\") FROM recipe.\"RecipeIngredient\" WHERE NOT \"IsDeleted\"");
+            async Task<(bool Stored, bool Standing)> StateAsync()
+            {
+                await using var db = NewContext();
+                var build = (await DietGateStore.ActiveBuildAsync(db))!.Value;
+                return (await db.DietRecipeStates.AnyAsync(s => s.BuildId == build && s.RecipeId == recipe),
+                    await db.DietRecipeStates.Standing(db).AnyAsync(s => s.BuildId == build && s.RecipeId == recipe));
+            }
+            await ExecAsync(connection, $"UPDATE recipe.\"RecipeIngredient\" SET \"RawLine\" = \"RawLine\" || ' ' WHERE \"RecipeId\" = {recipe}");
+
+            await using var writer = new NpgsqlConnection(ConnectionString);
+            await writer.OpenAsync();
+            NpgsqlTransaction? open = null;
+            builder.AfterLinesRead = async ct =>
+            {
+                open = await writer.BeginTransactionAsync(ct);
+                await using var command = new NpgsqlCommand($"UPDATE recipe.\"RecipeIngredient\" SET \"RawLine\" = \"RawLine\" || 'z' WHERE \"RecipeId\" = {recipe}", writer, open);
+                await command.ExecuteNonQueryAsync(ct);
+            };
+            DietGateStoreBuilder.CycleReport raced;
+            await using (var db = NewContext()) raced = await builder.RunChangesAsync(db);
+            builder.AfterLinesRead = null;
+            (raced.RecipesDecided, raced.RecipesLate).Should().Be((1, 0), "the write is not committed when the cycle stores the state, so neither its trigger nor the storing statement can see the other");
+            (await StateAsync()).Should().Be((true, true), "until the write commits the stored verdict agrees with every committed line");
+
+            await open!.CommitAsync();
+            await open.DisposeAsync();
+            (await StateAsync()).Should().Be((true, false), "from the writer's commit its row in the write log is newer than the transactions the cycle's reading could see, so the recipe is held as undecided at once, not for the 15 to 35 s until the next cycle (review ck12ls-r1)");
+            await using (var db = NewContext()) (await builder.RunChangesAsync(db)).RecipesDecided.Should().Be(1);
+            (await StateAsync()).Should().Be((true, true));
+            (await ScalarAsync(connection, "SELECT count(*) FROM plan.\"DietGateWrite\"")).Should().Be(0);
+
+            await ExecAsync(connection, $"UPDATE recipe.\"RecipeIngredient\" SET \"RawLine\" = left(\"RawLine\", length(\"RawLine\") - 2) WHERE \"RecipeId\" = {recipe}");
+            await using (var db = NewContext()) await builder.RunChangesAsync(db);
+        }
+
+        [DietStorePostgresFact]
+        [Trait("Category", "Performance")]
+        public async Task A_line_written_while_a_cycle_reads_is_decided_again_by_the_next_cycle_and_a_cycle_over_one_change_holds_no_catalog()
+        {
+            await SeedAsync();
+            await ActiveBuildAsync();
+            var builder = new DietGateStoreBuilder();
+            DietGateStoreBuilder.CycleReport whole;
+            await using (var db = NewContext()) whole = await builder.RunAsync(db);
+            _output.WriteLine($"whole cycle, nothing changed: {whole.Seconds:F1} s");
+            await using var connection = new NpgsqlConnection(ConnectionString);
+            await connection.OpenAsync();
+            var recipe = await ScalarAsync(connection, "SELECT max(\"RecipeId\") FROM recipe.\"RecipeIngredient\" WHERE NOT \"IsDeleted\"");
+            var other = await ScalarAsync(connection, $"SELECT max(\"RecipeId\") FROM recipe.\"RecipeIngredient\" WHERE NOT \"IsDeleted\" AND \"RecipeId\" < {recipe}");
+            Task<long> Decided(long id) => ScalarAsync(connection, $"SELECT count(*) FROM plan.\"DietRecipeState\" s JOIN plan.\"DietGateBuild\" b ON b.\"Id\" = s.\"BuildId\" WHERE b.\"State\" = 'active' AND s.\"RecipeId\" = {id}");
+            Task<bool> Pending() => ScalarAsync(connection, "SELECT count(*) FROM plan.\"DietGateWrite\"").ContinueWith(t => t.Result > 0);
+            await ExecAsync(connection, $"UPDATE recipe.\"RecipeIngredient\" SET \"RawLine\" = \"RawLine\" || ' ' WHERE \"RecipeId\" = {recipe}");
+
+            await using (var writer = new NpgsqlConnection(ConnectionString))
+            {
+                await writer.OpenAsync();
+                await using var transaction = await writer.BeginTransactionAsync();
+                await using (var command = new NpgsqlCommand($"UPDATE recipe.\"RecipeIngredient\" SET \"RawLine\" = \"RawLine\" || 'x' WHERE \"RecipeId\" IN ({recipe}, {other})", writer, transaction))
+                    await command.ExecuteNonQueryAsync();
+                DietGateStoreBuilder.CycleReport raced;
+                await using (var db = NewContext()) raced = await builder.RunChangesAsync(db);
+                raced.RecipesDecided.Should().Be(1, "the cycle decides the undecided recipe from the lines committed before the open write");
+                (await Decided(other)).Should().Be(1, "the open write's removal of the other recipe's state is not committed yet");
+                await transaction.CommitAsync();
+            }
+            (await Decided(other)).Should().Be(0, "the writer's commit makes the other recipe undecided");
+            (await Pending()).Should().BeTrue("a write that commits after a cycle read the log is still there for the next poll, which a sequence moved before the commit did not give (review CK11-DM-1)");
+            DietGateStoreBuilder.CycleReport next;
+            await using (var db = NewContext()) next = await builder.RunChangesAsync(db);
+            next.RecipesDecided.Should().Be(2, "the next cycle decides the recipe whose state was built from the lines before the commit, and the one the commit left undecided");
+            (await Decided(recipe), await Decided(other)).Should().Be((1, 1));
+            (await Pending()).Should().BeFalse();
+
+            GC.Collect();
+            GC.WaitForPendingFinalizers();
+            var before = GC.GetTotalMemory(true);
+            var seconds = new List<double>();
+            for (var i = 0; i < 5; i++)
+            {
+                await ExecAsync(connection, $"UPDATE recipe.\"RecipeIngredient\" SET \"Quantity\" = \"Quantity\" + 1 WHERE \"RecipeId\" = {recipe}");
+                await using var db = NewContext();
+                seconds.Add((await builder.RunChangesAsync(db)).Seconds);
+            }
+            var after = GC.GetTotalMemory(true);
+            _output.WriteLine($"cycles over one change: {string.Join(", ", seconds.Select(s => s.ToString("F2", System.Globalization.CultureInfo.InvariantCulture)))} s; managed heap {before / 1048576.0:F0} MiB before, {after / 1048576.0:F0} MiB after");
+            seconds.Max().Should().BeLessThan(10, "a cycle over one change reads that change alone");
+            (after - before).Should().BeLessThan(64L * 1024 * 1024, "the build job keeps no reading of every recipe between cycles");
+            await ExecAsync(connection, $"UPDATE recipe.\"RecipeIngredient\" SET \"Quantity\" = \"Quantity\" - 5, \"RawLine\" = left(\"RawLine\", length(\"RawLine\") - 2) WHERE \"RecipeId\" = {recipe}");
+            await ExecAsync(connection, $"UPDATE recipe.\"RecipeIngredient\" SET \"RawLine\" = left(\"RawLine\", length(\"RawLine\") - 1) WHERE \"RecipeId\" = {other}");
+            await using (var db = NewContext()) await builder.RunChangesAsync(db);
+        }
     }
 }

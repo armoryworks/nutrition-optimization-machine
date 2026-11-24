@@ -26,10 +26,11 @@ namespace Nom.Api.Tests.Golden
 {
     /// <summary>
     /// The guard of staging checkpoint 4, P19, against recheck-diet.tsv: each row is one recipe line on a USDA prepared
-    /// food the prepared set takes lines off, run through <see cref="LinkRecheckService"/> with every default restriction
-    /// type on its own household. No re-check take-back may lower a recipe's diet flag for any type unless its wording
-    /// reads as label language of known contents (a composite row or a single food of the cited table); a wording of
-    /// unknown contents that would lower one keeps its line where it is.
+    /// food the prepared set takes lines off, or a drink line on a food the alcohol set takes it off, run through
+    /// <see cref="LinkRecheckService"/> with every default restriction type on its own household. No re-check take-back may
+    /// lower a recipe's diet flag for any type unless its wording reads as label language of known contents (a composite
+    /// row or a single food of the cited table) or as a plain drink, whose own name keeps the drink's flags (staging
+    /// checkpoint 6, R16); a wording of unknown contents that would lower one keeps its line where it is.
     /// </summary>
     [Trait("Category", "Golden")]
     public class GoldenRecheckDietTests
@@ -68,7 +69,7 @@ namespace Nom.Api.Tests.Golden
                 .UseInMemoryDatabase(Guid.NewGuid().ToString())
                 .ConfigureWarnings(w => w.Ignore(InMemoryEventId.TransactionIgnoredWarning))
                 .Options);
-            LinkRecheckClassBarTests.Qualify(db, LinkGate.Prepared);
+            LinkRecheckClassBarTests.Qualify(db, LinkGate.Prepared, LinkRecheckRules.AlcoholClass);
             var households = new Dictionary<string, long>(StringComparer.Ordinal);
             var id = 67000L;
             foreach (var type in DefaultRestrictionCriteria.ByName.Keys.OrderBy(t => t, StringComparer.Ordinal))
@@ -90,7 +91,8 @@ namespace Nom.Api.Tests.Golden
                 {
                     food = new IngredientEntity
                     {
-                        Name = row["food"], CurationStatusId = (long)CurationStatusEnum.PendingCuration, FdcId = row["fdcId"], FdcDataType = CatalogAdmissionRule.SrLegacyFood,
+                        Name = row["food"], FdcId = row["fdcId"], FdcDataType = CatalogAdmissionRule.SrLegacyFood,
+                        CurationStatusId = PreparedFoods.IsPrepared(int.Parse(row["category"]), CatalogAdmissionRule.SrLegacyFood, null) ? (long)CurationStatusEnum.PendingCuration : (long)CurationStatusEnum.Curated,
                         FdcCategoryId = int.Parse(row["category"]),
                         IngredientNutrients = new List<IngredientNutrientEntity> { new() { NutrientId = 1, Amount = 1 } },
                     };
@@ -114,6 +116,8 @@ namespace Nom.Api.Tests.Golden
                 new LaneFrameService(db, Array.Empty<ILaneUndo>(), NullLogger<LaneFrameService>.Instance), NullLogger<LinkRecheckService>.Instance);
             var run = await service.RunAsync(LinkRecheckRules.Prepared, apply: true);
             run.Should().NotBeNull();
+            var drinks = await service.RunAsync(LinkRecheckRules.Alcohol, apply: true);
+            drinks.Should().NotBeNull();
             db.ChangeTracker.Clear();
             var after = await FlagsAsync(db, households);
             var on = (await db.RecipeIngredients.AsNoTracking().Select(ri => new { ri.RecipeId, ri.IngredientId }).ToListAsync()).ToDictionary(l => l.RecipeId, l => l.IngredientId);
@@ -131,6 +135,7 @@ namespace Nom.Api.Tests.Golden
                     "held" => !left,
                     "kept" => left && lowered.Count == 0,
                     "known" => left && (lowered.Count == 0 || RecheckDietGuard.Known(Wording(row.Id))),
+                    "drink" => left && (lowered.Count == 0 || RecheckDietGuard.ReadsAsDrink(Wording(row.Id))),
                     _ => false,
                 };
                 return new GoldenOutcome(pass, row["expect"], actual + (lowered.Count > 0 ? " (lowered: " + string.Join(", ", lowered) + ")" : string.Empty), new Dictionary<string, string>());
@@ -140,10 +145,10 @@ namespace Nom.Api.Tests.Golden
 
             var dropped = rows.Where(r => on[recipes[r.Id].Id] != foods[r["food"]].Id)
                 .SelectMany(r => households.Keys.Where(t => before[t].Contains(recipes[r.Id].Id) && !after[t].Contains(recipes[r.Id].Id)).Select(t => (Row: r, Type: t)))
-                .Where(x => !RecheckDietGuard.Known(Wording(x.Row.Id)))
+                .Where(x => !RecheckDietGuard.Known(Wording(x.Row.Id)) && !RecheckDietGuard.ReadsAsDrink(Wording(x.Row.Id)))
                 .Select(x => $"{x.Row.Id} {x.Row["line"]}: {x.Type}");
-            dropped.Should().BeEmpty("a take-back to a wording of unknown contents never lowers a recipe's diet flag");
-            run!.Held.Should().Be(rows.Count(r => r["expect"] == "held"));
+            dropped.Should().BeEmpty("a take-back to a wording of unknown contents that is not a plain drink never lowers a recipe's diet flag");
+            (run!.Held + drinks!.Held).Should().Be(rows.Count(r => r["expect"] == "held"));
         }
     }
 }

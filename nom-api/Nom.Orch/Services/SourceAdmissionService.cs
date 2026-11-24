@@ -71,29 +71,7 @@ namespace Nom.Orch.Services
         {
             await ExpireStaleAsync(cancellationToken);
             await SourceRightsService.ApplyRecordsAsync(_db, Now(), cancellationToken);
-            var seeds = await _db.ScrapingSources
-                .Where(s => s.Status == ScrapingSourceStatusEnum.Approved && s.Kind == ScrapingSourceEntity.WebKind && s.HarvestPausedAt == null)
-                .OrderBy(s => s.LastDiscoveredUtc ?? DateTime.MinValue).ThenBy(s => s.Id)
-                .ToListAsync(cancellationToken);
-            var unclassed = seeds.Count(s => s.RightsClass == null);
-            var factsOnlyUnapproved = seeds.Count(s => SourceRightsService.EffectiveClass(s) == SourceRightsRule.FactsOnly && s.FactsOnlyApprovedAt == null);
-            seeds = _rights.Enforce ? seeds.Where(SourceRightsService.MayFetch).ToList() : seeds.Where(s => !SourceRightsService.HeldByHand(s)).ToList();
-            var refusing = await HeldRefusingHostsAsync(cancellationToken);
-            var refusingSeeds = seeds.Select(s => SourceAdmissionPolicy.NormalizeDomain(s.Domain)).Where(d => d != null && SourceDiscoveryExclusion.Covers(refusing, d)).Select(d => d!)
-                .Distinct(StringComparer.Ordinal).ToList();
-            seeds = seeds.Where(s => !refusingSeeds.Contains(SourceAdmissionPolicy.NormalizeDomain(s.Domain) ?? s.Domain)).ToList();
-            if (!_settings.FullChecks) seeds.Clear();
-            var exclusion = seeds.Count == 0 ? SourceDiscoveryExclusion.Build(Array.Empty<(string, string, DateTime)>(), null) : await ExclusionAsync(seeds, cancellationToken);
-            var seedHosts = seeds
-                .Select(s => SourceAdmissionPolicy.NormalizeDomain(s.Domain))
-                .Where(d => d != null).Select(d => d!)
-                .Distinct(StringComparer.Ordinal)
-                .ToList();
-            var heldBack = seedHosts.Where(exclusion.Covers).ToList();
-            var seedDomains = seedHosts
-                .Where(d => !heldBack.Contains(d))
-                .Take(Math.Clamp(_settings.SeedsPerRun, 1, 20))
-                .ToList();
+            var (seeds, refusingSeeds, exclusion, heldBack, seedDomains, why) = await PlanDiscoveryAsync(cancellationToken);
 
             var run = new SourceDiscoveryRunEntity
             {
@@ -118,25 +96,15 @@ namespace Nom.Orch.Services
 
             run.ExcludeNote = Clip(notes.Count == 0 ? null : string.Join("; ", notes), 1023);
 
-            if (seedDomains.Count == 0)
+            if (why != null)
             {
-                var why = !_settings.FullChecks
-                    ? "Full checks are held (SourceDiscovery:FullChecks off): discovery reads each seed's sitemap and recipe pages and probes the sites it links to, so it waits, like the full checks, until the terms-only pass has been reviewed."
-                    : heldBack.Count > 0
-                    ? $"Every seed that may be fetched is also held as excluded ({string.Join(", ", heldBack)}), so none was sent."
-                    : refusingSeeds.Count > 0
-                    ? $"Every seed that may be fetched refused an earlier discovery run ({string.Join(", ", refusingSeeds)}) and is held until an admin looks at the refusal."
-                    : _rights.Enforce && unclassed + factsOnlyUnapproved > 0
-                    ? $"No approved web source may seed discovery yet: a seed must be one that may be fetched (clear, a recorded permission, or facts-only with facts-only use approved by an admin); {unclassed} approved web source(s) have no class yet and are classed by their terms-only check first, and {factsOnlyUnapproved} are facts-only and wait for an admin to approve facts-only use."
-                    : "No approved web source to seed from.";
                 return await EndRunAsync(run, SourceDiscoveryRunEntity.Skipped, null, why, null, cancellationToken);
             }
 
             if (exclusion.TooManyBarred)
             {
                 _logger.LogError("Source discovery does not run: NOM holds {Barred} forbidden or permission-needed hosts, more than the scraper's {Max} excludeDomains, and none may be dropped", exclusion.Barred, SourceDiscoveryExclusion.MaxEntries);
-                return await EndRunAsync(run, SourceDiscoveryRunEntity.Failed, null,
-                    $"NOM holds {exclusion.Barred} forbidden or permission-needed hosts, more than the {SourceDiscoveryExclusion.MaxEntries} excludeDomains the scraper takes; discovery does not run without every one of them excluded.", null, cancellationToken);
+                return await EndRunAsync(run, SourceDiscoveryRunEntity.Failed, null, TooManyBarred(exclusion), null, cancellationToken);
             }
 
             run.ExcludeSent = exclusion.Entries.Count;
@@ -222,6 +190,118 @@ namespace Nom.Orch.Services
                 ScraperJob.Partial => await EndRunAsync(run, SourceDiscoveryRunEntity.Partial, job.StopReason, null, result, cancellationToken),
                 _ => await EndRunAsync(run, SourceDiscoveryRunEntity.Failed, job.StopReason, job.Error ?? $"The discovery job ended {job.Status}.", result, cancellationToken),
             };
+        }
+
+        /// <summary>
+        /// What the next discovery run sends: the seeds (approved web sources that may be fetched, not paused, not held as a
+        /// refusing host, not held back by the exclusion list), the seeds held as refusing hosts, the exclusion list, and why
+        /// the run is skipped when no seed is left. Reads only.
+        /// </summary>
+        private async Task<(List<ScrapingSourceEntity> Seeds, List<string> RefusingSeeds, SourceDiscoveryExclusionList Exclusion, List<string> HeldBack, List<string> SeedDomains, string? Why)> PlanDiscoveryAsync(CancellationToken cancellationToken)
+        {
+            var seeds = await _db.ScrapingSources
+                .Where(s => s.Status == ScrapingSourceStatusEnum.Approved && s.Kind == ScrapingSourceEntity.WebKind && s.HarvestPausedAt == null)
+                .OrderBy(s => s.LastDiscoveredUtc ?? DateTime.MinValue).ThenBy(s => s.Id)
+                .ToListAsync(cancellationToken);
+            var unclassed = seeds.Count(s => s.RightsClass == null);
+            var factsOnlyUnapproved = seeds.Count(s => SourceRightsService.EffectiveClass(s) == SourceRightsRule.FactsOnly && s.FactsOnlyApprovedAt == null);
+            seeds = _rights.Enforce ? seeds.Where(SourceRightsService.MayFetch).ToList() : seeds.Where(s => !SourceRightsService.HeldByHand(s)).ToList();
+            var refusing = await HeldRefusingHostsAsync(cancellationToken);
+            var refusingSeeds = seeds.Select(s => SourceAdmissionPolicy.NormalizeDomain(s.Domain)).Where(d => d != null && SourceDiscoveryExclusion.Covers(refusing, d)).Select(d => d!)
+                .Distinct(StringComparer.Ordinal).ToList();
+            seeds = seeds.Where(s => !refusingSeeds.Contains(SourceAdmissionPolicy.NormalizeDomain(s.Domain) ?? s.Domain)).ToList();
+            if (!_settings.FullChecks) seeds.Clear();
+            var exclusion = seeds.Count == 0 ? SourceDiscoveryExclusion.Build(Array.Empty<(string, string, DateTime)>(), null) : await ExclusionAsync(seeds, cancellationToken);
+            var seedHosts = seeds
+                .Select(s => SourceAdmissionPolicy.NormalizeDomain(s.Domain))
+                .Where(d => d != null).Select(d => d!)
+                .Distinct(StringComparer.Ordinal)
+                .ToList();
+            var heldBack = seedHosts.Where(exclusion.Covers).ToList();
+            var seedDomains = seedHosts
+                .Where(d => !heldBack.Contains(d))
+                .Take(Math.Clamp(_settings.SeedsPerRun, 1, 20))
+                .ToList();
+            var why = seedDomains.Count > 0
+                ? null
+                : !_settings.FullChecks
+                ? "Full checks are held (SourceDiscovery:FullChecks off): discovery reads each seed's sitemap and recipe pages and probes the sites it links to, so it waits, like the full checks, until the terms-only pass has been reviewed."
+                : heldBack.Count > 0
+                ? $"Every seed that may be fetched is also held as excluded ({string.Join(", ", heldBack)}), so none was sent."
+                : refusingSeeds.Count > 0
+                ? $"Every seed that may be fetched refused an earlier discovery run ({string.Join(", ", refusingSeeds)}) and is held until an admin looks at the refusal."
+                : _rights.Enforce && unclassed + factsOnlyUnapproved > 0
+                ? $"No approved web source may seed discovery yet: a seed must be one that may be fetched (clear, a recorded permission, or facts-only with facts-only use approved by an admin); {unclassed} approved web source(s) have no class yet and are classed by their terms-only check first, and {factsOnlyUnapproved} are facts-only and wait for an admin to approve facts-only use."
+                : "No approved web source to seed from.";
+            return (seeds, refusingSeeds, exclusion, heldBack, seedDomains, why);
+        }
+
+        private static string TooManyBarred(SourceDiscoveryExclusionList exclusion) =>
+            $"NOM holds {exclusion.Barred} forbidden or permission-needed hosts, more than the {SourceDiscoveryExclusion.MaxEntries} excludeDomains the scraper takes; discovery does not run without every one of them excluded.";
+
+        public async Task<SourceDiscoveryPreviewModel> PreviewDiscoveryAsync(CancellationToken cancellationToken = default)
+        {
+            _db.ChangeTracker.Clear();
+            int recordsApplied;
+            (List<ScrapingSourceEntity> Seeds, List<string> RefusingSeeds, SourceDiscoveryExclusionList Exclusion, List<string> HeldBack, List<string> SeedDomains, string? Why) plan;
+            try
+            {
+                using (_db.HoldWrites())
+                {
+                    recordsApplied = await SourceRightsService.ApplyRecordsAsync(_db, Now(), cancellationToken, syncRecipes: false);
+                    plan = await PlanDiscoveryAsync(cancellationToken);
+                }
+            }
+            finally
+            {
+                _db.ChangeTracker.Clear();
+            }
+
+            return new SourceDiscoveryPreviewModel
+            {
+                Enabled = _settings.Enabled,
+                FullChecks = _settings.FullChecks,
+                NextRunDueUtc = await NextDiscoveryDueUtcAsync(cancellationToken) is { } due && due > Now() ? due : null,
+                RecordsApplied = recordsApplied,
+                Seeds = plan.SeedDomains,
+                SeedsHeldRefusing = plan.RefusingSeeds,
+                SeedsHeldBack = plan.HeldBack,
+                ExcludeDomains = plan.Exclusion.Entries.ToList(),
+                ExcludeLeftOut = plan.Exclusion.LeftOut.Count,
+                RefusingHeld = (await HeldRefusingHostsAsync(cancellationToken)).OrderBy(h => h, StringComparer.Ordinal).ToList(),
+                Skipped = plan.Why,
+                Fails = plan.Why == null && plan.Exclusion.TooManyBarred ? TooManyBarred(plan.Exclusion) : null,
+            };
+        }
+
+        public async Task<DateTime?> NextDiscoveryDueUtcAsync(CancellationToken cancellationToken = default)
+        {
+            var last = await _db.SourceDiscoveryRuns.AsNoTracking()
+                .Where(r => r.JobId != null)
+                .OrderByDescending(r => r.StartedUtc)
+                .Select(r => (DateTime?)r.StartedUtc)
+                .FirstOrDefaultAsync(cancellationToken);
+            return last?.AddHours(Math.Max(1, _settings.IntervalHours));
+        }
+
+        public async Task<SourceDiscoveryNowResult> RunDiscoveryNowAsync(long personId, CancellationToken cancellationToken = default)
+        {
+            if (!_settings.Enabled)
+                return new SourceDiscoveryNowResult { Refused = "The source lane is off (SourceDiscovery:Enabled=false), so no discovery run is started and nothing is fetched." };
+            if (!_scraper.IsConfigured)
+                return new SourceDiscoveryNowResult { Refused = "No scraper service is configured." };
+            if (await NextDiscoveryDueUtcAsync(cancellationToken) is { } due && Now() < due)
+            {
+                var hours = Math.Max(1, _settings.IntervalHours);
+                return new SourceDiscoveryNowResult
+                {
+                    Refused = $"The lane starts at most one discovery run every {hours} h (SourceDiscovery:IntervalHours), by its timer or by an admin; the last run that sent a job started at {due.AddHours(-hours):yyyy-MM-dd HH:mm} UTC, so the next may start at {due:yyyy-MM-dd HH:mm} UTC.",
+                    NextRunDueUtc = due,
+                };
+            }
+
+            _logger.LogInformation("Source discovery run started by person {PersonId}", personId);
+            return new SourceDiscoveryNowResult { Run = await RunDiscoveryAsync(cancellationToken) };
         }
 
         private async Task<SourceDiscoveryRunModel> EndRunAsync(SourceDiscoveryRunEntity run, string status, string? stopReason, string? error, ScraperDiscoveryResult? result, CancellationToken cancellationToken)
@@ -1514,6 +1594,85 @@ namespace Nom.Orch.Services
 
             await _db.SaveChangesAsync();
             return new SourceActionResult { Ok = true, Source = await SourceModelAsync(source) };
+        }
+
+        public async Task<SourceUndoPreviewModel> PreviewUndoAsync(long entryId, long personId)
+        {
+            _db.ChangeTracker.Clear();
+            var preview = new SourceUndoPreviewModel { EntryId = entryId };
+            await using var tx = _db.Database.IsRelational() ? await _db.Database.BeginTransactionAsync() : null;
+            SourceActionResult result;
+            using (_db.HoldWrites())
+            {
+                result = await UndoAsync(entryId, personId);
+                if (result.Ok) Describe(preview);
+            }
+
+            if (tx != null) await tx.RollbackAsync();
+            _db.ChangeTracker.Clear();
+            preview.WouldUndo = result.Ok;
+            preview.NotFound = result.NotFound;
+            preview.Refused = result.Ok ? null : result.Error;
+            return preview;
+        }
+
+        private static readonly HashSet<string> Bookkeeping = new(StringComparer.Ordinal)
+        {
+            nameof(BaseEntity.LastModifiedDate), nameof(BaseEntity.LastModifiedByPersonId), nameof(BaseEntity.CreatedDate), nameof(BaseEntity.CreatedByPersonId),
+        };
+
+        private void Describe(SourceUndoPreviewModel preview)
+        {
+            static string? Text(object? value) => value switch
+            {
+                null => null,
+                DateTime t => t.ToString("O", System.Globalization.CultureInfo.InvariantCulture),
+                _ => Convert.ToString(value, System.Globalization.CultureInfo.InvariantCulture),
+            };
+
+            foreach (var entry in _db.ChangeTracker.Entries().Where(e => e.State is EntityState.Added or EntityState.Modified or EntityState.Deleted).ToList())
+            {
+                if (entry.Entity is AuditLogEntryEntity row && entry.State == EntityState.Added)
+                {
+                    preview.Journal.Add(new SourceUndoJournalModel
+                    {
+                        EntityType = row.EntityType, EntityId = row.EntityId, ChangeType = row.ChangeType, Field = row.PropertyName, OldValue = row.OldValue, NewValue = row.NewValue,
+                    });
+                    continue;
+                }
+
+                var changed = entry.Properties
+                    .Where(p => !Bookkeeping.Contains(p.Metadata.Name) && (entry.State != EntityState.Modified || (p.IsModified && !Equals(p.OriginalValue, p.CurrentValue))))
+                    .ToList();
+                if (entry.Entity is RecipeEntity)
+                {
+                    if (changed.Count == 0) continue;
+                    preview.Recipes++;
+                    foreach (var p in changed) preview.RecipeFields[p.Metadata.Name] = preview.RecipeFields.GetValueOrDefault(p.Metadata.Name) + 1;
+                    continue;
+                }
+
+                var label = entry.Entity switch
+                {
+                    ScrapingSourceEntity s => s.Domain,
+                    SourceRightsRecordEntity r => r.Host,
+                    SourceRefusingHostEntity h => h.Host,
+                    _ => null,
+                };
+                var id = entry.Properties.FirstOrDefault(p => p.Metadata.IsPrimaryKey())?.CurrentValue;
+                foreach (var p in changed)
+                {
+                    preview.Changes.Add(new SourceUndoChangeModel
+                    {
+                        Entity = entry.Metadata.ClrType.Name.Replace("Entity", string.Empty, StringComparison.Ordinal),
+                        Id = id is long key ? key : 0,
+                        Name = label,
+                        Field = p.Metadata.Name,
+                        Before = entry.State == EntityState.Added ? null : Text(p.OriginalValue),
+                        After = entry.State == EntityState.Deleted ? null : Text(p.CurrentValue),
+                    });
+                }
+            }
         }
 
         /// <summary>

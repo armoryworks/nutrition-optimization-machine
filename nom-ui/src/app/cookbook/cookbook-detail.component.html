@@ -48,6 +48,20 @@
         <div class="nom-cookbook-recipes">
           @for (recipe of recipes(); track recipe.id) {
             <div class="nom-cookbook-recipe" data-testid="cookbook-recipe-item">
+              @if (recipe.removed) {
+              <div class="nom-cookbook-recipe__body" data-testid="cookbook-recipe-removed">
+                <div class="nom-cookbook-recipe__img-placeholder">
+                  <mat-icon>restaurant</mat-icon>
+                </div>
+                <div class="nom-cookbook-recipe__info">
+                  <span class="nom-cookbook-recipe__name">{{ recipe.name }}</span>
+                  <span class="nom-cookbook-recipe__desc" data-testid="cookbook-recipe-removed-note">{{ recipe.removedNote }}</span>
+                  @if (recipe.sourceUrl) {
+                    <a [href]="recipe.sourceUrl" target="_blank" rel="noopener" data-testid="cookbook-recipe-source-link">Source</a>
+                  }
+                </div>
+              </div>
+              } @else {
               <a class="nom-cookbook-recipe__body" [routerLink]="'/recipe/' + recipe.id" data-testid="cookbook-recipe-link">
                 @if (recipe.imageUrl) {
                   <img class="nom-cookbook-recipe__img" [src]="recipe.imageUrl" [alt]="recipe.name" loading="lazy">
@@ -66,6 +80,7 @@
                   }
                 </div>
               </a>
+              }
               <button mat-icon-button (click)="onRemoveRecipe(recipe.id)" aria-label="Remove from cookbook" data-testid="cookbook-recipe-remove-btn">
                 <mat-icon>close</mat-icon>
               </button>

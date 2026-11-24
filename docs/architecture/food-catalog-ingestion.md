@@ -816,6 +816,25 @@ or undone, a year written or undone, or the lane going live or pausing, reaches 
 one sweep (15 minutes by default). When nothing counts any more and a measured line is in a
 container unit, the recalculation removes the derived label, since it may hold an assumed size.
 
+**Only inputs that changed derive a label again** (staging checkpoint 6, R9; `cleanup2/ck11-diet-moves`). The API
+rewrote `recipe."RecipeNutrition"` for over an hour after every start (about 40,000 inserts and as many deletes a
+minute, 5.87 M inserts after a restore): every line write made a recipe due (an order-only pass, a rebuild or a
+re-check writes nearly every line), the sweep restarts at recipe 0 after a start, and every due recipe's label was
+deleted and inserted again whatever it came out as. Now `recipe."RecipeNutritionCheck"` holds, per recipe, when its
+label was last checked against its inputs and the fingerprint of its lines' inputs then (each live line's food,
+amount, unit, kind and alcohol retention; the unit's category, factor and container mark; the food's grams per
+millilitre, per item and per reference serving; for a line in a container unit its text and the food's description;
+and the servings; `RecipeNutritionService.InputPrint`), so a writer that gives a food a weight and touches its lines
+(the FDC portion backfill, a relink that inherits measures, a link undo) derives the label again (review CK11-DM-2). A
+recipe is due when a line or a line food's nutrient row, a container size, the lane's mode or its book's era changed
+after the later of its label and its check; a recipe with a check but no label (nothing could be weighed) is due too
+when a line food changes or a container size arrives, so it gets a label once one of its lines can be weighed (review
+CK11-DM-3). A recipe due only by its own lines whose fingerprint is unchanged has only its check moved on
+(`RecipeNutritionRecalcHostedService.SweepBatchAsync`); any other is derived, and a label that derives as it is stored
+is not rewritten (only the check moves). The sweep logs `N recipes recalculated, M unchanged by their inputs`. On the
+first sweep after the deploy no check exists, so the due recipes are derived once (reading, not rewriting, those whose
+label is right).
+
 **Book years** (`recipe."RecipeSourceEra"`, plan correction C2.7). `ops/source-era.py` reads each
 book's Project Gutenberg text on the harvest host (`~/cookbook-work/pg*.txt`, nothing fetched):
 the header's "Original publication:" line when it names one year, else the title page (the first
@@ -866,20 +885,32 @@ later entry names leaves the copy again. So the dry run only reads the database,
 holds back another writer or undo (staging checkpoint 3, N17: after the order-only pass the old
 rolled-back dry run took 12 min 17 s, kept its transaction open, and a second undo run meanwhile answered
 400). It stops when the caller goes away. The entries run in parts that share no row
-(`RelinkUndoDryRun.Parts`), each in a copy of its own: the retirements, picks and proposals go into the
-first part with every entry of each recipe whose line entries name a food a retirement changes (a line
-moved back needs that food live, and the retirement's undo brings it back); every other recipe's line
-entries read and write only that recipe's lines and journals, so they go whole into parts of about 500
-entries. The counts are the sum of the parts' and equal the apply's. One copy for the whole window held
+(`RelinkUndoDryRun.Parts`), each in a copy of its own, of at most 100 entries unless one group that must
+stay together is more. The food entries come first, in parts that hold no line entry (they read and write
+foods, aliases and proposals, never a line): the retirements in groups joined by every food and name they
+share (a restore reads whether another food holds the name it takes back), then the withdrawn picks, each on
+its own proposal, then the proposals withdrawn with a retired food, which read whether that food is live
+again. Each recipe's line entries read and write only that recipe's lines and journals, and of foods only
+whether one is live, so they go whole into the later parts. Each copy is given the foods as the food parts
+before it left them (a line moved back needs its food live, and the retirement's undo, which the apply runs
+before the older line entries, brings it back). The counts are the sum of the parts' and equal the apply's. One copy for the whole window held
 every recipe a later entry still named, and the in-memory store reads a whole table for every query, so the
 dry run grew with the square of the window (staging checkpoint 4, P16: T1 took 1,969 s at 440 % CPU and
 1.5 GiB on the API host). On a generated window of 6,000 line entries over 3,000 recipes, each recipe
 named again 3,000 entries later, one copy took 97.7 s and the parts 11.4 s, with the same counts; the parts
 grow with the window, not its square. The order-only journal rows an undo carries into are read once
-per chunk and written once per chunk, not once per line. The copies run one at a time in the API process
-(`RelinkUndoDryRun.StartAsync`): two dry runs called together take turns part by part rather than each
-filling cores of their own (staging checkpoint 5, Q20: T1 in 150 s with T7 beside it, but the API at up to
-367 % CPU and 1.35 GiB).
+per chunk and written once per chunk, not once per line. Until staging checkpoint 6 the first part also held
+every recipe whose lines name a retired food, which for a relink by food and retire is most of the window,
+so that one copy grew with the square of its recipes again (R15: T1 636 s and T7 425 s, the API at up to
+522 % CPU and 1.8 GiB); on a generated window of 5,044 entries over 2,000 recipes the dry run went from 13.0 s
+to 2.5 s with the same counts. Whole dry runs run one at a time in the API process, in the order called
+(`RelinkUndoDryRun.QueueAsync`): two called together no longer take turns part by part (checkpoint 6: each
+took about the pair's time), the first runs at its own speed and the second after it, and the second's
+answer says so (`queuedBehind`, `queuedSeconds`; `dryRunParts` and `dryRunLargestPart` say how it ran). A
+caller that goes away while waiting leaves the queue. Until the review of that change the first part still held
+every retirement, alias, measure, pick and proposal entry of the window with no limit, so a window with the
+merged duplicates and their withdrawn picks had one large copy again, and each pick's undo read a proposal
+table of that size; the food entries now run in bounded parts as above.
 
 Apply also marks the unchanged can and package lines that were weighed as one item or one
 serving as modified, so the nutrition sweep recalculates their recipes' labels; a derived

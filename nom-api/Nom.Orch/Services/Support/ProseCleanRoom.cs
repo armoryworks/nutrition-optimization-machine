@@ -9,7 +9,7 @@ using Nom.Orch.Interfaces;
 
 namespace Nom.Orch.Services.Support
 {
-    /// <summary>What the writer is asked for one attempt: the dish, the ingredient tokens with their names, the sheets, and the style, temperature, seed and problems of the attempt.</summary>
+    /// <summary>What the writer is asked for one attempt: the dish, the ingredient tokens with their names, the sheets, the style, temperature, seed and problems of the attempt, and the steps to write (0-based; null for all), the others being kept from an earlier attempt.</summary>
     public sealed record ProseWriteRequest(
         string Dish,
         IReadOnlyList<MaskedLine> Lines,
@@ -18,7 +18,8 @@ namespace Nom.Orch.Services.Support
         string Style,
         double Temperature,
         int? Seed,
-        IReadOnlyList<string> Problems);
+        IReadOnlyList<string> Problems,
+        IReadOnlyCollection<int>? Steps = null);
 
     /// <summary>One step's verdict of the judge.</summary>
     public sealed record ProseJudgeStep(int Number, bool Actions, bool Amounts, bool Missing, bool Added, string? Note)
@@ -119,8 +120,8 @@ namespace Nom.Orch.Services.Support
     /// still fail are replaced by sheets built by rule from the masked step.</item>
     /// <item>Write (model): from the sheets, the ingredient names and the dish name only, in the
     /// attempts of <see cref="ProseLanePrompts.Attempts"/> (each told the previous attempt's
-    /// problems in the lane's own words), then, when the sheets are the extractor's, once by rule
-    /// (<see cref="ProseFactSheet.Render"/>).
+    /// problems in the lane's own words), then once by rule (<see cref="ProseFactSheet.Render"/>);
+    /// an attempt after the first writes again only the steps the last one failed on and keeps the others.
     /// The description is built by rule (<see cref="ProseDescription"/>).</item>
     /// <item>Gate: the form rules (one step per sheet, each amount token exactly once in its step,
     /// the step's ingredients and verbs kept, no digit or amount outside the tokens), then
@@ -140,53 +141,65 @@ namespace Nom.Orch.Services.Support
 
         public static int AttemptCount => ProseLanePrompts.Attempts.Count + 1;
 
-        public static async Task<ProseLaneOutcome> RunAsync(ProseLaneInput input, IProseWriter writer, IProseJudge judge, ProseVerbLexicon? verbs = null, CancellationToken cancellationToken = default)
+        public static async Task<ProseLaneOutcome> RunAsync(ProseLaneInput input, IProseWriter writer, IProseJudge judge, ProseVerbLexicon? verbs = null, CancellationToken cancellationToken = default, Action<string>? trace = null)
         {
             verbs ??= ProseVerbLexicon.Default;
             var method = ProseMasking.Mask(input.Source.Steps, input.Lines);
             if (method.Steps.Count == 0) return new ProseLaneOutcome(null, Array.Empty<ProseAttempt>(), false, null, null, 0);
 
             var (sheets, ruleSheets) = await SheetsAsync(method, writer, verbs, cancellationToken);
+            trace?.Invoke($"sheets{(ruleSheets ? " (rule)" : string.Empty)}: {ProseFactSheet.ToJson(sheets)}");
             var description = ProseDescription.Build(input.Dish, method.Lines);
             var attempts = new List<ProseAttempt>();
             var problems = (IReadOnlyList<string>)Array.Empty<string>();
             ProseCheck.Finding? lastFinding = null;
             ProseJudgeVerdict? lastVerdict = null;
 
+            var count = method.Steps.Count;
+            var kept = new string?[count];
+            var redo = Enumerable.Range(0, count).ToHashSet();
             for (var a = 0; a < AttemptCount; a++)
             {
                 cancellationToken.ThrowIfCancellationRequested();
                 var number = a + 1;
-                IReadOnlyList<string>? written;
+                IReadOnlyList<string>? answered;
                 string style;
                 if (a < ProseLanePrompts.Attempts.Count)
                 {
                     var (s, temperature, seed) = ProseLanePrompts.Attempts[a];
                     style = s;
-                    var answer = await writer.WriteAsync(new ProseWriteRequest(input.Dish, method.Lines, sheets, number, s, temperature, seed, problems), cancellationToken);
-                    written = ReadSteps(answer);
-                    if (written == null)
+                    var answer = await writer.WriteAsync(new ProseWriteRequest(input.Dish, method.Lines, sheets, number, s, temperature, seed, problems, redo.OrderBy(i => i).ToList()), cancellationToken);
+                    answered = ReadSteps(answer);
+                    if (answered == null)
                     {
                         attempts.Add(new ProseAttempt(number, style, new[] { WriterUnreadable }));
                         problems = new[] { "the answer was not the JSON asked for: {\"steps\":[\"...\"]}" };
                         continue;
                     }
                 }
-                else if (!ruleSheets)
-                {
-                    style = ProseLanePrompts.RuleAttempt;
-                    written = sheets.Select(ProseFactSheet.Render).ToList();
-                }
                 else
                 {
-                    break;
+                    style = ProseLanePrompts.RuleAttempt;
+                    answered = sheets.Select(ProseFactSheet.Render).ToList();
                 }
 
+                var written = answered.Count != count ? answered
+                    : Enumerable.Range(0, count).Select(i => redo.Contains(i) || kept[i] == null ? ProseFactSheet.RepairMeasures(sheets[i], answered[i]) : kept[i]!).ToList();
                 var form = FormProblems(method, sheets, written, verbs);
                 if (form.Count > 0)
                 {
                     attempts.Add(new ProseAttempt(number, style, new[] { FormReason }.Concat(form.Select(f => FormReason + ": " + f)).ToList()));
                     problems = form;
+                    var failing = StepsNamed(form, count);
+                    foreach (var i in failing.Where(i => i < written.Count).OrderBy(i => i))
+                        trace?.Invoke($"attempt {number} {style} step {i + 1} form: {written[i]}");
+                    if (written.Count == count)
+                    {
+                        for (var i = 0; i < count; i++)
+                            if (!failing.Contains(i)) kept[i] = written[i];
+                    }
+
+                    redo = failing;
                     continue;
                 }
 
@@ -194,10 +207,12 @@ namespace Nom.Orch.Services.Support
                 var rewrite = new RewriteFidelity.SourceText(description, steps, input.Dish);
                 var finding = ProseCheck.Check(input.Source, rewrite, input.Lines, input.Stock, verbs);
                 lastFinding = finding;
+                for (var i = 0; i < count; i++) kept[i] = written[i];
                 if (finding.Failed)
                 {
                     attempts.Add(new ProseAttempt(number, style, finding.FailReasons.ToList()));
                     problems = finding.FailReasons.Select(Feedback).Distinct().ToList();
+                    redo = StepsNamed(finding.Faults.Where(f => finding.FailReasons.Contains(f.Reason)).Select(f => f.Detail).ToList(), count);
                     continue;
                 }
 
@@ -206,14 +221,19 @@ namespace Nom.Orch.Services.Support
                 if (verdict == null)
                 {
                     attempts.Add(new ProseAttempt(number, style, new[] { JudgeUnreadable }));
+                    redo = Enumerable.Range(0, count).ToHashSet();
                     continue;
                 }
 
                 if (!verdict.Faithful)
                 {
                     var flagged = verdict.Steps.Where(s => !s.Same).ToList();
+                    foreach (var s in flagged.Where(s => s.Number >= 1 && s.Number <= count))
+                        trace?.Invoke($"attempt {number} {style} step {s.Number} judge {string.Join(",", s.Faults())} ({s.Note}): {steps[s.Number - 1]}");
                     attempts.Add(new ProseAttempt(number, style, flagged.SelectMany(s => s.Faults()).Distinct().Select(f => JudgeReason + ":" + f).ToList()));
-                    problems = flagged.Select(s => $"step {s.Number} does not say what its sheet says ({string.Join(", ", s.Faults())}); keep every action, ingredient, amount and cue of the sheet, add nothing").ToList();
+                    problems = flagged.Select(s => $"step {s.Number} does not say what its sheet says ({string.Join(", ", s.Faults())}); keep every action, ingredient, amount, heat and cue of the sheet, add nothing").ToList();
+                    redo = flagged.Select(s => s.Number - 1).Where(i => i >= 0 && i < count).ToHashSet();
+                    if (redo.Count == 0) redo = Enumerable.Range(0, count).ToHashSet();
                     continue;
                 }
 
@@ -314,7 +334,8 @@ namespace Nom.Orch.Services.Support
         /// <summary>
         /// The form rules on a written (still masked) method: one step per sheet; each step holds
         /// each of its amount tokens exactly once (a bracketed conversion at most once) and no other
-        /// step's, every ingredient token of its sheet, and every cooking verb of its source step;
+        /// step's, every ingredient token of its sheet, every cooking verb of its source step and its
+        /// heats and oven as the judge's rules read them (<see cref="HeatProblems"/>);
         /// no step is empty, holds a step marker, or states a digit or an amount outside the tokens.
         /// </summary>
         public static IReadOnlyList<string> FormProblems(MaskedMethod method, IReadOnlyList<StepFacts> sheets, IReadOnlyList<string> written, ProseVerbLexicon? verbs = null)
@@ -367,13 +388,36 @@ namespace Nom.Orch.Services.Support
                     problems.Add($"{label} leaves out the action \"{string.Join("/", verb.OrderBy(g => g, StringComparer.Ordinal))}\"");
                 }
 
+                foreach (var heat in HeatProblems(step.Text, text)) problems.Add($"{label} {heat}");
                 foreach (var form in ProseMasking.FormProblems(text)) problems.Add($"{label} states {form}");
             }
 
             return problems.Distinct().ToList();
         }
 
-        /// <summary>The fact sheets built by rule from the masked method: each step's verbs as they stand, its ingredient tokens and its amount tokens, with no equipment and no cues.</summary>
+        /// <summary>
+        /// The heat rules of the judge on one written step against its masked source step: a stove heat,
+        /// oven heat or serving temperature of another level, one left out, or the oven left out
+        /// (<see cref="ProseJudgeRules.HeatConflicts"/>, <see cref="ProseJudgeRules.HeatsLost"/>,
+        /// <see cref="ProseJudgeRules.OvenLost"/>), each named with the sheet's phrase to write.
+        /// </summary>
+        public static IReadOnlyList<string> HeatProblems(string source, string written)
+        {
+            var problems = new List<string>();
+            var phrases = ProseFactSheet.HeatsOf(source);
+            string Phrase(string scale) => phrases.FirstOrDefault(p => scale switch
+            {
+                "stove" => p.EndsWith(" heat", StringComparison.Ordinal),
+                "oven" => p.EndsWith(" oven", StringComparison.Ordinal),
+                _ => p.StartsWith("serve ", StringComparison.Ordinal),
+            }) ?? scale;
+            foreach (var scale in ProseJudgeRules.HeatConflicts(source, written)) problems.Add($"states another heat; write \"{Phrase(scale)}\" as the sheet gives it");
+            foreach (var scale in ProseJudgeRules.HeatsLost(source, written)) problems.Add($"leaves out the heat; write \"{Phrase(scale)}\" as the sheet gives it");
+            if (ProseJudgeRules.OvenLost(source, written)) problems.Add("leaves out the oven; name the oven");
+            return problems;
+        }
+
+        /// <summary>The fact sheets built by rule from the masked method: each step's verbs as they stand, its ingredient tokens, its amount tokens, its heats and the oven when it names one, with no other equipment and no cues.</summary>
         public static IReadOnlyList<StepFacts> RuleSheets(MaskedMethod method, ProseVerbLexicon? verbs = null)
         {
             verbs ??= ProseVerbLexicon.Default;
@@ -391,8 +435,9 @@ namespace Nom.Orch.Services.Support
 
                 if (actions.Count == 0 && words.FirstOrDefault(w => w != ProsePhrases.Number) is { } lead) actions.Add(lead);
 
-                sheets.Add(new StepFacts(step.Number, actions, step.Lines.Select(ProseMasking.Line).ToList(), Array.Empty<string>(),
-                    step.Amounts.Concat(step.Conversions).Select(ProseMasking.Line).ToList(), Array.Empty<string>()));
+                var equipment = words.Contains("oven") ? new[] { "oven" } : Array.Empty<string>();
+                sheets.Add(new StepFacts(step.Number, actions, step.Lines.Select(ProseMasking.Line).ToList(), equipment,
+                    step.Amounts.Concat(step.Conversions).Select(ProseMasking.Line).ToList(), Array.Empty<string>(), ProseFactSheet.HeatsOf(step.Text), ProseFactSheet.MeasuresOf(step.Text).Concat(ProseFactSheet.TimingsOf(method, step.Text, verbs)).ToList()));
             }
 
             return sheets;
@@ -411,10 +456,73 @@ namespace Nom.Orch.Services.Support
                 }
 
                 problems = ProseFactSheet.Problems(method, sheets, verbs);
-                if (problems.Count == 0) return (sheets, false);
+                if (problems.Count == 0) return (ProseFactSheet.WithHeats(method, sheets), false);
+                var mended = MendSheets(method, sheets, verbs);
+                if (ProseFactSheet.Problems(method, mended, verbs).Count == 0) return (ProseFactSheet.WithHeats(method, mended), false);
             }
 
             return (RuleSheets(method, verbs), true);
+        }
+
+        /// <summary>
+        /// The extractor's sheets with what the rules know put right, so its equipment and cues are not
+        /// lost to one slip: each step's amount tokens are the masked step's own, a missing ingredient
+        /// token is added to its objects and a missing lexicon verb to its actions (as the rule sheet
+        /// states them), and an entry that holds an amount token, a number or more than
+        /// <see cref="ProseFactSheet.MaximumFieldWords"/> words is dropped. A step the extractor gave no
+        /// sheet for takes the rule sheet.
+        /// </summary>
+        public static IReadOnlyList<StepFacts> MendSheets(MaskedMethod method, IReadOnlyList<StepFacts> sheets, ProseVerbLexicon? verbs = null)
+        {
+            verbs ??= ProseVerbLexicon.Default;
+            var rules = RuleSheets(method, verbs);
+            var lineIds = method.Lines.Select(l => l.Id).ToHashSet(StringComparer.Ordinal);
+            bool Clean(string entry) =>
+                !ProseMasking.TokensIn(entry).Any(t => t[0] == 'Q' || !lineIds.Contains(t))
+                && ProseMasking.FormProblems(entry).Count == 0
+                && ProsePhrases.Words(ProseMasking.TokenPattern.Replace(ProseMasking.Normalize(entry), " x ")).Count <= ProseFactSheet.MaximumFieldWords;
+            var mended = new List<StepFacts>();
+            for (var i = 0; i < method.Steps.Count; i++)
+            {
+                var rule = rules[i];
+                if (i >= sheets.Count)
+                {
+                    mended.Add(rule);
+                    continue;
+                }
+
+                var sheet = sheets[i];
+                var step = method.Steps[i];
+                var actions = sheet.Actions.Where(Clean).ToList();
+                var groups = verbs.GroupsIn(actions.SelectMany(a => ProsePhrases.Words(a)).ToList());
+                foreach (var action in rule.Actions)
+                {
+                    var own = verbs.GroupsIn(ProsePhrases.Words(action));
+                    if (own.Count > 0 && !own.Overlaps(groups)) actions.Add(action);
+                }
+
+                var objects = sheet.Objects.Where(Clean).ToList();
+                var held = objects.SelectMany(ProseMasking.TokensIn).ToHashSet(StringComparer.Ordinal);
+                objects.AddRange(step.Lines.Where(id => !held.Contains(id)).Select(ProseMasking.Line));
+                mended.Add(new StepFacts(step.Number, actions, objects, sheet.Equipment.Where(Clean).ToList(), rule.Amounts, sheet.Cues.Where(Clean).ToList()));
+            }
+
+            return mended;
+        }
+
+        private static readonly System.Text.RegularExpressions.Regex StepLabel = new(@"\bstep (\d+)\b", System.Text.RegularExpressions.RegexOptions.IgnoreCase | System.Text.RegularExpressions.RegexOptions.CultureInvariant);
+
+        private static HashSet<int> StepsNamed(IReadOnlyList<string> problems, int count)
+        {
+            var named = new HashSet<int>();
+            foreach (var problem in problems)
+            {
+                var found = StepLabel.Matches(problem).Select(m => int.Parse(m.Groups[1].Value, CultureInfo.InvariantCulture) - 1).Where(i => i >= 0 && i < count).ToList();
+                if (found.Count == 0) return Enumerable.Range(0, count).ToHashSet();
+                named.UnionWith(found);
+            }
+
+            return named.Count == 0 ? Enumerable.Range(0, count).ToHashSet() : named;
         }
 
         private static IReadOnlyList<string>? ReadSteps(string? answer)

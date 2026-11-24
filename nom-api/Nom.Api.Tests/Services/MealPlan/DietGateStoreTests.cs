@@ -172,6 +172,54 @@ namespace Nom.Api.Tests.Services.MealPlan
         }
 
         [Fact]
+        public async Task A_book_recipe_whose_title_or_method_names_what_its_lines_omit_is_held_with_its_own_reason_and_a_recipe_written_in_the_app_is_read_by_its_lines()
+        {
+            using var db = NewContext();
+            var k = await SeedAsync(db);
+            var egg = new IngredientEntity { Name = "Eggs", CurationStatusId = (long)CurationStatusEnum.Curated };
+            var cheese = new IngredientEntity { Name = "Cheddar Cheese", CurationStatusId = (long)CurationStatusEnum.Curated };
+            db.Ingredients.AddRange(egg, cheese);
+            await db.SaveChangesAsync();
+            var imported = new DateTime(2026, 11, 1, 0, 0, 0, DateTimeKind.Utc);
+            var sandwich = Recipe("EGG AND BROWN BREAD SANDWICH", (egg.Id, "2 hard-boiled eggs"));
+            sandwich.ScrapedAtUtc = imported;
+            sandwich.RecipeSteps = new List<RecipeStepEntity> { new() { StepNumber = 1, Description = "Chop the eggs fine and season." } };
+            var scones = Recipe("Scones", (cheese.Id, "1 cup milk"), (egg.Id, "1 egg"));
+            scones.ScrapedAtUtc = imported;
+            scones.RecipeSteps = new List<RecipeStepEntity> { new() { StepNumber = 1, Description = "Sift the flour with the baking powder. Stir in the milk and the egg." } };
+            var chickenRice = Recipe("Chicken and Rice", (k.Rice, string.Empty), (k.Water, string.Empty));
+            var lasagna = Recipe("Zucchini Lasagna", (cheese.Id, "1 cup ricotta"));
+            lasagna.RecipeSteps = new List<RecipeStepEntity> { new() { StepNumber = 1, Description = "Layer the zucchini where the lasagna noodles would go." } };
+            var pizza = Recipe("Cauliflower Crust Pizza", (k.Rice, "1 head cauliflower, riced"));
+            db.Recipes.AddRange(sandwich, scones, chickenRice, lasagna, pizza);
+            await db.SaveChangesAsync();
+            await new DietGateStoreBuilder().RunAsync(db);
+
+            var severe = await new HouseholdRestrictionResolver(db).ResolveSevereForPersonAsync(PersonId);
+            var offered = await OfferedAsync(db, severe);
+            offered.Should().NotContain(new[] { sandwich.Id, scones.Id }, "a book's sandwich has bread though the lines leave it out (review ck11-dc-3), and its scones the flour the method names (R3)");
+            offered.Should().Contain(new[] { chickenRice.Id, lasagna.Id, pizza.Id },
+                "a recipe written in the app stores its lines as foods with no text and is read by them (ck11-dc-1), and its title and method are not read (ck11-dc-2)");
+            var flags = await db.DietRecipeFlags.Where(f => severe.Stored!.SetIds.Contains(f.SetId)).ToListAsync();
+            flags.Should().Contain(f => f.RecipeId == sandwich.Id && f.Verdict == DietVerdict.Unknown && f.Reason == DietFlagReason.Title && f.CriterionId != null);
+            flags.Should().Contain(f => f.RecipeId == scones.Id && f.Verdict == DietVerdict.Unknown && f.Reason == DietFlagReason.Method && f.CriterionId != null);
+            flags.Should().NotContain(f => f.RecipeId == chickenRice.Id || f.RecipeId == lasagna.Id || f.RecipeId == pizza.Id);
+
+            var counts = await DietGateStoreReports.CountsAsync(db);
+            var celiac = counts.Types.Single(t => t.TypeId == CeliacRef && t.Reading == "all");
+            celiac.RecipesByTitle.Should().Be(1);
+            celiac.RecipesByMethod.Should().Be(1);
+            celiac.RecipesNoLine.Should().Be(1, "only the buns, which have no line at all");
+            celiac.RecipesUnknown.Should().Be(celiac.RecipesByTitle + celiac.RecipesByMethod + celiac.RecipesNoLine + celiac.RecipesUnknownFood);
+
+            var page = new RecipeOrchestrationService(db, new HttpContextAccessor(), new Mock<ICurrentUserService>().Object,
+                new Mock<Nom.Orch.UtilityInterfaces.IMediaStorageService>().Object, new Mock<IRecipeNutritionService>().Object);
+            (await page.GetDietMatchesAsync(sandwich.Id, PersonId)).Should().ContainSingle(m => m.IngredientName == "Named in the title" && m.Notes!.Contains("\"sandwich\""));
+            (await page.GetDietMatchesAsync(scones.Id, PersonId)).Should().ContainSingle(m => m.IngredientName == "Named in the method" && m.Notes!.Contains("\"flour\""));
+            (await page.GetDietMatchesAsync(chickenRice.Id, PersonId)).Should().BeEmpty();
+        }
+
+        [Fact]
         public async Task A_recipe_not_yet_decided_is_held_for_every_restriction_and_the_next_cycle_decides_it()
         {
             using var db = NewContext();

@@ -63,7 +63,7 @@ namespace Nom.Api.Tests.Services
             var foods = new[]
             {
                 Food("Salt", Curated, "Salt, table"), Food("Pepper", Curated, "Spices, pepper, black"), Food("Flour", Curated),
-                Food("Butter", Curated), Food("Lard", Curated), Food("butter or margarine", Uncurated), Food("Cayenne Pepper", Curated),
+                Food("Butter", Curated), Food("Lard", Curated), Food("butter or margarine", Uncurated), Food("Seasoning", Curated),
             };
             db.Ingredients.AddRange(foods);
             await db.SaveChangesAsync();
@@ -104,7 +104,7 @@ namespace Nom.Api.Tests.Services
             var collides = await RecipeAsync(kitchen, approved: false,
                 ("Salt", 0, 1m, Teaspoon, "salt and pepper"), ("Pepper", 0, 1m, Teaspoon, "1 tsp pepper"), ("Flour", 1, 1m, Cup, "1 cup flour"));
             var alternative = await RecipeAsync(kitchen, approved: false,
-                ("butter or margarine", 0, 0.5m, Cup, "1/2 cup butter or margarine"), ("Cayenne Pepper", 0, 0m, Gram, "a little pepper and salt"));
+                ("butter or margarine", 0, 0.5m, Cup, "1/2 cup butter or margarine"), ("Seasoning", 0, 0m, Gram, "a little pepper and salt"));
             var curatedRows = await RecipeAsync(kitchen, approved: false,
                 ("Flour", 0, 0.5m, Cup, "1/2 cup butter or margarine"), ("Lard", 0, 0.75m, Cup, "3/4 cup butter or lard"),
                 ("Butter", 1, 0.75m, Cup, "3/4 cup butter or lard"));

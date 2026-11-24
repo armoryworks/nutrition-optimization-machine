@@ -61,6 +61,20 @@ namespace Nom.Api.Tests.Services
         }
 
         [Fact]
+        public void A_heat_level_or_an_oven_the_rewrite_leaves_out_is_lost_by_rule()
+        {
+            ProseJudgeRules.HeatsLost("Fry the shallots over medium heat.", "Fry the shallots until soft.").Should().Equal("stove");
+            ProseJudgeRules.HeatsLost("Fry the shallots over medium heat.", "Fry the shallots on medium.").Should().BeEmpty();
+            ProseJudgeRules.HeatsLost("Serve hot.", "Serve it.").Should().Equal("serve");
+            ProseJudgeRules.OvenLost("Heat the oven to 200°C.", "Heat to 200°C.").Should().BeTrue();
+            ProseJudgeRules.OvenLost("Heat the oven to 200°C.", "Preheat the oven to 200°C.").Should().BeFalse();
+            ProseJudgeRules.OvenLost("Cook it in the oven for an hour.", "Bake it for an hour.").Should().BeFalse("baking is done in the oven");
+
+            var lost = Faithful.Select(s => s.Replace(" on medium", string.Empty, StringComparison.Ordinal)).ToList();
+            ProseJudgeRules.Before(Original, lost, Check(Original, lost))!.Steps.Where(s => !s.Same).Select(s => s.Number).Should().Equal(1);
+        }
+
+        [Fact]
         public void A_faithful_rewrite_is_left_to_the_model()
         {
             ProseJudgeRules.Before(Original, Faithful, Check(Original, Faithful)).Should().BeNull();
@@ -145,6 +159,60 @@ namespace Nom.Api.Tests.Services
         }
 
         [Fact]
+        public void A_rule_finds_a_fact_said_in_words_of_the_same_meaning_and_never_another_action_or_cue()
+        {
+            ProseStepFact Fact(string kind, string ours) => new(kind, ours, string.Empty, ProseJudgeRules.Different);
+
+            ProseJudgeRules.FoundByRule(Fact("action", "Tip in the stock"), "Add the stock and stir.").Should().BeTrue();
+            ProseJudgeRules.FoundByRule(Fact("action", "Cream the lard in a basin"), "Cream the lard in a bowl.").Should().BeTrue();
+            ProseJudgeRules.FoundByRule(Fact("action", "cook the shallot in a little oil"), "Fry the shallot in a little oil.").Should().BeTrue("a broad verb is kept by a narrower one");
+            ProseJudgeRules.FoundByRule(Fact("action", "fry the shallot"), "Cook the shallot.").Should().BeFalse("a narrower verb is not kept by a broad one");
+            ProseJudgeRules.FoundByRule(Fact("action", "cook the shallot in a little oil"), "Boil the shallot in a little oil.").Should().BeFalse();
+            ProseJudgeRules.FoundByRule(Fact("cue", "until soft"), "Stew it until tender.").Should().BeTrue();
+            ProseJudgeRules.FoundByRule(Fact("cue", "until soft"), "Stew it until still firm.").Should().BeFalse();
+            ProseJudgeRules.FoundByRule(Fact("cue", "until golden"), "Fry until dark brown.").Should().BeFalse();
+            ProseJudgeRules.FoundByRule(Fact("action", "Melt the lard in a small heavy pan"), "Melt the lard in a pan.").Should().BeTrue("size and manner are no fact");
+        }
+
+        [Fact]
+        public void Amounts_are_left_to_the_check_only_when_it_finds_the_step_amounts_the_same()
+        {
+            string[] original = { "Rest the dough for a half hour.", "Bake it for 20 minutes." };
+            string[] same = { "Let the dough sit 30 minutes.", "Bake it for 20 minutes." };
+            string[] longer = { "Let the dough sit 30 minutes.", "Bake it for 35 minutes." };
+            var amount = new ProseStepFact("amount", "for a half hour", string.Empty, ProseJudgeRules.Different);
+
+            ProseJudgeRules.AmountsAgree(Check(original, same), 1).Should().BeTrue();
+            ProseJudgeRules.AmountsAgree(Check(original, longer), 2).Should().BeFalse();
+            ProseJudgeRules.FoundByRule(amount, same[0], amountsAgree: true).Should().BeTrue();
+            ProseJudgeRules.FoundByRule(amount, same[0]).Should().BeFalse();
+        }
+
+        [Fact]
+        public void A_thing_read_as_added_is_withdrawn_by_rule_only_when_the_original_step_says_it()
+        {
+            var original = "Cook the shallot in a little oil in a saucepan over low heat.";
+            ProseStepFact Added(string words) => new("action", string.Empty, words, ProseJudgeRules.Different);
+
+            ProseJudgeRules.AddedByRule(Added("in a small pan"), original).Should().BeFalse();
+            ProseJudgeRules.AddedByRule(Added("fry the shallot"), original).Should().BeFalse("a narrower word for the original's action");
+            ProseJudgeRules.AddedByRule(Added("Strain it through a fine sieve"), original).Should().BeTrue();
+            ProseJudgeRules.AddedByRule(Added("on high"), original).Should().BeTrue("another heat");
+            ProseJudgeRules.AddedByRule(Added("for 5 minutes"), original).Should().BeTrue("an amount is new unless the check finds the amounts the same");
+            ProseJudgeRules.AddedByRule(Added("for 5 minutes"), original, amountsAgree: true).Should().BeFalse();
+        }
+
+        [Fact]
+        public void A_clause_with_a_word_the_rule_does_not_find_is_asked_again_whatever_the_model_read()
+        {
+            var original = "Boil the noodles in salted water, then drain them.";
+
+            ProseJudgeRules.Uncovered(original, "Boil the noodles until tender, then drain them.", Array.Empty<ProseStepFact>())
+                .Should().ContainSingle().Which.Original.Should().Be("Boil the noodles in salted water");
+            ProseJudgeRules.Uncovered(original, "Cook the noodles at a boil in salted water and strain them.", Array.Empty<ProseStepFact>()).Should().BeEmpty();
+        }
+
+        [Fact]
         public void An_action_of_the_original_no_fact_names_is_checked_as_missing()
         {
             var original = "Take the pan off the heat and whisk in the cream.";
@@ -158,6 +226,8 @@ namespace Nom.Api.Tests.Services
         public void A_reading_is_parsed_only_with_a_known_match()
         {
             ProseJudgeRules.Parse("{\"facts\":[{\"kind\":\"action\",\"original\":\"a\",\"rewrite\":\"b\",\"match\":\"same\"}],\"added\":[]}")!.Facts.Should().ContainSingle();
+            ProseJudgeRules.Parse("{\"facts\":[{\"kind\":\"action\",\"original\":\"a\",\"rewrite\":\"b\",\"match\":\"kept\"},{\"kind\":\"cue\",\"original\":\"c\",\"rewrite\":\"d\",\"match\":\"changed\"},{\"kind\":\"cue\",\"original\":\"e\",\"rewrite\":\"\",\"match\":\"lost\"}],\"added\":[]}")!
+                .Facts.Select(f => f.Match).Should().Equal(ProseJudgeRules.Same, ProseJudgeRules.Different, ProseJudgeRules.Missing);
             ProseJudgeRules.Parse("{\"facts\":[{\"kind\":\"action\",\"original\":\"a\",\"rewrite\":\"b\",\"match\":\"maybe\"}],\"added\":[]}").Should().BeNull();
             ProseJudgeRules.Parse("not json").Should().BeNull();
         }

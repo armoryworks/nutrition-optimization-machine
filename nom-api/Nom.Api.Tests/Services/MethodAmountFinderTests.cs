@@ -27,6 +27,56 @@ namespace Nom.Api.Tests.Services
         }
 
         [Theory]
+        [InlineData("Poivrade sauce", "Add a pinch of chopped parsley, one-sixth of a pint of Poivrade sauce, and the trotters.", 1.0 / 3, "Cup")]
+        [InlineData("white wine", "Poach the sole in one-sixth pint of white wine.", 1.0 / 3, "Cup")]
+        [InlineData("brown stock", "Moisten with the marinade and one-fifth pint of brown stock.", 0.4, "Cup")]
+        [InlineData("white pepper", "Place in a bowl a heaped teaspoonful of salt, three-quarters of a teaspoonful of white pepper, and an onion.", 0.75, "Teaspoon")]
+        [InlineData("milk", "Stir in two thirds of a cup of milk.", 2.0 / 3, "Cup")]
+        [InlineData("cayenne pepper", "Mix one-tenth teaspoonful cayenne pepper with the oil.", 0.1, "Teaspoon")]
+        [InlineData("Spanish onions", "Cut in quarters three large Spanish onions and place them round the meat.", 3, "Piece")]
+        [InlineData("cranberries", "Cut into halves two cupfuls of cranberries and mix them with the raisins.", 2, "Cup")]
+        [InlineData("pickled onion", "Chop, also, a quarter of a pickled onion, and mix in.", 0.25, "Piece")]
+        [InlineData("nutmeg", "Add a teaspoon of curry powder, one-third of a nutmeg, grated, and the lobster meat.", 1.0 / 3, "Piece")]
+        [InlineData("small fore-quarter of lamb", "Partly roast a small fore-quarter of lamb.", 1, "Piece")]
+        public void Reads_an_ordinal_fraction_before_a_measure_whole(string line, string method, double quantity, string measurement)
+        {
+            var found = MethodAmountFinder.Find(line, new[] { method });
+            found.Should().NotBeNull();
+            ((double)found!.Quantity).Should().BeApproximately(quantity, 0.001, "staging checkpoint 6 (R1) read \"one-sixth of a pint\" as a pint");
+            found.MeasurementName.Should().Be(measurement);
+        }
+
+        [Theory]
+        [InlineData("Poivrade sauce", "Add the sixth of a pint of Poivrade sauce.")]
+        [InlineData("brown sugar", "Add the fourth of a pound of brown sugar and the fourth of a teaspoon of spices.")]
+        [InlineData("gum", "Dissolve one-hundredth of a pint of gum in the water.")]
+        [InlineData("pepper", "Pound them with a teaspoonful of salt, and a sixth of pepper.")]
+        [InlineData("tomato pulp", "Mix three-fifths Russian caviar, one-fifth tomato pulp, and one-fifth chopped onion.")]
+        [InlineData("potatoes", "Mix fish and potatoes together while hot, taking two-thirds potatoes and one-third fish.")]
+        [InlineData("shaved ice", "Fill the sherbet glasses three-quarters full of shaved ice.")]
+        [InlineData("yeast cake", "When lukewarm, add one fourth yeast cake dissolved in one fourth cup lukewarm water.")]
+        public void Says_nothing_for_a_fraction_it_cannot_join_to_its_measure(string line, string method)
+        {
+            MethodAmountFinder.Find(line, new[] { method }).Should().BeNull();
+        }
+
+        [Theory]
+        [InlineData("oil for frying", "Heat oil in a pan to 350C for frying.")]
+        [InlineData("warm water", "Dissolve the yeast in 40C water.")]
+        [InlineData("milk", "Pour in the 80C milk and whisk.")]
+        [InlineData("water", "Dissolve the yeast in 40 C water.")]
+        [InlineData("water", "Dissolve the yeast in 110F water.")]
+        [InlineData("fresh thyme for topping", "Blend the beans in a food processor, keeping back about ¼ cup for topping.")]
+        [InlineData("Corn tortillas", "Lay the roasted squash and beans on a corn tortilla.")]
+        [InlineData("flour", "Cut fine half a pound of butter, in three quarters of flour; then mix in two ounces of flour.")]
+        [InlineData("olive oil", "Mix a tumbler two-thirds full of olive oil with the juice of two limes.")]
+        [InlineData("celery", "Pare and slice three onions, four turnips, and a small portion of celery.")]
+        public void Says_nothing_for_a_purpose_a_temperature_one_of_many_a_part_full_or_an_unread_fraction(string line, string method)
+        {
+            MethodAmountFinder.Find(line, new[] { method }).Should().BeNull("staging checkpoint 12 found these fills wrong");
+        }
+
+        [Theory]
         [InlineData("butter", "Melt the butter and pour over.")]
         [InlineData("butter", "Put half the butter in the pan.")]
         [InlineData("butter", "Rub two ounces of butter into the flour, then add three ounces of butter to the sauce.")]

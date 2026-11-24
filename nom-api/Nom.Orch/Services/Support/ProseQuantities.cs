@@ -188,6 +188,9 @@ namespace Nom.Orch.Services.Support
         /// <summary>Whether <paramref name="word"/> is a spelled-out number ("two", "twelve", "dozen") or fraction word ("half", "third").</summary>
         public static bool IsNumberWord(string word) => NumberWords.ContainsKey(word) || Denominators.ContainsKey(word);
 
+        /// <summary>Whether <paramref name="word"/> is a unit the quantity reader knows ("cups", "tsp", "minutes", "g").</summary>
+        public static bool IsUnit(string word) => Units.ContainsKey(word);
+
         /// <summary>Whether a step holds a step marker of its own ("2. Stir", "Step 3:", "2In a bowl", a trailing "3.").</summary>
         public static bool HasStepMarker(string? text)
         {

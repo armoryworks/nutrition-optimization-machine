@@ -16,6 +16,9 @@ namespace Nom.Orch.Models.MealPlan
         public string? Notes { get; set; }
         public long? RecipeId { get; set; }
         public string? RecipeName { get; set; }
+        public bool RecipeRemoved { get; set; }
+        public string? RecipeSourceUrl { get; set; }
+        public string? RecipeRemovedNote { get; set; }
         public DateTime CreatedDate { get; set; }
         public DateTime? ModifiedDate { get; set; }
     }

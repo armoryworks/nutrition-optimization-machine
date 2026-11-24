@@ -53,10 +53,13 @@ namespace Nom.Import.Golden
         public const string RecordFlag = "--record";
         public const string RowsFlag = "--rows";
 
-        /// <summary>The judged rows of prose-check.tsv (status ok, agent or known).</summary>
+        /// <summary>The <c>classes</c> cell of a row read for its copy judgement only (the checkpoint 6 rows): no fact firing on it is judged, so it is left out of the class scores.</summary>
+        public const string CopyOnly = "copy-only";
+
+        /// <summary>The judged rows of prose-check.tsv (status ok, agent or known), but those read for their copy judgement only (<see cref="CopyOnly"/>).</summary>
         public static IReadOnlyList<ProseJudgedRow> Rows(string goldenDir) =>
             GoldenTsv.Read(Path.Combine(goldenDir, File)).Rows
-                .Where(r => r["status"] is "ok" or "agent" or "known")
+                .Where(r => r["status"] is "ok" or "agent" or "known" && r.Value("classes") != CopyOnly)
                 .Select(r => new ProseJudgedRow(r, r["status"], r["source"], ParseClasses(r.Value("classes"))))
                 .ToList();
 

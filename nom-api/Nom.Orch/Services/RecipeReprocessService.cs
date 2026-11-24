@@ -1273,7 +1273,8 @@ namespace Nom.Orch.Services
             var query = _db.RecipeReprocessJournals.AsNoTracking().Where(j => j.UndoneAt == null);
             if (filter.SinceUtc != null) query = query.Where(j => j.CreatedDate >= filter.SinceUtc.Value);
             if (!string.IsNullOrWhiteSpace(filter.BatchId)) query = query.Where(j => j.BatchId == filter.BatchId);
-            if (!string.IsNullOrWhiteSpace(filter.Kind)) query = query.Where(j => j.Kind == filter.Kind);
+            if (filter.Kind == RecipeReprocessKind.Rebuild) query = query.Where(j => j.Kind == RecipeReprocessKind.Rebuild || j.Kind == RecipeReprocessKind.RuleReject);
+            else if (!string.IsNullOrWhiteSpace(filter.Kind)) query = query.Where(j => j.Kind == filter.Kind);
             if (filter.LaneOnly) query = query.Where(j => j.BatchId.StartsWith(LaneBatchPrefix));
             if (FollowedWriteId(filter.BatchId) == null) query = query.Where(j => !j.BatchId.StartsWith(OrderFollowPrefix));
             if (below != null) query = query.Where(j => j.Id < below.Value);
@@ -1305,7 +1306,9 @@ namespace Nom.Orch.Services
 
             var entries = await _db.RecipeReprocessJournals.Where(j => ids.Contains(j.Id) && j.UndoneAt == null).ToDictionaryAsync(j => j.Id);
             var recipeIds = entries.Values.Select(j => j.RecipeId).Distinct().ToList();
-            var recipes = await _db.Recipes.IgnoreQueryFilters().Where(r => recipeIds.Contains(r.Id)).ToDictionaryAsync(r => r.Id);
+            var recipes = await _db.Recipes.IgnoreQueryFilters()
+                .Where(r => recipeIds.Contains(r.Id) && !_db.RecipeRemovals.Any(x => x.RecipeId == r.Id && x.UndoneAtUtc == null))
+                .ToDictionaryAsync(r => r.Id);
             var rowsRead = await RowsOfAsync(recipeIds);
             var stepRecipes = entries.Values.Where(j => j.NewSteps != null).Select(j => j.RecipeId).Distinct().ToList();
             var stepsRead = stepRecipes.Count == 0 ? new Dictionary<long, List<StepRow>>() : await StepRowsOfAsync(stepRecipes);

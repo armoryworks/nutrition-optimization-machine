@@ -42,7 +42,7 @@ lt-39	goldfish crackers	goldfish cracker	ok	rule:label-terms	a composite of ched
 lt-40	red licorice	licorice	ok	rule:label-terms	a composite of wheat flour
 lt-41	breaded chicken	-	ok	rule:label-terms	"breaded" may hide wheat, so it is never left out
 lt-42	vegan cheese	-	ok	rule:label-terms	"vegan" says what the food is not made of and is never left out
-lt-43	white chocolate	-	ok	rule:label-terms	chocolate is no term of the table; a colour never makes a name known by itself
+lt-43	white chocolate	white chocolate	ok	rule:label-terms	white chocolate is a standard of identity (21CFR 163.124: cacao fat with not less than 14 percent milk solids), a term of the table since label-terms/4 (ck11 review, proof draw 10); was "-" when chocolate had no term
 lt-44	house seasoning	-	ok	rule:label-terms	an unnamed blend
 lt-45	vegetable broth	-	ok	rule:label-terms	an unnamed blend of vegetables
 lt-46	salt caramel color	-	ok	rule:label-terms	a missing comma: "salt caramel" is no term, so the run is not known

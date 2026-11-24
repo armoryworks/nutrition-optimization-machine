@@ -105,6 +105,9 @@ namespace Nom.Import.Golden
         public const string LinkAuditLane = WordingReaderRecords.AuditLane;
         public const string CheckModelKey = "Golden:CheckModel";
         public const string AuditModelKey = "Golden:AuditModel";
+
+        /// <summary>The file a prose-rewrite run on the working half writes each recipe's sheets and refused steps to (--trace); never written for the held-out half or all rows.</summary>
+        public const string TraceKey = "Golden:Trace";
         public const string FloorsFile = "model-lanes.json";
         public const string ScoresFolder = "scores";
         public const int PickBatch = 6;
@@ -123,7 +126,7 @@ namespace Nom.Import.Golden
         public static readonly IReadOnlyList<string> Splits = new[] { SplitAll, SplitWorking, SplitHeldOut };
 
         /// <summary>The lanes a run may score on one half of their golden rows (--split working or held-out).</summary>
-        public static readonly IReadOnlyList<string> Splittable = new[] { LineJudge, ProseJudgeLane };
+        public static readonly IReadOnlyList<string> Splittable = new[] { LineJudge, ProseJudgeLane, ProseRewriteLane };
 
         public static readonly IReadOnlyList<string> Scored = new[] { LinkPick, LinkVerify, LineClassify, LinkGateLane, AlcoholContextLane, AlcoholRetentionLane, WordingTiersLane, LineJudge, ProseRewriteLane, ProseJudgeLane, ProseAuditLane, WordingReadLane, WordingLexiconLane, AlcoholReadingLane, LinkAuditLane };
 
@@ -146,11 +149,12 @@ namespace Nom.Import.Golden
 
         private static readonly JsonSerializerOptions Json = new() { WriteIndented = true, PropertyNamingPolicy = JsonNamingPolicy.CamelCase };
 
-        public static IConfiguration Config(string host, string model, string? checkModel = null, string? auditModel = null) => new ConfigurationBuilder()
+        public static IConfiguration Config(string host, string model, string? checkModel = null, string? auditModel = null, string? trace = null) => new ConfigurationBuilder()
             .AddInMemoryCollection(new Dictionary<string, string?>
             {
                 [CheckModelKey] = checkModel,
                 [AuditModelKey] = auditModel,
+                [TraceKey] = trace,
                 ["Ai:BatchOllamaUrl"] = host,
                 ["Ai:LinkModel"] = model,
                 ["Ai:RepairModel"] = model,
@@ -304,6 +308,17 @@ namespace Nom.Import.Golden
             if (recorded == null) return Array.Empty<LaneCaseResult>();
             var before = recorded.Failed.ToHashSet(StringComparer.Ordinal);
             return results.Where(r => !r.Pass && !before.Contains(r.Id)).ToList();
+        }
+
+        /// <summary>
+        /// The faithful rewrites the prose judge refused, of all the faithful rewrites scored, for the
+        /// prose-judge lane: the cost in coverage its floor does not count. Null for any other lane.
+        /// </summary>
+        public static (int Refused, int Faithful)? FalseRefusals(string lane, IReadOnlyList<LaneCaseResult> results)
+        {
+            if (lane != ProseJudgeLane) return null;
+            var faithful = results.Where(r => !r.CanFalseAccept).ToList();
+            return (faithful.Count(r => !r.Pass), faithful.Count);
         }
 
         /// <summary>
@@ -504,13 +519,35 @@ namespace Nom.Import.Golden
                 {
                     var writer = new OllamaProseWriter(http, host, model);
                     var judge = new OllamaProseStepJudge(http, host, checkModel);
-                    foreach (var recipe in cases.GroupBy(c => c.Recipe).Take(limit ?? int.MaxValue))
+                    var recipes = ProseCases(goldenDir).GroupBy(c => c.Recipe)
+                        .Where(r => InSplit(RecipeCase(lane, r.Key), split) || r.Any(c => !c.Faithful && InSplit(c.Id, split)))
+                        .Take(limit ?? int.MaxValue).ToList();
+                    foreach (var recipe in recipes)
                     {
                         var first = recipe.First();
-                        var outcome = await AskAsync(() => ProseCleanRoom.RunAsync(first.Input(stock), writer, judge, cancellationToken: cancellationToken), progress, cancellationToken);
-                        results.Add(new LaneCaseResult($"{lane}:recipe:{recipe.Key}", outcome.Passed, false, false, "a rewrite through the gate",
-                            outcome.Passed ? $"rewritten in attempt {outcome.Attempts.Count}" : $"gave up: {outcome.FailureClass}", "rule:end-to-end"));
-                        foreach (var c in recipe.Where(c => !c.Faithful))
+                        if (InSplit(RecipeCase(lane, recipe.Key), split))
+                        {
+                            var clock = System.Diagnostics.Stopwatch.StartNew();
+                            Action<string>? trace = config[TraceKey] is { Length: > 0 } tracePath && split == SplitWorking
+                                ? line => File.AppendAllText(tracePath, $"{recipe.Key}\t{line}\n")
+                                : null;
+                            var outcome = await AskAsync(() => ProseReword.RunAsync(first.Input(stock), null, writer, judge, cancellationToken), progress, cancellationToken);
+                            trace?.Invoke(string.Join(" | ", outcome.Attempts.Select(a => $"{a.Number} {a.Style}: {string.Join(", ", a.Reasons)}")));
+                            var result = new LaneCaseResult(RecipeCase(lane, recipe.Key), outcome.Passed, false, false, "a rewrite through the gate",
+                                RewriteActual(outcome, clock.Elapsed.TotalSeconds), "rule:end-to-end");
+                            results.Add(result);
+                            progress($"{result.Id}: {result.Actual}");
+                        }
+
+                        foreach (var c in recipe.Where(c => ProseLaneGolden.IsRepairCase(c, stock) && InSplit(c.Id, split)))
+                        {
+                            var repaired = await AskAsync(() => ProseReword.RunAsync(c.Input(stock), c.RewriteText, writer, judge, cancellationToken), progress, cancellationToken);
+                            results.Add(new LaneCaseResult($"{lane}:repair:{c.Id}", repaired.Passed, false, false, "its copied sentences reworded through the gate",
+                                repaired.Passed ? $"repaired in round {repaired.Attempts.Count(a => a.Style == ProseReword.StyleReword)}" : $"gave up: {repaired.FailureClass}", "rule:end-to-end"));
+                            progress($"{lane}:repair:{c.Id}: {(repaired.Passed ? "repaired" : "gave up")}");
+                        }
+
+                        foreach (var c in recipe.Where(c => !c.Faithful && InSplit(c.Id, split)))
                         {
                             var reasons = await AskAsync(() => ProseCleanRoom.GateAsync(c.Input(stock), c.RewriteText, judge, cancellationToken), progress, cancellationToken);
                             results.Add(new LaneCaseResult($"{lane}:{c.Id}", reasons.Count > 0, reasons.Count == 0, true, "refused",
@@ -522,6 +559,48 @@ namespace Nom.Import.Golden
                     return results;
                 }
             }
+        }
+
+        /// <summary>
+        /// The prose writer's end-to-end figures over the recipes of a run: recipes, those the first
+        /// writer attempt got through the gate, those that ended on the rule rendering, those given
+        /// up, and the mean seconds a recipe took; null for another lane or a run with no recipe.
+        /// </summary>
+        public static (int Recipes, int FirstTry, int RuleRendered, int GaveUp, double Seconds)? RewriteFigures(string lane, IReadOnlyList<LaneCaseResult> results)
+        {
+            if (lane != ProseRewriteLane) return null;
+            var recipes = results.Where(r => r.Id.StartsWith(lane + ":recipe:", StringComparison.Ordinal)).ToList();
+            if (recipes.Count == 0) return null;
+            var seconds = recipes.Select(r => System.Text.RegularExpressions.Regex.Match(r.Actual, @", (\d+) s\b")).Where(m => m.Success)
+                .Select(m => double.Parse(m.Groups[1].Value, System.Globalization.CultureInfo.InvariantCulture)).DefaultIfEmpty(0).Average();
+            return (recipes.Count,
+                recipes.Count(r => r.Pass && r.Actual.StartsWith("rewritten in attempt 1 (", StringComparison.Ordinal)),
+                recipes.Count(r => r.Pass && r.Actual.Contains($"({ProseLanePrompts.RuleAttempt}", StringComparison.Ordinal)),
+                recipes.Count(r => !r.Pass),
+                Math.Round(seconds, 1));
+        }
+
+        /// <summary>The case of one recipe the prose writer rewrites end to end; its half is fixed by the hash of "recipe:" and the recipe key.</summary>
+        public static string RecipeCase(string lane, string recipe) => $"{lane}:recipe:{recipe}";
+
+        /// <summary>
+        /// What the clean-room pipeline made of one recipe, as a case's actual text: the attempt that
+        /// passed and its style (the rule rendering or a writer attempt), or the failure class and the
+        /// reasons of every attempt, each in the lane's own words, and the seconds the recipe took.
+        /// </summary>
+        public static string RewriteActual(ProseLaneOutcome outcome, double seconds)
+        {
+            var time = string.Create(System.Globalization.CultureInfo.InvariantCulture, $"{seconds:0} s");
+            var tried = string.Join(" | ", outcome.Attempts.Where(a => a.Reasons.Count > 0)
+                .Select(a => $"{a.Number} {a.Style}: {string.Join("; ", a.Reasons.Where(r => r != ProseCleanRoom.FormReason).DefaultIfEmpty(a.Reasons[0]).Take(4))}"));
+            var sheets = outcome.RuleSheets ? ", rule sheets" : string.Empty;
+            if (outcome.Passed)
+            {
+                var last = outcome.Attempts[^1];
+                return $"rewritten in attempt {last.Number} ({last.Style}{sheets}), {time}{(tried.Length == 0 ? string.Empty : "; refused before: " + tried)}";
+            }
+
+            return $"gave up: {outcome.FailureClass}{sheets}, {time}{(tried.Length == 0 ? string.Empty : "; " + tried)}";
         }
 
         public sealed record PickCase(string Id, string Name, IReadOnlyList<FoodCandidate> Shortlist, IReadOnlySet<string> Right, IReadOnlySet<string> Wrong, string JudgedBy)
@@ -773,15 +852,17 @@ namespace Nom.Import.Golden
         }
 
         /// <summary>
-        /// One row of alcohol-retention.tsv: a recipe's steps, a drink line, the basis the retention
-        /// reader must give and its factor. A false accept is a factor below the expected one, which
-        /// would understate the alcohol that stays.
+        /// One row of alcohol-retention.tsv: a recipe's steps, a drink line, the recipe's other drink
+        /// lines before and after it, the basis the retention reader must give and its factor. A false
+        /// accept is a factor below the expected one, which would understate the alcohol that stays.
         /// </summary>
-        public sealed record RetentionCase(string Id, IReadOnlyList<string> Steps, string Line, string Expect, decimal Factor, string JudgedBy)
+        public sealed record RetentionCase(string Id, IReadOnlyList<string> Steps, string Line, string Expect, decimal Factor, string JudgedBy, IReadOnlyList<string>? Before = null, IReadOnlyList<string>? After = null)
         {
             public LaneCaseResult Outcome()
             {
-                var reading = AlcoholRetention.Read(Steps, Line);
+                var before = Before ?? Array.Empty<string>();
+                var lines = before.Append(Line).Concat(After ?? Array.Empty<string>()).Select(l => (string?)l).ToList();
+                var reading = AlcoholRetention.ReadRecipe(Steps, lines)[before.Count];
                 var pass = reading.Basis == Expect && reading.Factor == Factor;
                 return new LaneCaseResult(Id, pass, reading.Factor < Factor, true,
                     string.Create(System.Globalization.CultureInfo.InvariantCulture, $"{Expect} {Factor:0.00}"),
@@ -789,12 +870,14 @@ namespace Nom.Import.Golden
             }
         }
 
-        /// <summary>The rows of alcohol-retention.tsv as cases; the steps column holds the recipe's steps separated by " | ", or "-" for none.</summary>
+        /// <summary>The rows of alcohol-retention.tsv as cases; the steps column holds the recipe's steps separated by " | ", or "-" for none, and the before and after columns the recipe's other drink lines the same way (blank or "-" for none).</summary>
         public static IEnumerable<RetentionCase> RetentionCases(string goldenDir) =>
             GoldenTsv.Read(Path.Combine(goldenDir, "alcohol-retention.tsv")).Rows.Select(r => new RetentionCase(
                 "retention:" + r.Id,
                 (r.Value("steps") ?? string.Empty).Split(" | ", StringSplitOptions.TrimEntries | StringSplitOptions.RemoveEmptyEntries),
-                r["line"], r["expect"], decimal.Parse(r["factor"], System.Globalization.CultureInfo.InvariantCulture), r["source"]));
+                r["line"], r["expect"], decimal.Parse(r["factor"], System.Globalization.CultureInfo.InvariantCulture), r["source"],
+                (r.Value("before") ?? string.Empty).Split(" | ", StringSplitOptions.TrimEntries | StringSplitOptions.RemoveEmptyEntries),
+                (r.Value("after") ?? string.Empty).Split(" | ", StringSplitOptions.TrimEntries | StringSplitOptions.RemoveEmptyEntries)));
 
         /// <summary>
         /// The rows of alcohol-context.tsv as cases, with the USDA description of each FDC id from

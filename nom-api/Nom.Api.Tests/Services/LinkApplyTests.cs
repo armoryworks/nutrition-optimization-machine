@@ -51,6 +51,8 @@ namespace Nom.Api.Tests.Services
             public Task<CatalogCleanupResult> ApplyAsync(int maxActions = 500) => throw new NotSupportedException();
             public Task<CatalogNormalizeResult> NormalizeAsync(bool apply) => throw new NotSupportedException();
             public Task<bool> LowersDietAsync(long sourceId, long targetId) => Task.FromResult(false);
+            public Task<(int Lines, int Held, IReadOnlyList<LineMoveHold> Holds)> DietHoldsAsync(long sourceId, long targetId) => Task.FromResult((0, 0, (IReadOnlyList<LineMoveHold>)Array.Empty<LineMoveHold>()));
+            public Task<IReadOnlyList<string>> RaisesDietAsync(long targetId, string? name, IReadOnlyList<(string Alias, string? Context)> aliases) => Task.FromResult((IReadOnlyList<string>)Array.Empty<string>());
 
             public async Task<bool> MergeIntoAsync(long sourceId, long targetId, long? personId, bool ignoreProposals = false, long? keepProposalId = null)
             {

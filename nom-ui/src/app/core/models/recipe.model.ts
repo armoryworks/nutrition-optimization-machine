@@ -57,6 +57,9 @@ export interface RecipeModel {
   containsSourceProse?: boolean;
   /** True while the recipe's own description and method are withheld until they are rewritten; keyFacts and sourceUrl stand in for the method. */
   proseWithheld?: boolean;
+  /** The recipe was removed (taken from a forbidden source): only its title, sourceUrl and removedNote are served. */
+  removed?: boolean;
+  removedNote?: string | null;
   /** Rule-built facts of the source method ("oven 350°F", "bake 30 to 40 min"), in step order, while the method is withheld. */
   keyFacts?: string[] | null;
   /** True when the source's photo is held for review and no NOM image replaces it yet. */

@@ -1,15 +1,58 @@
-# Prose lane v2: clean-room rewrites
+# Prose lane v3: rewording read in context
 
 A scraped recipe's method and description are shown only in our own words. Recipes whose stored
-prose is the source's (quarantined, `ContainsSourceProse`) or failed the prose check (withheld,
-`ProseWithheld`, see `prose-check.md`) are rewritten by this lane. Withheld is a holding state, never
-an end: the lane works every withheld recipe off, approved ones first, and a recipe it cannot rewrite
-is reported by the cause that held it, so the engine is fixed rather than the recipe left behind.
+prose is the source's (quarantined, `ContainsSourceProse`), failed the prose check (withheld,
+`ProseWithheld`), or holds some copied sentences (withheld too, marked `ProseCopiedSentences`, see
+`prose-check.md`, check v7) are reworded by this lane. Withheld is a holding state, never an end: the
+lane works every withheld recipe off, approved ones first, and a recipe it cannot reword is reported by
+the cause that held it, so the engine is fixed rather than the recipe left behind.
 
-Code: `ProseMasking`, `ProseFactSheet`, `ProseCleanRoom`, `ProseLanePrompts`, `ProseDescription`,
-`ProseLaneJournal`, `ProseLaneGolden` (Nom.Orch `Services/Support`); `ProseLaneService`,
-`ProseRewriteUndoService`, `OllamaProseWriter`, `OllamaProseStepJudge`, `OllamaProseJudge` (Nom.Orch `Services`), `ProseJudgeRules`;
-`ProseRewriteHostedService` (Nom.Api) runs it.
+Code: `ProseReword`, `ProseSentences`, `ProseLanePrompts`, `ProseDescription`, `ProseLaneJournal`,
+`ProseLaneGolden`, and for the rule rendering of AI-reserved recipes `ProseMasking`, `ProseFactSheet`,
+`ProseCleanRoom` (Nom.Orch `Services/Support`); `ProseLaneService`, `ProseRewriteUndoService`,
+`OllamaProseWriter` (`IProseRewriter`), `OllamaProseStepJudge`, `OllamaProseJudge` (Nom.Orch
+`Services`), `ProseJudgeRules`; `ProseRewriteHostedService` (Nom.Api) runs it.
+
+## Version 3 (2026-11-24, `cleanup2/ck11-prose`): the writer reads the source
+
+The owner's answer of 2026-11-23: "The entire text needs to be read for context, then the paragraph,
+then the sentence. Then rewording can happen". The clean-room writer, which never saw the source, is no
+longer the design; the fact sheets stay as the checker's input.
+
+1. **Work list.** A withheld or quarantined recipe is reworded from its source method, every sentence;
+   its description is built by rule (`ProseDescription`). A recipe withheld for its copied sentences
+   (`ProseCopiedSentences` above 0, not facts-only and not AI-reserved) keeps its text, and only the
+   sentences the prose check reads as copies are reworded; a copied sentence of its description is
+   replaced by the rule description. A facts-only or AI-reserved recipe is reworded as a whole whatever
+   its count. Order: approved withheld, other withheld, quarantined.
+2. **Three readings, then the sentence** (`ProseLanePrompts.Reword`, `IProseRewriter.RewordAsync`). One
+   call a step: the writer is given the dish, the recipe's ingredient lines, the whole source method,
+   the step as it now reads and the sentences of it to reword, and answers in that order with what the
+   dish and the work are (`method`), what the step is for (`step`), and for each sentence what the cook
+   must do or know (`reading`) and only then the `rewrite`.
+3. **Facts first, then copy, sentence by sentence** (`ProseReword.SentenceProblems`). Each reworded
+   sentence must hold the same ingredients, the same amounts as written, every cooking verb and every
+   heat or oven of the sentence it replaces, add no amount (`ProseCleanRoom.RuleOnlyAudit`,
+   `ProseCleanRoom.HeatProblems` from the fact-sheet rounds), and be neither a copy nor a sentence kept
+   nearly word for word of the source (`ProseSentences`). A sentence that fails is reworded again in
+   the next round with what failed, in the lane's words; three rounds (`RewordRounds`: temperature 0,
+   then 0.5 seed 7, then 0.8 seed 11), then the recipe is given up under its lane version and keeps its
+   state (withheld stays withheld).
+4. **Gate.** The whole text must not fail the prose check, `contradicts-lines` included (an amount the
+   recipe's own line contradicts, the checkpoint 6 madeleines' class), and may hold no copied sentence;
+   then the judge (mistral-nemo) reads each changed step against the step it replaces (the source step
+   for a whole rewording). A recipe is shown when all of it passes, and not before: a recipe with
+   copied sentences is withheld until then; a rewrite clears its `ProseCopiedSentences`.
+5. **Frame.** The lane version is `v3-` with the reword, rule-rendering and judge signatures and the
+   two models, so every recipe given up under v2 is eligible again. The lane ships in shadow on the new
+   version and cannot qualify: `prose-rewrite` has no committed golden record under the new signature
+   (`ProseLaneGolden.GoldenProblem`), and the pause switch `ai-pause-prose-rewrite` stays on until an
+   operator lifts it. Every write is journaled and undone by `ProseRewriteUndoService` as before.
+6. **Golden lane rows and scorer.** `--golden-score --lane prose-rewrite` rewords each recipe of
+   prose-judge.tsv from its method as a whole (`prose-rewrite:recipe:<key>`), rewords the copied
+   sentences of each faithful rewrite the sentence rule finds some in (`prose-rewrite:repair:<id>`,
+   `ProseLaneGolden.IsRepairCase`) and puts each planted fault through the gate. No record is
+   committed: the next prompt round scores it on the model host.
 
 ## Why the old lane failed, and what this lane changes
 
@@ -40,33 +83,67 @@ class has a cause in that engine; this lane removes each cause rather than catch
 2. **Extract (writer model).** The masked method becomes fact sheets (`StepFacts`: actions, objects,
    equipment, amounts, cues; JSON schema). `ProseFactSheet.Problems` checks them: one per step, every
    amount token of the step exactly once and none of another step, every line token kept, every
-   lexicon verb kept, no entry over 6 words, no digit or amount outside the tokens. A failure is asked
-   once more with the problems; sheets that still fail are built by rule from the masked step (its
-   verbs, line tokens and amount tokens, no cues).
+   lexicon verb kept, no entry over 6 words, no digit or amount outside the tokens. Sheets that fail
+   are first mended by rule (`ProseCleanRoom.MendSheets`: the step's own amount tokens, a missing
+   ingredient token or lexicon verb added, an entry with an amount, a number or too many words
+   dropped), so one slip does not cost the extractor's equipment and cues; sheets that cannot be
+   mended are asked once more with the problems; sheets that still fail are built by rule from the masked step (its
+   verbs, line tokens and amount tokens, the oven when it names one, no cues). Rules then add to each
+   sheet (`facts/2`) the stove heat, oven heat and serving temperature the step names, in the lane's
+   own fixed phrases (`ProseFactSheet.HeatsOf`: "over medium heat", "in a hot oven", "serve cold"),
+   which amount token measures which ingredient token (`MeasuresOf`: "⟦Q2⟧ of ⟦L3⟧") and which time
+   token belongs to which verb (`TimingsOf`: "fry for ⟦Q4⟧"), and put the actions in the step's order
+   (`InStepOrder`), since the writer, which never sees the step, cannot know any of these and left
+   heats out more than anything else. Unmasking writes a line token with the words of its name the
+   method puts before it ("olive oil", not "oil"; `ProseMasking` `mask/2`). A written step that leaves out a
+   measured amount, or puts a time on a food, is put right by rule before the form rules
+   (`ProseFactSheet.RepairMeasures`).
 3. **Write (writer model).** From the sheets, the ingredient names (`⟦L1⟧ = olive oil`) and the dish
-   name only. Attempts: style "steps" at temperature 0; the same at 0.6 with seed 7 and the reasons;
-   style "actions" at 0.3 with seed 11 and the reasons; then, when the sheets are the extractor's,
-   the rule rendering of the sheets (`ProseFactSheet.Render`), which needs no model.
-4. **Gate.** The form rules on the masked text (`ProseCleanRoom.FormProblems`); the tokens put back;
+   name only, one call per step (all sheets shown, the one step written, JSON schema `{"step":"..."}`)
+   with that step's checklist line (`ProseFactSheet.Checklist`: its actions, ingredient tokens,
+   amount tokens, heats and measures) and the problems that name it. Attempts: style "steps" at
+   temperature 0; the same at 0.6 with seed 7 and the reasons; style "actions" at 0.3 with seed 11
+   and the reasons; then the rule rendering of the sheets (`ProseFactSheet.Render`, a measured
+   ingredient written "⟦Q2⟧ of ⟦L3⟧"), which needs no model, also of rule-built sheets. An attempt
+   after the first writes again only the steps the last one failed on (the steps a form problem, a
+   check reason or the judge names; every step when none is named) and keeps the others
+   (`ProseLanePrompts.Retry`, `retry/2`), so one hard step no longer costs the whole recipe.
+4. **Gate.** The form rules on the masked text (`ProseCleanRoom.FormProblems`, which also hold the
+   judge's heat rules, `HeatProblems`, so a step that drops or changes its heat or its oven is
+   written again before the judge is asked); the tokens put back;
    prose check v2 against the source with the current stock index; the judge (reader B of the
    roster). The first attempt all three pass is the rewrite. A rewrite the check is only unsure of
    (a source verb not found, amounts out of order, an added amount, a length outside its bounds)
    goes to the judge, which reads the check's weak signal for each step as a note.
 
-   **The judge** (`OllamaProseStepJudge`, judge prompt version 2). Rules decide first and ask no
+   **The judge** (`OllamaProseStepJudge`, judge prompt version 3, `judge-rules/7`). Rules decide first and ask no
    model (`ProseJudgeRules.Before`): a rewrite with another number of steps, one the prose check
    fails on a fact (the copy rule is no question of meaning), and a step pair whose stove heat,
    oven heat or serving temperature differ (`ProseJudgeRules.Heats`: "over medium heat" and "on
-   medium" agree, "moderate oven" and "hot oven" do not) are faults. Otherwise the model reads each
+   medium" agree, "moderate oven" and "hot oven" do not) are faults, and so is a step pair whose
+original names a stove heat, an oven heat or a serving temperature the rewrite step leaves out
+(`ProseJudgeRules.HeatsLost`; a serving temperature is kept by its word anywhere in the step) or
+names the oven the rewrite step neither names nor bakes or roasts in (`ProseJudgeRules.OvenLost`). Otherwise the model reads each
    step pair in a call of its own (temperature 0, seed 17, context 8192 like the lane's other
-   mistral-nemo calls, a JSON schema): it lists every fact of the original step (action, ingredient,
-   heat, amount, cue, serving, warning) with the rewrite's words for it and same, different or
-   missing, and everything the rewrite step adds. A cooking verb of the original step that no listed
+   mistral-nemo calls, a JSON schema): it is asked whether the cook still does or knows each fact,
+   never about wording; it lists every fact of the original step (action, ingredient, heat, amount,
+   cue, serving, warning) with the rewrite's words for it and kept, changed or lost, and every fact
+   the rewrite step adds. A cooking verb of the original step that no listed
    fact names is added as a missing fact of its clause (`ProseJudgeRules.Unread`), so an action the
-   model did not list is still checked. A fact not read as the same, or quoted from words
+   model did not list is still checked, and so is each clause of the original step with a word no rule
+finds in the rewrite step (`ProseJudgeRules.Uncovered`), whatever the model read of it. A fact not read as the same, or quoted from words
    the rewrite step does not hold, is the same by rule when it is a heat fact and the step names that
    stove or oven level and no other, or when every content word of it (heat words aside) is in the
-   rewrite step and any level it names is the step's (`ProseJudgeRules.FoundByRule`); otherwise it is asked again on its own (`JudgeKept`: the
+   rewrite step and any level it names is the step's (`ProseJudgeRules.FoundByRule`). A word is found
+   as written, with an ending dropped, as a word of the same meaning in the rule's own table of
+   actions, utensils and cues ("pour" and "add", "basin" and "bowl", "tender" and "soft"; never two
+   cooking methods, heats or doneness cues of different results), or, for a broad verb of the
+   original ("cook", "cut", "grease"), as a narrower one ("fry", "dice", "butter"); words of manner and
+   size ("gently", "small") need not be found, nor the amounts and units of a step whose amounts the
+   prose check finds the same (`ProseJudgeRules.AmountsAgree`). A thing the model reads as added is
+   dropped by the same rule when every content word of it is in the original step and it names no
+   heat the original does not (`ProseJudgeRules.AddedByRule`). Otherwise a fact is asked again on its own, with the words of it no rule finds in the rewrite step
+named (`JudgeKept`: the
    rewrite's words, what the food is like after each version, then same, other or no result), and
    so is each added thing (`JudgeAdded`). A claim is withdrawn only when that answer says the same
    result and its quote is in the step by rule (`ProseJudgeRules.Kept`, `.AlreadySaid`), never when
@@ -186,7 +263,9 @@ unless the lane's undo has since taken that rewrite back.
 
 `prose-judge.tsv` (golden folder, compiled into Nom.Orch): 8 recipes (4 constructed in our own
 words, 4 public domain), each with one faithful rewrite, three or four planted faults written by hand
-and up to 13 more planted by `ops/golden/plant-prose-faults.py` (130 rows). Scored by
+and up to 13 more planted by `ops/golden/plant-prose-faults.py` (130 rows), and 86 recipes written for
+the set to measure false refusals: 45 faithful rewrites written for the set and 55 rewrites of the
+lane's own writer, each judged step by step (13 faithful, 42 not), 230 rows with 66 faithful. Scored by
 an operator on a model host, never in CI:
 
 ```
@@ -196,12 +275,20 @@ dotnet run --project nom-api/Nom.Import -- --golden-score --lane prose-rewrite -
 ```
 
 `prose-judge` takes `--split working|held-out|all` for prompt rounds; a record is always scored on
-every row. Judge prompt version 2 on mistral-nemo scores 95.4 % (124/130) with no planted fault let
-through (0/122); it refuses 6 of the 8 faithful rewrites, so the lane's gate yield will be low until
-the judge reads paraphrase better. That run was under check v4; the check version is part of the judge's
-signature, so with check v6 (since `cleanup2/ck10-prose-check`) its record is set aside (kept with the evidence) until the judge is scored
-again. The judge's signature is part of the `prose-rewrite` signature and
-of the lane version, so `prose-rewrite` must be scored again with it. `prose-audit` keeps its rubric
+every row, and the scorer prints the faithful rewrites it refuses as a figure of its own (false
+refusals, which the floor does not count). Judge prompt version 3 (`judge-rules/7`, check v5) on
+mistral-nemo scores 87.8 % (202/230) with 5 of 164 faults let through (3.0 %) and 23 of the 66
+faithful rewrites refused (34.8 %; 2 of the writer's 13), below its floor, so no record is committed
+(kept with the evidence); that run was under check v5, and with check v6 and v7 the judge must be
+scored again. The judge's signature is part of the `prose-rewrite` signature and
+of the lane version, so `prose-rewrite` must be scored again with it. `prose-rewrite` (writer
+`facts/3`, `mask/2`, `retry/2`) with qwen2.5:14b-instruct and that judge scores 86.3 % (113/131) on
+its working half, 2 of 82 faults let through, 15 of 49 recipes through at the first attempt, 8 on the
+rule rendering, 16 given up, about 98 s a recipe; below its floor, so no record is committed (kept
+with the evidence). The no-source writer is no longer the design (the owner's answer of 2026-11-23:
+the writer reads the method, the step and the sentence before it rewords); the fact-sheet heats,
+measures and timings, the heat form rules and the measure repair stand for the writer that replaces
+it. `prose-audit` keeps its rubric
 and signature, but its case set grew with the planted rows: phi4 scores 74.6 % (97/130) on it,
 below its floor, so no audit record is committed.
 

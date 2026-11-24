@@ -867,6 +867,34 @@ namespace Nom.Api.Tests.Services
         }
 
         [Fact]
+        public async Task The_lanes_undo_counts_each_rule_rejection_of_its_batches_once()
+        {
+            using var db = await SeededAsync();
+            var water = await FoodAsync(db, "water");
+            var flour = await FoodAsync(db, "flour");
+            var since = DateTime.UtcNow.AddMinutes(-1);
+            await RecipeAsync(db, "Lane", new[] { "2 tablespns. water", "1 cup flour" },
+                new[] { new Row(water, "2 tablespns. water", 2, Piece), new Row(flour, "1 cup flour", 1, Cup, 1) });
+            await Detector(db).DetectBatchAsync(0, 100);
+            await Lane(db).RunBatchAsync(ReprocessTier.Rebuild, LaneMode.Live, 50);
+            var placeholder = new[] { "Placeholder text for the method goes here.", "Insert steps here once known." };
+            var lorem = await RecipeAsync(db, "Lorem", new[] { "2 cups flour" }, new[] { new Row(flour, "2 cups flour", 2, Cup) },
+                steps: placeholder, status: CurationStatusEnum.RequiresRevision);
+            var rejected = await Reprocess(db).RebuildAsync(new RecipeReprocessRequestModel { RecipeIds = new List<long> { lorem.Id } }, apply: true,
+                batchId: RecipeReprocessService.NewBatchId(DateTime.UtcNow, RecipeReprocessService.LaneBatchPrefix));
+            rejected.Rejected.Should().Be(1);
+            db.ChangeTracker.Clear();
+            var undo = new ReprocessLaneUndo(Reprocess(db), db);
+
+            var dry = await undo.UndoSinceAsync(ReprocessTier.Rebuild, since, apply: false, CancellationToken.None);
+            var applied = await undo.UndoSinceAsync(ReprocessTier.Rebuild, since, apply: true, CancellationToken.None);
+
+            (dry.Undone, applied.Undone).Should().Be((2, 2), "an undo of kind rebuild takes the rule rejections with it, so a second pass by kind rule-reject counted each twice (review CK11L-1)");
+            db.ChangeTracker.Clear();
+            (await db.RecipeReprocessJournals.CountAsync(j => j.UndoneAt == null)).Should().Be(0);
+        }
+
+        [Fact]
         public async Task The_detector_marks_second_copies_as_duplicates()
         {
             using var db = await SeededAsync();

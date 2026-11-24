@@ -16,6 +16,7 @@ as	unit-or-function
 at	unit-or-function
 bag	decision
 baileys	gate-rule
+based	gate-rule
 bay	gate-rule
 beaten	gate-rule
 beef	gate-rule
@@ -78,6 +79,7 @@ cup	unit-or-function
 cupful	gate-rule
 cups	unit-or-function
 cut	gate-rule
+dairy	gate-rule
 dark	gate-rule
 de	drink
 depending	decision
@@ -132,6 +134,7 @@ glass	unit-or-function
 glasses	unit-or-function
 glassful	gate-rule
 glassfuls	decision
+gluten	gate-rule
 good	gate-rule
 grated	gate-rule
 grates	gate-rule
@@ -198,6 +201,7 @@ more	unit-or-function
 mustard	gate-rule
 nearly	gate-rule
 no	unit-or-function
+non	gate-rule
 not	unit-or-function
 notes	gate-rule
 oat	gate-rule
@@ -226,6 +230,7 @@ pinch	unit-or-function
 pint	unit-or-function
 pints	unit-or-function
 pitted	gate-rule
+plant	gate-rule
 plus	gate-rule
 port	gate-rule
 pound	unit-or-function
@@ -332,6 +337,7 @@ unsweetened	gate-rule
 use	gate-rule
 vanilla	gate-rule
 variety	gate-rule
+vegan	gate-rule
 vegetable	gate-rule
 vermouth	drink
 very	gate-rule

@@ -17,6 +17,83 @@ namespace Nom.Orch.Services.Support
     /// <summary>Which regular expression dialect a pattern is written for: .NET in memory, or PostgreSQL's advanced expressions (<c>~*</c>, <c>regexp_replace</c>) in a probe.</summary>
     public enum DietRegexDialect { DotNet, Postgres }
 
+    /// <summary>How far a term reads into the word it begins: any continuation (<see cref="Start"/>: "anchov" reads anchovies) or only its whole word with a plural or verb ending (<see cref="Word"/>: "carp" reads carps, never mascarpone).</summary>
+    public enum DietTermEnd { Start, Word }
+
+    /// <summary>One row of the term readings (Contents/diet-term-words.tsv): a term's reading (<see cref="Entry"/> "*", <see cref="Reading"/> word or start), or a word the term reads (in) or never reads (out), with the reason.</summary>
+    public sealed record DietTermRow(string Term, string Entry, string Reading, string Reason);
+
+    /// <summary>
+    /// The committed term readings (staging checkpoint 6, R6 and R7): which terms read only their whole word, the words
+    /// a term reads beside it (compounds such as shortbread for bread, codfish for cod) and the words it never reads,
+    /// each decided from what the reading of diet-patterns/5 caught in the staging corpus. Part of <see cref="DietPatternRule.Version"/>.
+    /// </summary>
+    public static class DietTermReadings
+    {
+        public const string ResourceName = "Nom.Orch.Contents.diet-term-words.tsv";
+        public const string In = "in";
+        public const string Out = "out";
+        public const string WordReading = "word";
+        public const string StartReading = "start";
+
+        private static readonly Lazy<IReadOnlyList<DietTermRow>> Table = new(Load);
+
+        /// <summary>Every row of the committed file, in its order.</summary>
+        public static IReadOnlyList<DietTermRow> All => Table.Value;
+
+        private static readonly Lazy<Dictionary<string, DietTermEnd>> Ends = new(() =>
+            All.Where(r => r.Entry == "*").GroupBy(r => DietPatternRule.Fold(r.Term)).ToDictionary(g => g.Key, g => g.First().Reading == WordReading ? DietTermEnd.Word : DietTermEnd.Start, StringComparer.Ordinal));
+
+        /// <summary>How far a term reads: its own row, else the row of its last word ("dried pear" as pear), else <see cref="DietTermEnd.Start"/>.</summary>
+        public static DietTermEnd EndOf(string term)
+        {
+            if (Ends.Value.TryGetValue(term, out var end)) return end;
+            var space = term.LastIndexOf(' ');
+            return space > 0 && Ends.Value.TryGetValue(term[(space + 1)..], out var last) ? last : DietTermEnd.Start;
+        }
+
+        /// <summary>The words a term reads beside its own word.</summary>
+        public static IReadOnlyList<string> WordsOf(string term) => All.Where(r => DietPatternRule.Fold(r.Term) == term && r.Entry != "*" && r.Reading == In).Select(r => r.Entry).ToList();
+
+        /// <summary>The words a term never reads, with their reasons.</summary>
+        public static IEnumerable<DietTermRow> OutOf(string term) => All.Where(r => DietPatternRule.Fold(r.Term) == term && r.Entry != "*" && r.Reading == Out);
+
+        private static IReadOnlyList<DietTermRow> Load()
+        {
+            using var stream = typeof(DietTermReadings).Assembly.GetManifestResourceStream(ResourceName)
+                ?? throw new InvalidOperationException($"{ResourceName} is not embedded in Nom.Orch");
+            using var reader = new System.IO.StreamReader(stream);
+            return Parse(reader.ReadToEnd());
+        }
+
+        /// <summary>Reads the file's text: comment lines start with #, the header names the columns; a reading row has entry "*" and reading word or start, a word row reading in or out; every row gives a reason, and a term or word stands once.</summary>
+        public static IReadOnlyList<DietTermRow> Parse(string text)
+        {
+            var rows = new List<DietTermRow>();
+            var seen = new HashSet<(string, string)>();
+            var header = false;
+            foreach (var raw in text.Split('\n'))
+            {
+                var line = raw.TrimEnd('\r');
+                if (line.Length == 0 || line.StartsWith('#')) continue;
+                var cells = line.Split('\t');
+                if (!header)
+                {
+                    header = true;
+                    continue;
+                }
+                if (cells.Length != 4) throw new System.IO.InvalidDataException($"diet-term-words.tsv: {cells.Length} cells where the header has 4: {line}");
+                var row = new DietTermRow(cells[0].Trim(), cells[1].Trim(), cells[2].Trim(), cells[3].Trim());
+                var reading = row.Entry == "*" ? row.Reading is WordReading or StartReading : row.Reading is In or Out;
+                if (!reading) throw new System.IO.InvalidDataException($"diet-term-words.tsv: {row.Reading} is no reading for {row.Term} {row.Entry}");
+                if (row.Reason.Length == 0) throw new System.IO.InvalidDataException($"diet-term-words.tsv: {row.Term} {row.Entry} gives no reason");
+                if (!seen.Add((row.Term, row.Entry))) throw new System.IO.InvalidDataException($"diet-term-words.tsv: {row.Term} {row.Entry} stands twice");
+                rows.Add(row);
+            }
+            return rows;
+        }
+    }
+
     /// <summary>A compound food that holds a pattern's term but is not the food the term names, with the reason it is not, and the restriction types it is read for (every type when null).</summary>
     public sealed record DietPatternException(string Term, string Phrase, string Reason, IReadOnlyList<string>? Types = null)
     {
@@ -29,13 +106,17 @@ namespace Nom.Orch.Services.Support
     /// The diet gate's reading of a name pattern with <c>%</c> (<c>%ham%</c>, <c>%egg%</c>) in a food's
     /// name, an alias or a recipe line (staging checkpoint 2 and the wave 13 report: crude ILIKE
     /// patterns hit "graham", "eggplant", "peppercorn", "licorice", "goat"). The pattern's term is read
-    /// by words, not letters:
-    /// - the term counts where it begins a word, whatever follows (plurals, stems and compounds:
-    ///   "eggs", "anchovies", "buttermilk", "cornmeal");
-    /// - inside a word it counts only as a whole part of a compound: at least three letters before it,
-    ///   and after it nothing, an inflection (s, es, ed, ing) or at least three letters ("shortbread",
-    ///   "popcorn", "horseradish"), so "goat" is not oat, "spear" not pear, "slicing" not icing,
-    ///   "avocado" not cod and "chocolate" not cola;
+    /// by words, not letters (diet-patterns/6, staging checkpoint 6, R6: "mascarpone" read as carp,
+    /// "tilleul" as til, the maker "Atkins Nutritionals" as a nut):
+    /// - the term counts only where it begins a word, and reads as far as its meaning needs
+    ///   (<see cref="DietTermReadings"/>): most terms whatever follows ("eggs", "anchovies", "buttermilk",
+    ///   "cornmeal"), a term with a word row only its whole word with a plural or verb ending (s, es, ed,
+    ///   ing: "carps", never "mascarpone" or "carpet");
+    /// - it never counts inside a word: a compound it names is a word the term reads by the committed
+    ///   table ("shortbread" for bread, "codfish" for cod, "popcorn" for corn), so "goat" is not oat,
+    ///   "spear" not pear, "avocado" not cod and "chocolate" not cola; a word the table takes out is a
+    ///   named exception of the term;
+    /// - a closing bracket that names a maker ("(Atkins Nutritionals, Inc.)") is not read;
     /// - a term followed by "less" or "free" ("eggless", "peanut-free", "flourless") says the food is
     ///   absent and does not count, but "free-range", "free range" and "free-run" describe the food
     ///   and do, and so does "free from" or "free of" something else ("bread free from crust", "fish
@@ -44,7 +125,8 @@ namespace Nom.Orch.Services.Support
     ///   reason (<see cref="Exceptions"/>): "graham" is not ham, "buckwheat" not wheat, "peanut butter"
     ///   not dairy, "coconut milk" not milk. A compound such as "coconut milk" stays restricted where a
     ///   type's own pattern names it (Coconut Allergy's <c>%coconut%</c>);
-    /// - words of a term are matched across any run of spaces or punctuation ("brazil-nut"); words of
+    /// - words of a term are matched across any run of spaces or punctuation without a digit ("brazil-nut", but not "peanut
+    ///   butter, 1 cup" for "peanut butter cup"); words of
     ///   an exception only across spaces or hyphens, so a list ("rice, flour") is never a compound.
     /// A pattern that asks for a substring on purpose keeps the ILIKE reading: one that starts or ends
     /// with <c>%%</c> (<c>%%nut%%</c>, which ILIKE reads as <c>%nut%</c>), or one with <c>_</c> or a
@@ -55,12 +137,9 @@ namespace Nom.Orch.Services.Support
     public sealed class DietPatternRule
     {
         /// <summary>The version of the rule and its exceptions, part of every cache key that holds a reading.</summary>
-        public const string Version = "diet-patterns/5";
+        public const string Version = "diet-patterns/7";
 
-        /// <summary>The fewest letters that must stand before a term inside a word for the term to be a compound's part.</summary>
-        public const int CompoundPart = 3;
-
-        /// <summary>The endings a term inside a word may take and still end the word.</summary>
+        /// <summary>The endings a whole word may take and still be the word.</summary>
         public const string Inflection = "(?:s|es|ed|ing)";
 
         private static readonly ConcurrentDictionary<string, DietPatternRule> Parsed = new(StringComparer.Ordinal);
@@ -77,7 +156,11 @@ namespace Nom.Orch.Services.Support
             Start = start;
             End = end;
             TypeName = typeName;
-            Exceptions = substring ? Array.Empty<DietPatternException>() : All.Where(e => e.Term == term && e.AppliesTo(typeName)).ToList();
+            Exceptions = substring ? Array.Empty<DietPatternException>() : All.Where(e => Fold(e.Term) == term && e.AppliesTo(typeName))
+                .Concat(DietTermReadings.OutOf(term).Select(r => new DietPatternException(term, r.Entry, r.Reason)))
+                .ToList();
+            TermEnd = substring ? DietTermEnd.Start : DietTermReadings.EndOf(term);
+            Compounds = substring ? Array.Empty<string>() : DietTermReadings.WordsOf(term);
             if (substring) return;
             _match = new Regex(Expression(DietRegexDialect.DotNet), RegexOptions.IgnoreCase | RegexOptions.CultureInvariant);
             if (ExceptionExpression(DietRegexDialect.DotNet) is { } blank)
@@ -102,8 +185,14 @@ namespace Nom.Orch.Services.Support
         /// <summary>Where the term may end.</summary>
         public DietPatternEnd End { get; }
 
-        /// <summary>The named exceptions of the term, those scoped to other types left out.</summary>
+        /// <summary>The named exceptions of the term, those scoped to other types left out, and the words the term readings take out.</summary>
         public IReadOnlyList<DietPatternException> Exceptions { get; }
+
+        /// <summary>How far the term reads into the word it begins (<see cref="DietTermReadings.EndOf"/>).</summary>
+        public DietTermEnd TermEnd { get; }
+
+        /// <summary>The words the term reads beside its own (<see cref="DietTermReadings.WordsOf"/>).</summary>
+        public IReadOnlyList<string> Compounds { get; }
 
         /// <summary>The restriction type the reading is for when an exception of its term is scoped to it; otherwise null.</summary>
         public string? TypeName { get; }
@@ -143,9 +232,36 @@ namespace Nom.Orch.Services.Support
         {
             if (string.IsNullOrWhiteSpace(text)) return false;
             if (Substring) return DietCriteriaMatcher.LikeRegex(Pattern).IsMatch(text);
+            text = Fold(WithoutMaker(text));
             if (_blank != null) text = _blank.Replace(text, " ");
             return _match!.IsMatch(text);
         }
+
+        private static readonly Regex MakerBracket = new(@"\((?<maker>[^()]*\b(?:Inc|Incorporated|Llc|L\.L\.C|Ltd|Limited|Corp|Corporation|Company|Companies|Co|Plc|GmbH|S\.?p\.?A|Brands|Nutritionals)\b\.?[^()]*)\)\s*$", RegexOptions.IgnoreCase | RegexOptions.CultureInvariant | RegexOptions.Compiled);
+
+        private static readonly Regex ClosingBracket = new(@"\([^()]*\)\s*$", RegexOptions.CultureInvariant | RegexOptions.Compiled);
+
+        /// <summary>
+        /// The text without a closing bracket that names a maker (staging checkpoint 6, R7: "(Atkins Nutritionals, Inc.)" in
+        /// a branded food's name was read as a nut): a bracket at the end of the text that holds a company word (Inc, Llc,
+        /// Ltd, Corp, Company, Co, Brands, Nutritionals ...). With <paramref name="branded"/> (a USDA branded food, whose
+        /// catalog name ends with its brand owner in brackets, written in title case by the branded import) a closing bracket
+        /// in title case is the maker whatever it holds; a bracket of the description itself ("TRAIL MIX (PEANUTS, RAISINS)",
+        /// whose owner the import left out because the description already names it) is read (review ck11-dc-8).
+        /// </summary>
+        public static string WithoutMaker(string text, bool branded = false)
+        {
+            if (text.IndexOf('(') < 0) return text;
+            var stripped = MakerBracket.Replace(text, " ");
+            if (!branded || stripped != text) return stripped;
+            var bracket = ClosingBracket.Match(text);
+            if (!bracket.Success) return text;
+            var owner = bracket.Value.Trim().TrimStart('(').TrimEnd(')');
+            return owner.Length > 0 && owner == OwnerCase(owner) ? text[..bracket.Index] + " " : text;
+        }
+
+        private static string OwnerCase(string owner) =>
+            owner.Length <= 3 ? owner : System.Globalization.CultureInfo.InvariantCulture.TextInfo.ToTitleCase(owner.ToLowerInvariant());
 
         /// <summary>
         /// Whether a USDA description ("Flour, almond", "Leavening agents, cream of tartar") names the pattern's food:
@@ -160,14 +276,42 @@ namespace Nom.Orch.Services.Support
         {
             if (!IsMatch(text)) return false;
             if (_blank == null) return true;
-            return SpokenOrders(text).All(spoken => !_match!.IsMatch(spoken) || _match.IsMatch(_blank.Replace(spoken, " ")));
+            return SpokenOrders(Fold(WithoutMaker(text!))).All(spoken => !_match!.IsMatch(spoken) || _match.IsMatch(_blank.Replace(spoken, " ")));
         }
 
-        /// <summary>A USDA description in each order of speech: each later comma-separated part before its first, the other parts after them in their order ("Squash, winter, spaghetti, raw" reads "winter Squash, spaghetti, raw", "spaghetti Squash, winter, raw" and "raw Squash, winter, spaghetti"); the first is <see cref="SpokenOrder"/>.</summary>
+        private static readonly Regex UseClause = new(@"[,(]\s*\(?\s*(?:plus\s+(?:more|extra)\s+|and\s+|or\s+)?for\s+\p{L}+ing(?:\s*(?:,|and|or)\s*\p{L}+ing)*(?:\s+[^,;:()]*)?", RegexOptions.IgnoreCase | RegexOptions.CultureInvariant | RegexOptions.Compiled);
+
+        private static readonly Regex LeadingAmount = new(@"^\s*(?:[\d½¼¾⅓⅔⅛⅜⅝⅞/.,\s-]+|an?\s+|one\s+|two\s+|three\s+|four\s+|five\s+|six\s+)(?:\([^()]*\)\s*)?(?:(?:cups?|c\.|tablespoons?|tbsps?\.?|tsps?\.?|teaspoons?|ounces?|oz\.?|pounds?|lbs?\.?|slices?|cans?|packages?|pkgs?\.?|pieces?|cloves?|heads?|bunch(?:es)?|pints?|quarts?|grams?|g|ml|liters?|servings?)\s+(?:of\s+)?)?", RegexOptions.IgnoreCase | RegexOptions.CultureInvariant | RegexOptions.Compiled);
+
+        /// <summary>
+        /// Whether a recipe line names the pattern's food: read as <see cref="IsMatch"/> does, and for a line written in the
+        /// order of a USDA description ("4 tortillas, corn", "1 cup oats, gluten-free": the MyPlate recipes write their lines
+        /// so) also in each order of speech with its amount left out ("corn tortillas"), cleared where a named exception blanks
+        /// the term there, as <see cref="IsDescriptionMatch"/> reads a description (proof draw 9 of the ck11 review). A line
+        /// is read from a word boundary at its start, so a pattern that reads a term where a word begins ("% nut%") reads a
+        /// line that opens with it ("nut meats": proof draw 10), while a USDA description's category head ("Nuts, coconut
+        /// milk") stays unread. What a line says it is used for is not read ("12 ounces chopped chocolate (for dipping
+        /// cookies)", "Avocado oil, (for greasing pan and brushing on tortillas)": proof draws 9 and 14).
+        /// </summary>
+        public bool IsLineMatch(string? line)
+        {
+            if (string.IsNullOrWhiteSpace(line)) return false;
+            line = " " + UseClause.Replace(line, " ");
+            if (!IsMatch(line)) return false;
+            if (_blank == null || line!.IndexOf(',') < 0) return true;
+            var text = Fold(WithoutMaker(line));
+            var comma = text.IndexOf(',');
+            var head = LeadingAmount.Replace(text[..comma], string.Empty, 1);
+            return SpokenOrders(head + text[comma..]).All(spoken => !_match!.IsMatch(spoken) || _match.IsMatch(_blank.Replace(spoken, " ")));
+        }
+
+        private static readonly Regex Alternatives = new(@"(?<=\p{L})/(?=\p{L})", RegexOptions.CultureInvariant | RegexOptions.Compiled);
+
+        /// <summary>A USDA description in each order of speech: each later comma-separated part before its first, the other parts after them in their order ("Squash, winter, spaghetti, raw" reads "winter Squash, spaghetti, raw", "spaghetti Squash, winter, raw" and "raw Squash, winter, spaghetti"); alternatives a slash joins are parts of their own ("Sauce, pasta, spaghetti/marinara" reads "spaghetti Sauce, ..." and "marinara Sauce, ...", staging checkpoint 6, R6).</summary>
         public static IEnumerable<string> SpokenOrders(string? description)
         {
             if (string.IsNullOrWhiteSpace(description)) yield break;
-            var parts = description.Split(',');
+            var parts = Alternatives.Replace(description, ",").Split(',');
             if (parts[0].Trim().Length == 0) yield break;
             for (var k = 1; k < parts.Length; k++)
             {
@@ -192,31 +336,79 @@ namespace Nom.Orch.Services.Support
         public bool IsAliasMatch(string? alias, string? sourceContext) =>
             string.Equals(sourceContext?.Trim(), IngredientLinkService.UsdaDescriptionContext, StringComparison.OrdinalIgnoreCase) ? IsDescriptionMatch(alias) : IsMatch(alias);
 
+        private static List<string> PhraseWords(string phrase, bool fold = true) =>
+            Regex.Matches((fold ? Fold(phrase) : phrase).ToLowerInvariant(), @"[\p{L}\p{N}]+|\*").Select(m => m.Value).Where((w, i) => i == 0 || w != "s").ToList();
+
         private static List<string> WordsOf(string text) =>
-            Regex.Matches(text.ToLowerInvariant(), @"[\p{L}\p{N}]+").Select(m => m.Value).Where((w, i) => i == 0 || w != "s").ToList();
+            Regex.Matches(Fold(text).ToLowerInvariant(), @"[\p{L}\p{N}]+").Select(m => m.Value).Where((w, i) => i == 0 || w != "s").ToList();
+
+        /// <summary>
+        /// A text without its diacritics and with its ligatures spelled out ("Béarnaise" reads bearnaise, "œufs" oeufs, "crème"
+        /// creme: proof draw 1 of ck11, a "gill of hot Béarnaise sauce" was not read as the composite "bearnaise"). Patterns,
+        /// exceptions, term readings and every text the rule reads are folded alike; a text of ASCII letters is returned as it is.
+        /// </summary>
+        public static string Fold(string text)
+        {
+            var plain = true;
+            foreach (var ch in text)
+                if (ch > '\u007f') { plain = false; break; }
+            if (plain) return text;
+            var builder = new StringBuilder(text.Length);
+            foreach (var ch in text.Replace("œ", "oe").Replace("Œ", "Oe").Replace("æ", "ae").Replace("Æ", "Ae").Replace("ß", "ss").Normalize(NormalizationForm.FormD))
+                if (System.Globalization.CharUnicodeInfo.GetUnicodeCategory(ch) != System.Globalization.UnicodeCategory.NonSpacingMark) builder.Append(ch);
+            return builder.ToString().Normalize(NormalizationForm.FormC);
+        }
 
         private static string Letter(DietRegexDialect d) => d == DietRegexDialect.Postgres ? "[[:alpha:]]" : @"\p{L}";
 
         private static string NotLetter(DietRegexDialect d) => d == DietRegexDialect.Postgres ? "[^[:alpha:]]" : @"[^\p{L}]";
 
-        private static string Space(DietRegexDialect d) => d == DietRegexDialect.Postgres ? "[[:space:]-]" : @"[\s-]";
+        private static string Space(DietRegexDialect d) => d == DietRegexDialect.Postgres ? "[[:space:](-]" : @"[\s(-]";
 
-        private static string Joined(IEnumerable<string> words, string separator, bool possessive) => string.Join((possessive ? "(?:['’]?s['’]?)?" : string.Empty) + separator + "+", words);
+        private static string Joined(IEnumerable<string> words, string separator, bool possessive, DietRegexDialect dialect) => string.Join((possessive ? "(?:['’]?s['’]?)?" : string.Empty) + separator + "+", words.Select(w => Spelled(w, dialect)));
+
+        private static readonly (string Plain, string Class)[] Accented =
+        {
+            ("oe", "(?:oe|œ)"), ("ae", "(?:ae|æ)"), ("ss", "(?:ss|ß)"),
+            ("a", "[aàáâãäå]"), ("e", "[eèéêë]"), ("i", "[iìíîï]"), ("o", "[oòóôõöø]"), ("u", "[uùúûü]"), ("c", "[cç]"), ("n", "[nñ]"), ("y", "[yýÿ]"),
+        };
+
+        /// <summary>
+        /// A folded word as the given dialect seeks it: for .NET the word itself, since every text is folded before it is read
+        /// (<see cref="Fold"/>); for Postgres, which reads the stored text unfolded, each letter with its accented spellings
+        /// ("creme" also finds "crème", "atun" "atún"), so the database probe returns every row the folded reading counts
+        /// (review ck11-dc-7).
+        /// </summary>
+        internal static string Spelled(string word, DietRegexDialect dialect)
+        {
+            if (dialect != DietRegexDialect.Postgres) return word;
+            var builder = new StringBuilder(word.Length * 4);
+            for (var i = 0; i < word.Length;)
+            {
+                var hit = Accented.FirstOrDefault(a => string.CompareOrdinal(word, i, a.Plain, 0, a.Plain.Length) == 0);
+                if (hit.Plain != null) { builder.Append(hit.Class); i += hit.Plain.Length; }
+                else builder.Append(word[i++]);
+            }
+            return builder.ToString();
+        }
+
+        private static string NotWord(DietRegexDialect d) => d == DietRegexDialect.Postgres ? "[^[:alnum:]]" : @"[^\p{L}\p{N}]";
 
         private static string Absent(DietRegexDialect d) => "(?![- ]?free(?![- ]?(?:range|run|roam))(?!" + Space(d) + "+(?:from|of)(?!" + Letter(d) + "))(?:" + NotLetter(d) + "|$))";
 
         /// <summary>
         /// The term as a regular expression of the given dialect, read without case: where it begins a
-        /// word (any ending but "less" or "free"), or, for an open start, as a compound's part after at
-        /// least <see cref="CompoundPart"/> letters, ending the word (with an <see cref="Inflection"/>)
-        /// or followed by at least as many letters. A substring pattern gives its ILIKE expression.
+        /// word, any ending but "less" or "free" for a term that reads its continuations, only its whole
+        /// word with an <see cref="Inflection"/> for a term that reads whole words (<see cref="TermEnd"/>),
+        /// and beside it each word the term readings give it (<see cref="Compounds"/>), as a whole word.
+        /// It never reads inside a word. A substring pattern gives its ILIKE expression.
         /// </summary>
         public string Expression(DietRegexDialect dialect)
         {
             if (Substring) return DietCriteriaMatcher.LikeAsRegex(Pattern);
             var letter = Letter(dialect);
             var notLetter = NotLetter(dialect);
-            var core = Joined(Words, notLetter, false);
+            var core = Joined(Words, NotWord(dialect), Pattern.IndexOfAny(new[] { '\'', '’' }) >= 0, dialect);
             var head = Start switch
             {
                 DietPatternStart.Text => "^",
@@ -229,32 +421,35 @@ namespace Nom.Orch.Services.Support
             {
                 case DietPatternEnd.Text:
                     clauses.Add(head + core + Inflection + "?$");
-                    if (Start == DietPatternStart.Open) clauses.Add(letter + "{" + CompoundPart + "}" + core + Inflection + "?$");
                     break;
                 case DietPatternEnd.Word:
                     clauses.Add(head + core + wordEnd + Absent(dialect));
-                    if (Start == DietPatternStart.Open) clauses.Add(letter + "{" + CompoundPart + "}" + core + wordEnd + Absent(dialect));
                     break;
                 default:
-                    clauses.Add(head + core + "(?!less)" + Absent(dialect));
-                    if (Start == DietPatternStart.Open)
-                        clauses.Add(letter + "{" + CompoundPart + "}" + core + "(?:" + wordEnd + Absent(dialect) + "|(?!less)" + letter + "{" + CompoundPart + "})");
+                    clauses.Add(head + core + (TermEnd == DietTermEnd.Word ? wordEnd : "(?!less)") + Absent(dialect));
                     break;
             }
+            if (Compounds.Count > 0 && End != DietPatternEnd.Text)
+                clauses.Add(head + "(?:" + string.Join("|", Compounds.OrderByDescending(c => c.Length).Select(c => Joined(WordsOf(c), NotWord(dialect), false, dialect))) + ")" + wordEnd + Absent(dialect));
             return "(?:" + string.Join("|", clauses) + ")";
         }
 
-        /// <summary>The term's named exceptions as one regular expression of the given dialect, each phrase as whole words with a plural or possessive ending, its words joined only by spaces or hyphens (so "rice, flour" is two foods, not rice flour), blanked out of a text before the term is sought; null when the term has none.</summary>
+        /// <summary>The term's named exceptions as one regular expression of the given dialect, each phrase as whole words with a plural or possessive ending, its words joined only by spaces, hyphens or an opening bracket (so "rice, flour" is two foods, not rice flour, and "nuts (almonds" is one), a "*" in a phrase standing for up to two words ("gluten free * noodle"), a phrase written with a hyphen only where the hyphen stands ("sweet-bread"), a phrase written with an ampersand joined by it or by spaces ("m&m mars"), a phrase written with a leading apostrophe only where the apostrophe stands ("’til", the elided until), blanked out of a text before the term is sought; null when the term has none.</summary>
         public string? ExceptionExpression(DietRegexDialect dialect)
         {
             if (Exceptions.Count == 0) return null;
-            var phrases = Exceptions.Select(e => WordsOf(e.Phrase))
-                .OrderByDescending(w => w.Sum(x => x.Length + 1))
-                .Select(w =>
+            var phrases = Exceptions.SelectMany(e => (Fold(e.Phrase) != e.Phrase ? new[] { PhraseWords(e.Phrase), PhraseWords(e.Phrase, false) } : new[] { PhraseWords(e.Phrase) })
+                    .Select(w => (Elided: e.Phrase[0] is '\'' or '’', Hyphened: e.Phrase.Contains('-'), Ampersand: e.Phrase.Contains('&'), Words: w)))
+                .OrderByDescending(p => p.Words.Sum(x => x.Length + 1) + (p.Elided ? 1 : 0))
+                .Select(p =>
                 {
+                    var w = p.Words;
                     var last = w[^1];
-                    var stem = last.Length > 2 && last.EndsWith('y') && !"aeiou".Contains(last[^2]) ? last[..^1] + "(?:y|ies)" : last;
-                    return Joined(w.Take(w.Count - 1).Append(stem), Space(dialect), true);
+                    var stem = last.Length > 2 && last.EndsWith('y') && !"aeiou".Contains(last[^2]) ? Spelled(last[..^1], dialect) + "(?:y|ies)" : last == "*" ? last : Spelled(last, dialect);
+                    var words = w.Take(w.Count - 1).Select(x => x == "*" ? x : Spelled(x, dialect)).Append(stem).Select(x => x == "*" ? null : x).ToList();
+                    var joiner = p.Hyphened ? "-" : p.Ampersand ? (dialect == DietRegexDialect.Postgres ? "[[:space:]&]+" : @"[\s&]+") : Space(dialect) + "+";
+                    var joined = string.Join(string.Empty, words.Select((x, i) => x == null ? "(?:" + (dialect == DietRegexDialect.Postgres ? "[[:alnum:]'’]" : "[\\p{L}\\p{N}'’]") + "+,?" + Space(dialect) + "+){0,2}" : x + (i < words.Count - 1 ? "(?:['’]?s['’]?)?" + joiner : string.Empty)));
+                    return (p.Elided ? "['’]" : string.Empty) + joined;
                 })
                 .Distinct(StringComparer.Ordinal);
             return "(?:^|" + NotLetter(dialect) + ")(?:" + string.Join("|", phrases) + ")(?:s|es|['’]s)?(?!" + Letter(dialect) + ")";
@@ -276,7 +471,22 @@ namespace Nom.Orch.Services.Support
 
         private static readonly string[] SyrupTypes = GlutenAndGrainFreeTypes.Concat(new[] { "Milk Allergy", "Dairy-Free", "Lactose-Intolerant", "Lactose Intolerance", "Egg Allergy", "Vegan", "Ethical Vegan", "Raw Vegan", "Plant-Based", "Hindu Vegetarian", "Jain" }).ToArray();
 
+        private static readonly string[] MilkTypes = { "Milk Allergy", "Dairy-Free", "Lactose-Intolerant", "Lactose Intolerance", "Vegan", "Ethical Vegan", "Raw Vegan", "Plant-Based" };
+
+        private static readonly string[] EggTypes = { "Egg Allergy", "Vegan", "Ethical Vegan", "Raw Vegan", "Plant-Based" };
+
         private static readonly string[] MeatlessTypes = { "Vegan", "Ethical Vegan", "Raw Vegan", "Plant-Based", "Vegetarian", "Hindu Vegetarian", "Buddhist Vegetarian", "Jain", "Pescatarian", "Halal", "Kosher" };
+
+        /// <summary>The tree nuts a text may name before "nut" or "nuts" ("pignolia nuts", "cob nuts", "pecan nuts"): a nut named as such is no unnamed nut, so Peanut Allergy does not read its "nut" (proof draw 9 of the ck11 review: "pignolia nuts" was held as an unnamed nut). Each gives an exception unless one is listed with its own reason.</summary>
+        public static readonly IReadOnlyList<string> NamedTreeNuts = new[]
+        {
+            "almond", "walnut", "cashew", "pecan", "pistachio", "hazel", "hazelnut", "macadamia", "brazil", "pine", "chestnut", "beech", "hickory",
+            "pili", "ginkgo", "chinquapin", "nangai", "pignoli", "pignolia", "pignolo", "pinoli", "pinon", "pinyon", "filbert", "cob", "candle", "shea", "marcona", "chesnut",
+        };
+
+        private static DietPatternException[] WithNamedNuts(DietPatternException[] listed) =>
+            listed.Concat(NamedTreeNuts.Select(n => n + " nut").Where(phrase => !listed.Any(e => e.Term == "nut" && e.Phrase == phrase))
+                .Select(phrase => Scoped("nut", phrase, "a tree nut named as such (NamedTreeNuts); no peanut; read only for Peanut Allergy", "Peanut Allergy"))).ToArray();
 
         /// <summary>
         /// The compound foods that hold a term and are not its food, each with its reason. A phrase is
@@ -286,7 +496,7 @@ namespace Nom.Orch.Services.Support
         /// some types only is scoped to them (<see cref="DietPatternException.Types"/>: "sweet potato"
         /// is no nightshade, but Jain still avoids it as a root) and read only for their patterns.
         /// </summary>
-        public static readonly IReadOnlyList<DietPatternException> All = new[]
+        public static readonly IReadOnlyList<DietPatternException> All = WithNamedNuts(new[]
         {
             E("ham", "graham", "graham flour and graham crackers are whole-wheat products named after Sylvester Graham; no pork; graham crackers and graham flour stay out of gluten types by their own words"),
             E("ham", "hamburger", "hamburger is chopped beef (USDA, 9 CFR 319.15(b)); no pork; meat types hold it by %hamburger%"),
@@ -319,10 +529,16 @@ namespace Nom.Orch.Services.Support
             E("salmon", "salmonberry", "the fruit of Rubus spectabilis; no salmon"),
             E("crab", "crab apple", "the fruit of wild Malus species; no crab"),
             E("crab", "crabapple", "the fruit of wild Malus species; no crab"),
+            E("oyster", "shiitake and oyster", "mushrooms named in a list (mixed mushrooms, sliced cremini, shittake and oyster: proof draw 17 of the ck11 review); no oyster"),
+            E("oyster", "shittake and oyster", "the same list misspelt; no oyster"),
+            E("oyster", "cremini and oyster", "mushrooms named in a list; no oyster"),
             E("oyster", "oyster mushroom", "Pleurotus ostreatus, a fungus; no oyster"),
             E("oyster", "oyster cracker", "a small soup cracker; no oyster (gluten types hold it by %cracker%)"),
             E("lobster", "lobster mushroom", "Hypomyces lactifluorum on a Russula, a fungus; no lobster"),
             E("scallop", "scalloped", "scalloped potatoes are sliced and baked in layers; no scallops (dairy types hold the cream or milk by their own words)"),
+            E("scallop", "scallop shell", "a shell used as a baking dish (fill some buttered china scallop shells under Scalloped Curry: proof draw 16 of the ck11 review); no scallop"),
+            E("scallop", "scallop shells", "baking dishes; no scallop"),
+            E("scallop", "scallop-shell", "a baking dish; no scallop"),
             E("scallop", "scallopini", "thin veal cutlets; no scallops; a line that says veal stays out of meat types by its own word"),
             E("egg", "eggplant", "Solanum melongena, a vegetable; no egg; nightshade types hold it by %eggplant%"),
             E("milk", "coconut milk", "pressed coconut flesh; no dairy; Coconut Allergy holds it by %coconut%"),
@@ -348,6 +564,19 @@ namespace Nom.Orch.Services.Support
             E("butter", "butterhead", "a lettuce variety; no dairy"),
             E("butter", "butter lettuce", "a lettuce variety; no dairy"),
             E("butter", "butter bean", "lima beans (Phaseolus lunatus); no dairy; legume types hold them by %bean%"),
+            E("cream", "until * creamy", "a texture the cook is told to reach (keep stirring until white and creamy: proof draw 7 of ck11); no cream goes in"),
+            E("cream", "till * creamy", "a texture the cook is told to reach; no cream goes in"),
+            E("cream", "until creamy", "a texture the cook is told to reach; no cream goes in"),
+            E("cream", "till creamy", "a texture the cook is told to reach; no cream goes in"),
+            E("cream", "light and creamy", "a texture the cook is told to reach; no cream goes in"),
+            E("cream", "smooth and creamy", "a texture the cook is told to reach; no cream goes in"),
+            E("cream", "cream style corn", "canned corn in its thickened liquid (cream-style corn, low-sodium: proof draw 7 of ck11; SR: Corn, sweet, yellow, canned, cream style); corn, water, sugar, starch and salt, no dairy"),
+            E("cream", "thick as cream", "a thickness the cook is told to reach (add the gravy till about as thick as cream: proof draw 6 of ck11); no cream goes in"),
+            E("cream", "thick as * cream", "a thickness the cook is told to reach (as thick as good cream); no cream goes in"),
+            E("cream", "consistency of * cream", "a thickness the cook is told to reach (the consistency of thick cream); no cream goes in"),
+            E("cream", "consistency of cream", "a thickness the cook is told to reach; no cream goes in"),
+            E("cream", "thickness of * cream", "a thickness the cook is told to reach (the thickness of good cream); no cream goes in"),
+            E("cream", "thickness of cream", "a thickness the cook is told to reach; no cream goes in"),
             E("cream", "cream of tartar", "potassium bitartrate, a by-product of winemaking; no dairy"),
             E("cream", "cream tartar", "cream of tartar in the older spelling of nineteenth-century cookbooks, also hyphenated; potassium bitartrate, no dairy"),
             E("cream", "marshmallow cream", "marshmallow creme of corn syrup, sugar and egg white; no dairy; types that restrict its corn syrup or egg hold it by %marshmallow cream% (CompositeFoods)"),
@@ -553,17 +782,23 @@ namespace Nom.Orch.Services.Support
             E("ling", "lingonberry", "the fruit of Vaccinium vitis-idaea; no fish or meat"),
             Scoped("ling", "linguica", "a Portuguese pork sausage; no fish; read only for Fish Allergy, since the meat types restrict it or read it on the safe side", "Fish Allergy"),
             Scoped("pout", "poutine", "fries with cheese curds and gravy; no fish; read only for Fish Allergy, since the meat types restrict it or read it on the safe side", "Fish Allergy"),
+            Scoped("spot", "any spots", "blemishes the cook scrapes off (scrape off any spots that are on it: proof draw 7 of ck11); no fish; read only for Fish Allergy", "Fish Allergy"),
+            Scoped("spot", "the spots", "blemishes or marks; no fish; read only for Fish Allergy", "Fish Allergy"),
+            Scoped("spot", "spots that", "blemishes or marks; no fish; read only for Fish Allergy", "Fish Allergy"),
+            Scoped("spot", "brown spots", "blemishes; no fish; read only for Fish Allergy", "Fish Allergy"),
+            Scoped("spot", "black spots", "blemishes; no fish; read only for Fish Allergy", "Fish Allergy"),
+            Scoped("spot", "dark spots", "blemishes; no fish; read only for Fish Allergy", "Fish Allergy"),
+            Scoped("spot", "soft spots", "blemishes; no fish; read only for Fish Allergy", "Fish Allergy"),
+            Scoped("spot", "on the spot", "a place; no fish; read only for Fish Allergy", "Fish Allergy"),
+            Scoped("spot", "in spots", "here and there; no fish; read only for Fish Allergy", "Fish Allergy"),
+            Scoped("spot", "a spot of", "a small amount; no fish; read only for Fish Allergy", "Fish Allergy"),
+            Scoped("spot", "spot of", "a small amount; no fish; read only for Fish Allergy", "Fish Allergy"),
             Scoped("spot", "spotted", "a mark or a pattern (spotted dick); no fish; read only for Fish Allergy, since the meat types restrict it or read it on the safe side", "Fish Allergy"),
             E("shad", "shadow", "not a food"),
             E("cisco", "francisco", "a place name (San Francisco); no fish or meat"),
             Scoped("carp", "carpaccio", "thinly sliced raw beef; no fish; read only for Fish Allergy, since the meat types restrict it or read it on the safe side", "Fish Allergy"),
             E("pike", "pikelet", "a small griddle cake; no fish or meat"),
             E("eel", "unpeeled", "not peeled (garlic, potatoes, chestnuts); no fish"),
-            E("til", "tilapia", "a fish (Oreochromis); no sesame; fish types hold it by %tilapia%"),
-            E("til", "tilefish", "a fish (Malacanthidae); no sesame"),
-            E("til", "tilsit", "a cow's milk cheese; no sesame"),
-            E("til", "tillamook", "a cheese maker's name (Tillamook cheddar); no sesame"),
-            E("til", "till", "until (simmer till thick); not a food"),
             E("nut", "nutrition", "not a food"),
             E("nut", "nutritious", "not a food"),
             E("nut", "nutrient", "not a food"),
@@ -623,6 +858,226 @@ namespace Nom.Orch.Services.Support
             Scoped("sugar", "sugar snap", "sugar snap peas are a pea pod (Pisum sativum var. macrocarpon) with no added sugar; read only for Sugar-Free, since Carnivore means it as a vegetable", "Sugar-Free"),
             Scoped("licorice", "licorice root", "the dried root of Glycyrrhiza glabra, an herb with no grain; the candy, made with wheat flour, is what the gluten types hold %licorice% for (CompositeFoods)", GlutenTypes),
             Scoped("liquorice", "liquorice root", "the dried root of Glycyrrhiza glabra, an herb with no grain; the candy, made with wheat flour, is what the gluten types hold %liquorice% for (CompositeFoods)", GlutenTypes),
-        };
+            Scoped("nut", "tree nut", "tree nuts are a major allergen apart from peanuts (FALCPA names them apart), so a label's \"Contains: tree nuts (cashew)\" or \"(coconut)\" names no peanut (staging checkpoint 6, R7); read only for Peanut Allergy, whose % nut% reads a nut a line does not name", "Peanut Allergy"),
+            E("creme", "creme filling", "the sugar-and-shortening filling of sandwich cookies and snack cakes (creme-filled: the reading register of ck11); not cream; a type that restricts it reads the cookie or the cake"),
+            E("creme", "creme filled", "filled with a sugar-and-shortening creme (cake, snack cakes, creme-filled); not cream"),
+            E("creme", "marshmallow creme", "marshmallow fluff of corn syrup, sugar and egg white; no dairy"),
+            E("creme", "creme de", "a liqueur (crème de menthe, de cacao, de cassis) or a chestnut purée (crème de marrons); no dairy"),
+            E("oyster", "vegetable oyster", "salsify (Tragopogon porrifolius), called vegetable oyster (staging checkpoint 6, R6); no oyster"),
+            E("cream", "creamy peanut butter", "creamy is the texture of the peanut butter, no cream (staging checkpoint 6, R6); a creamy soup or sauce still reads as cream"),
+            E("cream", "creamy almond butter", "the texture of the almond butter; no cream"),
+            E("cream", "creamy cashew butter", "the texture of the cashew butter; no cream"),
+            E("cream", "creamy nut butter", "the texture of the nut butter; no cream"),
+            E("cream", "creamy sunflower butter", "the texture of the seed butter; no cream"),
+            E("cream", "creamy sunflower seed butter", "the texture of the seed butter; no cream"),
+            E("cream", "creamy seed butter", "the texture of the seed butter; no cream"),
+            E("cream", "creamy natural peanut butter", "the texture of the peanut butter; no cream"),
+            E("egg", "size of an egg", "a measure of old cookbooks (butter the size of an egg: staging checkpoint 6, R3); no egg"),
+            E("egg", "size of a small egg", "a measure of old cookbooks; no egg"),
+            E("egg", "size of a large egg", "a measure of old cookbooks; no egg"),
+            E("egg", "size of a hen's egg", "a measure of old cookbooks; no egg"),
+            E("egg", "size of a pigeon's egg", "a measure of old cookbooks; no egg"),
+            E("egg", "size of a walnut or egg", "a measure of old cookbooks; no egg"),
+            E("egg", "as large as an egg", "a measure of old cookbooks; no egg"),
+            E("egg", "as big as an egg", "a measure of old cookbooks; no egg"),
+            E("egg", "bear an egg", "the strength of a brine, strong enough to float an egg; no egg in the food"),
+            E("egg", "float an egg", "the strength of a brine; no egg in the food"),
+            E("egg", "egg cup", "a cup to serve an egg in, or a mould; not a food"),
+            E("egg", "egg beater", "a kitchen tool; not a food"),
+            E("egg", "egg whisk", "a kitchen tool; not a food"),
+            E("egg", "egg slicer", "a kitchen tool; not a food"),
+            E("egg", "egg timer", "a kitchen tool; not a food"),
+            E("nut", "big as a * nut", "a measure of old cookbooks (sweet Butter as big as a Wall-nut: proof draw 8 of ck11); no nut"),
+            E("nut", "size of a * nut", "a measure of old cookbooks (the size of a wall-nut); no nut"),
+            E("walnut", "big as a walnut", "a measure of old cookbooks; no walnut"),
+            E("egg", "big as an egg", "a measure of old cookbooks; no egg"),
+            E("egg", "big as a * egg", "a measure of old cookbooks (as big as a hen's egg); no egg"),
+            E("walnut", "size of walnut", "a measure of old cookbooks written without its article (Paraffine wax, size of walnut: proof draw 6 of ck11); no walnut"),
+            E("egg", "size of egg", "a measure of old cookbooks written without its article; no egg"),
+            E("walnut", "size of a walnut", "a measure of old cookbooks (butter the size of a walnut: staging checkpoint 6, R3); no walnut"),
+            E("walnut", "size of a small walnut", "a measure of old cookbooks; no walnut"),
+            E("walnut", "size of a large walnut", "a measure of old cookbooks; no walnut"),
+            E("walnut", "size of a black walnut", "a measure of old cookbooks; no walnut"),
+            E("nut", "size of a nut", "a measure of old cookbooks; no nut"),
+            E("nut", "size of a small nut", "a measure of old cookbooks; no nut"),
+            E("nut", "nut brown", "a colour (nut-brown butter); no nut"),
+            E("hazelnut", "size of a hazelnut", "a measure of old cookbooks; no hazelnut"),
+            E("cream", "coconut whipped cream", "whipped coconut cream; no dairy (proof draw 1 of ck11)"),
+            E("nut", "roasting nut", "a use a USDA description names (Oil, industrial, coconut, principal uses ... roasting nuts); no nut in the food"),
+            E("almond", "almond bark", "a confectionery coating of vegetable fat and sugar, named for its use on almonds; no almond (proof draw 1 of ck11)"),
+            E("butternut", "squash * * butternut", "butternut named among the squashes a line offers (winter squash (such as acorn, butternut, or Hubbard): proof draw 6 of ck11); no butternut tree nut"),
+            E("acorn", "squash * acorn", "acorn named among the squashes a line offers (winter squash (such as acorn, butternut: proof draw 6 of ck11)); no acorn"),
+            E("acorn", "acorn squash", "a winter squash (Cucurbita pepo); no acorn (proof draw 1 of ck11)"),
+            E("wine", "wine quart", "the wine measure of old cookbooks (two wine-quarts of cream); no wine (proof draw 1 of ck11)"),
+            E("wine", "wine pint", "the wine measure of old cookbooks; no wine"),
+            E("wine", "wine gallon", "the wine measure of old cookbooks; no wine"),
+            E("wine", "wine measure", "the wine measure of old cookbooks; no wine"),
+            E("toast", "toasted", "a step (toasted almonds, toasted sesame seeds), not toast"),
+            E("toast", "toasting", "a step, not toast"),
+            E("crust", "crusted", "a step (parmesan-crusted); no pastry"),
+            E("crust", "crusty", "a texture (crusty bread is read as bread); no pastry"),
+            E("crust", "crustless", "says it has no crust"),
+            Scoped("noodle", "gluten free * noodle", "a product labelled gluten-free, its kind named between (gluten-free lasagna noodles: proof draw 2 of ck11), under 20 ppm gluten (21 CFR 101.91); read only for the gluten types", GlutenFreeTypes),
+            Scoped("pasta", "gluten free * pasta", "a product labelled gluten-free, its kind named between (gluten-free lasagna noodles: proof draw 2 of ck11), under 20 ppm gluten (21 CFR 101.91); read only for the gluten types", GlutenFreeTypes),
+            Scoped("bread", "gluten free * bread", "a product labelled gluten-free, its kind named between (gluten-free lasagna noodles: proof draw 2 of ck11), under 20 ppm gluten (21 CFR 101.91); read only for the gluten types", GlutenFreeTypes),
+            Scoped("breadcrumb", "gluten free * breadcrumb", "a product labelled gluten-free, its kind named between (gluten-free lasagna noodles: proof draw 2 of ck11), under 20 ppm gluten (21 CFR 101.91); read only for the gluten types", GlutenFreeTypes),
+            Scoped("spaghetti", "gluten free * spaghetti", "a product labelled gluten-free, its kind named between (gluten-free lasagna noodles: proof draw 2 of ck11), under 20 ppm gluten (21 CFR 101.91); read only for the gluten types", GlutenFreeTypes),
+            Scoped("cracker", "gluten free * cracker", "a product labelled gluten-free, its kind named between (gluten-free lasagna noodles: proof draw 2 of ck11), under 20 ppm gluten (21 CFR 101.91); read only for the gluten types", GlutenFreeTypes),
+            Scoped("cake", "gluten free * cake", "a product labelled gluten-free, its kind named between (gluten-free lasagna noodles: proof draw 2 of ck11), under 20 ppm gluten (21 CFR 101.91); read only for the gluten types", GlutenFreeTypes),
+            Scoped("cookie", "gluten free * cookie", "a product labelled gluten-free, its kind named between (gluten-free lasagna noodles: proof draw 2 of ck11), under 20 ppm gluten (21 CFR 101.91); read only for the gluten types", GlutenFreeTypes),
+            Scoped("flour", "gluten free * flour", "a product labelled gluten-free, its kind named between (gluten-free lasagna noodles: proof draw 2 of ck11), under 20 ppm gluten (21 CFR 101.91); read only for the gluten types", GlutenFreeTypes),
+            Scoped("tortilla", "gluten free * tortilla", "a product labelled gluten-free, its kind named between (gluten-free lasagna noodles: proof draw 2 of ck11), under 20 ppm gluten (21 CFR 101.91); read only for the gluten types", GlutenFreeTypes),
+            Scoped("pizza", "gluten free * pizza", "a product labelled gluten-free, its kind named between (gluten-free lasagna noodles: proof draw 2 of ck11), under 20 ppm gluten (21 CFR 101.91); read only for the gluten types", GlutenFreeTypes),
+            Scoped("bun", "gluten free * bun", "a product labelled gluten-free, its kind named between (gluten-free lasagna noodles: proof draw 2 of ck11), under 20 ppm gluten (21 CFR 101.91); read only for the gluten types", GlutenFreeTypes),
+            Scoped("roll", "gluten free * roll", "a product labelled gluten-free, its kind named between (gluten-free lasagna noodles: proof draw 2 of ck11), under 20 ppm gluten (21 CFR 101.91); read only for the gluten types", GlutenFreeTypes),
+            Scoped("lasagna", "gluten free * lasagna", "a product labelled gluten-free, its kind named between (gluten-free lasagna noodles: proof draw 2 of ck11), under 20 ppm gluten (21 CFR 101.91); read only for the gluten types", GlutenFreeTypes),
+            Scoped("macaroni", "gluten free * macaroni", "a product labelled gluten-free, its kind named between (gluten-free lasagna noodles: proof draw 2 of ck11), under 20 ppm gluten (21 CFR 101.91); read only for the gluten types", GlutenFreeTypes),
+            Scoped("penne", "gluten free * penne", "a product labelled gluten-free, its kind named between (gluten-free lasagna noodles: proof draw 2 of ck11), under 20 ppm gluten (21 CFR 101.91); read only for the gluten types", GlutenFreeTypes),
+            Scoped("fettuccine", "gluten free * fettuccine", "a product labelled gluten-free, its kind named between (gluten-free lasagna noodles: proof draw 2 of ck11), under 20 ppm gluten (21 CFR 101.91); read only for the gluten types", GlutenFreeTypes),
+            Scoped("muffin", "gluten free * muffin", "a product labelled gluten-free, its kind named between (gluten-free lasagna noodles: proof draw 2 of ck11), under 20 ppm gluten (21 CFR 101.91); read only for the gluten types", GlutenFreeTypes),
+            Scoped("pretzel", "gluten free * pretzel", "a product labelled gluten-free, its kind named between (gluten-free lasagna noodles: proof draw 2 of ck11), under 20 ppm gluten (21 CFR 101.91); read only for the gluten types", GlutenFreeTypes),
+            Scoped("waffle", "gluten free * waffle", "a product labelled gluten-free, its kind named between (gluten-free lasagna noodles: proof draw 2 of ck11), under 20 ppm gluten (21 CFR 101.91); read only for the gluten types", GlutenFreeTypes),
+            Scoped("pancake", "gluten free * pancake", "a product labelled gluten-free, its kind named between (gluten-free lasagna noodles: proof draw 2 of ck11), under 20 ppm gluten (21 CFR 101.91); read only for the gluten types", GlutenFreeTypes),
+            Scoped("biscuit", "gluten free * biscuit", "a product labelled gluten-free, its kind named between (gluten-free lasagna noodles: proof draw 2 of ck11), under 20 ppm gluten (21 CFR 101.91); read only for the gluten types", GlutenFreeTypes),
+            Scoped("bagel", "gluten free * bagel", "a product labelled gluten-free, its kind named between (gluten-free lasagna noodles: proof draw 2 of ck11), under 20 ppm gluten (21 CFR 101.91); read only for the gluten types", GlutenFreeTypes),
+            Scoped("crust", "gluten free * crust", "a product labelled gluten-free, its kind named between (gluten-free lasagna noodles: proof draw 2 of ck11), under 20 ppm gluten (21 CFR 101.91); read only for the gluten types", GlutenFreeTypes),
+            Scoped("pie", "gluten free * pie", "a product labelled gluten-free, its kind named between (gluten-free lasagna noodles: proof draw 2 of ck11), under 20 ppm gluten (21 CFR 101.91); read only for the gluten types", GlutenFreeTypes),
+            Scoped("cereal", "gluten free * cereal", "a product labelled gluten-free, its kind named between (gluten-free lasagna noodles: proof draw 2 of ck11), under 20 ppm gluten (21 CFR 101.91); read only for the gluten types", GlutenFreeTypes),
+            Scoped("panko", "gluten free * panko", "a product labelled gluten-free, its kind named between (gluten-free lasagna noodles: proof draw 2 of ck11), under 20 ppm gluten (21 CFR 101.91); read only for the gluten types", GlutenFreeTypes),
+            Scoped("couscous", "gluten free * couscous", "a product labelled gluten-free, its kind named between (gluten-free lasagna noodles: proof draw 2 of ck11), under 20 ppm gluten (21 CFR 101.91); read only for the gluten types", GlutenFreeTypes),
+            Scoped("orzo", "gluten free * orzo", "a product labelled gluten-free, its kind named between (gluten-free lasagna noodles: proof draw 2 of ck11), under 20 ppm gluten (21 CFR 101.91); read only for the gluten types", GlutenFreeTypes),
+            Scoped("gnocchi", "gluten free * gnocchi", "a product labelled gluten-free, its kind named between (gluten-free lasagna noodles: proof draw 2 of ck11), under 20 ppm gluten (21 CFR 101.91); read only for the gluten types", GlutenFreeTypes),
+            Scoped("crouton", "gluten free * crouton", "a product labelled gluten-free, its kind named between (gluten-free lasagna noodles: proof draw 2 of ck11), under 20 ppm gluten (21 CFR 101.91); read only for the gluten types", GlutenFreeTypes),
+            Scoped("graham", "gluten free * graham", "a product labelled gluten-free, its kind named between (gluten-free lasagna noodles: proof draw 2 of ck11), under 20 ppm gluten (21 CFR 101.91); read only for the gluten types", GlutenFreeTypes),
+            Scoped("oat", "gluten free * oat", "a product labelled gluten-free, its kind named between (gluten-free lasagna noodles: proof draw 2 of ck11), under 20 ppm gluten (21 CFR 101.91); read only for the gluten types", GlutenFreeTypes),
+            Scoped("nut", "nut almond", "nuts a bracket names as almonds (Nuts (almonds, pistachios, pecans): proof draw 2 of ck11); no peanut; read only for Peanut Allergy", "Peanut Allergy"),
+            Scoped("nut", "nut pecan", "nuts a bracket names as pecans (Nuts (almonds, pistachios, pecans): proof draw 2 of ck11); no peanut; read only for Peanut Allergy", "Peanut Allergy"),
+            Scoped("nut", "nut walnut", "nuts a bracket names as walnuts (Nuts (almonds, pistachios, pecans): proof draw 2 of ck11); no peanut; read only for Peanut Allergy", "Peanut Allergy"),
+            Scoped("nut", "nut pistachio", "nuts a bracket names as pistachios (Nuts (almonds, pistachios, pecans): proof draw 2 of ck11); no peanut; read only for Peanut Allergy", "Peanut Allergy"),
+            Scoped("nut", "nut cashew", "nuts a bracket names as cashews (Nuts (almonds, pistachios, pecans): proof draw 2 of ck11); no peanut; read only for Peanut Allergy", "Peanut Allergy"),
+            Scoped("nut", "nut hazelnut", "nuts a bracket names as hazelnuts (Nuts (almonds, pistachios, pecans): proof draw 2 of ck11); no peanut; read only for Peanut Allergy", "Peanut Allergy"),
+            Scoped("nut", "nut macadamia", "nuts a bracket names as macadamias (Nuts (almonds, pistachios, pecans): proof draw 2 of ck11); no peanut; read only for Peanut Allergy", "Peanut Allergy"),
+            Scoped("nut", "nut marcona", "nuts a bracket names as marconas (Nuts (almonds, pistachios, pecans): proof draw 2 of ck11); no peanut; read only for Peanut Allergy", "Peanut Allergy"),
+            Scoped("nut", "nut brazil", "nuts a bracket names as brazils (Nuts (almonds, pistachios, pecans): proof draw 2 of ck11); no peanut; read only for Peanut Allergy", "Peanut Allergy"),
+            Scoped("nut", "nut filbert", "nuts a bracket names as filberts (Nuts (almonds, pistachios, pecans): proof draw 2 of ck11); no peanut; read only for Peanut Allergy", "Peanut Allergy"),
+            E("nut", "grape nut", "Grape-Nuts, a cereal of wheat and malted barley (Grape Nuts or granola: proof draw 5 of ck11); no nut; the gluten types read its wheat by the cereal's food"),
+            E("nut", "cocoa nut", "coconut in the old spelling (cocoa-nut milk: proof draw 2 of ck11); not a tree nut or a peanut"),
+            Scoped("nut", "pinon nut", "pine nuts (Roasted Shelled Piñon Nuts: proof draw 2 of ck11); no peanut; read only for Peanut Allergy", "Peanut Allergy"),
+            Scoped("nut", "pinyon nut", "pine nuts; no peanut; read only for Peanut Allergy", "Peanut Allergy"),
+            E("soy sauce", "soy sauce made from soy", "tamari, soy sauce made from soybeans alone (SR: Soy sauce made from soy (tamari): proof draw 2 of ck11); no wheat; the soy types hold it by %soy%, and SR's shoyu still names its wheat"),
+            E("ranch dressing", "dry ranch dressing", "the dry seasoning mix (buttermilk, salt, herbs), held by the milk types as ranch seasoning; no egg (proof draw 2 of ck11)"),
+            E("ranch dressing", "ranch dressing mix", "the dry seasoning mix; no egg"),
+            E("shortening", "beef tallow frying shortening", "beef tallow; no soybean oil (proof draw 2 of ck11)"),
+            E("shortening", "tallow shortening", "beef tallow; no soybean oil"),
+            E("shortening", "lard shortening", "lard; no soybean oil"),
+            E("oyster", "oyster plant", "salsify (Tragopogon porrifolius), called oyster plant; no oyster"),
+            E("m m", "m&m mars", "the maker Mars, Incorporated as USDA branded descriptions name it (Candies, M&M MARS 3 MUSKETEERS; Snacks, M&M MARS, KUDOS ...); not the candy, whose own name the line or the food gives"),
+            E("farina", "sea moss farina", "Irish moss (carrageen) powder sold as Sea Moss Farine, a seaweed jelly (Blanc-Mange Made with Sea Moss Farina: proof draw 11 of the ck11 review); no wheat"),
+            Scoped("mayo", "vegan * mayo", "a vegan mayo with up to two words between (optional 2 tbsp vegan mayo: proof draw 11 of the ck11 review); no egg; read only for the types that restrict egg, since Soy Allergy still reads its soybean oil", EggTypes),
+            Scoped("mayo", "egg free * mayo", "a egg-free mayo with up to two words between (optional 2 tbsp vegan mayo: proof draw 11 of the ck11 review); no egg; read only for the types that restrict egg, since Soy Allergy still reads its soybean oil", EggTypes),
+            Scoped("mayo", "eggless * mayo", "a eggless mayo with up to two words between (optional 2 tbsp vegan mayo: proof draw 11 of the ck11 review); no egg; read only for the types that restrict egg, since Soy Allergy still reads its soybean oil", EggTypes),
+            Scoped("mayonnaise", "vegan * mayonnaise", "a vegan mayonnaise with up to two words between (optional 2 tbsp vegan mayo: proof draw 11 of the ck11 review); no egg; read only for the types that restrict egg, since Soy Allergy still reads its soybean oil", EggTypes),
+            Scoped("mayonnaise", "egg free * mayonnaise", "a egg-free mayonnaise with up to two words between (optional 2 tbsp vegan mayo: proof draw 11 of the ck11 review); no egg; read only for the types that restrict egg, since Soy Allergy still reads its soybean oil", EggTypes),
+            Scoped("mayonnaise", "eggless * mayonnaise", "a eggless mayonnaise with up to two words between (optional 2 tbsp vegan mayo: proof draw 11 of the ck11 review); no egg; read only for the types that restrict egg, since Soy Allergy still reads its soybean oil", EggTypes),
+            E("porter", "porter house", "porterhouse, a cut of beef (porter-house steak: the reading of draw 12 of the ck11 review); no beer"),
+            E("ale", "ale measure", "a measure of old cookbooks; no ale"),
+            E("ale", "ale pint", "a measure of old cookbooks (30 Ale pints of fair water); no ale"),
+            E("pesce", "pesce di maiale", "a cut of pork, Italian (Artusi: Pesce di Maiale Arrosto); no fish"),
+            E("nut", "nut leaves", "the leaves of a nut tree, used to flavour a pickle; no nut"),
+            E("nut", "nut leaf", "the leaves of a nut tree, used to flavour a pickle (nut leaves under To Pickle Broom Buds: proof draw 14 of the ck11 review); no nut"),
+            E("walnut", "walnut of butter", "a measure of old cookbooks, a piece of butter the size of a walnut (proof draw 14 of the ck11 review); no walnut"),
+            E("milt", "milts", "the spleens of meat animals, counted (half a dozen milts under Liver Pudding: proof draw 14 of the ck11 review); fish milt is a soft roe, not counted"),
+            E("milt", "hog milt", "a hog's spleen; no fish"),
+            E("milt", "ox milt", "an ox's spleen; no fish"),
+            E("pappa", "pappa reale", "royal jelly, Italian; no bread"),
+            E("oyster", "size of an oyster", "a size (form into cakes the size of an oyster under Corn Oysters: proof draw 15 of the ck11 review); no oyster"),
+            E("oyster", "size of * oyster", "a size; no oyster"),
+            E("ale", "ginger ale", "a ginger soft drink; no malt"),
+            E("ale", "ginger ales", "ginger soft drinks; no malt"),
+            E("nut", "nut of butter", "a measure of old cookbooks (a few nuts of butter on the top: proof draw 9 of the ck11 review); no nut"),
+            E("madeira", "madeira cake", "a plain pound cake named for the wine served with it (BEETON); no wine in it"),
+            E("nut", "nut of the leg", "a cut of meat (the nut of a leg of veal or mutton: proof draw 3 of ck11); no nut"),
+            E("nut", "nut of veal", "a cut of meat; no nut"),
+            E("nut", "nut of mutton", "a cut of meat; no nut"),
+            Scoped("nut butter", "hazel nut butter", "hazelnut butter named as such (proof draw 3 of ck11); no peanut; read only for Peanut Allergy", "Peanut Allergy"),
+            E("seafood", "seafood seasoning", "a spice blend (Old Bay); no fish or shellfish"),
+            E("seafood", "seafood boil seasoning", "a spice blend; no fish or shellfish"),
+            E("seafood", "seafood sauce", "cocktail sauce of ketchup and horseradish, served with seafood; no fish or shellfish"),
+            E("seafood", "seafood cocktail sauce", "cocktail sauce of ketchup and horseradish; no fish or shellfish"),
+            E("bread", "sweet-bread", "sweetbread written with a hyphen (a sweet-bread tossed in butter: proof draw 4 of ck11), the thymus of a calf; no bread; only the hyphenated spelling, so a loaf of sweet bread is still read"),
+            E("clam", "clam cocktail sauce", "cocktail sauce served with clams (Clam Cocktail Sauce: proof draw 6 of ck11), the recipe of the sauce alone; no clam"),
+            E("oyster", "oyster cocktail sauce", "cocktail sauce served with oysters (Clam Cocktail Sauce: proof draw 6 of ck11), the recipe of the sauce alone; no oyster"),
+            E("shrimp", "shrimp cocktail sauce", "cocktail sauce served with shrimps (Clam Cocktail Sauce: proof draw 6 of ck11), the recipe of the sauce alone; no shrimp"),
+            E("crab", "crab cocktail sauce", "cocktail sauce served with crabs (Clam Cocktail Sauce: proof draw 6 of ck11), the recipe of the sauce alone; no crab"),
+            E("lobster", "lobster cocktail sauce", "cocktail sauce served with lobsters (Clam Cocktail Sauce: proof draw 6 of ck11), the recipe of the sauce alone; no lobster"),
+            E("oyster", "corn oyster", "fritters of grated corn shaped like oysters (Corn Oysters: proof draw 4 of ck11); no oyster"),
+            E("oyster", "oyster batter", "a batter for frying oysters, the recipe of the batter alone; no oyster"),
+            E("trifle", "a trifle", "a little (a trifle of parsley); no trifle"),
+            E("trifle", "trifle of", "a little (a trifle of parsley); no trifle"),
+            E("ice cream", "ice cream freezer", "a machine; not a food"),
+            E("ice cream", "ice cream salt", "rock salt for the freezer; not a food"),
+            E("ice cream", "ice cream maker", "a machine; not a food"),
+            E("cream", "ice cream freezer", "a machine; not a food"),
+            E("cream", "ice cream salt", "rock salt for the freezer; not a food"),
+            E("cream", "ice cream maker", "a machine; not a food"),
+            E("cheese", "cheese cloth", "a cotton cloth for straining, written as two words (cheese-cloth); not a food"),
+            E("pudding", "pudding pan", "a baking dish; not a food"),
+            E("pudding", "pudding dish", "a baking dish; not a food"),
+            E("pudding", "pudding basin", "a bowl; not a food"),
+            E("pudding", "pudding mould", "a mould; not a food"),
+            E("pudding", "pudding mold", "a mould; not a food"),
+            E("pudding", "pudding cloth", "a cloth to boil a pudding in; not a food"),
+            E("pudding", "pudding bag", "a cloth bag to boil a pudding in; not a food"),
+            E("pudding", "pudding skin", "a sausage casing (black puddings); no milk"),
+            E("butter", "vegan butter", "a plant-based spread with no milk (staging checkpoint 6, R6)"),
+            E("cheese", "vegan cheese", "a plant-based cheese analogue with no milk (staging checkpoint 6, R6)"),
+            E("cheese", "vegan parmesan cheese", "a plant-based cheese analogue with no milk (staging checkpoint 6, R6)"),
+            E("parmesan", "vegan parmesan", "a plant-based cheese analogue with no milk (staging checkpoint 6, R6)"),
+            E("cheese", "vegan cream cheese", "a plant-based cheese analogue with no milk (staging checkpoint 6, R6)"),
+            E("cream cheese", "vegan cream cheese", "a plant-based cheese analogue with no milk (staging checkpoint 6, R6)"),
+            E("cream", "vegan cream cheese", "a plant-based cheese analogue with no milk (staging checkpoint 6, R6)"),
+            Scoped("nut", "pine kernel nutmeat", "pine nuts named as such, no peanut (staging checkpoint 6, R6); read only for Peanut Allergy", "Peanut Allergy"),
+            Scoped("nut", "pecan nutmeat", "pecans named as such, no peanut; read only for Peanut Allergy", "Peanut Allergy"),
+            Scoped("nut", "walnut nutmeat", "walnuts named as such, no peanut; read only for Peanut Allergy", "Peanut Allergy"),
+            Scoped("nut", "hickory nutmeat", "hickory nuts named as such, no peanut; read only for Peanut Allergy", "Peanut Allergy"),
+            Scoped("nut", "almond nutmeat", "almonds named as such, no peanut; read only for Peanut Allergy", "Peanut Allergy"),
+            E("farina", "farina di patate", "potato starch, Italian (Artusi); no wheat"),
+            E("farina", "farina di riso", "rice flour, Italian; no wheat"),
+            E("farina", "farina gialla", "maize meal, Italian; no wheat"),
+            E("farina", "farina di mais", "maize flour, Italian; no wheat"),
+            E("farina", "farina di castagne", "chestnut flour, Italian; no wheat"),
+            E("harina", "harina de maíz", "maize flour, Spanish; no wheat"),
+            E("harina", "harina de maiz", "maize flour, Spanish; no wheat"),
+            E("harina", "masa harina", "nixtamalized maize flour for tortillas and tamales (cornmeal (masa harina, instant): staging checkpoint 6, wheat shown right); no wheat"),
+            E("harina", "harina de arroz", "rice flour, Spanish; no wheat"),
+            E("harina", "harina de garbanzo", "chickpea flour, Spanish; no wheat"),
+            E("harina", "harina de coco", "coconut flour, Spanish; no wheat"),
+            E("wafer", "wafer thin", "an adjective (sliced wafer thin); no wafer"),
+            E("crumb", "cornflake crumb", "crumbs of corn flakes, no bread; the gluten types hold them by %cornflake% for their malt (DietDishes)"),
+            E("crumb", "corn flake crumb", "crumbs of corn flakes, no bread; the gluten types hold them by %corn flake% for their malt (DietDishes)"),
+            Scoped("cream", "vegan * cream", "a vegan cream with up to two words between (vegan chocolate ice cream: proof draw 9 of the ck11 review); a plant-based analogue with no milk; read only for the types that restrict milk", MilkTypes),
+            Scoped("cream", "dairy free * cream", "a dairy-free cream with up to two words between (vegan chocolate ice cream: proof draw 9 of the ck11 review); a plant-based analogue with no milk; read only for the types that restrict milk", MilkTypes),
+            Scoped("cream", "non dairy * cream", "a non-dairy cream with up to two words between (vegan chocolate ice cream: proof draw 9 of the ck11 review); a plant-based analogue with no milk; read only for the types that restrict milk", MilkTypes),
+            Scoped("milk", "vegan * milk", "a vegan milk with up to two words between (vegan chocolate ice cream: proof draw 9 of the ck11 review); a plant-based analogue with no milk; read only for the types that restrict milk", MilkTypes),
+            Scoped("milk", "dairy free * milk", "a dairy-free milk with up to two words between (vegan chocolate ice cream: proof draw 9 of the ck11 review); a plant-based analogue with no milk; read only for the types that restrict milk", MilkTypes),
+            Scoped("milk", "non dairy * milk", "a non-dairy milk with up to two words between (vegan chocolate ice cream: proof draw 9 of the ck11 review); a plant-based analogue with no milk; read only for the types that restrict milk", MilkTypes),
+            Scoped("cheese", "vegan * cheese", "a vegan cheese with up to two words between (vegan chocolate ice cream: proof draw 9 of the ck11 review); a plant-based analogue with no milk; read only for the types that restrict milk", MilkTypes),
+            Scoped("cheese", "dairy free * cheese", "a dairy-free cheese with up to two words between (vegan chocolate ice cream: proof draw 9 of the ck11 review); a plant-based analogue with no milk; read only for the types that restrict milk", MilkTypes),
+            Scoped("cheese", "non dairy * cheese", "a non-dairy cheese with up to two words between (vegan chocolate ice cream: proof draw 9 of the ck11 review); a plant-based analogue with no milk; read only for the types that restrict milk", MilkTypes),
+            Scoped("butter", "vegan * butter", "a vegan butter with up to two words between (vegan chocolate ice cream: proof draw 9 of the ck11 review); a plant-based analogue with no milk; read only for the types that restrict milk", MilkTypes),
+            Scoped("butter", "dairy free * butter", "a dairy-free butter with up to two words between (vegan chocolate ice cream: proof draw 9 of the ck11 review); a plant-based analogue with no milk; read only for the types that restrict milk", MilkTypes),
+            Scoped("butter", "non dairy * butter", "a non-dairy butter with up to two words between (vegan chocolate ice cream: proof draw 9 of the ck11 review); a plant-based analogue with no milk; read only for the types that restrict milk", MilkTypes),
+            Scoped("yogurt", "vegan * yogurt", "a vegan yogurt with up to two words between (vegan chocolate ice cream: proof draw 9 of the ck11 review); a plant-based analogue with no milk; read only for the types that restrict milk", MilkTypes),
+            Scoped("yogurt", "dairy free * yogurt", "a dairy-free yogurt with up to two words between (vegan chocolate ice cream: proof draw 9 of the ck11 review); a plant-based analogue with no milk; read only for the types that restrict milk", MilkTypes),
+            Scoped("yogurt", "non dairy * yogurt", "a non-dairy yogurt with up to two words between (vegan chocolate ice cream: proof draw 9 of the ck11 review); a plant-based analogue with no milk; read only for the types that restrict milk", MilkTypes),
+            Scoped("yoghurt", "vegan * yoghurt", "a vegan yoghurt with up to two words between (vegan chocolate ice cream: proof draw 9 of the ck11 review); a plant-based analogue with no milk; read only for the types that restrict milk", MilkTypes),
+            Scoped("yoghurt", "dairy free * yoghurt", "a dairy-free yoghurt with up to two words between (vegan chocolate ice cream: proof draw 9 of the ck11 review); a plant-based analogue with no milk; read only for the types that restrict milk", MilkTypes),
+            Scoped("yoghurt", "non dairy * yoghurt", "a non-dairy yoghurt with up to two words between (vegan chocolate ice cream: proof draw 9 of the ck11 review); a plant-based analogue with no milk; read only for the types that restrict milk", MilkTypes),
+            Scoped("margarine", "vegan margarine", "a margarine made with no milk or milk product (21 CFR 166.110 lets margarine leave milk out); read only for the types that restrict milk, since Soy Allergy still reads its soybean oil", MilkTypes),
+            Scoped("margarine", "dairy free margarine", "a margarine made with no milk or milk product (dairy-free margarine); read only for the types that restrict milk", MilkTypes),
+            Scoped("margarine", "non dairy margarine", "a margarine made with no milk or milk product (non-dairy margarine); read only for the types that restrict milk", MilkTypes),
+            Scoped("margarine", "nondairy margarine", "a margarine made with no milk or milk product; read only for the types that restrict milk", MilkTypes),
+            E("sandwich", "sandwich steak", "thin beef steaks sold for sandwiches (SR: Beef, sandwich steaks, flaked, chopped, formed and thinly sliced: staging checkpoint 6, R6); no bread"),
+        });
     }
 }

@@ -21,6 +21,18 @@ namespace Nom.Orch.Interfaces
     }
 
     /// <summary>
+    /// The writer of the reword lane (prose lane v3): a model that reads the whole source method, then a
+    /// step, then each sentence asked of it, and only then rewords those sentences. It sees the source.
+    /// Returns the model's raw answer, or null when it gave none.
+    /// </summary>
+    public interface IProseRewriter
+    {
+        string Model { get; }
+
+        Task<string?> RewordAsync(ProseRewordRequest request, CancellationToken cancellationToken);
+    }
+
+    /// <summary>
     /// A model that reads a rewrite against its original step by step with the lane's rubric: the
     /// judge of every rewrite before it is written, and the auditor of a sample. Its answers are
     /// verdicts only, never text that is shown.

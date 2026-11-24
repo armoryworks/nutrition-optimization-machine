@@ -234,3 +234,21 @@ ac-ck10s-11	1/2 cup Sauternes dessert wine	-	-	no	fortified-sweet	-	-	ok	rule:co
 ac-ck10s-12	1 cup Burgundy table wine	-	-	no	wine-red	-	-	ok	rule:construction	staging checkpoint 5, Q17 boundary (review CK10S-3): "table wine" after the place word is the wine
 ac-ck10s-13	2 cups Rioja Tempranillo	-	-	no	wine-red	-	-	ok	rule:construction	staging checkpoint 5, Q17 boundary (review CK10S-3): a grape after the region is the wine
 ac-ck10s-14	1 cup vodka infused with lemon peel	-	-	no	vodka	-	-	ok	rule:construction	staging checkpoint 5, Q17 boundary (review CK10S-3): a drink infused with something is still the drink; only a participle before a food makes a soaked food
+ac-ck11-01	a teacupful Scotch rolled oats	-	-	no	other	-	174819	ok	rule:construction	staging checkpoint 6, R13: words between Scotch and the oats ("rolled") still name the oats, not whisky
+ac-ck11-02	80 g uva malaga	-	-	no	other	-	173176	ok	rule:construction	staging checkpoint 6, R13: "uva" is Italian for grape; uva malaga is Malaga grapes, not the sweet wine
+ac-ck11-03	Uva malaga (125 grams)	-	-	no	other	-	173176	ok	rule:construction	staging checkpoint 6, R13: the same grapes with the amount after them
+ac-ck11-04	1 cup Scotch steel cut oatmeal	-	-	no	other	-	174819	ok	rule:construction	staging checkpoint 6, R13: two words between Scotch and the oatmeal
+ac-ck11-05	2 tablespoons Scotch whisky	-	-	no	whiskey	174819	-	ok	rule:construction	staging checkpoint 6, R13 boundary: Scotch before the drink word stays whisky
+ac-ck11-06	1/4 cup single malt Scotch	-	-	no	whiskey	174819	-	ok	rule:construction	staging checkpoint 6, R13 boundary: Scotch named as the drink, nothing after it
+ac-ck11-07	1/2 cup Malaga wine	-	-	no	fortified-sweet	173176	-	ok	rule:construction	staging checkpoint 6, R13 boundary: Malaga with no grape word is the sweet wine
+ac-ck11-08	2 tablespoons Scotch for the eggs	-	-	no	whiskey	174819	-	ok	rule:construction	ck11 review: words between Scotch and a food that is no cereal do not make Scotch a food; the line names what the whisky is for
+ac-ck11-09	2 tbsp scotch per pancake	-	-	no	whiskey	174819	-	ok	rule:construction	ck11 review: "per" before a food leaves Scotch the drink
+ac-ck11-10	1 cup Scotch steel-cut oats	-	-	no	other	-	174819	ok	rule:construction	ck11 review boundary: a hyphenated cereal style between Scotch and the oats still names the oats
+ac-ck12a-01	1/2 teaspoon garam marsala	-	-	yes	other	-	175112	ok	rule:construction	ck12 fresh draw, R13: "garam marsala" is a misspelt garam masala, a spice blend, not Marsala wine
+ac-ck12a-02	white wine marmalade	-	-	no	dish	-	174837	ok	rule:construction	ck12 fresh draw, R13: a marmalade made with white wine is a preserve, not the wine
+ac-ck12a-03	a cup of dried Scotch peas	-	-	no	other	-	174819	ok	rule:construction	ck12 fresh draw, R13: Scotch peas are a dried pea, not whisky
+ac-ck12a-04	1 cup Marsala wine	-	-	no	fortified	-	-	ok	rule:construction	ck12 fresh draw, R13 boundary: Marsala on its own is still the wine
+ac-ck12a-05	quart of White wine Vineger	-	-	no	vinegar	-	174837	ok	rule:construction	ck12 fresh draw 2, R13: "vineger" is an old spelling of vinegar
+ac-ck12a-06	a porter-house steak	-	-	no	other	-	168746	ok	rule:construction	ck12 fresh draw 2, R13: a porterhouse is a cut of beef, not porter
+ac-ck12a-07	two tablespoonfuls of brandy coloring	-	-	no	other	-	174815	ok	rule:construction	ck12 fresh draw 2, R13: brandy colouring is burnt sugar used to colour, not brandy
+ac-ck12a-08	scotch pea pulp	-	-	no	other	-	174819	ok	rule:construction	ck12 fresh draw 3, R13: Scotch pea pulp is the pea, not whisky

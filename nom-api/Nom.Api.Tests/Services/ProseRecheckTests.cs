@@ -268,44 +268,155 @@ namespace Nom.Api.Tests.Services
             "As the barley cooks, scrub the beetroot and slice it into thin wedges. Toss these with oil, caraway seeds and a good pinch of salt. Roast at 200°C for 25 minutes, turning once halfway through. Fold the warm beetroot into the barley along with dill and crumbled feta.",
         };
 
+        private const string ChickenSource = """
+            {"@type":"Recipe","description":"Paprika chicken thighs with lemon.",
+             "recipeInstructions":[
+               {"@type":"HowToStep","text":"Heat the oven to 190°C. Rub the chicken thighs all over with the paprika, garlic and a little salt, then lay them skin side up in a roasting tin."},
+               {"@type":"HowToStep","text":"Roast for 40 minutes, until the skin is crisp and the juices run clear. Rest the thighs for five minutes under a loose sheet of foil before serving them with the lemon wedges."}]}
+            """;
+
+        private static readonly string[] SomeSentencesKept =
+        {
+            "Turn the oven on to 190°C. Coat the thighs in paprika, garlic and salt, and arrange them in a roasting tin with their skin facing up.",
+            "Give them 40 minutes in the oven, until crisp and cooked through. Rest the thighs for five minutes under a loose sheet of foil before serving them with lemon wedges.",
+        };
+
         [Fact]
-        public async Task A_copy_unsure_recipe_is_withheld_like_a_copy_journaled_with_its_measures_marked_counted_apart_and_released_by_the_undo()
+        public async Task The_report_gives_the_recipes_withheld_with_some_copied_sentences_withheld_until_reworded_and_with_them_shown_while_reworded()
         {
             await using var db = NewContext();
             await BuildStockAsync(db);
-            var copyUnsure = await SeedAsync(db, CurationStatusEnum.Curated, LightEdit, BarleySource);
-            var copied = await SeedAsync(db, CurationStatusEnum.NonCurated, CopiedStep);
+            await SeedAsync(db, CurationStatusEnum.Curated, LightEdit, BarleySource);
+            await SeedAsync(db, CurationStatusEnum.Curated, SomeSentencesKept, ChickenSource);
+            await SeedAsync(db, CurationStatusEnum.NonCurated, SomeSentencesKept, ChickenSource);
+
+            var dry = await Service(db).RecheckAsync();
+
+            dry.WithheldIfRepairWithheld.Should().Be(3, "as built, a recipe with some copied sentences is withheld until reworded");
+            dry.WithheldIfRepairShown.Should().Be(1, "shown while reworded, only the recipe mostly copied is withheld");
+            dry.WithheldIfRepairWithheldApproved.Should().Be(2);
+            dry.WithheldIfRepairShownApproved.Should().Be(1);
+            dry.Withheld.Should().Be(0, "the figures are a report and change nothing");
+        }
+
+        [Fact]
+        public async Task The_two_withhold_figures_count_the_recipes_already_withheld_and_change_none_of_them()
+        {
+            await using var db = NewContext();
+            await BuildStockAsync(db);
+            await SeedAsync(db, CurationStatusEnum.Curated, LightEdit, BarleySource);
+            await SeedAsync(db, CurationStatusEnum.Curated, SomeSentencesKept, ChickenSource);
+            await SeedAsync(db, CurationStatusEnum.NonCurated, SomeSentencesKept, ChickenSource);
+            await SeedAsync(db, CurationStatusEnum.Curated, LightEdit, BarleySource, withheld: true);
+            await SeedAsync(db, CurationStatusEnum.NonCurated, LightEdit, BarleySource, withheld: true);
+            await SeedAsync(db, CurationStatusEnum.Curated, SomeSentencesKept, ChickenSource, withheld: true);
+            await SeedAsync(db, CurationStatusEnum.Curated, Faithful, withheld: true);
+            await SeedAsync(db, CurationStatusEnum.Curated, LightEdit, BarleySource, withheld: true, editedBy: Admin);
+            await SeedAsync(db, CurationStatusEnum.Curated, LightEdit, BarleySource, withheld: true, quarantined: true);
+
+            var dry = await Service(db).RecheckAsync();
+
+            dry.Examined.Should().Be(3);
+            dry.ExaminedWithheld.Should().Be(4, "the recipe a person edited and the quarantined one are left out");
+            dry.WithheldIfRepairWithheld.Should().Be(6);
+            dry.WithheldIfRepairShown.Should().Be(3);
+            dry.WithheldIfRepairWithheldApproved.Should().Be(4);
+            dry.WithheldIfRepairShownApproved.Should().Be(2);
+            dry.AlreadyWithheldIfRepairWithheld.Should().Be(3);
+            dry.AlreadyWithheldIfRepairShown.Should().Be(2);
+
+            var applied = await Service(db).RecheckAsync(apply: true);
+
+            applied.Withheld.Should().Be(3);
+            applied.WithheldIfRepairWithheld.Should().Be(6, "after an apply the recipes it withheld still count");
+            applied.WithheldIfRepairShown.Should().Be(3);
+            applied.AlreadyWithheldIfRepairWithheld.Should().Be(3, "the figures are taken before the apply withholds anything");
+            var again = await Service(db).RecheckAsync();
+            again.Examined.Should().Be(0);
+            again.WithheldIfRepairWithheld.Should().Be(6);
+            again.WithheldIfRepairShown.Should().Be(3);
+            again.AlreadyWithheldIfRepairWithheld.Should().Be(6);
+            (await db.Recipes.CountAsync(r => r.ProseWithheld)).Should().Be(9);
+        }
+
+        [Fact]
+        public async Task A_recipe_mostly_lightly_edited_is_withheld_and_one_with_some_copied_sentences_is_withheld_with_its_count_until_reworded_and_both_are_restored_by_the_undo()
+        {
+            await using var db = NewContext();
+            await BuildStockAsync(db);
+            var mostly = await SeedAsync(db, CurationStatusEnum.Curated, LightEdit, BarleySource);
+            var some = await SeedAsync(db, CurationStatusEnum.Curated, SomeSentencesKept, ChickenSource);
             var service = Service(db);
 
             var dry = await service.RecheckAsync();
 
-            dry.Failed.Should().Be(2);
-            dry.CopyUnsure.Should().Be(1);
-            dry.CopyUnsureApproved.Should().Be(1);
-            dry.FailedByReason.Should().ContainKey(ProseCheck.CopyUnsure).WhoseValue.Should().Be(1);
-            dry.Unsure.Should().Be(0, "a copy-unsure recipe is never left shown as unsure");
+            dry.Failed.Should().Be(1);
+            dry.FailedByReason.Should().ContainKey(ProseCheck.CopiedText);
+            dry.Repair.Should().Be(1);
+            dry.RepairApproved.Should().Be(1);
+            dry.RepairSentences.Should().Be(1);
+            dry.MarkedRepair.Should().Be(0, "a dry run marks nothing");
+            dry.Remaining.Should().Be(2, "a recipe with copied sentences is not shown either");
 
             var before = DateTime.UtcNow.AddSeconds(-1);
             var applied = await service.RecheckAsync(apply: true);
             db.ChangeTracker.Clear();
 
             applied.Withheld.Should().Be(2);
-            applied.WithheldCopyUnsure.Should().Be(1);
-            var recipe = await db.Recipes.AsNoTracking().SingleAsync(r => r.Id == copyUnsure);
-            recipe.ProseWithheld.Should().BeTrue();
-            recipe.ProseCopyUnsure.Should().BeTrue();
-            recipe.CurationStatusId.Should().Be((long)CurationStatusEnum.Curated, "withheld, not unpublished");
-            (await db.Recipes.AsNoTracking().SingleAsync(r => r.Id == copied)).ProseCopyUnsure.Should().BeFalse("over a copied line is a copy, not copy-unsure");
-            var entry = await db.AuditLogEntries.AsNoTracking().SingleAsync(a => a.ChangeType == ProseRecheckService.WithholdChangeType && a.EntityId == copyUnsure);
-            entry.NewValue.Should().StartWith($"check {ProseCheck.Version} stock 1: {ProseCheck.CopyUnsure}: ").And.Contain("| measures run ");
+            applied.WithheldRepair.Should().Be(1);
+            applied.MarkedRepair.Should().Be(1);
+            applied.Remaining.Should().Be(0);
+            applied.RunRecorded.Should().BeTrue();
+            var withheld = await db.Recipes.AsNoTracking().SingleAsync(r => r.Id == mostly);
+            withheld.ProseWithheld.Should().BeTrue();
+            withheld.ProseCopiedSentences.Should().Be(0, "a recipe withheld as a whole has no work list of its own");
+            var entry = await db.AuditLogEntries.AsNoTracking().SingleAsync(a => a.ChangeType == ProseRecheckService.WithholdChangeType && a.EntityId == mostly);
+            entry.NewValue.Should().StartWith($"check {ProseCheck.Version} stock 1: failed: ").And.Contain("sentences copied");
+            var repair = await db.Recipes.AsNoTracking().SingleAsync(r => r.Id == some);
+            repair.ProseWithheld.Should().BeTrue("a recipe is shown only when all its sentences pass");
+            repair.ProseCopiedSentences.Should().Be(1, "its copied sentences are the lane's work list");
+            (await db.AuditLogEntries.AsNoTracking().SingleAsync(a => a.ChangeType == ProseRecheckService.WithholdChangeType && a.EntityId == some))
+                .NewValue.Should().StartWith($"check {ProseCheck.Version} stock 1: repair: ");
+            (await db.AuditLogEntries.AsNoTracking().SingleAsync(a => a.ChangeType == ProseRecheckService.RepairChangeType && a.EntityId == some))
+                .NewValue.Should().StartWith("1 | check ").And.Contain("step 2 sentence 2");
+
+            var again = await service.RecheckAsync(apply: true);
+            again.Examined.Should().Be(0, "neither recipe is shown");
 
             var undo = await service.UndoAsync(before, apply: true);
             db.ChangeTracker.Clear();
 
             undo.RestoredWithheld.Should().Be(2);
-            var released = await db.Recipes.AsNoTracking().SingleAsync(r => r.Id == copyUnsure);
-            released.ProseWithheld.Should().BeFalse();
-            released.ProseCopyUnsure.Should().BeFalse();
+            undo.RestoredRepair.Should().Be(1);
+            (await db.Recipes.AsNoTracking().SingleAsync(r => r.Id == mostly)).ProseWithheld.Should().BeFalse();
+            (await db.Recipes.AsNoTracking().SingleAsync(r => r.Id == some)).Should().Match<RecipeEntity>(r => !r.ProseWithheld && r.ProseCopiedSentences == 0);
+        }
+
+        [Fact]
+        public async Task The_batch_limit_holds_recipes_with_copied_sentences_too_and_marks_none_beyond_it()
+        {
+            await using var db = NewContext();
+            await BuildStockAsync(db);
+            var mostly = await SeedAsync(db, CurationStatusEnum.Curated, LightEdit, BarleySource);
+            var first = await SeedAsync(db, CurationStatusEnum.Curated, SomeSentencesKept, ChickenSource);
+            var second = await SeedAsync(db, CurationStatusEnum.Curated, SomeSentencesKept, ChickenSource);
+            var service = Service(db);
+
+            var before = DateTime.UtcNow.AddSeconds(-1);
+            var applied = await service.RecheckAsync(apply: true, maxRecipes: 2);
+            db.ChangeTracker.Clear();
+
+            applied.Withheld.Should().Be(2);
+            applied.Remaining.Should().Be(1);
+            applied.RunRecorded.Should().BeFalse();
+            var recipes = await db.Recipes.AsNoTracking().Where(r => r.Id == mostly || r.Id == first || r.Id == second).ToListAsync();
+            recipes.Count(r => r.ProseWithheld).Should().Be(2);
+            recipes.Single(r => !r.ProseWithheld).ProseCopiedSentences.Should().Be(0, "a recipe beyond the batch is neither withheld nor marked");
+            (await db.AuditLogEntries.AsNoTracking().CountAsync(a => a.ChangeType == ProseRecheckService.RepairChangeType)).Should().Be(applied.MarkedRepair);
+
+            var undo = await service.UndoAsync(before);
+            (undo.RestoredWithheld + undo.RestoredRepair).Should().BeLessOrEqualTo(4);
+            undo.RestoredWithheld.Should().Be(2);
         }
 
         [Fact]

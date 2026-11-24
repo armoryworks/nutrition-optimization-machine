@@ -126,13 +126,13 @@ namespace Nom.Data.Recipe
         public bool ProseUnsure { get; set; }
 
         /// <summary>
-        /// True while <see cref="ProseWithheld"/> stands because the prose check's copy measures sat
-        /// between its two lines (copy-unsure), not over a copied line: withheld like a copy, counted
-        /// apart, and the rewrite lane's work. Set by the journaled re-check, cleared by its undo, by a
-        /// person's own method ending the withhold and by a facts-only withhold; read only while the
-        /// recipe is withheld.
+        /// How many sentences of the shown description and steps the prose check (from check v7, sentence
+        /// by sentence) read as copies of the source while the recipe is shown: the rewrite lane's work
+        /// list, whose sentences it rewords. 0 when none is, when the recipe is withheld as a whole, or when
+        /// it was not read. Set by the journaled re-check and restored by its undo; cleared by a person's own
+        /// method, by a withhold and by a rewrite the lane writes.
         /// </summary>
-        public bool ProseCopyUnsure { get; set; }
+        public int ProseCopiedSentences { get; set; }
 
         /// <summary>Rewrite attempts the prose lane has spent on this recipe under <see cref="ProseLaneVersion"/>.</summary>
         public int ProseAttempts { get; set; }

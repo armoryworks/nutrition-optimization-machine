@@ -194,6 +194,23 @@ namespace Nom.Api.Tests.Services
         }
 
         [Fact]
+        public async Task A_run_reads_two_lines_of_one_drink_each_from_its_own_turn_in_the_steps()
+        {
+            using var db = NewContext();
+            var seeded = await SeedRecipeAsync(db, steps: "Beat the eggs, bananas and vanilla. Bake for 55 minutes. Cool completely. For the frosting, beat the butter, sugar and vanilla until smooth.");
+            db.RecipeIngredients.AddRange(
+                new RecipeIngredientEntity { RecipeId = seeded.RecipeId, IngredientId = seeded.VanillaId, Quantity = 4m, MeasurementId = Gram, RawLine = "1 tsp vanilla", SortOrder = 1 },
+                new RecipeIngredientEntity { RecipeId = seeded.RecipeId, IngredientId = seeded.VanillaId, Quantity = 4m, MeasurementId = Gram, RawLine = "1 tsp vanilla", SortOrder = 2 });
+            await db.SaveChangesAsync();
+
+            await Service(db).RunAsync(apply: true);
+
+            var lines = await db.RecipeIngredients.AsNoTracking().Where(l => l.IngredientId == seeded.VanillaId).OrderBy(l => l.SortOrder).ToListAsync();
+            lines.Select(l => (l.AlcoholRetention, l.AlcoholRetentionBasis)).Should().Equal(new[] { ((decimal?)0.35m, "timed:bake:55"), ((decimal?)1m, "no-heat") },
+                "staging checkpoint 6, R14 (23883): the frosting's vanilla, the second line, is not read with the batter's bake");
+        }
+
+        [Fact]
         public async Task A_run_counts_the_lines_it_reads_as_estimates_and_marks_them_in_its_sample()
         {
             using var db = NewContext();

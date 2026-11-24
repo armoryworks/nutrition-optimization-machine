@@ -379,6 +379,34 @@ namespace Nom.Api.Tests.Services
         }
 
         [Fact]
+        public async Task The_free_of_set_takes_back_a_line_marked_free_of_what_its_food_holds_unless_the_diet_guard_keeps_it_and_leaves_a_stand_in_and_a_food_named_first()
+        {
+            await using var db = NewContext();
+            LinkRecheckClassBarTests.Qualify(db, LinkRecheckRules.FreeOf);
+            var sauce = Food("Worcestershire Sauce", "Sauce, worcestershire", "171609", 6);
+            var cheese = Food("Cream Cheese", "Cream cheese, full fat, block", "173418", 1);
+            var imitation = Food("Imitation Sour Cream", "Sour cream, imitation, cultured", "171257", 1);
+            var butter = Food("Butter", "Butter, salted", "173410", 1);
+            db.Ingredients.AddRange(sauce, cheese, imitation, butter);
+            await db.SaveChangesAsync();
+            var dip = Scraped("Dip", (sauce, "1 Tbsp vegan worcestershire sauce"), (cheese, "8 ounces vegan cream cheese"), (imitation, "1 cup vegan sour cream"), (butter, "1/2 cup butter or vegan butter"));
+            db.Recipes.Add(dip);
+            await db.SaveChangesAsync();
+
+            var run = await Recheck(db).RunAsync(LinkRecheckRules.FreeOf, apply: true);
+
+            run!.Groups.Should().Be(2, "the sauce and the cream cheese lines are marked free of what their foods hold; the stand-in and the food named first are not read");
+            run.LinesUnlinked.Should().Be(1);
+            run.Held.Should().Be(1, "the cream cheese line's own words do not say it lacks milk for every type its take-back would lower");
+            var home = await FoodOfAsync(db, dip.Id, "1 Tbsp vegan worcestershire sauce");
+            home.Should().NotBe(sauce.Id);
+            (await db.Ingredients.SingleAsync(i => i.Id == home)).Name.Should().Be("vegan worcestershire sauce");
+            (await FoodOfAsync(db, dip.Id, "8 ounces vegan cream cheese")).Should().Be(cheese.Id);
+            (await FoodOfAsync(db, dip.Id, "1 cup vegan sour cream")).Should().Be(imitation.Id);
+            (await FoodOfAsync(db, dip.Id, "1/2 cup butter or vegan butter")).Should().Be(butter.Id);
+        }
+
+        [Fact]
         public async Task The_applied_sets_split_the_november_third_links_from_the_rest_and_move_a_wording_to_the_curated_food_of_its_name()
         {
             await using var db = NewContext();

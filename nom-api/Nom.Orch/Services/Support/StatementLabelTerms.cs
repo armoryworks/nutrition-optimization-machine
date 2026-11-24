@@ -46,7 +46,7 @@ namespace Nom.Orch.Services.Support
     /// </summary>
     public static class StatementLabelTerms
     {
-        public const string Version = "label-terms/3";
+        public const string Version = "label-terms/4";
         public const string ResourceName = "Nom.Orch.Contents.label-terms.tsv";
         private const int MaxDepth = 8;
 
@@ -200,12 +200,14 @@ namespace Nom.Orch.Services.Support
 
         /// <summary>
         /// The patterns that name a composite food in a recipe line: its term and each other name its term does not
-        /// already name, as <c>%name%</c>, read by <see cref="DietPatternRule"/>.
+        /// already name, as <c>%name%</c>, read by <see cref="DietPatternRule"/>; of names that read each other (a spelling
+        /// with and without its accents, "velouté" and "veloute") the first is kept.
         /// </summary>
         public static IReadOnlyList<string> PatternsOf(LabelTerm composite)
         {
             var names = new[] { composite.Term }.Concat(composite.Names).Select(n => "%" + n + "%").Distinct(StringComparer.Ordinal).ToList();
-            return names.Where(p => !names.Any(q => q != p && DietPatternRule.For(q).IsMatch("1 cup " + p.Trim('%')))).ToList();
+            bool Reads(string q, string p) => DietPatternRule.For(q).IsMatch("1 cup " + p.Trim('%'));
+            return names.Where((p, i) => !names.Where((q, j) => q != p && Reads(q, p) && (!Reads(p, q) || j < i)).Any()).ToList();
         }
 
         private static (IReadOnlyList<LabelTerm>, IReadOnlyDictionary<string, LabelTerm>) Load()

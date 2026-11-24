@@ -36,6 +36,12 @@ namespace Nom.Data.Plan
 
         /// <summary>A line is on a food the build has not decided yet.</summary>
         UnknownFood = 7,
+
+        /// <summary>The title of a recipe whose lines were read out of a book's text names what the set restricts, and no line does.</summary>
+        Title = 8,
+
+        /// <summary>The method of a recipe whose lines were read out of a book's text names what the set restricts, and no line does.</summary>
+        Method = 9,
     }
 
     /// <summary>

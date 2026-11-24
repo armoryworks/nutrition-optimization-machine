@@ -20,7 +20,7 @@ using Xunit;
 namespace Nom.Api.Tests.Services
 {
     /// <summary>
-    /// The clean-room prose lane against a database: with no lane state it decides in shadow and
+    /// The reword prose lane against a database: with no lane state it decides in shadow and
     /// lifts no withhold or quarantine (the old lane's clearing is gone); live, it writes and
     /// journals each rewrite; it takes approved withheld recipes first, skips a person's edits,
     /// gives a recipe up under its lane version and takes it again under a new one; canaries,
@@ -122,7 +122,7 @@ namespace Nom.Api.Tests.Services
             (await rig.Db.AuditLogEntries.CountAsync()).Should().Be(0);
             var decisions = await rig.Db.LaneDecisions.ToListAsync();
             decisions.Should().HaveCount(2).And.OnlyContain(d => d.Writes && !d.Written && d.Decision == ProseLaneService.RewriteDecision && d.SignatureHash == Models.Version);
-            decisions.Should().OnlyContain(d => d.SignalsJson!.Contains("Warm ½ tablespoon oil"));
+            decisions.Should().OnlyContain(d => d.SignalsJson!.Contains("Whisk the butter through the sauce"));
         }
 
         [Fact]
@@ -142,7 +142,7 @@ namespace Nom.Api.Tests.Services
             recipe.Description.Should().Be("Garlic Cream Sauce, made with heavy cream and butter.");
             var steps = recipe.RecipeSteps!.Where(s => !s.IsDeleted).OrderBy(s => s.StepNumber).ToList();
             steps.Should().HaveCount(4);
-            steps[3].Description.Should().Be("Rest the sauce a half hour, then serve.");
+            steps[3].Description.Should().Be(GarlicSauce.Reworded[GarlicSauce.Method[3]]);
             steps.Should().OnlyContain(s => s.LastModifiedByPersonId == SystemConstants.SystemPersonId);
 
             var journal = await rig.Db.AuditLogEntries.Where(a => a.EntityId == id).ToListAsync();
@@ -152,6 +152,61 @@ namespace Nom.Api.Tests.Services
             ProseLaneJournal.ReadState(journal.Single(a => a.PropertyName == "ProseState").OldValue)
                 .Should().BeEquivalentTo(new ProseState(true, false, 2, null, 0, null, new[] { 1, 2 }));
             (await rig.Db.LaneDecisions.SingleAsync()).Written.Should().BeTrue();
+        }
+
+        [Fact]
+        public async Task A_recipe_withheld_for_its_copied_sentences_has_only_those_reworded_and_live_the_rewording_is_written_journaled_shown_and_clears_its_count()
+        {
+            var rig = NewRig();
+            var shownSteps = new[]
+            {
+                "Over medium heat, warm ½ tablespoon of the olive oil in a small saucepan, then cook the garlic in it for a minute or two until you can smell it.",
+                "Pour in ¾ cup cream and ¾ teaspoon salt, then simmer for 7 to 10 minutes until slightly thickened.",
+                "Whisk the butter through the sauce once you have lifted the pan off the heat.",
+                "Before you serve it, leave the sauce to stand for a half hour.",
+            };
+            var id = await SeedAsync(rig.Db, steps: shownSteps);
+            var recipe = await rig.Db.Recipes.SingleAsync(r => r.Id == id);
+            recipe.ProseCopiedSentences = 1;
+            await rig.Db.SaveChangesAsync();
+            rig.Db.ChangeTracker.Clear();
+            var writer = new FakeWriter();
+
+            var result = await rig.Lane.SweepAsync(LaneMode.Live, Models, writer, new FakeJudge(), 25);
+
+            result.Rewritten.Should().Be(1);
+            writer.Reworded.Should().ContainSingle().Which.Step.Should().Be(2);
+            var written = await RecipeAsync(rig.Db, id);
+            written.ProseCopiedSentences.Should().Be(0);
+            written.ProseWithheld.Should().BeFalse();
+            written.RecipeSteps!.OrderBy(s => s.StepNumber).Select(s => s.Description).Should().Equal(shownSteps[0], GarlicSauce.Reworded[GarlicSauce.Method[1]], shownSteps[2], shownSteps[3]);
+            (await rig.Db.LaneDecisions.SingleAsync()).Stratum.Should().Be("repair");
+            (await rig.Db.AuditLogEntries.CountAsync(a => a.EntityId == id && a.ChangeType == ProseRecheckService.RewriteChangeType)).Should().BeGreaterThan(0, "every old text is journaled, so the lane's undo can put it back");
+        }
+
+        [Fact]
+        public async Task A_facts_only_recipe_withheld_with_a_count_of_copied_sentences_is_reworded_as_a_whole()
+        {
+            var rig = NewRig();
+            var shownSteps = new[]
+            {
+                "Over medium heat, warm ½ tablespoon of the olive oil in a small saucepan, then cook the garlic in it for a minute or two until you can smell it.",
+                "Pour in ¾ cup cream and ¾ teaspoon salt, then simmer for 7 to 10 minutes until slightly thickened.",
+                "Whisk the butter through the sauce once you have lifted the pan off the heat.",
+                "Before you serve it, leave the sauce to stand for a half hour.",
+            };
+            var id = await SeedAsync(rig.Db, steps: shownSteps);
+            var recipe = await rig.Db.Recipes.SingleAsync(r => r.Id == id);
+            recipe.ProseCopiedSentences = 1;
+            recipe.SourceRights = SourceRightsRule.FactsOnly;
+            await rig.Db.SaveChangesAsync();
+            rig.Db.ChangeTracker.Clear();
+            var writer = new FakeWriter();
+
+            await rig.Lane.SweepAsync(LaneMode.Live, Models, writer, new FakeJudge(), 25);
+
+            writer.Reworded.Select(r => r.Step).Should().HaveCountGreaterThan(1, "a facts-only recipe serves none of the publisher's wording, so every step is the lane's");
+            (await rig.Db.LaneDecisions.SingleAsync()).Stratum.Should().NotBe("repair");
         }
 
         [Fact]

@@ -449,5 +449,63 @@ namespace Nom.Api.Tests.Services
         {
             IngredientLineParser.Parse(raw).Should().Be(new ParsedQuantity((decimal)quantity, measurement));
         }
+
+        [Theory]
+        [InlineData("essence violets, one-quarter ounce", 0.25, "Ounce")]
+        [InlineData("brown sugar (one-quarter pound)", 0.25, "Pound")]
+        [InlineData("fish _fumet_ (one-quarter pint)", 0.5, "Cup")]
+        [InlineData("Terpentine one quarter of a pound", 0.25, "Pound")]
+        [InlineData("good melted butter, a quarter-pint", 0.5, "Cup")]
+        [InlineData("a quarter-cup of raw rice", 0.25, "Cup")]
+        [InlineData("three-quarter cup of tapioca", 0.75, "Cup")]
+        [InlineData("one and three-quarter cups of sugar", 1.75, "Cup")]
+        [InlineData("four quarts and one-half-pint of cold water", 17, "Cup")]
+        [InlineData("two quarts and a half-pint of water", 9, "Cup")]
+        [InlineData("a half-pint cream", 1, "Cup")]
+        [InlineData("a half-cup sugar", 0.5, "Cup")]
+        [InlineData("a half-pound butter", 0.5, "Pound")]
+        [InlineData("a half pint of oysters", 1, "Cup")]
+        [InlineData("two and a half pounds of flour", 2.5, "Pound")]
+        [InlineData("one pound and a quarter of sifted flour", 1.25, "Pound")]
+        [InlineData("a pint and a third of milk", 2.667, "Cup")]
+        [InlineData("a third of a yeast-cake", 0.333, "Piece")]
+        [InlineData("an eighth of a cupful of water", 0.125, "Cup")]
+        [InlineData("about an eighth of a pound of citron, cut fine", 0.125, "Pound")]
+        [InlineData("two thirds of a good-sized teacup full of flour", 0.333, "Cup")]
+        [InlineData("half a quarter of a pint of orange-flower water", 0.25, "Cup")]
+        [InlineData("one-quarter onion", 0.25, "Piece")]
+        [InlineData("1 No. 2 can tomatoes", 1, "Can")]
+        [InlineData("one quart of white broth (No. 99)", 4, "Cup")]
+        public void A_spelt_fraction_is_read_whole_with_its_own_number_and_measure(string raw, double quantity, string measurement)
+        {
+            IngredientLineParser.Parse(raw).Should().Be(new ParsedQuantity((decimal)quantity, measurement), "staging checkpoint 12 read these lines from the staging copy");
+        }
+
+        [Theory]
+        [InlineData("a third as much soda")]
+        [InlineData("one fourth of the flour")]
+        [InlineData("a tenth part of onions")]
+        [InlineData("two-thirds Java coffee")]
+        [InlineData("a quarter of sugar")]
+        [InlineData("One-quarter peck of apples")]
+        [InlineData("½ bushel tomatoes")]
+        [InlineData("a teacup two thirds full of home-made yeast")]
+        [InlineData("one-third inch thick croûtons of bread-crumbs")]
+        [InlineData("½-inch piece fresh ginger")]
+        [InlineData("one and a quarter of an inch in diameter pastry-tube")]
+        [InlineData("forcemeat No. 1, Chapter VIII.")]
+        [InlineData("sirup No. 3 or 4")]
+        [InlineData("batter (No. 2, page 98)")]
+        public void A_proportion_an_unknown_measure_a_size_or_a_recipe_number_is_no_amount(string raw)
+        {
+            IngredientLineParser.Parse(raw).Should().BeNull();
+        }
+
+        [Fact]
+        public void A_half_pint_added_to_quarts_is_the_part_the_line_adds()
+        {
+            IngredientLineParser.WithoutAddedPart("four quarts and one-half-pint of cold water").Should().Be(new ParsedQuantity(16m, "Cup"));
+            IngredientLineParser.WithoutAddedPart("one pound and a quarter of sifted flour").Should().Be(new ParsedQuantity(1m, "Pound"));
+        }
     }
 }

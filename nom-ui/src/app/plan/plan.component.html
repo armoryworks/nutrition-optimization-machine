@@ -190,7 +190,13 @@
                     }
                     <span class="nom-plan__cell-recipe"
                           [class.nom-plan__cell-recipe--fooditem]="entry.ingredientId">
-                      @if (entry.recipeId) {
+                      @if (entry.recipeId && entry.recipeRemoved) {
+                        <span data-testid="plan-cell-recipe-removed">{{ entry.recipeName ?? entry.title }}</span>
+                        <span class="nom-plan__cell-qty" data-testid="plan-cell-recipe-removed-note">{{ entry.recipeRemovedNote }}</span>
+                        @if (entry.recipeSourceUrl) {
+                          <a [href]="entry.recipeSourceUrl" target="_blank" rel="noopener" data-testid="plan-cell-recipe-source-link">Source</a>
+                        }
+                      } @else if (entry.recipeId) {
                         <nom-entity-link [route]="['/recipe', entry.recipeId]"
                                          [label]="entry.recipeName ?? entry.title ?? 'Recipe'"
                                          [previewRecipeId]="entry.recipeId"

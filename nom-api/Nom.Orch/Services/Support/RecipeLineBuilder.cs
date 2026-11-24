@@ -25,7 +25,9 @@ namespace Nom.Orch.Services.Support
     /// line names, and otherwise a new uncurated ingredient. A wording, an alias or an applied link never
     /// leads to a prepared food. A line that names no food, only an amount ("Grammi circa 100", "2 cups",
     /// "N. 6"), keeps the food the line is already on or a food under the line's own text, and otherwise is
-    /// not built and is listed in <see cref="Dropped"/>: no food is ever created under an amount. In an "or"
+    /// not built and is listed in <see cref="Dropped"/>: no food is ever created under an amount. A source
+    /// entry with no letter and no digit once its entities and markup are read ("&amp;nbsp;", "&lt;br&gt;") is
+    /// no line at all: it is never built and is listed in <see cref="Dropped"/> too. In an "or"
     /// line the amount is that of the alternative naming the food when that alternative states its own,
     /// while two bare numbers joined by "or" are a range; a clove counts garlic, never the spice.
     /// Given the method, a line with no amount that is the only line of its
@@ -35,7 +37,7 @@ namespace Nom.Orch.Services.Support
     public sealed class RecipeLineBuilder
     {
         /// <summary>Raised whenever a rule this builder applies changes, so a rebuild can tell which recipes an older version built.</summary>
-        public const string Version = "line-builder/11";
+        public const string Version = "line-builder/13";
 
         /// <summary>Fallback unit for unparseable ingredient lines. Seeded "each"-style measurement.</summary>
         public const long DefaultMeasurementId = 1L;
@@ -109,6 +111,12 @@ namespace Nom.Orch.Services.Support
                 var ingredient = source[i];
                 var rawLine = RecipeScrapingService.Clamp(ingredient.RawLine, 2047) ?? string.Empty;
                 var name = RecipeScrapingService.Clamp(string.IsNullOrWhiteSpace(ingredient.Name) ? ingredient.RawLine : ingredient.Name, 2047) ?? string.Empty;
+                if (Blank(rawLine) && Blank(name))
+                {
+                    _logger.LogInformation("Line builder: the source entry \"{Line}\" holds no text, so it is left out", rawLine);
+                    dropped.Add(i);
+                    continue;
+                }
                 var wording = IngredientNameNormalizer.Normalize(name);
                 var namesNoFood = IngredientNameNormalizer.NamesOnlyAnAmount(name);
                 if (namesNoFood && !IngredientNameNormalizer.NamesOnlyAnAmount(rawLine))
@@ -187,6 +195,13 @@ namespace Nom.Orch.Services.Support
 
             return lines;
         }
+
+        private static readonly System.Text.RegularExpressions.Regex Markup = new(
+            @"<[^>]*>", System.Text.RegularExpressions.RegexOptions.Compiled | System.Text.RegularExpressions.RegexOptions.CultureInvariant);
+
+        /// <summary>Whether a source entry holds no letter and no digit once its entities and markup are read ("&amp;nbsp;", "&lt;br /&gt;", "*").</summary>
+        public static bool Blank(string? text) =>
+            !System.Net.WebUtility.HtmlDecode(Markup.Replace(System.Net.WebUtility.HtmlDecode(text ?? string.Empty), " ")).Any(char.IsLetterOrDigit);
 
         private static bool SameFood(BuiltLine a, BuiltLine b) =>
             a.Food != null && b.Food != null ? a.Food.Id == b.Food.Id : string.Equals(a.FoodName, b.FoodName, StringComparison.OrdinalIgnoreCase);

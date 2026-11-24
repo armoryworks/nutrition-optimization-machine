@@ -20,17 +20,20 @@ namespace Nom.Api.Controllers
         private readonly ISourceAdmissionService _admission;
         private readonly ISourceRightsService _rights;
         private readonly ICurrentUserService _currentUser;
+        private readonly IRecipeRemovalService _removal;
 
         public ScrapingSourceController(
             IScrapingSourceService scrapingSources,
             ISourceAdmissionService admission,
             ISourceRightsService rights,
-            ICurrentUserService currentUser)
+            ICurrentUserService currentUser,
+            IRecipeRemovalService removal)
         {
             _scrapingSources = scrapingSources;
             _admission = admission;
             _rights = rights;
             _currentUser = currentUser;
+            _removal = removal;
         }
 
         /// <summary>List scraping sources, optionally filtered by status (Pending/Approved/Rejected).</summary>
@@ -126,6 +129,14 @@ namespace Nom.Api.Controllers
             return Answer(await _admission.UndoAsync(entryId, _currentUser.RequiredPersonId));
         }
 
+        /// <summary>The dry run of a journal entry's undo: what it would change (fields, recipes by field, journal rows) or why it is refused; nothing is written.</summary>
+        [HttpGet("journal/{entryId:long}/undo")]
+        public async Task<ActionResult<SourceUndoPreviewModel>> UndoDryRun(long entryId)
+        {
+            var preview = await _admission.PreviewUndoAsync(entryId, _currentUser.RequiredPersonId);
+            return preview.NotFound ? NotFound(preview) : Ok(preview);
+        }
+
         /// <summary>Derives every web source's rights class and AI flag from its stored report (or one source's); a dry run unless apply=true.</summary>
         [HttpPost("rights/derive")]
         public async Task<ActionResult<SourceRightsRunModel>> DeriveRights([FromQuery] bool apply = false, [FromQuery] long? sourceId = null, CancellationToken cancellationToken = default)
@@ -165,6 +176,21 @@ namespace Nom.Api.Controllers
         {
             var result = await _admission.ReleaseRefusingHostAsync(id, _currentUser.RequiredPersonId, request?.Reason);
             return result == null ? NotFound(new { error = "No such refusing host." }) : Ok(result);
+        }
+
+        /// <summary>What the next discovery run would send: its seeds, the seeds held as refusing hosts, the exclusion list and every refusing host held. Nothing is fetched or written.</summary>
+        [HttpGet("discovery/next")]
+        public async Task<ActionResult<SourceDiscoveryPreviewModel>> NextDiscovery(CancellationToken cancellationToken)
+        {
+            return Ok(await _admission.PreviewDiscoveryAsync(cancellationToken));
+        }
+
+        /// <summary>Starts one discovery run now, as the lane's timer does, and answers with the run when it ends (the run goes on to its end if the caller goes away); 409 while the source lane is off, no scraper is configured or the last run that sent a job is less than IntervalHours old (with when the next may start). The run counts for the timer's pacing.</summary>
+        [HttpPost("discovery/run")]
+        public async Task<ActionResult<SourceDiscoveryRunModel>> RunDiscovery()
+        {
+            var result = await _admission.RunDiscoveryNowAsync(_currentUser.RequiredPersonId, CancellationToken.None);
+            return result.Run == null ? Conflict(new { error = result.Refused, nextRunDueUtc = result.NextRunDueUtc }) : Ok(result.Run);
         }
 
         /// <summary>Approves (approve=true) or withdraws facts-only use of a facts-only source; journaled.</summary>
@@ -217,6 +243,35 @@ namespace Nom.Api.Controllers
             return Ok(await _rights.TakenAsync(cancellationToken));
         }
 
+        /// <summary>Per forbidden or permission-needed source the recipes taken, retired and purged, the removal runs and an unfinished run.</summary>
+        [HttpGet("rights/removal")]
+        public async Task<ActionResult<RecipeRemovalStatusModel>> Removal(CancellationToken cancellationToken)
+        {
+            return Ok(await _removal.StatusAsync(cancellationToken));
+        }
+
+        /// <summary>Retires the recipes taken from one forbidden source (sourceId) or from every forbidden source: they leave every surface, journaled and undone by the run's stamp; a dry run unless apply=true. An apply resumes a run an API restart cut off.</summary>
+        [HttpPost("rights/removal/retire")]
+        public async Task<ActionResult<RecipeRemovalReportModel>> Retire([FromBody] SourceReasonRequestModel? request, [FromQuery] long? sourceId = null, [FromQuery] bool apply = false, CancellationToken cancellationToken = default)
+        {
+            return Removed(await _removal.RetireAsync(sourceId, apply, _currentUser.RequiredPersonId, request?.Reason, cancellationToken));
+        }
+
+        /// <summary>Puts back the recipes a retire run took off, by its stamp, except those purged since; a dry run unless apply=true.</summary>
+        [HttpPost("rights/removal/undo")]
+        public async Task<ActionResult<RecipeRemovalReportModel>> UndoRetire([FromQuery] DateTime stamp, [FromQuery] bool apply = false, CancellationToken cancellationToken = default)
+        {
+            var utc = stamp.Kind == DateTimeKind.Unspecified ? DateTime.SpecifyKind(stamp, DateTimeKind.Utc) : stamp.ToUniversalTime();
+            return Removed(await _removal.UndoRetireAsync(utc, apply, _currentUser.RequiredPersonId, cancellationToken));
+        }
+
+        /// <summary>Deletes for good the stored source wording and copies of retired recipes (one source's or all); it cannot be undone, so the apply needs backupTaken=true after a database backup; a dry run unless apply=true.</summary>
+        [HttpPost("rights/removal/purge")]
+        public async Task<ActionResult<RecipeRemovalReportModel>> Purge([FromQuery] long? sourceId = null, [FromQuery] bool apply = false, [FromQuery] bool backupTaken = false, CancellationToken cancellationToken = default)
+        {
+            return Removed(await _removal.PurgeAsync(sourceId, apply, backupTaken, _currentUser.RequiredPersonId, cancellationToken));
+        }
+
         [HttpGet("rights/status")]
         public async Task<ActionResult<SourceRightsStatusModel>> RightsStatus(CancellationToken cancellationToken)
         {
@@ -225,6 +280,9 @@ namespace Nom.Api.Controllers
 
         private ActionResult<ScrapingSourceModel> Answer(SourceActionResult result) =>
             result.Ok ? Ok(result.Source) : result.NotFound ? NotFound(new { error = result.Error }) : Conflict(new { error = result.Error });
+
+        private ActionResult<RecipeRemovalReportModel> Removed(RecipeRemovalReportModel report) =>
+            report.Refused != null ? Conflict(report) : Ok(report);
 
         private ActionResult<SourceWithholdReport> Answer(SourceWithholdReport report) =>
             report.NotFound ? NotFound(new { error = report.Error }) : report.Error != null ? Conflict(new { error = report.Error }) : Ok(report);

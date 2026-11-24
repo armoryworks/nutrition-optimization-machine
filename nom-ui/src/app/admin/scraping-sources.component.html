@@ -518,18 +518,104 @@
       @if (taken().length === 0) {
         <p class="nom-scraping-sources__hint" data-testid="scraping-sources-taken-empty">No forbidden or permission-needed source without a permission.</p>
       } @else {
-        <p class="nom-scraping-sources__hint">
-          What happens to these recipes is the owner's decision. Nothing is done to them by itself; "Withhold recipes" on the source above is one journaled, undoable click.
+        <p class="nom-scraping-sources__hint" data-testid="scraping-sources-taken-hint">
+          Recipes of a forbidden source are removed in two stages, each with a dry run. Retire takes them off every page, plan picker,
+          search and lane; a household keeps its plan entries, favourites, cookbook entries and shopping items with the title, the
+          source link and a note that the recipe is no longer available here. A retire is undone by its stamp. Purge then deletes the
+          source's wording for good and cannot be undone. Permission-needed sources are not touched.
         </p>
         <ul class="nom-scraping-sources__plain-list" data-testid="scraping-sources-taken-list">
           @for (t of taken(); track t.sourceId) {
             <li data-testid="scraping-sources-taken-item">
               <strong>{{ t.domain }}</strong> ({{ t.rightsClass }}): {{ t.recipes | number }} recipe(s), {{ t.recipesShown | number }} shown
               @if (t.recipesWithheld) { · withheld }
+              · <span data-testid="scraping-sources-taken-retired">{{ t.retired ?? 0 | number }} retired</span>
+              · <span data-testid="scraping-sources-taken-purged">{{ t.purged ?? 0 | number }} purged</span>
               <span class="nom-scraping-sources__item-meta">“{{ t.rightsQuote }}”</span>
+              @if (t.removable) {
+                <span class="nom-scraping-sources__actions">
+                  <button mat-button (click)="retire(t.sourceId, false)" [disabled]="processing()" data-testid="scraping-sources-taken-retire-dry-btn">Retire (dry run)</button>
+                  <button mat-button (click)="retire(t.sourceId, true)" [disabled]="processing()" data-testid="scraping-sources-taken-retire-btn">Retire</button>
+                  <button mat-button (click)="purge(t.sourceId, false)" [disabled]="processing()" data-testid="scraping-sources-taken-purge-dry-btn">Purge (dry run)</button>
+                  <button mat-button color="warn" (click)="purge(t.sourceId, true)" [disabled]="processing() || !backupTaken.value" data-testid="scraping-sources-taken-purge-btn">Purge</button>
+                </span>
+              }
             </li>
           }
         </ul>
+      }
+      <div class="nom-scraping-sources__actions" data-testid="scraping-sources-removal">
+        <button mat-button (click)="retire(null, false)" [disabled]="processing()" data-testid="scraping-sources-removal-retire-dry-btn">Retire all forbidden (dry run)</button>
+        <button mat-flat-button (click)="retire(null, true)" [disabled]="processing()" data-testid="scraping-sources-removal-retire-btn">Retire all forbidden</button>
+        <button mat-button (click)="purge(null, false)" [disabled]="processing()" data-testid="scraping-sources-removal-purge-dry-btn">Purge all retired (dry run)</button>
+        <label class="nom-scraping-sources__hint" data-testid="scraping-sources-removal-backup">
+          <input type="checkbox" [formControl]="backupTaken" data-testid="scraping-sources-removal-backup-check" />
+          A database backup was taken; I understand a purge cannot be undone
+        </label>
+        <button mat-button color="warn" (click)="purge(null, true)" [disabled]="processing() || !backupTaken.value" data-testid="scraping-sources-removal-purge-btn">Purge all retired</button>
+      </div>
+      @if (removal(); as rm) {
+        @if (rm.unfinished; as u) {
+          <p class="nom-scraping-sources__warn" data-testid="scraping-sources-removal-unfinished">
+            Run {{ u.id }} ({{ u.kind }}) was cut off after {{ u.done | number }} of {{ u.planned | number }}. Resume it with its own scope
+            @if (u.kind === 'retire') { or undo it by its stamp }; a run of another scope is refused until then.
+            @if (u.kind === 'retire') {
+              <button mat-button (click)="retire(u.sourceId ?? null, true)" [disabled]="processing()" data-testid="scraping-sources-removal-resume-btn">Resume</button>
+            } @else if (u.kind === 'purge') {
+              <button mat-button color="warn" (click)="purge(u.sourceId ?? null, true)" [disabled]="processing() || !backupTaken.value" data-testid="scraping-sources-removal-resume-btn">Resume</button>
+            }
+          </p>
+        }
+        @if (rm.runs.length > 0) {
+          <ul class="nom-scraping-sources__plain-list" data-testid="scraping-sources-removal-runs">
+            @for (run of rm.runs; track run.id) {
+              <li data-testid="scraping-sources-removal-run-item">
+                {{ run.stamp | date: 'medium' }} · {{ runLabel(run) }}
+                @if (run.kind === 'retire' && run.undoable > 0) {
+                  <button mat-button (click)="undoRetire(run.stamp, false)" [disabled]="processing()" data-testid="scraping-sources-removal-undo-dry-btn">Undo (dry run)</button>
+                  <button mat-button (click)="undoRetire(run.stamp, true)" [disabled]="processing()" data-testid="scraping-sources-removal-undo-btn">
+                    <mat-icon>undo</mat-icon>
+                    Undo {{ run.undoable | number }}
+                  </button>
+                }
+              </li>
+            }
+          </ul>
+        }
+      }
+      @if (removalResult(); as res) {
+        <div class="nom-scraping-sources__hint" data-testid="scraping-sources-removal-result">
+          @if (res.refused) {
+            <p class="nom-scraping-sources__warn" data-testid="scraping-sources-removal-refused">{{ res.refused }}</p>
+          } @else {
+            <p data-testid="scraping-sources-removal-summary">
+              {{ res.stage }} {{ res.applied ? 'applied' : 'dry run' }}{{ res.resumed ? ' (resumed)' : '' }}: {{ res.recipes | number }} recipe(s)
+              · {{ res.alreadyDone | number }} already done · stamp {{ res.stamp }}
+              @for (s of removalSkipped(res); track s) { · {{ s }} }
+            </p>
+          }
+          @if (res.warning) {
+            <p class="nom-scraping-sources__warn" data-testid="scraping-sources-removal-warning">{{ res.warning }}</p>
+          }
+          @if (res.sources.length > 0) {
+            <ul class="nom-scraping-sources__plain-list" data-testid="scraping-sources-removal-sources">
+              @for (s of res.sources; track s.sourceId) {
+                <li data-testid="scraping-sources-removal-source-item">
+                  <strong>{{ s.domain }}</strong>: {{ s.recipes | number }} recipe(s) · {{ s.approved | number }} approved ({{ s.approvedByPerson | number }} by a person, {{ s.approvedUnrecorded | number }} approver not recorded)
+                  · {{ s.editedByPerson | number }} edited by a person · in {{ s.inMealPlans | number }} meal plan(s), {{ s.favourited | number }} favourite(s),
+                  {{ s.inCookbooks | number }} cookbook(s), {{ s.inShoppingLists | number }} shopping list(s)
+                </li>
+              }
+            </ul>
+          }
+          @if (res.targets.length > 0) {
+            <ul class="nom-scraping-sources__plain-list" data-testid="scraping-sources-removal-targets">
+              @for (t of res.targets; track t.table) {
+                <li data-testid="scraping-sources-removal-target-item">{{ t.table }}: {{ t.columns }} — {{ t.action }} ({{ t.rows | number }} row(s))</li>
+              }
+            </ul>
+          }
+        </div>
       }
     </section>
 

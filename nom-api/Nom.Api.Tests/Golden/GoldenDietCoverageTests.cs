@@ -28,12 +28,21 @@ namespace Nom.Api.Tests.Golden
 
         public GoldenDietCoverageTests(ITestOutputHelper output) => _output = output;
 
-        /// <summary>Whether the type's default patterns flag the row: a food by its name or its USDA description, a line by its own words.</summary>
+        /// <summary>Whether the type's default patterns flag the row: a food by its name or its USDA description, a line by its own words, a recipe by any of its lines, by the food its hold rests on, by an ingredient list with no line or, in a book, one that builds on another recipe (<see cref="DietRecipeText.BuildsOnAnother"/>), and by its book title as <see cref="DietRecipeText.ReadsTitle"/> reads it beside a method.</summary>
         public static bool Flags(GoldenRow row)
         {
             var type = row["restriction"];
             var rules = DefaultRestrictionCriteria.ByName[type].Patterns.Where(p => !DietCriteriaMatcher.IsWordPattern(p)).Select(p => DietPatternRule.For(p, type)).ToList();
             var description = row["description"] is "" or GoldenTsv.NoAnswer ? null : row["description"];
+            if (row["kind"] == "recipe")
+            {
+                var lines = row["text"].Split(" ;; ");
+                var title = row["category"] is "" or GoldenTsv.NoAnswer ? null : row["category"];
+                return lines.All(DietRecipeText.IsPlaceholder)
+                    || (title != null && DietRecipeText.BuildsOnAnother(null, lines))
+                    || rules.Any(r => lines.Any(r.IsMatch) || (description != null && r.IsMatch(description))
+                        || (title != null && r.IsMatch(DietRecipeText.Title(title)) && DietRecipeText.ReadsTitle("-", r, DietRecipeText.RefersElsewhere(lines), title)));
+            }
             return row["kind"] == "food"
                 ? rules.Any(r => r.IsMatch(row["text"]) || r.IsDescriptionMatch(description))
                 : rules.Any(r => r.IsMatch(row["text"]));
@@ -43,7 +52,7 @@ namespace Nom.Api.Tests.Golden
         public void No_severe_type_misses_a_row_that_names_what_it_restricts_and_each_over_flags_under_the_bar()
         {
             var rows = GoldenSet.Read(File).Rows.Where(r => r["status"] is GoldenSet.Ok or GoldenSet.Agent).ToList();
-            var table = new StringBuilder("type\tfoods\tlines\thit rows\tmissed\tclear rows\tover-flagged\tshare\n");
+            var table = new StringBuilder("type\tfoods\tlines\trecipes\thit rows\tmissed\tclear rows\tover-flagged\tshare\n");
             var missed = new List<string>();
             var over = new List<string>();
             var failing = new List<string>();
@@ -54,7 +63,7 @@ namespace Nom.Api.Tests.Golden
                 var lost = hits.Where(r => !Flags(r)).ToList();
                 var wrong = clears.Where(Flags).ToList();
                 var share = clears.Count == 0 ? 0m : (decimal)wrong.Count / clears.Count;
-                table.Append(type.Key).Append('\t').Append(type.Count(r => r["kind"] == "food")).Append('\t').Append(type.Count(r => r["kind"] == "line")).Append('\t')
+                table.Append(type.Key).Append('\t').Append(type.Count(r => r["kind"] == "food")).Append('\t').Append(type.Count(r => r["kind"] == "line")).Append('\t').Append(type.Count(r => r["kind"] == "recipe")).Append('\t')
                     .Append(hits.Count).Append('\t').Append(lost.Count).Append('\t').Append(clears.Count).Append('\t').Append(wrong.Count).Append('\t')
                     .Append((share * 100).ToString("0.0", System.Globalization.CultureInfo.InvariantCulture)).Append(" %\n");
                 missed.AddRange(lost.Select(r => $"{r.Id} {type.Key}: {r["text"]} | {r["description"]}"));

@@ -26,7 +26,7 @@ namespace Nom.Api.Tests.Services
         {
             var finding = Check(new[] { "Bake the bread for 30 minutes." }, new[] { "Bake the loaf 30 minutes." }, stock: new ProseStockIndex(7, Enumerable.Empty<long>()));
 
-            finding.CheckVersion.Should().Be(ProseCheck.Version).And.Be(6);
+            finding.CheckVersion.Should().Be(ProseCheck.Version).And.Be(7);
             finding.StockVersion.Should().Be(7);
             finding.Passed.Should().BeTrue(finding.ToString());
         }
@@ -131,7 +131,7 @@ namespace Nom.Api.Tests.Services
 
             var finding = Check(source, cutApart);
 
-            finding.Faults.Should().Contain(f => f.Reason == ProseCheck.CopiedText && f.Detail.StartsWith("a run of"), finding.ToString());
+            finding.Faults.Should().Contain(f => f.Reason == ProseCheck.CopiedText && f.Detail.StartsWith("mostly the source's sentences"), finding.ToString());
             finding.LongestRun.Should().BeGreaterThan(30);
         }
 
@@ -183,7 +183,7 @@ namespace Nom.Api.Tests.Services
             var finding = Check(source, rewrite);
 
             finding.LongestRun.Should().BeLessThan(15);
-            finding.CopiedShare.Should().BeGreaterThanOrEqualTo(ProseCheck.CopiedLimits.Share);
+            finding.Sentences.Mostly.Should().BeTrue(finding.Sentences.ToString());
             finding.Reasons.Should().Contain(ProseCheck.CopiedText, finding.ToString());
         }
 
@@ -193,14 +193,14 @@ namespace Nom.Api.Tests.Services
             var source = new RewriteFidelity.SourceText("These little oat and apricot bars are dairy free, egg free, wheat free, and there's no oven needed.", new[] { "Blend the dates and cocoa until smooth, then roll into balls." });
 
             var kept = ProseCheck.Check(source, new RewriteFidelity.SourceText("These little oat and apricot bars are dairy-free, egg-free, wheat-free, and need no oven.", new[] { "Blend the dates with the cocoa until smooth and shape the mixture into balls." }));
-            kept.Failed.Should().BeTrue(kept.ToString());
-            kept.Measures.DescriptionRun.Should().BeGreaterThanOrEqualTo(ProseCheck.CopyUnsureLimits.DescriptionRun);
+            kept.Sentences.Copies.Should().Contain(c => c.Part == 0, kept.ToString());
+            kept.Reasons.Should().Contain(r => ProseCheck.CopyReasons.Contains(r));
             ProseCheck.Check(source, new RewriteFidelity.SourceText("No-bake cocoa bites that suit vegan and nut-free diets.", new[] { "Blend the dates with the cocoa until smooth and shape the mixture into balls." }))
                 .Passed.Should().BeTrue();
         }
 
         [Fact]
-        public void A_light_edit_of_every_sentence_under_every_copied_line_is_copy_unsure_and_withheld_not_passed()
+        public void A_light_edit_of_every_sentence_is_mostly_copied_and_withheld_as_a_whole()
         {
             var source = new[]
             {
@@ -214,61 +214,118 @@ namespace Nom.Api.Tests.Services
             };
 
             var finding = Check(source, rewrite);
-            var m = finding.Measures;
 
-            m.Run.Should().BeLessThan(16, "check v5 failed a run of 16");
-            m.Stretch.Should().BeLessThan(44.5m, "check v5 failed a stretch of 44.5");
-            (m.Stretch / m.Words).Should().BeLessThan(0.4m, "check v5 failed a stretch of 15 or more over 0.4 of the words");
-            m.Share.Should().BeLessThan(0.42m, "check v5 failed a share of 0.42");
-            m.Sentence.Should().BeLessThan(0.92m, "check v5 failed a sentence at 0.92");
-            finding.Outcome.Should().Be(ProseCheck.CopyUnsure, m.ToString());
-            finding.Failed.Should().BeTrue();
-            finding.Copied.Should().BeFalse();
-            finding.CopyUnsure.Should().BeTrue();
-            finding.FailReasons.Should().Equal(ProseCheck.CopyUnsure);
-            finding.Faults.Single(f => f.Reason == ProseCheck.CopyUnsure).Detail.Should().Contain(m.ToString(), "the fault carries the measures, so the withhold journal does");
+            finding.Sentences.Mostly.Should().BeTrue(finding.Sentences.ToString());
+            finding.Copied.Should().BeTrue();
+            finding.Outcome.Should().Be("failed");
+            finding.Faults.Single(f => f.Reason == ProseCheck.CopiedText).Detail.Should().Contain(finding.Sentences.ToString(), "the fault carries the sentence counts, so the withhold journal does");
         }
 
         [Fact]
-        public void A_rewrite_over_a_copied_line_is_copied_and_never_copy_unsure_and_one_under_every_copy_unsure_line_is_not_copied()
+        public void A_text_with_some_sentences_lightly_edited_is_shown_with_those_sentences_as_the_lanes_work_list()
+        {
+            var source = new[]
+            {
+                "Heat the oven to 190°C. Rub the chicken thighs all over with the paprika, garlic and a little salt, then lay them skin side up in a roasting tin.",
+                "Roast for 40 minutes, until the skin is crisp and the juices run clear. Rest the thighs for five minutes under a loose sheet of foil before serving them with the lemon wedges.",
+            };
+            var rewrite = new[]
+            {
+                "Turn the oven on to 190°C. Coat the thighs in paprika, garlic and salt, and arrange them in a roasting tin with their skin facing up.",
+                "Give them 40 minutes in the oven, until crisp and cooked through. Rest the thighs for five minutes under a loose sheet of foil before serving them with lemon wedges.",
+            };
+
+            var finding = Check(source, rewrite);
+
+            finding.Failed.Should().BeFalse(finding.ToString());
+            finding.Repair.Should().BeTrue(finding.ToString());
+            finding.Outcome.Should().Be("repair");
+            finding.Sentences.Copies.Select(c => (c.Part, c.Index)).Should().Equal((2, 2));
+            finding.Faults.Single(f => f.Reason == ProseCheck.CopiedSentences).Detail.Should().Contain("step 2 sentence 2");
+        }
+
+        [Fact]
+        public void A_rewrite_kept_word_for_word_is_copied_and_one_rebuilt_from_understanding_is_not()
         {
             var source = new[] { "In a large pot warm the olive oil over medium high heat, add the onion, carrot and celery and cook until soft, about 6 minutes, then add the stock and the bay leaf and simmer for 20 minutes until the lentils are tender." };
 
             var copied = Check(source, source);
             copied.Copied.Should().BeTrue();
-            copied.CopyUnsure.Should().BeFalse();
-            copied.Reasons.Should().NotContain(ProseCheck.CopyUnsure);
             copied.Outcome.Should().Be("failed");
 
             var own = Check(source, new[] { "Soften the diced vegetables in hot oil in a big pan for 6 minutes. Pour in the stock, drop in a bay leaf and let it bubble gently for 20 minutes, until the lentils give." });
-            own.Measures.Over(ProseCheck.CopyUnsureLimits).Should().BeEmpty(own.Measures.ToString());
+            own.Sentences.Copied.Should().Be(0, own.Sentences.ToString());
             own.Reasons.Should().NotContain(r => ProseCheck.CopyReasons.Contains(r));
         }
 
         [Fact]
-        public void The_copied_lines_sit_above_the_copy_unsure_lines_on_every_measure()
+        public void A_sentence_that_can_hardly_be_said_another_way_is_no_copy()
         {
-            var high = ProseCheck.CopiedLimits;
-            var low = ProseCheck.CopyUnsureLimits;
-            high.Run.Should().BeGreaterThan(low.Run);
-            high.Stretch.Should().BeGreaterThan(low.Stretch);
-            high.Share.Should().BeGreaterThan(low.Share);
-            high.DescriptionRun.Should().BeGreaterThan(low.DescriptionRun);
-            high.Sentence.Should().BeGreaterThan(low.Sentence);
+            var source = new[] { "Preheat the oven to 350 degrees F.", "Put the peppers, celery, olives and green onion in a large bowl." };
+            var finding = Check(source,
+                new[] { "Preheat the oven to 350 degrees F.", "Combine the peppers, celery, olives and green onion in a large bowl." },
+                new[] { "2 peppers", "2 stalks celery", "1/2 cup olives", "1 green onion" });
+
+            finding.Sentences.Copied.Should().Be(0, finding.Sentences.ToString());
+            finding.Reasons.Should().NotContain(r => ProseCheck.CopyReasons.Contains(r));
         }
 
         [Fact]
-        public void A_long_sentence_kept_nearly_word_for_word_is_copied_text_by_its_stretch_over_its_length()
+        public void An_amount_the_recipes_own_line_contradicts_fails_whatever_else_the_text_keeps()
+        {
+            var lines = new[] { "2 large eggs", "2/3 cup sugar", "1 cup flour" };
+            var source = new[] { "Beat the eggs and sugar until pale and thick, then fold in the flour." };
+
+            var finding = Check(source, new[] { "Whisk 4 eggs with the sugar until thick and pale, and fold the flour through." }, lines);
+            finding.Reasons.Should().Contain(ProseCheck.ContradictsLines, finding.ToString());
+            finding.Failed.Should().BeTrue();
+            finding.FailReasons.Should().Contain(ProseCheck.ContradictsLines);
+
+            Check(source, new[] { "Whisk 2 eggs with the sugar until thick and pale, and fold the flour through." }, lines)
+                .Reasons.Should().NotContain(new[] { ProseCheck.ContradictsLines, ProseCheck.WrongAmount });
+        }
+
+        [Fact]
+        public void An_amount_changed_to_more_than_the_recipes_own_line_holds_fails_where_the_method_states_another()
+        {
+            var lines = new[] { "2 large eggs", "2/3 cup sugar", "1 cup flour" };
+            var source = new[] { "Beat 2 eggs and the sugar until pale and thick, then fold in the flour." };
+
+            var finding = Check(source, new[] { "Whisk 4 eggs with the sugar until thick and pale, and fold the flour through." }, lines);
+            finding.Reasons.Should().Contain(ProseCheck.ContradictsLines, finding.ToString());
+            finding.Failed.Should().BeTrue("4 eggs against a line of 2 is never shown, whatever the wrong-amount class proves");
+
+            Check(new[] { "Beat 1 egg into the sugar, then the other with the flour." }, new[] { "Whisk 1 egg with the sugar, and the second one with the flour." }, lines)
+                .Reasons.Should().NotContain(ProseCheck.ContradictsLines, "part of what a line holds is no contradiction");
+            Check(new[] { "Beat 4 eggs and the sugar until pale and thick, then fold in the flour." }, new[] { "Whisk 4 eggs with the sugar until thick and pale, and fold the flour through." }, lines)
+                .Reasons.Should().NotContain(ProseCheck.ContradictsLines, "an amount the source method itself states is the source's; on the judged rows such firings were mostly an amount read against the wrong line");
+        }
+
+        [Fact]
+        public void An_amount_of_the_description_the_recipes_own_line_contradicts_fails()
+        {
+            var lines = new[] { "2 large eggs", "2/3 cup sugar", "1 cup flour" };
+            var source = new RewriteFidelity.SourceText(string.Empty, new[] { "Beat the eggs and sugar until pale and thick, then fold in the flour." });
+
+            var finding = ProseCheck.Check(source,
+                new RewriteFidelity.SourceText("A light sponge made with 4 eggs.", new[] { "Whisk the eggs with the sugar until thick and pale, and fold the flour through." }),
+                lines);
+            finding.Reasons.Should().Contain(ProseCheck.ContradictsLines, finding.ToString());
+            finding.Failed.Should().BeTrue();
+
+        }
+
+        [Fact]
+        public void A_long_sentence_kept_nearly_word_for_word_is_copied_text()
         {
             var finding = Check(
                 new[] { "In a big glass jug, beat together 2 small eggs, 3 tablespoons melted butter, 1 cup buttermilk, and 1 teaspoon almond essence." },
                 new[] { "In a big jug, beat together 2 small eggs, 3 tablespoons melted butter, 1 cup buttermilk, and 1 teaspoon almond essence." },
                 new[] { "2 small eggs", "3 tablespoons melted butter", "1 cup buttermilk", "1 teaspoon almond essence" });
 
-            finding.Measures.Sentence.Should().BeGreaterThanOrEqualTo(ProseCheck.CopyUnsureLimits.Sentence).And.BeLessThan(ProseCheck.CopiedLimits.Sentence, "one word dropped from a sentence of 21 stays under the sentence's copied line of 0.951");
-            finding.Measures.StretchShare.Should().BeGreaterThanOrEqualTo(ProseCheck.CopiedLimits.StretchShare);
+            finding.Sentences.NearVerbatim.Should().Be(1);
             finding.Failed.Should().BeTrue(finding.ToString());
-            finding.Copied.Should().BeTrue("the stretch covers nearly all of a rewrite of one sentence");
+            finding.Copied.Should().BeTrue("the one sentence of the rewrite is the source's with one word dropped");
         }
 
         [Theory]
@@ -369,11 +426,7 @@ namespace Nom.Api.Tests.Services
                 new[] { "Combine all ingredients in a blender and blend until smooth. Pour into glasses and serve immediately over ice." },
                 new[] { "Combine all ingredients in a blender and blend until creamy. Pour into glasses and serve immediately over ice." });
 
-            finding.LongestRun.Should().BeLessThan(ProseCheck.CopyUnsureLimits.Run);
-            finding.CloseStretch.Should().BeLessThan(ProseCheck.CopyUnsureLimits.Stretch);
-            finding.Measures.Share.Should().Be(0m);
-            finding.Measures.Sentence.Should().Be(0m);
-            finding.Measures.StretchShare.Should().BeGreaterThanOrEqualTo(ProseCheck.CopiedLimits.StretchShare);
+            finding.Sentences.Kept.Should().Be(2, finding.Sentences.ToString());
             finding.Reasons.Should().Contain(ProseCheck.CopiedText, finding.ToString());
             finding.Copied.Should().BeTrue();
         }
@@ -430,11 +483,7 @@ namespace Nom.Api.Tests.Services
             var finding = Check(source, close);
 
             finding.LongestRun.Should().BeLessThan(8);
-            finding.CopiedShare.Should().BeLessThan(ProseCheck.CopiedLimits.Share);
-            finding.CloseStretch.Should().BeLessThan(ProseCheck.CopiedLimits.Stretch);
-            finding.CloseStretch.Should().BeGreaterThanOrEqualTo(ProseCheck.CopyUnsureLimits.Stretch);
-            finding.Measures.StretchShare.Should().BeGreaterThanOrEqualTo(ProseCheck.CopiedLimits.StretchShare);
-            finding.Faults.Should().Contain(f => f.Reason == ProseCheck.CopiedText && f.Detail.StartsWith("a stretch of"), finding.ToString());
+            finding.Faults.Should().Contain(f => f.Reason == ProseCheck.CopiedText && f.Detail.StartsWith("mostly the source's sentences"), finding.ToString());
             var reversed = Check(source, close.Reverse().ToArray());
             reversed.Faults.Where(f => ProseCheck.CopyReasons.Contains(f.Reason)).Select(f => f.Reason).Should().Equal(finding.Faults.Where(f => ProseCheck.CopyReasons.Contains(f.Reason)).Select(f => f.Reason), "the copy measures do not depend on the order of the rewrite's sentences");
             reversed.CloseStretch.Should().Be(finding.CloseStretch);
@@ -451,7 +500,7 @@ namespace Nom.Api.Tests.Services
             var finding = Check(new[] { source }, new[] { rewrite });
 
             finding.Faults.Should().Contain(f => f.Reason == ProseCheck.LostStep && f.Detail.Contains(group), finding.ToString());
-            finding.Unsure.Should().BeTrue("verb coverage is a weak signal that marks a rewrite unsure and never fails it");
+            finding.FailReasons.Should().NotContain(ProseCheck.LostStep, "verb coverage is a weak signal that marks a rewrite unsure and never fails it");
         }
 
         [Theory]
@@ -580,7 +629,7 @@ namespace Nom.Api.Tests.Services
 
             var finding = Check(source, rewrite, new[] { "2 tbsp olive oil", "1 onion", "1 carrot", "2 celery stalks" });
 
-            finding.LongestRun.Should().BeGreaterThanOrEqualTo(ProseCheck.CopiedLimits.Run);
+            finding.Sentences.Copies.Should().ContainSingle(finding.Sentences.ToString());
             finding.Copied.Should().BeTrue(finding.ToString());
         }
 

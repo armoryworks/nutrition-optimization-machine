@@ -80,7 +80,7 @@ namespace Nom.Api.Tests.Golden
             {
                 o.Finding.FailReasons.Should().NotIntersectWith(below, o.Row.Row.Id);
                 o.Finding.UnprovenReasons.Should().BeEquivalentTo(o.Fired.Select(f => f.Class).Where(below.Contains), o.Row.Row.Id);
-                if (!o.Finding.Faults.Any(f => ProseCheck.Fails(f.Reason, o.Finding.Proven))) o.Finding.Outcome.Should().Be("unsure", o.Row.Row.Id);
+                if (!o.Finding.Faults.Any(f => ProseCheck.Fails(f.Reason, o.Finding.Proven))) o.Finding.Unsure.Should().BeTrue(o.Row.Row.Id);
             }
         }
 

@@ -94,6 +94,22 @@ trade name ("sherry", "sack", "port", "claret") is let through since `link-gate/
 its lines share, read by their own words, is identity evidence in the gate when it allows the food
 (golden `wt-alc-01`, `wt-alc-09` to `wt-alc-11`).
 
+### Reversed words on a trusted alias (`wording-tiers/5`, staging checkpoint 6, R13)
+
+A trusted alias "fat chicken" of Chicken Fat gave "large fat chicken" (a whole bird) the same key, and every word of
+the wording is in the food, so the gate's containment rules let it through. An alias answer is now held
+(`head-noun`) when the wording's head noun (its last word, or the word before "of") is not the food's (the last
+word of its name before a comma) while the wording holds the food's head word and the food holds the wording's:
+the same words in another order. Golden rows wt-ck11-01 (held) and wt-ck11-02, wt-ck11-03 (still written).
+
+### A cut vegetable on a dried spice (`wording-tiers/6`, fresh draws)
+
+The alias tier wrote `red pepper, thinly sliced` to Cayenne Pepper through the trusted alias "red pepper" (1 of 40 in
+the first read-only fresh draw; 0 of 40 in the second). An alias answer on a spice (USDA category 2, or a
+description starting "Spices") is now held (`fresh-herb`) when the wording cuts its food: sliced, diced, seeded,
+julienned, quartered, halved, cored, cubed or strips. Golden rows wt-ck12a-01 (held) and wt-ck12a-02 (the bare alias
+still written).
+
 ## The lane on the frame
 
 Lane `wording-tiers`, one frame tier per wording tier; a wording no tier answers is recorded under

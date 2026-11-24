@@ -276,22 +276,11 @@ namespace Nom.Orch.Services
                 return new List<UserRatingResponseModel>();
 
             var ratings = await _context.RecipeRatings
-                .Include(r => r.Recipe)
                 .Where(r => r.RaterId == person.Id)
                 .OrderByDescending(r => r.CreatedDate)
                 .ToListAsync();
 
-            return ratings.Select(r => new UserRatingResponseModel
-            {
-                Id = r.Id,
-                RecipeId = r.RecipeId,
-                RecipeName = r.Recipe?.Name ?? "Unknown Recipe",
-                RecipeImage = r.Recipe?.Image ?? "",
-                Rating = r.Rating,
-                Comment = null, // RecipeRatingEntity doesn't have a Comment property
-                CreatedDate = r.CreatedDate,
-                IsFavorite = r.Rating >= 4
-            }).ToList();
+            return await RatedAsync(ratings, r => r.Rating >= 4);
         }
 
         public async Task<UserRatingResponseModel> GetUserRatingForRecipeAsync(string userId, long recipeId)
@@ -334,23 +323,46 @@ namespace Nom.Orch.Services
 
             // Get recipes that the user has rated highly (4+ stars) as favorites
             var favorites = await _context.RecipeRatings
-                .Include(r => r.Recipe)
                 .Where(r => r.RaterId == person.Id && r.Rating >= 4)
                 .OrderByDescending(r => r.Rating)
                 .ThenByDescending(r => r.CreatedDate)
                 .ToListAsync();
 
-            return favorites.Select(r => new UserRatingResponseModel
+            return await RatedAsync(favorites, _ => true);
+        }
+
+        /// <summary>
+        /// The person's ratings with their recipes; a rating of a removed recipe (taken from a forbidden source) stays, with
+        /// the recipe's title, its source link and the plain note, never its wording or image.
+        /// </summary>
+        private async Task<List<UserRatingResponseModel>> RatedAsync(List<Nom.Data.Recipe.RecipeRatingEntity> ratings, Func<Nom.Data.Recipe.RecipeRatingEntity, bool> favourite)
+        {
+            var ids = ratings.Select(r => r.RecipeId).Distinct().ToList();
+            var recipes = await _context.Recipes.AsNoTracking().Where(r => ids.Contains(r.Id))
+                .Select(r => new { r.Id, r.Name, r.Image }).ToDictionaryAsync(r => r.Id);
+            var removed = await RecipeRemovalService.RemovedAsync(_context, ids.Where(id => !recipes.ContainsKey(id)));
+            var list = new List<UserRatingResponseModel>();
+            foreach (var r in ratings)
             {
-                Id = r.Id,
-                RecipeId = r.RecipeId,
-                RecipeName = r.Recipe?.Name ?? "Unknown Recipe",
-                RecipeImage = r.Recipe?.Image ?? "",
-                Rating = r.Rating,
-                Comment = null, // RecipeRatingEntity doesn't have a Comment property
-                CreatedDate = r.CreatedDate,
-                IsFavorite = true
-            }).ToList();
+                var recipe = recipes.GetValueOrDefault(r.RecipeId);
+                var gone = removed.GetValueOrDefault(r.RecipeId);
+                if (recipe == null && gone == null) continue;
+                list.Add(new UserRatingResponseModel
+                {
+                    Id = r.Id,
+                    RecipeId = r.RecipeId,
+                    RecipeName = gone?.Title ?? recipe?.Name ?? "Unknown Recipe",
+                    RecipeImage = gone != null ? "" : recipe?.Image ?? "",
+                    Rating = r.Rating,
+                    CreatedDate = r.CreatedDate,
+                    IsFavorite = favourite(r),
+                    RecipeRemoved = gone != null,
+                    RecipeSourceUrl = gone?.SourceUrl,
+                    RecipeRemovedNote = gone == null ? null : RecipeRemovalService.RemovedNote,
+                });
+            }
+
+            return list;
         }
 
         public async Task<bool> ChangePasswordAsync(string userId, ChangePasswordRequestModel request)

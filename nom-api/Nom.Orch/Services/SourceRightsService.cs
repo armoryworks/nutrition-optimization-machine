@@ -248,7 +248,8 @@ namespace Nom.Orch.Services
         /// quote, the AI flag with its quote, the permission's facts, or the facts-only approval. The class
         /// keeps the check and rule it was last derived from, so the source lane's re-derive of stale
         /// sources does not take the undone class back from the same report; the next new check derives
-        /// it again. Returns false when the value does not hold the old facts whole.
+        /// it again. A source set back to no class keeps no derived time (staging checkpoint 6, R21: a withdrawn
+        /// record left one on the unclassed source). Returns false when the value does not hold the old facts whole.
         /// </summary>
         internal static bool Restore(ScrapingSourceEntity source, string field, string? value, DateTime now, long personId)
         {
@@ -264,7 +265,7 @@ namespace Nom.Orch.Services
                         source.RightsQuote = facts.Quote;
                         source.RightsQuoteUrl = facts.Url;
                         source.RightsRecordId = facts.RecordId;
-                        source.RightsDerivedAtUtc = now;
+                        source.RightsDerivedAtUtc = source.RightsClass == null ? null : now;
                         return true;
                     }
 
@@ -408,7 +409,6 @@ namespace Nom.Orch.Services
                 if (effective == SourceRightsRule.FactsOnly && !recipe.ProseWithheld && !OwnMethod(recipe))
                 {
                     recipe.ProseWithheld = true;
-                    recipe.ProseCopyUnsure = false;
                     db.AuditLogEntries.Add(RecipeEntry(recipe.Id, FactsOnlyWithholdChangeType, nameof(RecipeEntity.ProseWithheld), "false", $"true | facts-only source {source.Domain}", now, by));
                     withheld++;
                     if (recipe.CurationStatusId == (long)CurationStatusEnum.Curated) withheldApproved++;
@@ -740,9 +740,10 @@ namespace Nom.Orch.Services
         /// <summary>
         /// Puts every class recorded by hand on the web sources of its host that do not hold it yet (a source added after the
         /// record, or a bare and a www. row): run by the source lane before each tick and discovery run, so a new row of a
-        /// recorded host is held before anything could fetch it. Returns how many sources it set.
+        /// recorded host is held before anything could fetch it. Returns how many sources it set. With
+        /// <paramref name="syncRecipes"/> off the recipes of those sources are left as they are (the discovery preview).
         /// </summary>
-        public static async Task<int> ApplyRecordsAsync(ApplicationDbContext db, DateTime now, CancellationToken cancellationToken = default)
+        public static async Task<int> ApplyRecordsAsync(ApplicationDbContext db, DateTime now, CancellationToken cancellationToken = default, bool syncRecipes = true)
         {
             var records = await ActiveRecordsAsync(db, cancellationToken);
             if (records.Count == 0) return 0;
@@ -757,7 +758,8 @@ namespace Nom.Orch.Services
 
             if (applied.Count == 0) return 0;
             await db.SaveChangesAsync(cancellationToken);
-            foreach (var source in applied) await SyncRecipesAsync(db, source, now, SystemConstants.SystemPersonId, cancellationToken);
+            if (syncRecipes)
+                foreach (var source in applied) await SyncRecipesAsync(db, source, now, SystemConstants.SystemPersonId, cancellationToken);
             return applied.Count;
         }
 
@@ -1398,6 +1400,12 @@ namespace Nom.Orch.Services
                     continue;
                 }
 
+                if (await _db.RecipeRemovals.AsNoTracking().AnyAsync(x => x.RecipeId == recipe.Id && x.UndoneAtUtc == null, cancellationToken))
+                {
+                    Skip(result, "recipe removed (taken from a forbidden source)");
+                    continue;
+                }
+
                 if (await AlreadyUndoneAsync(step, row, cancellationToken))
                 {
                     result.AlreadyUndone++;
@@ -1515,11 +1523,13 @@ namespace Nom.Orch.Services
                     && (s.RightsClass == SourceRightsRule.Forbidden || s.RightsClass == SourceRightsRule.PermissionNeeded))
                 .OrderBy(s => s.Domain)
                 .ToListAsync(cancellationToken);
+            var web = await _db.ScrapingSources.AsNoTracking().Where(s => s.Kind == ScrapingSourceEntity.WebKind).ToListAsync(cancellationToken);
             var list = new List<SourceTakenModel>();
             var hosts = new HashSet<string>(StringComparer.OrdinalIgnoreCase);
             foreach (var source in sources)
             {
-                if (!hosts.Add(SourceAdmissionPolicy.NormalizeDomain(source.Domain) ?? source.Domain)) continue;
+                var host = SourceAdmissionPolicy.NormalizeDomain(source.Domain) ?? source.Domain;
+                if (!hosts.Add(host)) continue;
                 var recipes = SourceAdmissionService.RecipesFrom(_db.Recipes.AsNoTracking(), source.Domain);
                 list.Add(new SourceTakenModel
                 {
@@ -1531,7 +1541,11 @@ namespace Nom.Orch.Services
                     Recipes = await recipes.CountAsync(cancellationToken),
                     RecipesShown = await recipes.CountAsync(r => r.SourceWithheldById == null, cancellationToken),
                     RecipesWithheld = source.RecipesWithheldAt != null,
+                    Removable = web.Where(s => (SourceAdmissionPolicy.NormalizeDomain(s.Domain) ?? s.Domain) == host).All(s => EffectiveClass(s) == SourceRightsRule.Forbidden),
                 });
+                var (retired, purged) = await RecipeRemovalService.FiguresAsync(_db, source.Domain, cancellationToken);
+                list[^1].Retired = retired;
+                list[^1].Purged = purged;
             }
 
             return list;
@@ -1548,7 +1562,7 @@ namespace Nom.Orch.Services
                 Enforced = _settings.Enforce,
                 SourcesByClass = SourceRightsRule.Classes.ToDictionary(c => c, c => sources.Count(s => s.RightsClass == c)),
                 SourcesUnclassed = sources.Count(s => s.RightsClass == null),
-                SourcesStale = sources.Count(s => s.RightsClass != null && s.RightsRuleVersion != SourceRightsRule.Version),
+                SourcesStale = sources.Count(s => s.RightsClass != null && s.RightsRecordId == null && s.RightsRuleVersion != SourceRightsRule.Version),
                 AiReserved = sources.Count(s => s.AiReserved),
                 Permissions = sources.Count(s => s.PermissionRecordedAtUtc != null),
                 FactsOnlyApproved = sources.Count(s => s.FactsOnlyApprovedAt != null),
@@ -1567,6 +1581,10 @@ namespace Nom.Orch.Services
             status.RetentionHeld = await _db.AuditLogEntries.AsNoTracking().CountAsync(a => a.EntityType == ProseRecheckService.RecipeEntityType && a.ChangeType == RetentionChangeType, cancellationToken)
                 - await _db.AuditLogEntries.AsNoTracking().CountAsync(a => a.EntityType == ProseRecheckService.RecipeEntityType && (a.ChangeType == RetentionUndoChangeType || a.ChangeType == RetentionPurgeChangeType), cancellationToken);
             foreach (var taken in await TakenAsync(cancellationToken)) status.TakenFromBarredSources += taken.Recipes;
+            var removal = await new RecipeRemovalService(_db, Microsoft.Extensions.Logging.Abstractions.NullLogger<RecipeRemovalService>.Instance).StatusAsync(cancellationToken);
+            status.RecipesRetired = removal.Retired;
+            status.RecipesPurged = removal.Purged;
+            status.RemovalBySource = removal.BySource;
             var changes = await _db.AuditLogEntries.AsNoTracking()
                 .Where(a => a.EntityType == SourceJournal.EntityType && (a.PropertyName == SourceJournal.RightsField || a.PropertyName == SourceJournal.AiReservedField))
                 .Select(a => a.Timestamp).ToListAsync(cancellationToken);

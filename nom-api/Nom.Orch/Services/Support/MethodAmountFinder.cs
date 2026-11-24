@@ -25,12 +25,21 @@ namespace Nom.Orch.Services.Support
     /// hot water"); a vessel or a length
     /// ("a kettle of water", "1-inch of water", "a water bath"), a utensil line ("tin plate"), the vessel a food is put
     /// into ("Put into a tumbler ... syrup"), washing water ("three or four waters"),
-    /// an alternative ("..., or four fresh tomatoes") and a temperature the line contradicts ("cold
-    /// vinegar" against "boiling vinegar") give nothing either, and a count of pieces is never read for
+    /// an alternative ("..., or four fresh tomatoes"), a temperature the line contradicts ("cold
+    /// vinegar" against "boiling vinegar"), an oven or fat temperature ("to 350C for frying") and a line that names
+    /// what its food is for ("oil for frying", "fresh thyme for topping") give nothing either, and a count of pieces is never read for
     /// a liquid, from a measure ("a handful of parsley"), nor for a food the caller says is not counted
-    /// in pieces, though a dozen is a count. A range ("six or eight pounds", "three to five gallons", "ten or a
+    /// in pieces, though a dozen is a count; one piece named in the singular with "a" ("on a corn tortilla"; "one egg" is one) is no amount for
+    /// a line naming the food in the plural ("Corn tortillas"). A range ("six or eight pounds", "three to five gallons", "ten or a
     /// dozen") is read whole, however many of the food's words follow it, so it gives its lower end, as a
-    /// line's range does. The number always comes from <see cref="IngredientLineParser"/>.
+    /// line's range does. An ordinal fraction before the measure is read whole ("one-sixth of a pint", "three-quarters
+    /// of a", "two thirds of a"); one standing where it cannot be read with its measure ("the sixth of a pint",
+    /// "one-hundredth of a pint") gives nothing, never the measure alone, and so does a count of pieces with a
+    /// fraction other than a half that is not a part of one of them ("a sixth of pepper", "one-fifth tomato pulp",
+    /// "two-thirds potatoes", "three-quarters full of ice"), while "a quarter of an onion" is a quarter of one, the
+    /// line's own words ("hind quarter of lamb") are no fraction, and "cut in quarters three onions" still counts
+    /// three. The number always comes from
+    /// <see cref="IngredientLineParser"/>.
     /// </summary>
     public static class MethodAmountFinder
     {
@@ -61,6 +70,10 @@ namespace Nom.Orch.Services.Support
             @"(?<!\b(?:lb|lbs|oz|ozs|pt|pts|qt|qts|doz|tsp|tsps|tbsp|tbsps|gal|teaspn|tablespn))\.(?!\d)|[!?]",
             RegexOptions.Compiled | RegexOptions.IgnoreCase | RegexOptions.CultureInvariant);
 
+        private static readonly Regex Purpose = new(@"\s(?:for|to)\s+\p{L}", RegexOptions.Compiled | RegexOptions.IgnoreCase | RegexOptions.CultureInvariant);
+
+        private static readonly Regex Degrees = new(@"^\d{2,3}°?[cf]$|^degrees?$|°", RegexOptions.Compiled | RegexOptions.IgnoreCase | RegexOptions.CultureInvariant);
+
         private static readonly Regex SubPreparation = new(
             @"^(?:dissolved|dissolve|diluted|dilute|softened|soften|soaked|soak|steeped|steep)$",
             RegexOptions.Compiled | RegexOptions.IgnoreCase | RegexOptions.CultureInvariant);
@@ -75,8 +88,11 @@ namespace Nom.Orch.Services.Support
 
         private static readonly HashSet<string> FractionParts = new(StringComparer.OrdinalIgnoreCase)
         {
-            "half", "halves", "third", "thirds", "fourth", "fourths", "quarter", "quarters", "eighth", "eighths",
+            "half", "halves", "third", "thirds", "fourth", "fourths", "quarter", "quarters", "fifth", "fifths", "sixth", "sixths",
+            "seventh", "sevenths", "eighth", "eighths", "ninth", "ninths", "tenth", "tenths", "twelfth", "twelfths", "sixteenth", "sixteenths",
         };
+
+        private static readonly Regex Ordinal = new(@"^(?:four|fif|six|seven|eigh|nin|ten|eleven|twelf|thirteen|fourteen|fifteen|sixteen|seventeen|eighteen|nineteen|twentie|thirtie|fortie|fiftie|hundred|thousand)ths?$", RegexOptions.Compiled | RegexOptions.IgnoreCase | RegexOptions.CultureInvariant);
 
         private static readonly HashSet<string> Measures = new(StringComparer.OrdinalIgnoreCase)
         {
@@ -128,12 +144,38 @@ namespace Nom.Orch.Services.Support
 
         private static bool IsClean(string w) => IsNumberish(w) || Measures.Contains(w) || Filler.Contains(w) || FractionParts.Contains(w);
 
+        private static bool Unread(string[] before, int clean, int start)
+        {
+            for (var i = clean; i < start; i++)
+            {
+                if (FractionParts.Contains(before[i]) && !IsNumberish(before[i + 1])) return true;
+            }
+            if (clean == 0) return false;
+            var word = before[clean - 1];
+            var parts = word.Split('-');
+            return (parts.Length > 1 && parts[0] is not ("a" or "an" or "A" or "An") && Lead.Contains(parts[0]) && Ordinal.IsMatch(parts[^1]))
+                || (clean >= 2 && Ordinal.IsMatch(word) && Lead.Contains(before[clean - 2]) && before[clean - 2] is not ("a" or "an" or "A" or "An"));
+        }
+
+        private static bool Fractional(string w) =>
+            w.Split('-').Any(p => FractionParts.Contains(p) && !p.Equals("half", StringComparison.OrdinalIgnoreCase) && !p.Equals("halves", StringComparison.OrdinalIgnoreCase));
+
+        private static bool PartOfOne(string[] words)
+        {
+            for (var j = 0; j < words.Length; j++)
+            {
+                if (!Fractional(words[j])) continue;
+                if (j + 2 >= words.Length || !words[j + 1].Equals("of", StringComparison.OrdinalIgnoreCase) || words[j + 2] is not ("a" or "an" or "A" or "An")) return false;
+            }
+            return true;
+        }
+
         private static bool IsVessel(string w) => Vessels.Contains(w) || Vessels.Contains(w.Split('-')[^1]);
 
         public static ParsedQuantity? Find(string? rawLine, IEnumerable<string> steps, IEnumerable<string>? otherLines = null, bool countedInPieces = true)
         {
             var written = (rawLine ?? string.Empty).Split(',', '(')[0];
-            if (Joined.IsMatch(written)) return null;
+            if (Joined.IsMatch(written) || Purpose.IsMatch(written)) return null;
             var alternatives = SeveralNames.IsMatch(written);
             var name = NonLetters.Replace(written, " ").Trim().ToLowerInvariant();
             var words = name.Split(' ', StringSplitOptions.RemoveEmptyEntries);
@@ -143,6 +185,7 @@ namespace Nom.Orch.Services.Support
             var head = words[^1].TrimEnd('s');
             if (head.Length < 3) return null;
             var liquid = Liquids.Contains(head) || Liquids.Contains(words[^1]);
+            var plural = words[^1].Length > head.Length && !words[^1].EndsWith("ss", StringComparison.OrdinalIgnoreCase);
 
             var named = new Regex(@"(?<![\p{L}-])" + Regex.Escape(head) + @"(?:e?s)?(?![\p{L}-])", RegexOptions.IgnoreCase | RegexOptions.CultureInvariant);
             if ((otherLines ?? Enumerable.Empty<string>()).Any(line => named.IsMatch(line ?? string.Empty))) return null;
@@ -153,6 +196,7 @@ namespace Nom.Orch.Services.Support
             var found = new List<ParsedQuantity>();
             var alternative = false;
             var proportioned = false;
+            var unread = false;
             var pattern = new Regex(@"(?<before>(?:[\p{L}\d/½¼¾⅓⅔⅛-]+\s+){1," + (7 + ownWords.Length) + @"})(?<food>" + lead + Regex.Escape(head) + @"(?:e?s)?)\b(?:(?=\s+(?<after>\p{L}+))|)", RegexOptions.IgnoreCase | RegexOptions.CultureInvariant);
             foreach (var (clause, ratio) in steps.SelectMany(s => SentenceEnd.Split(s ?? string.Empty))
                 .SelectMany(sentence => Regex.Split(sentence, @"[;:,()]").Select(clause => (clause, Ratio.IsMatch(sentence)))))
@@ -165,17 +209,39 @@ namespace Nom.Orch.Services.Support
                     var before = m.Groups["before"].Value.Split(' ', StringSplitOptions.RemoveEmptyEntries);
                     var clean = before.Length;
                     for (var own = ownWords.Length; clean > 0 && own > 0 && before[clean - 1].Equals(ownWords[own - 1], StringComparison.OrdinalIgnoreCase); own--) clean--;
+                    var ownStart = clean;
                     while (clean > 0 && IsClean(before[clean - 1]) && !IsVessel(before[clean - 1])) clean--;
                     var start = Array.FindIndex(before, clean, w => IsNumberish(w));
                     if (start < 0) continue;
+                    if (Unread(before, clean, start))
+                    {
+                        unread = true;
+                        continue;
+                    }
                     if (start >= 2 && RangeJoin.Contains(before[start - 1]) && IsNumberish(before[start - 2])) start -= 2;
                     if (start >= 2 && before[start - 1] is "in" or "In" && SubPreparation.IsMatch(before[start - 2])) continue;
 
                     var phrase = before[start..];
+                    if (phrase.Any(Degrees.IsMatch)) continue;
                     if (start >= 1 && Into.Contains(before[start - 1]) && !phrase.Contains("of", StringComparer.OrdinalIgnoreCase) && phrase.Any(Measures.Contains)) continue;
                     var parsed = IngredientLineParser.Parse(string.Join(' ', phrase) + " " + m.Groups["food"].Value.Split(' ', StringSplitOptions.RemoveEmptyEntries)[^1]);
-                    if (parsed is not { Quantity: > 0 }) continue;
+                    if (parsed is not { Quantity: > 0 })
+                    {
+                        if (phrase.Any(Fractional)) unread = true;
+                        continue;
+                    }
+                    if (parsed.MeasurementName == IngredientLineParser.Piece && !PartOfOne(before[start..Math.Max(start, ownStart)]))
+                    {
+                        unread = true;
+                        continue;
+                    }
                     if (parsed.MeasurementName == IngredientLineParser.Piece && (liquid || !countedInPieces || phrase.Any(w => Measures.Contains(w) && !w.Equals("dozen", StringComparison.OrdinalIgnoreCase)))) continue;
+                    if (parsed.MeasurementName == IngredientLineParser.Piece && parsed.Quantity <= 1 && plural && phrase[0].ToLowerInvariant() is "a" or "an"
+                        && m.Groups["food"].Value.Split(' ', StringSplitOptions.RemoveEmptyEntries)[^1].Length < words[^1].Length)
+                    {
+                        unread = true;
+                        continue;
+                    }
                     var temperatures = phrase.Where(Temperatures.ContainsKey).Select(w => Temperatures[w]).ToHashSet();
                     if (ownTemperatures.Count > 0 && temperatures.Count > 0 && !ownTemperatures.Overlaps(temperatures)) continue;
                     if (Regex.IsMatch(clause, @"^\s*or\b", RegexOptions.IgnoreCase)) alternative = true;
@@ -184,7 +250,7 @@ namespace Nom.Orch.Services.Support
                 }
             }
 
-            return !alternative && !proportioned && found.Distinct().Count() == 1 ? found[0] : null;
+            return !alternative && !proportioned && !unread && found.Distinct().Count() == 1 ? found[0] : null;
         }
     }
 }

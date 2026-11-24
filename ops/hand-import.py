@@ -21,8 +21,11 @@ RULES
    not fetched again.
 3. Text: pdftotext (poppler) for text PDFs, keeping each page apart; a page with no text layer is
    rendered with pdftoppm and read by tesseract. A recipe card's two columns are put one after the
-   other. Library of Congress books use the library's own OCR, page by page. A plain page is read
-   from its HTML. Nothing but open-source tools runs.
+   other. Library of Congress books use the library's own OCR, page by page, and need neither poppler
+   nor tesseract; a page the Library's text leaves blank is counted as blank. A plain page is read
+   from its HTML. Nothing but open-source tools runs. A PDF page with no text layer where tesseract
+   is not installed stops the run (exit 3) with a message naming the nom-hand-import image, and its
+   document is not extracted: it is never only counted.
 4. Extraction: VA recipe cards and NHLBI pages are read by rule; books (NCI, the Library of
    Congress) by ops/cookbook-extract.py's model extraction. Every record then passes the cookbook
    extraction's number check against its own page text: every ingredient line and step, and the
@@ -35,8 +38,14 @@ RULES
    its header is read (a Chill or Inactive time is not kept on its own), a wrapped ingredient
    line is joined back, a notes heading is only a line that is the heading alone, and a card that
    keeps fewer than half the amount-led lines of its ingredient list, or leaves a line apart inside an
-   ingredient block, is dropped by the reader's own check; a returned name in letter-spaced type is closed up by rule. Every readable answer is kept in records/<doc>.answers.jsonl as it arrives, so a second
-   run with the same --model asks only the chunks still missing or unreadable and no finished record is lost. A record keeps the document's URL with its page
+   ingredient block, is dropped by the reader's own check; a short line before a step numbered 1 heads a
+   part of the method, kept as its steps' section, and a card's record that keeps fewer steps than its
+   method numbers fails the number check; a returned name in letter-spaced type is closed up by rule. Every readable answer is kept in records/<doc>.answers.jsonl as it arrives, so a second
+   run with the same --model asks only the chunks still missing or unreadable and no finished record is lost. Before every
+   call the model host is read (its loaded models twice, then a one-token request that must answer within --answer-within
+   seconds): while another job uses it the call waits, within one --wait-limit for the run; past the
+   limit nothing more is asked, every answer kept stays, and the run stops (exit 3) for a later run to ask only what is
+   missing. A record keeps the document's URL with its page
    (PDF "#page=N", a Library of Congress page "?sp=N") as its source URL, so the staged import
    stores it as its source document and the recipe links to the page it came from. Images and
    the sources' nutrition figures are never taken.
@@ -47,10 +56,14 @@ RULES
 
 USAGE
 -----
+On the application server, in the nom-hand-import image (ops/hand-import.Dockerfile) through
+ops/hand-import-box.sh, which takes the work folder, the API settings and the model address from the
+environment; staging first. Run directly, the commands are:
+
     ./ops/hand-import.py fetch --out ~/hand-import [--source va] [--limit 5]
     ./ops/hand-import.py links --out ~/hand-import --source va > va-links.csv
     ./ops/hand-import.py text --out ~/hand-import
-    ./ops/hand-import.py extract --out ~/hand-import [--host http://<model host>:11434 --model qwen2.5:14b-instruct]
+    ./ops/hand-import.py extract --out ~/hand-import [--host http://<model host>:11434 --model qwen2.5:14b-instruct] [--wait-limit 120]
     ./ops/hand-import.py sample --out ~/hand-import --per-source 20 > judged-sample.csv
     NOM_API=... NOM_API_KEY=... ./ops/hand-import.py sources [--apply]
     NOM_API=... NOM_API_KEY=... ./ops/hand-import.py stage --out ~/hand-import --source-id va=31 ... [--apply]
@@ -97,6 +110,8 @@ MAX_BATCH = 500
 KINDS = ("pdf", "html", "loc-item", "index")
 LAYOUTS = ("card", "html", "book", "pages")
 STAGED_PATH = "/api/StagedImport"
+IMAGE = "nom-hand-import"
+STOPPED = 3
 HAND_PATH = "/api/ScrapingSource/hand"
 
 
@@ -753,7 +768,9 @@ def tesseract_page(path: str, number: int, runner: Runner = run) -> str | None:
 
 
 def loc_pages(path: str) -> list[dict]:
-    """The pages of a Library of Congress OCR text file (text.json), keyed by their sequence number."""
+    """The pages of a Library of Congress OCR text file (text.json), keyed by their sequence number. The Library's own OCR
+    is the text, so no page of a book needs tesseract; a page the file leaves blank (a plate, a blank leaf) is marked
+    loc-blank, not needs-ocr (staging checkpoints 3 to 6 skipped the books for a tesseract they do not use)."""
     with open(path, encoding="utf-8") as handle:
         data = json.load(handle)
     pages = []
@@ -761,7 +778,7 @@ def loc_pages(path: str) -> list[dict]:
         if not str(key).isdigit():
             continue
         text = (data[key] or {}).get("fulltext") or ""
-        pages.append({"n": int(key), "method": "loc-ocr" if text.strip() else "needs-ocr", "text": text})
+        pages.append({"n": int(key), "method": "loc-ocr" if text.strip() else "loc-blank", "text": text})
     return pages
 
 
@@ -854,14 +871,29 @@ def _join_ingredients(lines: list[str], loose: list[str] | None = None) -> list[
     return out
 
 
-def _join_steps(lines: list[str]) -> list[str]:
-    """Steps: numbered steps ("1.") take the lines of their block, and the first block after them that is not numbered
-    ends the steps (a note, not a step); unnumbered steps are one block each. A bullet ends the steps."""
-    numbered = any(STEP_NUMBER.match(line.strip()) for line in lines)
-    out: list[str] = []
+def _starts_part(texts: list[str], at: int) -> bool:
+    """Whether the line at `at` heads a part of a numbered method: a short line with no sentence end whose next line with
+    text is a step numbered 1 ("Make Dip or Dressing" / "1. To make ranch dip, ...")."""
+    text = texts[at]
+    if len(text) > 60 or text.endswith((".", "!", "?", ",", ";")):
+        return False
+    following = next((t for t in texts[at + 1:] if t), None)
+    number = STEP_NUMBER.match(following or "")
+    return bool(number) and int(number.group(1)) == 1
+
+
+def _join_steps(lines: list[str]) -> list[tuple[str | None, str]]:
+    """Steps, each with the heading of its part (None when the method has no parts): numbered steps ("1.") take the
+    lines of their block; a short line before a step numbered 1 heads a part, and the steps after it are that part's
+    (staging checkpoint 6, R20: "Make Dip or Dressing" / "1. To make ranch dip, ..." was dropped); any other block after
+    numbered steps that is not numbered ends the steps (a note, not a step). Unnumbered steps are one block each. A
+    bullet ends the steps."""
+    texts = [line.strip() for line in lines]
+    numbered = any(STEP_NUMBER.match(text) for text in texts)
+    out: list[list] = []
+    section: str | None = None
     gap = True
-    for line in lines:
-        text = line.strip()
+    for at, text in enumerate(texts):
         if not text:
             gap = True
             continue
@@ -869,18 +901,47 @@ def _join_steps(lines: list[str]) -> list[str]:
             break
         number = STEP_NUMBER.match(text)
         if number:
-            out.append(text[number.end():])
+            out.append([section, text[number.end():]])
+        elif numbered and gap and _starts_part(texts, at):
+            section = re.sub(r"\s*:$", "", text)
         elif not out or (gap and not numbered):
             if numbered:
                 gap = False
                 continue
-            out.append(text)
+            out.append([None, text])
         elif gap and numbered:
             break
         else:
-            out[-1] = f"{out[-1]} {text}"
+            out[-1][1] = f"{out[-1][1]} {text}"
         gap = False
-    return out
+    return [(part, step) for part, step in out]
+
+
+def numbered_steps(text: str) -> int:
+    """The lines of a card's method that start with a step number ("1.", "2)"): from the Directions heading to the notes,
+    the nutrition line or another section heading (the count a record's steps are checked against)."""
+    count, inside = 0, False
+    for line in (line.strip() for line in text.split("\n")):
+        head = re.sub(r"[:\s]+$", "", line).lower()
+        if head in CARD_SECTIONS:
+            inside = CARD_SECTIONS[head] == "steps"
+            continue
+        if CARD_END.match(line):
+            inside = False
+            continue
+        if inside and STEP_NUMBER.match(line):
+            count += 1
+    return count
+
+
+def steps_check(record: dict, text: str) -> str | None:
+    """Why a card's record keeps fewer steps than its method numbers, or None (staging checkpoint 6, R20: a card that
+    kept 2 of its 3 numbered steps passed the number check, which only finds what a record holds in its page)."""
+    listed = numbered_steps(text)
+    kept = len(record.get("steps") or [])
+    if kept < listed:
+        return f"number check: the record keeps {kept} of the {listed} numbered steps of the card's method"
+    return None
 
 
 def card_title(filled: list[str]) -> str | None:
@@ -960,7 +1021,7 @@ def parse_card(title: str | None, text: str) -> tuple[dict | None, str | None]:
     if loose:
         return None, f"reader check: a line inside an ingredient block starts no amount and was not joined: {loose[0]!r}"
     record["ingredients"] = [{"rawLine": line} for line in ingredients]
-    record["steps"] = [{"order": i + 1, "instruction": step} for i, step in enumerate(steps)]
+    record["steps"] = [{"order": i + 1, "instruction": step, **({"section": part} if part else {})} for i, (part, step) in enumerate(steps)]
     return record, None
 
 
@@ -1017,9 +1078,10 @@ def number_check(record: dict, source: str) -> str | None:
         if problem:
             return f"number check: {item['rawLine'][:60]}: {problem}"
     for step in record.get("steps") or []:
-        problem = cookbook.fidelity(step["instruction"], source, number_words=True)
-        if problem:
-            return f"number check: {step['instruction'][:60]}: {problem}"
+        for said in (step.get("section"), step["instruction"]):
+            problem = cookbook.fidelity(said, source, number_words=True) if said else None
+            if problem:
+                return f"number check: {said[:60]}: {problem}"
     stated = cookbook.numbers(source, words=False)
     for key in ("recipeYield", "prepTime", "cookTime", "totalTime"):
         missing = cookbook.numbers(record.get(key) or "", words=False) - stated
@@ -1165,6 +1227,8 @@ def _ask(ask, chunk) -> list[tuple[dict | None, dict | None]]:
         recipes = answer.get("recipes") if isinstance(answer, dict) else None
         if not isinstance(recipes, list):
             raise ValueError("no recipes list")
+    except ModelHostBusy as exc:
+        return [(None, {"name": None, "reason": f"model host busy: {exc}; not asked this run, asked on the next"})]
     except cookbook.ModelCallTimedOut as exc:
         return [(None, {"name": None, "reason": f"model call timed out: {exc}; the page is dropped this run and asked again on the next"})]
     except cookbook.ModelCallFailed as exc:
@@ -1172,6 +1236,84 @@ def _ask(ask, chunk) -> list[tuple[dict | None, dict | None]]:
     except (ValueError, json.JSONDecodeError) as exc:
         return [(None, {"name": None, "reason": f"unreadable answer: {exc}"})]
     return [(r, None) for r in recipes if isinstance(r, dict)]
+
+
+class ModelHostBusy(Exception):
+    """The model host stayed in use by another job past the run's wait limit; nothing more is asked this run."""
+
+
+def ollama_ps(host: str, timeout: int = 30) -> list[dict]:
+    """The models an Ollama host holds loaded now (GET /api/ps)."""
+    request = urllib.request.Request(host.rstrip("/") + "/api/ps", headers={"User-Agent": USER_AGENT})
+    with urllib.request.urlopen(request, timeout=timeout) as response:
+        return json.loads(response.read().decode()).get("models") or []
+
+
+def ollama_answers(host: str, model: str, timeout: float) -> bool:
+    """Whether the model host answers a one-token request to the model within timeout seconds, sent with the context
+    size of the real calls so it never reloads the model. A request on a model already loaded leaves its expires_at
+    alone until it finishes, so only a request of one's own shows that the model is free; one that does not answer in
+    time is abandoned, and the host dropped it with the connection."""
+    body = {"model": model, "stream": False, "options": {**cookbook.OLLAMA_OPTIONS, "num_predict": 1},
+            "messages": [{"role": "user", "content": "1"}]}
+    request = urllib.request.Request(host.rstrip("/") + "/api/chat", data=json.dumps(body).encode(), method="POST",
+                                     headers={"Content-Type": "application/json", "User-Agent": USER_AGENT})
+    try:
+        with urllib.request.urlopen(request, timeout=timeout) as response:
+            json.loads(response.read().decode())["message"]
+    except cookbook.MODEL_ERRORS + (ValueError, TypeError):
+        return False
+    return True
+
+
+def host_in_use(read: Callable[[], list[dict]], probe: float = 2.0, sleep: Callable[[float], None] = time.sleep,
+                answers: Callable[[], bool] | None = None) -> bool:
+    """Whether another request is running on the model host: two readings of its loaded models, probe seconds apart, in
+    which a model was loaded or its expires_at moved (it moves with the clock while a model's first request after its
+    load is in flight: staging checkpoint 6, section 28), or, when the readings show neither, a one-token request
+    (answers) that the host does not answer in time. Ollama sets expires_at only when a model's last request finishes,
+    so a request on a model already loaded leaves both readings the same (staging checkpoint 6, section 28, 10:42Z:
+    qwen2.5vl:7b loaded and in use; review of ck14-hand-import-box, CK14-1). A host that does not answer counts as in
+    use."""
+    try:
+        first = read()
+        sleep(probe)
+        second = read()
+    except cookbook.MODEL_ERRORS + (ValueError, AttributeError):
+        return True
+    before = {m.get("name"): m.get("expires_at") for m in first if isinstance(m, dict)}
+    if any(m.get("name") not in before or m.get("expires_at") != before[m.get("name")] for m in second if isinstance(m, dict)):
+        return True
+    return answers is not None and not answers()
+
+
+class HostGate:
+    """Model calls that wait for a free host: before each call the host is read, and while another job uses it the call
+    waits, poll seconds at a time, out of one budget of limit seconds for the whole run. Past the budget this call and
+    every later one raise ModelHostBusy at once, so the run stops asking, keeps every answer it has, and the next run
+    asks only the pages and chunks still missing (staging checkpoint 6, section 28: NCI was given up whole when the
+    host was busy at three checks)."""
+
+    def __init__(self, ask, in_use: Callable[[], bool], limit: float, poll: float, sleep: Callable[[float], None] = time.sleep):
+        self.ask = ask
+        self.in_use = in_use
+        self.limit = limit
+        self.poll = poll
+        self.sleep = sleep
+        self.waited = 0.0
+        self.exhausted = False
+
+    def __call__(self, system: str, user: str) -> str:
+        if self.exhausted:
+            raise ModelHostBusy(f"in use past the wait limit of {self.limit / 60:g} minutes")
+        while self.in_use():
+            if self.waited + self.poll > self.limit:
+                self.exhausted = True
+                raise ModelHostBusy(f"in use past the wait limit of {self.limit / 60:g} minutes")
+            log(f"model host in use by another job; waiting {self.poll:g} s ({self.waited / 60:.1f} of {self.limit / 60:g} minutes waited)")
+            self.sleep(self.poll)
+            self.waited += self.poll
+        return self.ask(system, user)
 
 
 def page_url(doc: dict, pages: list[int], name: str) -> str:
@@ -1186,10 +1328,22 @@ def page_url(doc: dict, pages: list[int], name: str) -> str:
     return doc["url"]
 
 
+def ocr_missing(missing: dict[str, int]) -> str:
+    """The message that stops a run where PDF pages with no text layer found no tesseract: the documents, their pages,
+    and the image that has it."""
+    listed = ", ".join(f"{doc} ({n})" for doc, n in sorted(missing.items()))
+    return (f"{sum(missing.values())} PDF pages have no text layer and tesseract is not installed here: {listed}. Run text and "
+            f"extract in the {IMAGE} image (ops/hand-import.Dockerfile, through ops/hand-import-box.sh), which has tesseract.")
+
+
 def extract_document(doc: dict, source: Source, ask=None) -> Extraction:
-    """The records of one document, each checked against its page text and given its source link."""
+    """The records of one document, each checked against its page text and given its source link. A document with a page
+    that still needs OCR is not extracted: it is counted unparsed with the image that reads it."""
     result = Extraction(pages=len(doc["pages"]))
     result.needs_ocr = sum(1 for p in doc["pages"] if p["method"] == "needs-ocr")
+    if result.needs_ocr:
+        result.unparsed.append({"doc": doc["doc"], "reason": f"needs OCR: {result.needs_ocr} pages have no text layer; run text in the {IMAGE} image"})
+        return result
     found: list[tuple[dict, list[int]]] = []
     if doc["layout"] in ("card", "html"):
         text = "\n\n".join(p["text"] for p in doc["pages"])
@@ -1198,7 +1352,7 @@ def extract_document(doc: dict, source: Source, ask=None) -> Extraction:
         if record is None:
             result.unparsed.append({"doc": doc["doc"], "reason": why})
             return result
-        problem = number_check(record, text)
+        problem = number_check(record, text) or (steps_check(record, text) if doc["layout"] == "card" else None)
         if problem:
             result.rejects.append({"doc": doc["doc"], "page": 1, "name": record["name"], "reason": problem})
             return result
@@ -1330,6 +1484,12 @@ def main(argv: list[str] | None = None) -> int:
             p.add_argument("--timeout", type=int, default=600, help="seconds one model call may take (default 600)")
             p.add_argument("--retries", type=int, default=2, help="times a failed model call is asked again (default 2); in pages mode a "
                                                                    "call that times out is not asked again in the run")
+            p.add_argument("--wait-limit", type=float, default=120, help="minutes the run may wait in all for a model host another job is "
+                                                                         "using (default 120); past it the run stops and keeps every answer")
+            p.add_argument("--wait-poll", type=float, default=60, help="seconds between readings of a busy model host (default 60)")
+            p.add_argument("--probe", type=float, default=2, help="seconds between the two readings that tell a busy host (default 2)")
+            p.add_argument("--answer-within", type=float, default=30, help="seconds the host has to answer a one-token request before "
+                                                                           "it counts as in use (default 30)")
         if name == "sample":
             p.add_argument("--per-source", type=int, default=20)
             p.add_argument("--seed", type=int, default=20261121)
@@ -1389,11 +1549,10 @@ def main(argv: list[str] | None = None) -> int:
     text_dir = os.path.join(args.out, "text")
     os.makedirs(text_dir, exist_ok=True)
     if args.command == "text":
-        if not have("pdftotext"):
-            raise SystemExit("pdftotext (poppler-utils) is not installed")
-        if not have("tesseract"):
-            log("tesseract is not installed: pages without a text layer are marked needs-ocr")
+        if any(b.kind == "pdf" for b in books) and not have("pdftotext"):
+            raise SystemExit(f"pdftotext (poppler-utils) is not installed: run the PDF sources in the {IMAGE} image (ops/hand-import-box.sh)")
         counts: Counter = Counter()
+        missing: dict[str, int] = {}
         for book in books:
             if book.kind == "index":
                 continue
@@ -1405,7 +1564,13 @@ def main(argv: list[str] | None = None) -> int:
                 json.dump(doc, handle, ensure_ascii=False)
             counts["documents"] += 1
             counts.update(p["method"] for p in doc["pages"])
+            unread = sum(1 for p in doc["pages"] if p["method"] == "needs-ocr")
+            if unread:
+                missing[book.doc_id] = unread
         print(json.dumps(dict(counts), indent=2))
+        if missing:
+            log(ocr_missing(missing))
+            return STOPPED
         return 0
 
     out_dir = os.path.join(args.out, "records")
@@ -1413,6 +1578,9 @@ def main(argv: list[str] | None = None) -> int:
     by_id = {b.doc_id: b for b in books}
     if args.command == "extract":
         model = cookbook.ollama(args.host, args.model, timeout=args.timeout) if args.host and args.model else None
+        gate = HostGate(model, lambda: host_in_use(lambda: ollama_ps(args.host), args.probe,
+                                                   answers=lambda: ollama_answers(args.host, args.model, args.answer_within)),
+                        args.wait_limit * 60, args.wait_poll) if model else None
         results: dict[str, list[tuple[str, Extraction]]] = defaultdict(list)
         for book in books:
             path = os.path.join(text_dir, f"{book.doc_id}.pages.json")
@@ -1420,7 +1588,7 @@ def main(argv: list[str] | None = None) -> int:
                 continue
             with open(path, encoding="utf-8") as handle:
                 doc = json.load(handle)
-            ask = cookbook.resumable(model, os.path.join(out_dir, f"{book.doc_id}.answers.jsonl"), retries=args.retries, model=args.model,
+            ask = cookbook.resumable(gate, os.path.join(out_dir, f"{book.doc_id}.answers.jsonl"), retries=args.retries, model=args.model,
                                      retry_timeouts=book.layout != "pages") if model else None
             result = extract_document(doc, sources[book.source], ask)
             results[book.source].append((book.doc_id, result))
@@ -1430,7 +1598,13 @@ def main(argv: list[str] | None = None) -> int:
         with open(os.path.join(args.out, "extract-summary.json"), "w", encoding="utf-8") as handle:
             json.dump(summary, handle, indent=2)
         print(json.dumps(summary, indent=2))
-        return 0
+        missing = {doc: r.needs_ocr for items in results.values() for doc, r in items if r.needs_ocr}
+        if missing:
+            log(ocr_missing(missing))
+        if gate is not None and gate.exhausted:
+            log(f"the model host at {args.host} stayed in use by another job past --wait-limit {args.wait_limit:g} minutes: the pages and "
+                f"chunks not asked are counted as 'model host busy'; every answer is kept, so run extract again to ask only those")
+        return STOPPED if missing or (gate is not None and gate.exhausted) else 0
 
     records = [row for book in books for row in read_jsonl(os.path.join(out_dir, f"{book.doc_id}.records.jsonl"))]
     if args.command == "sample":

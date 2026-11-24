@@ -36,12 +36,30 @@ namespace Nom.Orch.Models.Curation
         public Dictionary<string, int> FailedApprovedByReason { get; set; } = new();
         /// <summary>Failing recipes by curation status.</summary>
         public Dictionary<string, int> FailedByStatus { get; set; } = new();
-        /// <summary>Failing recipes whose only failing reason is <c>copy-unsure</c> (copy measures between the two lines of the copy rule): counted in <see cref="Failed"/> and withheld like a copy, and counted here apart.</summary>
-        public int CopyUnsure { get; set; }
-        /// <summary>Copy-unsure recipes that are approved.</summary>
-        public int CopyUnsureApproved { get; set; }
-        /// <summary>Recipes this call withheld as copy-unsure (marked <c>ProseCopyUnsure</c>).</summary>
-        public int WithheldCopyUnsure { get; set; }
+        /// <summary>Recipes not failed but some of whose sentences the check reads as copies (<c>copied-sentences</c>): withheld like a failure, within the same batch, until the rewrite lane rewords those sentences, which are its work list.</summary>
+        public int Repair { get; set; }
+        /// <summary>Recipes with copied sentences that are approved.</summary>
+        public int RepairApproved { get; set; }
+        /// <summary>The copied sentences of those recipes, all told.</summary>
+        public int RepairSentences { get; set; }
+        /// <summary>The recipes this check holds withheld as built, where a recipe with only some copied sentences is withheld until the rewrite lane rewords them: the failures and those recipes, among the recipes shown now and those already withheld (<see cref="ExaminedWithheld"/>), side by side with <see cref="WithheldIfRepairShown"/> for the owner's choice; no behaviour depends on it.</summary>
+        public int WithheldIfRepairWithheld { get; set; }
+        /// <summary>The recipes this check holds withheld if a recipe with only some copied sentences stayed shown while the rewrite lane rewords them: the failures alone, among the recipes shown now and those already withheld.</summary>
+        public int WithheldIfRepairShown { get; set; }
+        /// <summary>Of <see cref="WithheldIfRepairWithheld"/>, the approved recipes.</summary>
+        public int WithheldIfRepairWithheldApproved { get; set; }
+        /// <summary>Of <see cref="WithheldIfRepairShown"/>, the approved recipes.</summary>
+        public int WithheldIfRepairShownApproved { get; set; }
+        /// <summary>Scraped recipes of unknown licence already withheld that the check read for the two figures alone, leaving out those a person edited or released and those with no stored source; never released or changed by a re-check.</summary>
+        public int ExaminedWithheld { get; set; }
+        /// <summary>Of <see cref="WithheldIfRepairWithheld"/>, the recipes already withheld.</summary>
+        public int AlreadyWithheldIfRepairWithheld { get; set; }
+        /// <summary>Of <see cref="WithheldIfRepairShown"/>, the recipes already withheld.</summary>
+        public int AlreadyWithheldIfRepairShown { get; set; }
+        /// <summary>Recipes this call withheld with their count of copied sentences (<c>ProseCopiedSentences</c>, journaled) or whose count it changed; none on a dry run.</summary>
+        public int MarkedRepair { get; set; }
+        /// <summary>Recipes this call found with no copied sentence left and cleared (journaled).</summary>
+        public int ClearedRepair { get; set; }
         /// <summary>Recipes the check is unsure of on facts: only weak signals (<c>lost-step</c>, <c>out-of-order</c>, <c>added-quantity</c>, <c>too-short</c>, <c>too-long</c>) and fact classes not yet proven, so they stay shown, marked, and are the prose judge's to read.</summary>
         public int Unsure { get; set; }
         /// <summary>Unsure recipes that are approved.</summary>
@@ -66,11 +84,13 @@ namespace Nom.Orch.Models.Curation
         public List<ProseRecheckError> Errors { get; set; } = new();
         /// <summary>Recipes this call withheld.</summary>
         public int Withheld { get; set; }
+        /// <summary>Of those withheld, recipes with only some copied sentences, held until the rewrite lane rewords those sentences.</summary>
+        public int WithheldRepair { get; set; }
         /// <summary>The recipes this call withheld, by curation status; with apply, the samples are these recipes too.</summary>
         public Dictionary<string, int> WithheldByStatus { get; set; } = new();
         /// <summary>Passing recipes this call stamped with the check version they passed.</summary>
         public int Stamped { get; set; }
-        /// <summary>Failing recipes still shown after this call.</summary>
+        /// <summary>Failing recipes and recipes with copied sentences still shown after this call.</summary>
         public int Remaining { get; set; }
         /// <summary>True when the hold (pause-prose-recheck, for the job) was on before a batch was saved: that batch and the rest were not withheld.</summary>
         public bool Held { get; set; }
@@ -100,6 +120,8 @@ namespace Nom.Orch.Models.Curation
         public int RestoredAfterFailedAttempt { get; set; }
         /// <summary>Recipes whose unsure mark a re-check set or cleared and the undo put back as it was; not counted in <see cref="Restored"/>.</summary>
         public int RestoredUnsure { get; set; }
+        /// <summary>Recipes whose count of copied sentences a re-check set or cleared and the undo put back as it was; not counted in <see cref="Restored"/>.</summary>
+        public int RestoredRepair { get; set; }
         /// <summary>Entries left alone because the recipe is gone, or the rewrite lane or a person has replaced its prose since.</summary>
         public int Skipped { get; set; }
         /// <summary>Of those skipped, recipes whose prose was replaced since.</summary>

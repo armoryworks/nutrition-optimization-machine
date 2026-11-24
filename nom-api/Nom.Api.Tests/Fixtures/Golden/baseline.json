@@ -3,7 +3,7 @@
   "containers.tsv:status": 1,
   "line-holdout.tsv:status": 1,
   "line-kinds.tsv:status": 2,
-  "lines.tsv:name": 5,
+  "lines.tsv:name": 4,
   "lines.tsv:parse": 4,
   "link-pairs.tsv:status": 30,
   "links.tsv:status": 3,

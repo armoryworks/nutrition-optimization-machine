@@ -44,6 +44,7 @@ namespace Nom.Orch.Services
         private long? GetCurrentPersonId() => _currentUser.PersonId;
 
         private const int MaxIngredientResults = 20;
+        private const string StepEntityType = "RecipeStep";
         private const int MaxExactKept = 3;
         private const string QuantityLeadChars = "&0123456789\u00bd\u2153\u2154\u00bc\u00be\u215b\u215c\u215d\u215e";
         private const string QuantityWordPattern =
@@ -376,7 +377,7 @@ namespace Nom.Orch.Services
                 var recipeStep = new RecipeStepEntity
                 {
                     Recipe = recipe,
-                    Summary = step.Description, // Use Description as Summary
+                    Summary = RecipeStepSplit.Clamp(step.Description ?? string.Empty, 255), // Use Description as Summary
                     Description = step.Description,
                     StepNumber = step.Order // Use Order as StepNumber
                 };
@@ -874,14 +875,18 @@ namespace Nom.Orch.Services
                         : page.UnknownByType.TryGetValue(r.TypeId, out var unknown) ? unknown
                         : (IReadOnlyCollection<long>)Array.Empty<long>();
                     foreach (var recipeId in held)
+                    {
+                        var text = !page.PendingTypes.Contains(r.TypeId) && page.TextHeld.TryGetValue((r.TypeId, recipeId), out var t) ? t : ((Nom.Data.Plan.DietFlagReason, long?)?)null;
+                        var named = text?.Item2 is { } criterionId ? type.FirstOrDefault(c => c.Id == criterionId)?.LikePattern?.Trim('%') : null;
                         byStore.Add((recipeId, new RecipeDietMatchModel
                         {
                             RestrictionName = r.Name,
                             RestrictionType = r.TypeName,
                             Severity = severity,
-                            IngredientName = page.PendingTypes.Contains(r.TypeId) ? DietNotCheckedName : DietUnknownName,
-                            Notes = page.PendingTypes.Contains(r.TypeId) ? DietNotCheckedNote : DietUnknownNote,
+                            IngredientName = page.PendingTypes.Contains(r.TypeId) ? DietNotCheckedName : text is { } held1 ? DietTextName(held1.Item1) : DietUnknownName,
+                            Notes = page.PendingTypes.Contains(r.TypeId) ? DietNotCheckedNote : text is { } held2 ? DietTextNote(held2.Item1, named) : DietUnknownNote,
                         }));
+                    }
                 }
             }
             return byFood.Concat(byLine).Concat(byAliasLine).Concat(byRetained).Concat(byStore).ToList();
@@ -899,11 +904,25 @@ namespace Nom.Orch.Services
         /// <summary>The note a recipe page gives a severe restriction that could not decide the recipe.</summary>
         public const string DietUnknownNote = "The recipe has no ingredient list the diet check can read, or one of its foods is not checked yet, so it is kept out for this restriction.";
 
+        /// <summary>The name a recipe page gives a severe restriction that holds the recipe because its title or method names a food its ingredient lines do not list (staging checkpoint 6, R3).</summary>
+        public static string DietTextName(Nom.Data.Plan.DietFlagReason reason) => reason == Nom.Data.Plan.DietFlagReason.Title ? "Named in the title" : "Named in the method";
+
+        /// <summary>The note a recipe page gives a severe restriction that holds the recipe because its title or method names a food its ingredient lines do not list.</summary>
+        public static string DietTextNote(Nom.Data.Plan.DietFlagReason reason, string? named) =>
+            "The recipe's " + (reason == Nom.Data.Plan.DietFlagReason.Title ? "title" : "method") + " names " + (string.IsNullOrWhiteSpace(named) ? "a food" : "\"" + named + "\"")
+            + ", which this restriction keeps out, and its ingredient lines, read from an old book's text, do not list it, so the recipe is kept out for this restriction.";
+
+        /// <summary>The audit change type that records, at a person's first edit of a recipe, its version and content before the edit.</summary>
+        public const string EditBaseChangeType = "PersonEditBase";
+
         public async Task<RecipeResponseModel?> UpdateRecipeAsync(long id, UpdateRecipeRequest model)
         {
             var recipe = await _context.Recipes.FindAsync(id);
             if (recipe == null)
                 return null;
+
+            var versionBefore = recipe.Version;
+            var factsBefore = RecipeFacts(recipe);
 
             var withheld = recipe.ProseWithheld;
             var ownDescription = !string.IsNullOrWhiteSpace(model.Description);
@@ -937,6 +956,7 @@ namespace Nom.Orch.Services
                 .IgnoreQueryFilters()
                 .Where(ri => ri.RecipeId == id)
                 .ToDictionaryAsync(ri => (ri.IngredientId, ri.SortOrder));
+            var linesBefore = LineFacts(existingIngredients.Values);
             await RefusePreparedFoodsAsync(model.Ingredients.Select(i => i.IngredientId),
                 existingIngredients.Values.Where(ri => !ri.IsDeleted).Select(ri => ri.IngredientId).ToHashSet());
             var lines = model.Ingredients
@@ -992,6 +1012,8 @@ namespace Nom.Orch.Services
                 .IgnoreQueryFilters()
                 .Where(rs => rs.RecipeId == id)
                 .ToDictionaryAsync(rs => rs.StepNumber);
+            var stepsBefore = StepFacts(existingSteps.Values);
+            var summariesBefore = new Dictionary<int, string>();
             var keptStepNumbers = new HashSet<int>();
 
             foreach (var step in withheld && !ownSteps ? Enumerable.Empty<RecipeStepModel>() : model.Steps)
@@ -1008,7 +1030,15 @@ namespace Nom.Orch.Services
                         recipeStep.LastModifiedByPersonId = editor;
                     }
 
-                    recipeStep.Summary = step.Description;
+                    if (recipeStep.Description != step.Description)
+                    {
+                        var summary = RecipeStepSplit.Clamp(step.Description ?? string.Empty, 255);
+                        if (summary != recipeStep.Summary)
+                        {
+                            summariesBefore.TryAdd(recipeStep.StepNumber, recipeStep.Summary);
+                            recipeStep.Summary = summary;
+                        }
+                    }
                     recipeStep.Description = step.Description;
                     recipeStep.IsDeleted = false;
                     recipeStep.DeletedAt = null;
@@ -1019,7 +1049,7 @@ namespace Nom.Orch.Services
                     _context.RecipeSteps.Add(new RecipeStepEntity
                     {
                         RecipeId = recipe.Id,
-                        Summary = step.Description,
+                        Summary = RecipeStepSplit.Clamp(step.Description ?? string.Empty, 255),
                         Description = step.Description,
                         StepNumber = step.Order,
                         LastModifiedByPersonId = editor
@@ -1047,11 +1077,12 @@ namespace Nom.Orch.Services
                     ChangedByPersonId = _currentUser.PersonIdOrSystem,
                 });
                 recipe.ProseWithheld = false;
-                recipe.ProseCopyUnsure = false;
+                recipe.ProseCopiedSentences = 0;
             }
 
             // Save all changes
             await _context.SaveChangesAsync();
+            await KeepVersionUnlessEditedAsync(recipe, versionBefore, EditFingerprint(factsBefore, linesBefore, stepsBefore), summariesBefore);
             await _recipeNutrition.RecalculateAsync(recipe.Id);
 
             return new RecipeResponseModel
@@ -1068,6 +1099,125 @@ namespace Nom.Orch.Services
                 ModifiedDate = recipe.LastModifiedDate
             };
         }
+
+        /// <summary>
+        /// A person's edit raises a recipe's version, which takes a scraped recipe out of the rebuild and the order pass.
+        /// An edit that leaves the recipe as it was keeps the version it had, and an edit that brings it back to what it
+        /// was before the person's first edit (an edit and its revert) puts that version back, as long as nothing else
+        /// changed the recipe in between. The first edit of a recipe at version 1 or below records that version and the
+        /// content before it (<see cref="EditBaseChangeType"/>), and each step's summary an edit of its text replaces is
+        /// recorded once against that content, so the revert puts the summaries back with the version.
+        /// </summary>
+        private async Task KeepVersionUnlessEditedAsync(RecipeEntity recipe, long versionBefore, string before, IReadOnlyDictionary<int, string> summariesBefore)
+        {
+            var lines = await _context.RecipeIngredients.AsNoTracking().IgnoreQueryFilters().Where(ri => ri.RecipeId == recipe.Id).ToListAsync();
+            var steps = await _context.RecipeSteps.AsNoTracking().IgnoreQueryFilters().Where(rs => rs.RecipeId == recipe.Id).ToListAsync();
+            var after = EditFingerprint(RecipeFacts(recipe), LineFacts(lines), StepFacts(steps));
+            if (after == before)
+            {
+                recipe.Version = versionBefore;
+            }
+            else if (versionBefore <= 1)
+            {
+                _context.AuditLogEntries.Add(new Nom.Data.Audit.AuditLogEntryEntity
+                {
+                    EntityType = ProseRecheckService.RecipeEntityType,
+                    EntityId = recipe.Id,
+                    ChangeType = EditBaseChangeType,
+                    PropertyName = nameof(RecipeEntity.Version),
+                    OldValue = versionBefore.ToString(System.Globalization.CultureInfo.InvariantCulture),
+                    NewValue = before,
+                    Timestamp = DateTime.UtcNow,
+                    ChangedByPersonId = _currentUser.PersonIdOrSystem,
+                });
+                await KeepSummariesAsync(recipe.Id, summariesBefore, before);
+            }
+            else if (await _context.AuditLogEntries.AsNoTracking()
+                         .Where(a => a.EntityType == ProseRecheckService.RecipeEntityType && a.EntityId == recipe.Id && a.ChangeType == EditBaseChangeType)
+                         .OrderByDescending(a => a.Id)
+                         .Select(a => new { a.OldValue, a.NewValue })
+                         .FirstOrDefaultAsync() is { NewValue: not null } edited)
+            {
+                if (edited.NewValue == after
+                    && long.TryParse(edited.OldValue, System.Globalization.NumberStyles.Integer, System.Globalization.CultureInfo.InvariantCulture, out var baseVersion))
+                {
+                    recipe.Version = baseVersion;
+                    await RestoreSummariesAsync(recipe.Id, edited.NewValue);
+                }
+                else
+                {
+                    await KeepSummariesAsync(recipe.Id, summariesBefore, edited.NewValue);
+                }
+            }
+            else
+            {
+                return;
+            }
+            await _context.SaveChangesAsync();
+        }
+
+        private async Task KeepSummariesAsync(long recipeId, IReadOnlyDictionary<int, string> summariesBefore, string baseFingerprint)
+        {
+            if (summariesBefore.Count == 0) return;
+            var kept = await _context.AuditLogEntries.AsNoTracking()
+                .Where(a => a.EntityType == StepEntityType && a.EntityId == recipeId && a.ChangeType == EditBaseChangeType && a.NewValue == baseFingerprint)
+                .Select(a => a.PropertyName)
+                .ToListAsync();
+            foreach (var (stepNumber, summary) in summariesBefore.Where(s => !kept.Contains(StepSummaryProperty(s.Key))))
+            {
+                _context.AuditLogEntries.Add(new Nom.Data.Audit.AuditLogEntryEntity
+                {
+                    EntityType = StepEntityType,
+                    EntityId = recipeId,
+                    ChangeType = EditBaseChangeType,
+                    PropertyName = StepSummaryProperty(stepNumber),
+                    OldValue = summary,
+                    NewValue = baseFingerprint,
+                    Timestamp = DateTime.UtcNow,
+                    ChangedByPersonId = _currentUser.PersonIdOrSystem,
+                });
+            }
+        }
+
+        private async Task RestoreSummariesAsync(long recipeId, string baseFingerprint)
+        {
+            var kept = (await _context.AuditLogEntries.AsNoTracking()
+                    .Where(a => a.EntityType == StepEntityType && a.EntityId == recipeId && a.ChangeType == EditBaseChangeType && a.NewValue == baseFingerprint)
+                    .OrderBy(a => a.Id)
+                    .Select(a => new { a.PropertyName, a.OldValue })
+                    .ToListAsync())
+                .GroupBy(a => a.PropertyName)
+                .ToDictionary(g => g.Key ?? string.Empty, g => g.First().OldValue);
+            if (kept.Count == 0) return;
+            foreach (var step in await _context.RecipeSteps.IgnoreQueryFilters().Where(rs => rs.RecipeId == recipeId).ToListAsync())
+            {
+                if (kept.TryGetValue(StepSummaryProperty(step.StepNumber), out var summary) && summary != null) step.Summary = summary;
+            }
+        }
+
+        private static string StepSummaryProperty(int stepNumber) =>
+            string.Create(System.Globalization.CultureInfo.InvariantCulture, $"{nameof(RecipeStepEntity.Summary)}[{stepNumber}]");
+
+        private static string RecipeFacts(RecipeEntity recipe) =>
+            string.Join("\u001f", recipe.Name, recipe.Description ?? string.Empty, Number(recipe.Servings), Number(recipe.ServingQuantity),
+                recipe.ServingQuantityMeasurementId?.ToString(System.Globalization.CultureInfo.InvariantCulture) ?? string.Empty);
+
+        private static List<string> LineFacts(IEnumerable<RecipeIngredientEntity> lines) =>
+            lines.Where(ri => !ri.IsDeleted).OrderBy(ri => ri.SortOrder)
+                .Select(ri => string.Join("\u001f", ri.IngredientId.ToString(System.Globalization.CultureInfo.InvariantCulture), Number(ri.Quantity),
+                    ri.MeasurementId.ToString(System.Globalization.CultureInfo.InvariantCulture), ri.RawLine ?? string.Empty, ri.LineKind ?? string.Empty))
+                .ToList();
+
+        private static List<string> StepFacts(IEnumerable<RecipeStepEntity> steps) =>
+            steps.Where(rs => !rs.IsDeleted).OrderBy(rs => rs.StepNumber)
+                .Select(rs => string.Join("\u001f", rs.StepNumber.ToString(System.Globalization.CultureInfo.InvariantCulture), rs.Description ?? string.Empty))
+                .ToList();
+
+        private static string Number(decimal? value) => value?.ToString("0.######", System.Globalization.CultureInfo.InvariantCulture) ?? string.Empty;
+
+        private static string EditFingerprint(string recipe, IEnumerable<string> lines, IEnumerable<string> steps) =>
+            Convert.ToHexString(System.Security.Cryptography.SHA256.HashData(System.Text.Encoding.UTF8.GetBytes(
+                string.Join("\u001e", lines.Prepend(recipe).Append("steps").Concat(steps))))).ToLowerInvariant();
 
         public async Task<bool> DeleteRecipeAsync(long id)
         {

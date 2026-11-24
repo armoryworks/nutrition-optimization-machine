@@ -112,7 +112,7 @@ namespace Nom.Orch.Services.Support
         public static bool LineNames(DietDataCriterion criterion, string? rawLine)
         {
             if (string.IsNullOrWhiteSpace(rawLine)) return false;
-            if (criterion.Rule is { } rule) return rule.IsMatch(rawLine);
+            if (criterion.Rule is { } rule) return rule.IsLineMatch(rawLine);
             return criterion.WordPattern != null && Compiled.GetOrAdd("word:" + criterion.WordPattern, _ => WordRegex(criterion.WordPattern)).IsMatch(rawLine) && NameCounts(rawLine);
         }
 
@@ -286,7 +286,7 @@ namespace Nom.Orch.Services.Support
         /// weighed as the label weighs them, with their stored retention, and the lines whose own text
         /// reads as a drink on any other food, counted by <see cref="RecipeAlcohol.Count"/> per the
         /// label's servings. Over the whole catalog the lines that read as a drink are <paramref name="drinkLines"/>
-        /// when given (the line index's, <see cref="DietLineIndex.Snapshot.DrinkLines"/>), so no line is probed.
+        /// when given, so no line is probed.
         /// </summary>
         public static async Task<Dictionary<long, RecipeAlcohol>> RecipeAlcoholAsync(ApplicationDbContext db, long nutrientId, IReadOnlyCollection<long>? scope, IReadOnlyList<RecipeLine>? drinkLines = null)
         {
@@ -397,103 +397,6 @@ namespace Nom.Orch.Services.Support
 
         /// <summary>How many probes <see cref="WarmAsync"/> computes at once, each on its own context.</summary>
         public const int WarmParallelism = 4;
-
-        private static string FoodsOnlyKey(IEnumerable<DietDataCriterion> criteria) => "foods-only:" + CacheKey(criteria);
-
-        private static string IndexedRetainedKey(long nutrientId) => "recipe-alcohol-indexed:" + nutrientId.ToString(CultureInfo.InvariantCulture);
-
-        /// <summary>
-        /// One restriction type's foods as the line index's reading needs them (staging checkpoint 4, P1): the kept
-        /// value of its food probe with no line read (<see cref="TypeProbe.LineRecipes"/> and
-        /// <see cref="TypeProbe.AliasLineRecipes"/> empty, since <see cref="DietLineIndex"/> answers for the lines),
-        /// never computed in line: null until the warm has computed it or after its last refresh failed
-        /// (<see cref="DietGateCache.PeekAsync"/>).
-        /// </summary>
-        public static Task<TypeProbe?> FoodsProbeAsync(ApplicationDbContext db, IReadOnlyList<DietDataCriterion> criteria, DietGateCache cache) =>
-            cache.PeekAsync(db, FoodsOnlyKey(criteria), d => TypeFoodsAsync(d, criteria, null, lines: false));
-
-        private sealed record IndexedAlcohol(Dictionary<long, RecipeAlcohol> Recipes, DietLineIndex.Snapshot Reading);
-
-        private static Func<ApplicationDbContext, Task<IndexedAlcohol>> IndexedAlcoholAsync(long nutrientId, DietLineIndex index, DietLineIndex.Snapshot reading) => async d =>
-        {
-            var current = index.Current(d) ?? reading;
-            return new IndexedAlcohol(await RecipeAlcoholAsync(d, nutrientId, null, current.DrinkLines), current);
-        };
-
-        /// <summary>
-        /// The recipes the capped alcohol criteria of the types exclude (<see cref="RetainedRecipesAsync"/>), from kept
-        /// counts read on the line index's drink lines and never computed in line, with the recipe id up to which those
-        /// counts have read the drink lines; null while one is not kept yet or before the index has a reading. A count
-        /// is kept with the reading it was made on and is fresh only while that reading is the published one (review
-        /// CK9S-1): one made on an earlier reading is served while it is made again, and holds nothing past what that
-        /// reading had read.
-        /// </summary>
-        public static async Task<(HashSet<long> Recipes, long ReadUpTo)?> RetainedPeekAsync(ApplicationDbContext db, IReadOnlyCollection<DietDataCriterion> criteria, DietGateCache cache, DietLineIndex index)
-        {
-            var result = new HashSet<long>();
-            var readUpTo = long.MaxValue;
-            foreach (var type in criteria.GroupBy(c => c.RestrictionTypeId))
-            {
-                if (RetainedCriterion(type) is not { } capped) continue;
-                if (index.Current(db) is not { } reading) return null;
-                var nutrientId = capped.NutrientId!.Value;
-                var alcohol = await cache.PeekAsync(db, IndexedRetainedKey(nutrientId), IndexedAlcoholAsync(nutrientId, index, reading), v => ReferenceEquals(v.Reading, index.Current(db)));
-                if (alcohol == null) return null;
-                result.UnionWith(alcohol.Recipes.Where(a => a.Value.Excludes(capped.MaxAmountPerServing!.Value)).Select(a => a.Key));
-                readUpTo = Math.Min(readUpTo, alcohol.Reading.DrinkReadUpTo);
-            }
-            return (result, readUpTo);
-        }
-
-        /// <summary>
-        /// Computes into the cache, for the line index's reading, the food probe of every restriction type with a
-        /// pattern or a nutrient criterion, with all its criteria and with those of severity 4 and 5 (a person's
-        /// search reads those), the types a restriction names first; with <paramref name="inUseOnly"/>, only the types a
-        /// restriction names (a later warm, after a write: a type no one holds is refreshed when a household set first
-        /// reads it, while its kept value is served). A value that is fresh is kept; a stale or missing one is computed
-        /// here, up to <see cref="WarmParallelism"/> at once. Returns how many were computed.
-        /// </summary>
-        public static async Task<int> WarmFoodsAsync(ApplicationDbContext db, DietGateCache cache, bool inUseOnly = false)
-        {
-            var before = cache.Computations;
-            var inUse = (await db.Restrictions.AsNoTracking()
-                    .Where(r => r.RestrictionTypeId != null)
-                    .Select(r => r.RestrictionTypeId!.Value)
-                    .Distinct()
-                    .ToListAsync())
-                .ToHashSet();
-            var typeIds = await db.Set<RestrictionCriterionEntity>().AsNoTracking()
-                .Where(c => c.NutrientId != null || c.IngredientPattern != null)
-                .Select(c => c.RestrictionTypeId)
-                .Distinct()
-                .ToListAsync();
-            var criteria = await CriteriaAsync(db, typeIds);
-            var lists = criteria.GroupBy(c => c.RestrictionTypeId)
-                .SelectMany(g => new[] { g.ToList(), g.Where(c => c.Severity >= 4).ToList() })
-                .Where(l => l.Count > 0 && (!inUseOnly || inUse.Contains(l[0].RestrictionTypeId)))
-                .DistinctBy(FoodsOnlyKey)
-                .OrderBy(l => inUse.Contains(l[0].RestrictionTypeId) ? 0 : 1)
-                .ToList();
-            var work = lists.Select(list => (Func<ApplicationDbContext, Task>)(d => cache.EnsureFreshAsync(d, FoodsOnlyKey(list), x => TypeFoodsAsync(x, list, null, lines: false)))).ToList();
-            await RunApartAsync(db, work, WarmParallelism);
-            return cache.Computations - before;
-        }
-
-        /// <summary>Computes into the cache the retained alcohol each capped alcohol criterion counts, on the line index's published reading of the drink lines, unless the kept count was made on that reading; returns how many were computed.</summary>
-        public static async Task<int> WarmRetainedAsync(ApplicationDbContext db, DietGateCache cache, DietLineIndex index)
-        {
-            var before = cache.Computations;
-            var rows = await db.Set<RestrictionCriterionEntity>().AsNoTracking()
-                .Where(c => c.NutrientId != null)
-                .Select(c => c.RestrictionTypeId)
-                .Distinct()
-                .ToListAsync();
-            var criteria = await CriteriaAsync(db, rows);
-            if (index.Current(db) is not { } reading) return 0;
-            foreach (var nutrientId in criteria.GroupBy(c => c.RestrictionTypeId).Select(t => RetainedCriterion(t)?.NutrientId).OfType<long>().Distinct())
-                await cache.EnsureFreshAsync(db, IndexedRetainedKey(nutrientId), IndexedAlcoholAsync(nutrientId, index, reading), v => ReferenceEquals(v.Reading, index.Current(db)));
-            return cache.Computations - before;
-        }
 
         /// <summary>
         /// Runs each piece of work on its own context of the same database, at most <paramref name="parallelism"/> at a
@@ -619,7 +522,7 @@ namespace Nom.Orch.Services.Support
                 .Select(ri => new RecipeLine(ri.RecipeId, ri.IngredientId, ri.RawLine));
 
         internal static string CacheKey(IEnumerable<DietDataCriterion> criteria) =>
-            DietPatternRule.Version + ";" + StatementLabelTerms.Version + ";" + DietMeasureWords.Version + ";" + string.Join(';', criteria.OrderBy(c => c.Id).Select(c => string.Create(CultureInfo.InvariantCulture, $"{c.Id}:{c.WordPattern}:{c.LikePattern}:{c.NutrientId}:{c.NutrientName}:{c.MaxAmountPerServing}:{c.Rule?.TypeName}")));
+            DietPatternRule.Version + ";" + StatementLabelTerms.Version + ";" + DietDishes.Version + ";" + DietMeasureWords.Version + ";" + string.Join(';', criteria.OrderBy(c => c.Id).Select(c => string.Create(CultureInfo.InvariantCulture, $"{c.Id}:{c.WordPattern}:{c.LikePattern}:{c.NutrientId}:{c.NutrientName}:{c.MaxAmountPerServing}:{c.Rule?.TypeName}")));
 
         private static async Task<TypeProbe> TypeFoodsAsync(ApplicationDbContext db, IReadOnlyList<DietDataCriterion> criteria, IReadOnlyCollection<long>? scope, bool lines = true)
         {
@@ -776,7 +679,7 @@ namespace Nom.Orch.Services.Support
             }
             var allergens = PreparedContentsService.Allergens(row);
             foreach (var a in allergens.Declared.Concat(allergens.Advisory)) Add(a.Word);
-            return string.Join(' ', words).ToLowerInvariant();
+            return DietPatternRule.Fold(string.Join(' ', words)).ToLowerInvariant();
         }
 
         private static async Task<HashSet<long>> AliasLineRecipesAsync(ApplicationDbContext db, IReadOnlyList<DietDataCriterion> criteria, HashSet<long> foods)

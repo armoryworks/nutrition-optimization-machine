@@ -90,6 +90,7 @@ namespace Nom.Data
         public DbSet<DietFoodStateEntity> DietFoodStates { get; set; } = default!;
         public DbSet<DietRecipeFlagEntity> DietRecipeFlags { get; set; } = default!;
         public DbSet<DietRecipeStateEntity> DietRecipeStates { get; set; } = default!;
+        public DbSet<DietGateWriteEntity> DietGateWrites { get; set; } = default!;
 
         // New Plan entities (from Mealie)
         public DbSet<HouseholdEntity> Households { get; set; } = default!;
@@ -153,6 +154,7 @@ namespace Nom.Data
         public DbSet<KitchenToolSuggestionEntity> KitchenToolSuggestions { get; set; } = default!;
         public DbSet<KitchenToolSuggestionRecipeEntity> KitchenToolSuggestionRecipes { get; set; } = default!;
         public DbSet<RecipeNutritionEntity> RecipeNutrition { get; set; } = default!;
+        public DbSet<RecipeNutritionCheckEntity> RecipeNutritionChecks { get; set; } = default!;
         public DbSet<RecipeSettingsEntity> RecipeSettings { get; set; } = default!;
         public DbSet<IngredientExtrasEntity> IngredientExtras { get; set; } = default!;
         public DbSet<ScrapingReportEntity> ScrapingReports { get; set; } = default!;
@@ -162,6 +164,8 @@ namespace Nom.Data
         public DbSet<SourceDiscoveryRunEntity> SourceDiscoveryRuns { get; set; } = default!;
         public DbSet<SourceRightsRecordEntity> SourceRightsRecords { get; set; } = default!;
         public DbSet<SourceRefusingHostEntity> SourceRefusingHosts { get; set; } = default!;
+        public DbSet<RecipeRemovalEntity> RecipeRemovals { get; set; } = default!;
+        public DbSet<RecipeRemovalRunEntity> RecipeRemovalRuns { get; set; } = default!;
         public DbSet<ScrapedDocumentEntity> ScrapedDocuments { get; set; } = default!;
         public DbSet<ProseStockPhraseEntity> ProseStockPhrases { get; set; } = default!;
         public DbSet<RecipeReprocessJournalEntity> RecipeReprocessJournals { get; set; } = default!;
@@ -285,6 +289,73 @@ namespace Nom.Data
             }
         }
 
+        /// <summary>
+        /// Saves with every row marked deleted deleted outright, with no soft delete: for a purge that must leave no copy of
+        /// what it removes.
+        /// </summary>
+        public async Task<int> SaveHardDeletesAsync(CancellationToken cancellationToken = default)
+        {
+            _hardDelete = true;
+            try
+            {
+                return await SaveChangesAsync(cancellationToken);
+            }
+            finally
+            {
+                _hardDelete = false;
+            }
+        }
+
+        /// <summary>
+        /// Saves without stamping the modified rows' LastModifiedDate and LastModifiedByPersonId: for a soft delete and its undo
+        /// that must leave each row as it was, so no lane reads the admin who ran them as the rows' editor.
+        /// </summary>
+        public async Task<int> SaveKeepingModifiedAsync(CancellationToken cancellationToken = default)
+        {
+            _keepModified = true;
+            try
+            {
+                return await SaveChangesAsync(cancellationToken);
+            }
+            finally
+            {
+                _keepModified = false;
+            }
+        }
+
+        private bool _keepModified;
+
+        /// <summary>
+        /// Holds every save until the returned scope is disposed: a save then writes nothing and leaves its changes in the change
+        /// tracker, so a dry run can run the code that writes and read there what it would have written. Writes that do not go
+        /// through a save (raw SQL, bulk updates) are not held; a dry run that may reach one runs in a transaction it rolls back.
+        /// </summary>
+        public IDisposable HoldWrites()
+        {
+            _writesHeld = true;
+            return new HeldWrites(this);
+        }
+
+        /// <summary>Whether saves are held (<see cref="HoldWrites"/>).</summary>
+        public bool WritesHeld => _writesHeld;
+
+        private bool _writesHeld;
+
+        private sealed class HeldWrites : IDisposable
+        {
+            private readonly ApplicationDbContext _db;
+
+            public HeldWrites(ApplicationDbContext db) => _db = db;
+
+            public void Dispose() => _db._writesHeld = false;
+        }
+
+        public override int SaveChanges(bool acceptAllChangesOnSuccess) =>
+            _writesHeld ? 0 : base.SaveChanges(acceptAllChangesOnSuccess);
+
+        public override Task<int> SaveChangesAsync(bool acceptAllChangesOnSuccess, CancellationToken cancellationToken = default) =>
+            _writesHeld ? Task.FromResult(0) : base.SaveChangesAsync(acceptAllChangesOnSuccess, cancellationToken);
+
         public override int SaveChanges()
         {
             ApplyAuditInformation();
@@ -322,7 +393,7 @@ namespace Nom.Data
                     baseEntity.CreatedByPersonId = baseEntity.CreatedByPersonId ?? currentPersonId;
                 }
 
-                if (entry.State == EntityState.Modified)
+                if (entry.State == EntityState.Modified && !_keepModified)
                 {
                     baseEntity.LastModifiedDate = now;
                     baseEntity.LastModifiedByPersonId = baseEntity.LastModifiedByPersonId ?? currentPersonId;

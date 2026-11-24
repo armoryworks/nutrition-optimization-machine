@@ -46,6 +46,13 @@ namespace Nom.Orch.Interfaces
         /// <summary>Approves a proposal and applies it to the catalog.</summary>
         Task<bool> ApplyProposalAsync(long proposalId, long reviewerPersonId);
 
+        /// <summary>
+        /// What approving a proposal would do, with nothing written: whether it would apply or why not, and for a USDA link
+        /// the lines its merge would move, the moves the diet guard holds and the restriction types its target would newly
+        /// count (staging checkpoint 6, R17); null when there is no such proposal.
+        /// </summary>
+        Task<FoodProposalApplyPreview?> PreviewProposalAsync(long proposalId, long reviewerPersonId);
+
         Task<bool> RejectProposalAsync(long proposalId, long reviewerPersonId);
 
         /// <summary>Applies each proposal in turn; ones that no longer apply are skipped, not failed.</summary>

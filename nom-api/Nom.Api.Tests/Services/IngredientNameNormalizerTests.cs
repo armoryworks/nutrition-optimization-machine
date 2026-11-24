@@ -31,6 +31,11 @@ namespace Nom.Api.Tests.Services
         [InlineData("half an onion", "onion")]
         [InlineData("1 tsp each of cloves, cinnamon and nutmeg", "cloves, cinnamon and nutmeg")]
         [InlineData("2 cloves garlic", "garlic")]
+        [InlineData("4 ounces / 115g mozzarella", "mozzarella")]
+        [InlineData("1/4 cup / 35g flour", "flour")]
+        [InlineData("190g all-purpose flour", "all-purpose flour")]
+        [InlineData("100 g plain Greek yogurt", "plain Greek yogurt")]
+        [InlineData("60g cheddar cheese, shredded", "cheddar cheese, shredded")]
         public void Strips_quantity_unit_and_prep_noise(string raw, string expected)
         {
             Assert.Equal(expected, IngredientNameNormalizer.Normalize(raw));
