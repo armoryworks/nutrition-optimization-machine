@@ -219,7 +219,7 @@ namespace Nom.Api.Tests.Services.MealPlan
             {
                 var groups = (await catalog.ReadAsync(after, Math.Min(after + DietGateStoreBuilder.LineWindow, catalog.Ids[^1]))).GroupBy(l => l.RecipeId).Select(g => g.ToList()).ToList();
                 lines += groups.Sum(g => g.Count);
-                Parallel.ForEach(groups, recipe => readings[recipe[0].RecipeId] = matcher.Read(recipe, true).Rules);
+                await Task.Run(() => Parallel.ForEach(groups, recipe => readings[recipe[0].RecipeId] = matcher.Read(recipe, true).Rules));
             }
             clock.Stop();
             _output.WriteLine($"read {lines:N0} lines of {readings.Count:N0} recipes in {clock.Elapsed.TotalSeconds:F1} s");

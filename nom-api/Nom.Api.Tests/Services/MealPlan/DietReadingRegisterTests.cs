@@ -4,6 +4,7 @@ using System.Linq;
 using System.Runtime.CompilerServices;
 using System.Text;
 using System.Text.RegularExpressions;
+using System.Threading.Tasks;
 using FluentAssertions;
 using Nom.Api.Tests.Golden;
 using Nom.Import.Golden;
@@ -59,10 +60,14 @@ namespace Nom.Api.Tests.Services.MealPlan
             return table.ToString();
         }
 
+        internal static Task<string> RegisterTableAsync() => Task.Run(RegisterTable);
+
         [Fact]
-        public void Every_catalog_text_the_word_rule_reads_otherwise_than_ilike_is_in_the_reviewed_register()
+        public async Task Every_catalog_text_the_word_rule_reads_otherwise_than_ilike_is_in_the_reviewed_register()
         {
-            var actual = RegisterTable();
+            var reading = RegisterTableAsync();
+            reading.IsCompleted.Should().BeFalse("the register is read on the thread pool, so the test runner's thread is free for the async tests while the minutes of reading last");
+            var actual = await reading;
             var expected = File.Exists(RegisterPath()) ? File.ReadAllText(RegisterPath()) : string.Empty;
             if (actual != expected) _output.WriteLine(actual);
             actual.Should().Be(expected, "a change to the reading shows here as a diff a person reviews (the new register is in the test output)");
