@@ -71,7 +71,17 @@ script lives in `ops/` because it fetches; nom-api never fetches a recipe site.
      grated" / "Parmesan cheese"), takes the next line unless it starts with an amount, and a line
      that is only a bracket, "(optional)", always joins the line before: P26, 5 of 337) and the Directions
      section (numbered steps take their block; the first unnumbered block after them, a note, ends
-     them), up to Recipe Notes and the nutrition line.
+     them), up to Recipe Notes and the nutrition line. A notes heading is only a line that is the
+     heading alone ("Recipe Notes", "Notes:", "Tips"); a nutrition heading may carry its figures on
+     the line but is never followed by a closing bracket. A card whose kept ingredient lines are fewer
+     than half the lines of its list (from the Ingredients heading to the next section heading) that
+     start with an amount is dropped by the reader's own check, `reader check: kept N of the M ...`
+     (staging checkpoint 5, Q23: the arepas card's wrapped "Notes)" of "see Recipe / Notes)" ended
+     its list, and the record kept 1 of 12 lines and passed the number check). A line after "de", "del",
+     "di", "du", "des" or "della" continues it ("Pico de" / "Gallo"), and a card with a line that starts a
+     new ingredient inside a text block without an amount (a wrap the joiner did not join) is dropped by
+     the same check, `reader check: a line inside an ingredient block ...` (review of Q23: the arepas card
+     still split its toppings line).
    - `html` (NHLBI): the title, the sentence under it as the description, the Ingredients and
      Directions blocks, and the labelled times and yield. The directions end at the page furniture
      after them, the "Recipe Video" widget label included (staging checkpoint 3, N30, 7 of 54).

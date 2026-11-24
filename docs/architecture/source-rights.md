@@ -84,6 +84,50 @@ sentences that grant it). It is journaled (`SourcePermission` on field `Permissi
 permission-needed, forbidden or facts-only to **clear** for that source (`SourceRightsService.EffectiveClass`):
 the stored class stays what the report says. Undo restores the old facts from the journal.
 
+### A class recorded by hand
+
+A class otherwise comes only from a scraper report, so a host whose own words already forbid automated access
+could be classed only by a request to it (staging checkpoint 5, Q22). An admin records a class by hand instead:
+`POST api/ScrapingSource/rights/by-hand?apply=` (dry run unless `apply=true`) with the host, the class, the site's
+own deciding words (`quote`, at most 1,000 characters), the page they stand on (`quoteUrl`, http or https) and the
+date they were read (`readOn`, not in the future), or the form "Classes recorded by hand" on Admin → Scraping
+Sources. It is stored in `recipe.SourceRightsRecord` (host without `www.`, class, quote, page, date, who and when)
+and journaled twice over: one row on the record (`EntityType` `SourceRightsRecord`, `SourceRightsByHand`) and one
+per source it sets (`SourceRightsByHand` on `Rights`, the source's old class kept in the row).
+
+- **What it holds.** Every web source of the host (the bare and the `www.` row) takes the class, the quote and the
+  page, with `ScrapingSource.RightsRecordId` naming the record, and its recipes are re-stamped as for any class. A
+  candidate of the host, and a host NOM has no row for yet, are held by the record too; a source added later for the
+  host takes it at the source lane's next tick (`SourceRightsService.ApplyRecordsAsync`, run before each check and
+  discovery run).
+- **The lane never overwrites it.** A verdict of a later report (`ApplyVerdict`, the weekly re-check, the stale
+  re-derive, a candidate approval) leaves a class recorded by hand as it is; only the AI flag may still rise.
+- **A forbidden or permission-needed class by hand is never fetched**, with the rights gate on or off
+  (`SourceRightsService.HeldByHand`): no weekly check, no terms-only check (an admin's is refused too), no seed, no
+  harvest, no URL import or staged import, and the host goes on every discovery job's exclusion list like any barred
+  host, as a source or as a host with no row. A candidate of the host gets no check and cannot be approved.
+- **The rule.** A class recorded by hand may be as strict as the class a source's check gave it, or stricter
+  (clear, facts-only, permission-needed, forbidden, in that order), never laxer, and never laxer than the class the
+  candidate's last report gives; **clear** only when every source of the host holds a recorded written permission
+  (the permission rule above). **Forbidden** needs a quote that `RightsSentences` reads as forbidding automated access
+  or reuse; a fact such as "the terms page answers a bot challenge" is recorded as permission-needed. One record
+  stands per host: the same class, quote and page again is "already recorded"; a different one is refused until the
+  standing record is undone.
+- **Undo.** Undoing the record's journal row (or a source row it wrote) withdraws the record as a whole: every source
+  it set goes back to the class it had before (from that source's own row), a facts-only withhold it made is ended
+  where it is still the recipe's latest prose change, each is journaled as `SourceUndo`, and the record is kept,
+  marked withdrawn. The lane then classes the host by its own checks again. Those undo rows cannot themselves be
+  undone: a class they would bring back stood on a record that is withdrawn, so it is recorded again instead.
+- **Shown** on Admin → Scraping Sources beside the class badge ("Recorded by hand by person N on DATE (read DATE)",
+  `scraping-source-rights-by-hand`; a class from a check says "Derived by rule from its check",
+  `scraping-source-rights-by-lane`), in the list "Classes recorded by hand" (`scraping-sources-by-hand-item`, with
+  its undo) and in the journal. `GET api/ScrapingSource/rights/by-hand` lists the records that stand.
+- **Loading a list.** `ops/source-rights-record.py` sends a TSV (host, class, quote, page, date; each quote under 25
+  words) through the route, a dry run unless `--apply`. `ops/source-rights/forbidding-hosts.tsv` holds the seven
+  hosts of the 2026-11-20/21 re-judging (`source-rejudge.md`, resolution (d)) whose own words forbid automated
+  access or reuse: eatingwell, seriouseats, pinchofyum, skinnytaste, budgetbytes (both rows), sallysbakingaddiction,
+  davidlebovitz. A test records every row in a dry run under the rule.
+
 ## What the class gates
 
 With `SourceRights:Enforce` (true in `appsettings.json`, off when there is no configuration, as in the
@@ -228,9 +272,17 @@ element's first word when that word starts a sentence ("James BeardUsing"; "Harp
 by Yotam Ottolenghi" stays whole. A possessive ending is dropped, a word the length limit (160
 characters) cut is left out, and a name made only of places, nationalities or languages ("Recipe from
 South America") is no credit (staging checkpoint 3, N26: 18 of 50 proposed credits were malformed;
-`credit-lines.tsv`). The credit is stored on
+`credit-lines.tsv`). A person's name after "by" ends where the next sentence's first word runs into it with
+no stop between (staging checkpoint 5, Q24: 4 of 48 wrong): a capitalised word after two name words that the
+text goes on from in lower case ("by Cal Peternell Red chile flakes", "by Fabrizia Lanza As mentioned"), and a
+capital glued to the second name word before lower-case text ("by Rebecca LefflerLentils double", "by Danielle
+OronI tend"). A name of two words is never cut, and a word such as "with", "and", "who" or "writes" after a name
+ends nothing, nor does a credit word ("copyright", "courtesy", "photography", "via", "reprinted" and the like:
+"by Nancy Singleton Hachisu courtesy of the publisher" keeps the surname); a three-word name followed by a verb is the one shape this reads short. A publisher in brackets
+before "by" is left out, so the author is kept ("Burma: Rivers of Flavor (Artisan), by Naomi Duguid" is
+"Adapted from Burma: Rivers of Flavor by Naomi Duguid"). The credit is stored on
 `Recipe.SourceCredit` at import and by a backfill step from the stored JSON-LD or record
-(`rights/credits`, journaled `RecipeSourceCredit`, undone by stamp, `ruleVersion` `credit-lines/3`), and shown in the recipe page next to
+(`rights/credits`, journaled `RecipeSourceCredit`, undone by stamp, `ruleVersion` `credit-lines/4`), and shown in the recipe page next to
 the source link (`recipe-source-credit`). The reduction below reads credits before the prose goes.
 
 ## Prose retention
@@ -305,7 +357,12 @@ rights fields can be undone from the source journal while the source still holds
 undo can be undone. An undone class keeps the check and rule it was derived from, so the tick's re-derive
 of stale sources leaves it; the next new check derives the class again, by rule (a class is an engine
 property of the newest report, not an admin's choice: a disagreement is settled by a permission, a
-facts-only approval, or a rule change).
+facts-only approval, or a rule change). The one exception is a class recorded by hand (above), which only
+makes a class stricter on the site's own quoted words and which no report overwrites.
+
+An undo of a recipe step by its stamp (`rights/undo`) counts a row an earlier undo already put back as
+**already undone** (`alreadyUndone`, skip reason `already undone`; staging checkpoint 5, Q26), not as a title
+or credit "changed since", and an older stamp never undoes a later run of the same step.
 
 ## Recipes already taken from forbidden and permission-needed sources
 

@@ -347,7 +347,7 @@ namespace Nom.Orch.Services
             switch (status)
             {
                 case ScrapingSourceStatusEnum.Approved:
-                    if (_rightsGate && await SourceOfAsync(url) is { } source && source.Kind == ScrapingSourceEntity.WebKind && SourceRightsService.FetchRefusal(source) is { } refusal)
+                    if (await SourceOfAsync(url) is { } source && source.Kind == ScrapingSourceEntity.WebKind && (_rightsGate || SourceRightsService.HeldByHand(source)) && SourceRightsService.FetchRefusal(source) is { } refusal)
                     {
                         return new RecipeScrapingResponseModel { Success = false, SourcePendingApproval = false, Error = refusal };
                     }
@@ -465,8 +465,8 @@ namespace Nom.Orch.Services
                         publicDomain = source.LicenceKind != null && Support.SourceAdmissionPolicy.PublicDomainLicences.Contains(source.LicenceKind);
                     }
 
-                    if (_rightsGate && normalizedUrl != null && (gateSource ?? await SourceOfAsync(normalizedUrl)) is { Kind: ScrapingSourceEntity.WebKind } rightsSource
-                        && SourceRightsService.FetchRefusal(rightsSource) is { } rightsRefusal)
+                    if (normalizedUrl != null && (gateSource ?? await SourceOfAsync(normalizedUrl)) is { Kind: ScrapingSourceEntity.WebKind } rightsSource
+                        && (_rightsGate || SourceRightsService.HeldByHand(rightsSource)) && SourceRightsService.FetchRefusal(rightsSource) is { } rightsRefusal)
                     {
                         result.Refused++;
                         result.Failures.Add(new StagedImportFailureModel { Name = scraped.Name, Error = "Refused: " + rightsRefusal });

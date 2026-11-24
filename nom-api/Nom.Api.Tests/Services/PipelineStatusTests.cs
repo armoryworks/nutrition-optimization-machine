@@ -440,6 +440,24 @@ namespace Nom.Api.Tests.Services
             status.Recipes.ProseWithheld.Should().Be(1);
         }
 
+        [Fact]
+        public async Task Recipes_withheld_as_copy_unsure_are_counted_as_their_own_figure_of_the_withheld()
+        {
+            await using var db = await SeededAsync();
+            db.Recipes.AddRange(
+                Recipe("copy-unsure approved", 9003).With(r => { r.ProseWithheld = true; r.ProseCopyUnsure = true; }),
+                Recipe("copy-unsure waiting", 9000).With(r => { r.ProseWithheld = true; r.ProseCopyUnsure = true; }),
+                Recipe("copied", 9003).With(r => r.ProseWithheld = true),
+                Recipe("released, mark left", 9003).With(r => r.ProseCopyUnsure = true));
+            await db.SaveChangesAsync();
+
+            var status = await Service(db).GetAsync();
+
+            status.Recipes.ProseWithheld.Should().Be(3);
+            status.Recipes.ProseCopyUnsure.Should().Be(2);
+            status.Recipes.ProseCopyUnsureApproved.Should().Be(1);
+        }
+
         private static AuditLogEntryEntity Audit(long recipeId, string changeType, string newValue, DateTime at) => new()
         {
             EntityType = "Recipe",

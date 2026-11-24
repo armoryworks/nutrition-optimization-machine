@@ -85,6 +85,7 @@ namespace Nom.Api.Tests.Golden
             var resolver = new HouseholdRestrictionResolver(db);
             var set = await resolver.ResolveAsync(HouseholdId);
             await Nom.Api.Tests.Services.MealPlan.DietLineIndexTests.AssertIndexAgreesAsync(db, HouseholdId, PersonId);
+            await Nom.Api.Tests.Services.MealPlan.DietGateStoreTests.AssertStoreAgreesAsync(db, HouseholdId, PersonId);
             var plan = set.IngredientIds.Contains(food.Id) || set.RecipeIds.Contains(recipe.Id);
             var service = new RecipeOrchestrationService(db, new HttpContextAccessor(), new Mock<ICurrentUserService>().Object,
                 new Mock<Nom.Orch.UtilityInterfaces.IMediaStorageService>().Object, new Mock<IRecipeNutritionService>().Object);
@@ -114,7 +115,7 @@ namespace Nom.Api.Tests.Golden
         private static bool OldRule(GoldenRow row) =>
             Patterns(row["restriction"]).Select(Like).Any(p => p.IsMatch(row["food"]) || Aliases(row["aliases"]).Any(a => p.IsMatch(a.Text)));
 
-        private static bool LineNamesPattern(GoldenRow row) => Patterns(row["restriction"]).Any(p => DietPatternRule.For(p).IsMatch(row["line"]));
+        private static bool LineNamesPattern(GoldenRow row) => Patterns(row["restriction"]).Any(p => DietPatternRule.For(p, row["restriction"]).IsMatch(row["line"]));
 
         private static async Task<Dictionary<string, Verdict>> VerdictsAsync()
         {

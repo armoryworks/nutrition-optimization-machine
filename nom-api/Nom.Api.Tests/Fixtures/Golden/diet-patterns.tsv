@@ -446,3 +446,30 @@ dp-444	Milk Allergy	1 coconut cream pie	hit	ok	rule:label-terms	review CK9T-4: a
 dp-445	Egg Allergy	1 coconut cream pie	hit	ok	rule:label-terms	review CK9T-4: the pie's cooked filling holds egg (composite row)
 dp-446	Milk Allergy	2 cups crushed peanut butter cookies	hit	agent	agent-ck9-diet-terms	review CK9T-4: butter held on the safe side, as recipes and brands vary
 dp-447	Milk Allergy	1 can coconut cream	clear	ok	rule:diet-patterns	coconut cream alone stays a named exception of %cream%
+dp-cov-01	Celiac Disease	1 box angel food cake mix	hit	ok	rule:diet-patterns	staging checkpoint 5, Q5: a cake mix is wheat flour (%cake%, the head of Baked Products, diet-vocabulary.tsv)
+dp-cov-02	Wheat Allergy	1 cup broken macaroni	hit	ok	rule:diet-patterns	Q5 and Q19: macaroni, a head of Cereal Grains and Pasta (21 CFR 139.110)
+dp-cov-03	Wheat Allergy	1 French baguette, sliced	hit	ok	rule:diet-patterns	Q5: a baguette is wheat bread (21 CFR 136.110)
+dp-cov-04	Celiac Disease	2 cups Bisquick	hit	ok	rule:diet-patterns	Q5: Bisquick is wheat flour (label-terms.tsv composite)
+dp-cov-05	Wheat Allergy	8 oz uncooked fettuccine	hit	ok	rule:diet-patterns	Q5: a pasta ribbon (21 CFR 139.150)
+dp-cov-06	Wheat Allergy	1/2 cup graham meal	hit	ok	rule:diet-patterns	Q5: graham flour is whole wheat flour (21 CFR 137.200); %ham% still clears graham
+dp-cov-07	Celiac Disease	12 lady fingers	hit	ok	rule:diet-patterns	Q5: lady fingers are a sponge of eggs, sugar and flour (FARMER)
+dp-cov-08	Wheat Allergy	1 lb rigatoni	hit	ok	rule:diet-patterns	Q5: a pasta shape (21 CFR 139.110)
+dp-cov-09	Celiac Disease	4 oz thin vermicelli	hit	ok	rule:diet-patterns	Q5: vermicelli (21 CFR 139.110(e))
+dp-cov-10	Wheat Allergy	1 package frozen pizza rolls	hit	ok	rule:diet-patterns	Q19: pizza rolls are wheat dough (label-terms.tsv composite)
+dp-cov-11	Celiac Disease	3 cups panettone, cubed	hit	ok	rule:diet-patterns	Q5: panettone is wheat flour, egg yolk, butter and raisins (IT-DM-2005)
+dp-cov-12	Egg Allergy	1 cup Allemande sauce	hit	ok	rule:diet-patterns	Q19: velouté thickened with egg yolks (ESCOFFIER)
+dp-cov-13	Egg Allergy	2 cups stale sponge cake	hit	ok	rule:diet-patterns	Q19: sponge cake is eggs, sugar and flour (FARMER)
+dp-cov-14	Sulfite Sensitivity	4 maraschino cherries, sliced	hit	ok	rule:diet-patterns	Q19: cherries held in a sulfur dioxide brine (WIEGAND)
+dp-cov-15	Sulfite Sensitivity	1/2 cup dry sherry	hit	ok	rule:diet-patterns	Q13: sherry is a wine (27 CFR 4.24(b)(2)); companion of %wine%
+dp-cov-16	Histamine Intolerance	1/2 cup dry Madeira	hit	ok	rule:diet-patterns	Q13: Madeira is a wine (27 CFR 4.24(b)(2)); the seeded type holds %wine% and gets its companion
+dp-cov-17	Sulfite Sensitivity	1 lb portobello mushrooms	clear	ok	rule:diet-patterns	Q13: a mushroom, a named exception of %port%
+dp-cov-18	Tree Nut Allergy	1 cup chopped nuts	hit	agent	agent-ck10-diet-coverage	a nut a line does not name may be a tree nut (FARE: nut pieces)
+dp-cov-19	Peanut Allergy	1/2 cup pine nuts	clear	ok	rule:diet-patterns	a tree nut named as such, no peanut; a scoped exception of % nut%
+dp-cov-20	Celiac Disease	1 cup sorghum flour	clear	ok	rule:diet-patterns	Q19: sorghum is gluten-free (Celiac Disease Foundation); a named exception of %flour%
+dp-cov-21	Wheat Allergy	10 corn tortillas	clear	ok	rule:diet-patterns	Q19: a maize flatbread
+dp-cov-22	Milk Allergy	1/2 cup apple butter	clear	ok	rule:diet-patterns	Q19: apples cooked down to a spread
+dp-cov-23	Egg Allergy	1 tbsp flaxseed meal (to make a flax egg)	clear	ok	rule:diet-patterns	Q19: an egg replacer of flaxseed and water
+dp-cov-24	Halal	4 slices meatless bacon	clear	ok	rule:diet-patterns	Q19: a meat analogue, a scoped exception of %bacon%
+dp-cov-25	Celiac Disease	1 jar spaghetti sauce	clear	ok	rule:diet-patterns	Q19: a tomato sauce, a scoped exception of %spaghetti%
+dp-cov-26	Wheat Allergy	1 cake compressed yeast	clear	ok	rule:diet-patterns	a cake of yeast is a block, the measure of old cookbooks
+dp-cov-27	Sesame Allergy	1 lb tilapia fillets	clear	ok	rule:diet-patterns	a fish, a named exception of % til%

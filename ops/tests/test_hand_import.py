@@ -456,6 +456,39 @@ class RecordTests(unittest.TestCase):
             "2 cups cooked green beans",
         ], "staging checkpoint 4, P26: five VA recipes still split a wrapped line; a line with an amount that ends in ', grated' is whole")
 
+    def test_a_wrapped_notes_line_is_no_heading_and_a_card_keeping_far_fewer_lines_than_its_list_fails_the_readers_check(self):
+        wrapped = CARD_TEXT.replace("1 tablespoon olive oil\n",
+                                    "2 cups corn flour (masa harina; see Recipe\nNotes)\n\n1 tablespoon olive oil\n")
+        record, why = hand.parse_card("Garden Bean Skillet", wrapped)
+        self.assertIsNone(why)
+        self.assertEqual([i["rawLine"] for i in record["ingredients"]], [
+            "2 cups corn flour (masa harina; see Recipe Notes)",
+            "1 tablespoon olive oil",
+            "1/2 medium onion, diced (about 1/2 cup)",
+            "2 cups cooked green beans",
+        ], "staging checkpoint 5, Q23: the wrapped 'Notes)' ended the list and the arepas card kept 1 of 12 lines")
+        self.assertIsNone(hand.number_check(record, wrapped))
+        self.assertEqual(len(hand.parse_card("Garden Bean Skillet", CARD_TEXT)[0]["ingredients"]), 3, "the notes heading alone still ends the list")
+
+        cut = wrapped.replace("Notes)\n", "Notes\n")
+        record, why = hand.parse_card("Garden Bean Skillet", cut.replace("1 tablespoon olive oil\n", "1 tablespoon olive oil\n\n2 cloves garlic\n\n1 lemon\n"))
+        self.assertIsNone(record)
+        self.assertIn("reader check", why)
+
+    def test_a_line_after_de_is_joined_and_a_line_left_apart_inside_an_ingredient_block_fails_the_readers_check(self):
+        toppings = CARD_TEXT.replace("2 cups cooked green beans\n",
+                                     "2 cups cooked green beans\n\nOptional toppings: Shredded cheese, Pico de\nGallo, black beans (drained and\nrinsed)\n")
+        record, why = hand.parse_card("Garden Bean Skillet", toppings)
+        self.assertIsNone(why)
+        self.assertEqual(record["ingredients"][-1]["rawLine"], "Optional toppings: Shredded cheese, Pico de Gallo, black beans (drained and rinsed)",
+                         "review of staging checkpoint 5, Q23: the arepas card split 'Pico de' / 'Gallo, ...' into two ingredients")
+
+        apart = CARD_TEXT.replace("1 tablespoon olive oil\n", "1 tablespoon olive oil\nNonstick cooking spray\n")
+        record, why = hand.parse_card("Garden Bean Skillet", apart)
+        self.assertIsNone(record)
+        self.assertIn("reader check", why)
+        self.assertIn("Nonstick cooking spray", why)
+
     def test_each_named_time_of_a_card_header_is_read_and_a_chill_or_inactive_time_is_not_kept_on_its_own(self):
         for header, expected in [
             ("Prep: 15 minutes | Chill: 20 minutes| Cook: 20 minutes | Total: 55 minutes", (15, 20, 55)),

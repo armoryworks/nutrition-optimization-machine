@@ -26,6 +26,8 @@ namespace Nom.Orch.Models.Curation
     {
         public int LinesExamined { get; set; }
         public int MoveCount { get; set; }
+        /// <summary>Moves left out because they would lower a recipe's diet flags (<see cref="Nom.Orch.Services.Support.LineMoveDietGuard"/>).</summary>
+        public int HeldByDiet { get; set; }
         /// <summary>The moves with the most lines first.</summary>
         public List<LineRelinkMove> Samples { get; set; } = new();
     }
@@ -37,6 +39,10 @@ namespace Nom.Orch.Models.Curation
         public int Repositioned { get; set; }
         /// <summary>Lines that were no longer where the plan found them.</summary>
         public int Skipped { get; set; }
+        /// <summary>Lines left on their food because the move would lower a recipe's diet flags (<see cref="Nom.Orch.Services.Support.LineMoveDietGuard"/>); counted by a dry run too.</summary>
+        public int HeldByDiet { get; set; }
+        /// <summary>The first moves the diet guard held, with the restriction types each keeps.</summary>
+        public List<Nom.Orch.Services.Support.LineMoveHold> DietHolds { get; set; } = new();
         public int Remaining { get; set; }
         /// <summary>Requested wording moves left out because a food is not a live curated food or the target has no nutrition.</summary>
         public int Rejected { get; set; }
@@ -95,5 +101,9 @@ namespace Nom.Orch.Models.Curation
         public int Skipped { get; set; }
         /// <summary>Journal entries of a recipe rebuilt after them (<see cref="Nom.Orch.Services.RecipeReprocessService"/>): undo the rebuild first.</summary>
         public int SkippedRebuilt { get; set; }
+        /// <summary>Line entries left with their line where it is because moving it back would lower a recipe's diet flags (<see cref="Nom.Orch.Services.Support.LineMoveDietGuard"/>); not counted in Skipped.</summary>
+        public int HeldByDiet { get; set; }
+        /// <summary>The first moves the diet guard held, with the restriction types each keeps.</summary>
+        public List<Nom.Orch.Services.Support.LineMoveHold> DietHolds { get; set; } = new();
     }
 }

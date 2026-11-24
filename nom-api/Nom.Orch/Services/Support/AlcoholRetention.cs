@@ -64,7 +64,7 @@ namespace Nom.Orch.Services.Support
     /// </summary>
     public static class AlcoholRetention
     {
-        public const string Version = "alcohol-retention/6";
+        public const string Version = "alcohol-retention/7";
         public const string ResourceName = "Nom.Orch.Nutrition.usda-retention-r6-alcohol.tsv";
 
         /// <summary>Kilocalories per gram of alcohol, the FDC calorie factor; energy falls by this much for each gram of alcohol that does not stay.</summary>
@@ -98,7 +98,25 @@ namespace Nom.Orch.Services.Support
             @"\b(?:remove|removed|removing|take|taken|taking|lift|lifted|move|moved|set|pull)\s+(?:it\s+|them\s+|the\s+\p{L}+\s+|from\s+)?(?:from|off)\s+(?:the\s+)?(?:heat|fire|stove|burner|flame|hob)\b|\boff\s+(?:the\s+)?(?:heat|fire|flame|stove|hob)\b",
             Options);
 
-        private static readonly Regex GasFlame = new(@"\b(?:low|medium|moderate|high|gentle|slow|brisk|clear|small|good|steady|open|direct|naked|hot)\s+(?:flame|fire)\b|\bover\s+(?:a\s+|the\s+)?(?:flame|fire)\b", Options);
+        private static readonly Regex GasFlame = new(@"\b(?:low|medium|moderate|high|gentle|slow|brisk|clear|small|good|steady|open|direct|naked|hot)\s+(?:flame|fire)\b|\bover\s+(?:a\s+|the\s+)?(?:flame|fire)\b|\bon\s+(?:the|a)\s+(?:\p{L}+\s+)?(?:fire|stove|range|hob)\b", Options);
+
+        private static readonly Regex TimeOnly = new(
+            @"^\W*(?:(?:it|this|they|which|that|the\s+\p{L}+)\s+)?(?:will\s+|should\s+|must\s+|may\s+)?(?:take|takes|require|requires|want|wants|need|needs)\b|^\W*(?:about|nearly|for|in all)\b",
+            Options);
+
+        private static readonly Regex NotCooking = new(
+            @"\b(?:stand|stands|standing|rest|rests|resting|cool|cools|cooling|set|sets|setting|chill\w*|sit|sits|sitting|soak\w*|steep\w*|marinat\w*|macerat\w*|ripen\w*|mellow\w*|matur\w*|age|ages|aging|ageing|keep|keeps|freez\w*|refrigerat\w*|rise|rises|rising|prove|proves|proving|drain\w*|dry|dries|drying|before\s+serving)\b",
+            Options);
+
+        private static readonly Regex Served = new(@"\b(?:serve|serves|served|serving|send|sent|pass|eat|eaten|accompan\w*)\b", Options);
+
+        private static readonly Regex NewComponent = new(
+            @"^\W*(?:(?:for|to make|to prepare|make|prepare)\s+(?:the\s+|an?\s+|your\s+)?(?:\p{L}+\s+){0,2}?(?:icing|frosting|glaze|filling|topping|sauce|dressing|syrup|custard|batter|dough|crust|pastry|garnish|meringue|streusel|crumble|marinade|whipped cream)\b|(?:icing|frosting|glaze|filling|topping|sauce|dressing|syrup)\s*:)",
+            Options);
+
+        private static readonly Regex HotInto = new(
+            @"\b(?:into|to|over|on|in|with)\s+(?:the\s+|a\s+)?(?:\p{L}+\s+)?(?:hot|boiling|scalding|just\s+boiled)\b|\b(?:until|till)\s+(?:quite\s+|very\s+|thoroughly\s+)?hot\b",
+            Options);
 
         private static readonly Regex Stove = new(
             @"\b(?:simmer\w*|boil\w*|parboil\w*|boyl\w*|stew(?:s|ed|ing|pans?)?|brais\w*|braiz\w*|seeth\w*|coddl\w*|fricass\w*|reduc(?:e|es|ed|ing)|poach\w*|fry|fries|fried|frying|saut[eé]\w*|sear(?:s|ed|ing)?|steam(?:s|ed|ing)?|scald\w*|deglaz\w*|blanch\w*|grill\w*|microwave\w*|stir[- ]fr\w*|caramel[iy][sz]\w*|thicken\w*)\b",
@@ -116,12 +134,15 @@ namespace Nom.Orch.Services.Support
 
         private const string Number = @"(?:\d+\s+\d/\d|\d+/\d+|\d+(?:\.\d+)?|a couple of|a couple|a few|several|a|an|one|two|three|four|five|six|seven|eight|nine|ten|eleven|twelve|fifteen|twenty|twenty five|thirty|forty|forty five|fifty|sixty|ninety)";
 
-        private static readonly Regex Duration = new(@"\b(?<a>" + Number + @")(?:\s*(?:-|to|or)\s*(?<b>" + Number + @"))?\s*(?<u>hours?|hrs?|minutes?|mins?)\b", Options);
+        private static readonly Regex Duration = new(@"\b(?<a>" + Number + @")(?:\s*(?:-|to|or)\s*(?<b>" + Number + @"))?\s*(?<u>hours?|hrs?|h|minutes?|mins?)\b", Options);
 
         private static readonly Regex MoreMinutes = new(@"^\s*,?\s*(?:and\s+)?(?<a>" + Number + @")\s*(?:minutes?|mins?)\b", Options);
 
         private static readonly (Regex Pattern, string Replacement)[] Phrases =
         {
+            (new Regex(@"\b(?:an|one|1)\s+hours?\s+and\s+three\s+quarters?\b|\b(?:one|1)\s+and\s+three\s+quarters?\s+(?:of\s+an\s+)?hours?\b", Options), "105 minutes"),
+            (new Regex(@"\b(?:one|1)\s+and\s+(?:a\s+|one\s+)?quarter\s+hours?\b", Options), "75 minutes"),
+            (new Regex(@"\b(?:two|2)\s+hours?\s+and\s+a\s+quarter\b|\b(?:two|2)\s+and\s+(?:a\s+|one\s+)?quarter\s+hours?\b", Options), "135 minutes"),
             (new Regex(@"\b(?:an|one|1)\s+hours?\s+and\s+a\s+half\b|\b(?:one|1)\s+and\s+(?:a\s+|one\s+)?half\s+hours?\b|\b1\s+and\s+1/2\s+hours?\b", Options), "90 minutes"),
             (new Regex(@"\b(?:two|2)\s+hours?\s+and\s+a\s+half\b|\b(?:two|2)\s+and\s+(?:a\s+|one\s+)?half\s+hours?\b|\b2\s+and\s+1/2\s+hours?\b", Options), "150 minutes"),
             (new Regex(@"\b(?:an|one|1)\s+hours?\s+and\s+a\s+quarter\b", Options), "75 minutes"),
@@ -326,9 +347,11 @@ namespace Nom.Orch.Services.Support
             {
                 if (scan.Flame) return Of(Flamed);
                 if (after.Any(s => Frozen.IsMatch(s))) return Of(NoHeat);
-                var before = sentence[..clauseStart] + " " + (index > 0 ? sentences[index - 1] : string.Empty);
+                var ownPart = NewComponent.IsMatch(sentence) || SeparateStep.IsMatch(sentence);
+                var before = sentence[..clauseStart] + " " + (index > 0 && !ownPart ? sentences[index - 1] : string.Empty);
                 if (!Cold.IsMatch(sentence[..position])
-                    && (OffHeat.IsMatch(sentence) || OffHeat.IsMatch(before) || (AddVerb.IsMatch(sentence[clauseStart..]) && Scan(new[] { before }).Stove))) return Of(HotLiquid);
+                    && (OffHeat.IsMatch(sentence) || OffHeat.IsMatch(before) || HotInto.IsMatch(BeforeServing(sentence[clauseStart..]))
+                        || (AddVerb.IsMatch(sentence[clauseStart..]) && Scan(new[] { before }).Stove))) return Of(HotLiquid);
                 if (after.Any(s => OvernightWords.IsMatch(s))) return Of(Overnight);
                 return Of(NoHeat);
             }
@@ -367,6 +390,7 @@ namespace Nom.Orch.Services.Support
                         && i + 1 < rest.Count && JoinsBack(rest[i + 1], segment.Prepend(drinkSentence))) continue;
                     break;
                 }
+                if (NewComponent.IsMatch(sentence)) break;
                 segment.Add(sentence);
                 if (resting && OvernightWords.IsMatch(sentence) && Scan(new[] { sentence }) is { Stove: false, Oven: false, Flame: false }) continue;
                 resting = false;
@@ -381,15 +405,24 @@ namespace Nom.Orch.Services.Support
             return Mixture.Matches(next).Any(m => !DryHalf.IsMatch(m.Value) && Regex.IsMatch(text, @"\b" + Regex.Escape(m.Groups["w"].Value), Options));
         }
 
+        private static string BeforeServing(string clause) => Served.Match(clause) is { Success: true } serve ? clause[..serve.Index] : clause;
+
         private sealed record HeatScan(bool Stove, bool Oven, bool Flame, int Minutes, bool TimedOvenOnly);
 
-        private static HeatScan Scan(IEnumerable<string> sentences)
+        /// <summary>
+        /// How the sentences heat: stove, oven or flame, and the minutes their heating sentences state, added up. A sentence
+        /// that only states how long ("It will take about an hour") times the heat of the sentence before it, unless the time is
+        /// one of standing, resting, chilling or setting ("It needs to stand two hours"), which is no heat, and a range
+        /// ("12 to 15 minutes") after heat the steps give no time for (the drink boiled with the broth first) counts at its upper
+        /// end (staging checkpoint 5, Q18).
+        /// </summary>
+        private static HeatScan Scan(IReadOnlyList<string> sentences)
         {
-            bool stove = false, oven = false, flame = false, timedStove = false;
+            bool stove = false, oven = false, flame = false, timedStove = false, heatedBefore = false, stoveBefore = false, untimed = false;
             var minutes = 0;
-            foreach (var sentence in sentences)
+            for (var i = 0; i < sentences.Count; i++)
             {
-                var text = NotHeating.Replace(sentence, " ");
+                var text = NotHeating.Replace(sentences[i], " ");
                 var gas = GasFlame.IsMatch(text);
                 var withoutGas = GasFlame.Replace(text, " ");
                 var o = Oven.IsMatch(withoutGas);
@@ -398,17 +431,32 @@ namespace Nom.Orch.Services.Support
                 stove |= s;
                 oven |= o;
                 flame |= f;
-                if ((s || o) && MinutesIn(text) is { } m and > 0)
+                if ((s || o) && TimesIn(text) is { } t && t.Low > 0)
                 {
-                    minutes += m;
+                    minutes += untimed && t.High is { } high ? high : t.Low;
                     if (s) timedStove = true;
                 }
+                else if (!s && !o && heatedBefore && TimeOnly.IsMatch(text) && !NotCooking.IsMatch(text) && TimesIn(text) is { } only && only.Low > 0)
+                {
+                    minutes += only.Low;
+                    if (stoveBefore) timedStove = true;
+                    continue;
+                }
+                else if (s || o)
+                {
+                    untimed = true;
+                }
+                heatedBefore = s || o;
+                stoveBefore = s;
             }
             return new HeatScan(stove, oven, flame, minutes, minutes > 0 && !timedStove);
         }
 
         /// <summary>The first cooking time a sentence gives, in whole minutes (the lower end of a range, with "1 hour 15 minutes" read as one time); null when it gives none.</summary>
-        public static int? MinutesIn(string sentence)
+        public static int? MinutesIn(string sentence) => TimesIn(sentence)?.Low;
+
+        /// <summary>The first cooking time a sentence gives, in whole minutes, as <see cref="MinutesIn"/>, with the upper end of a range when it gives one.</summary>
+        private static (int Low, int? High)? TimesIn(string sentence)
         {
             var text = Normalize(sentence);
             var m = Duration.Match(text);
@@ -420,7 +468,8 @@ namespace Nom.Orch.Services.Support
             var total = hours ? amount.Value * 60m : amount.Value;
             if (hours && MoreMinutes.Match(text[(m.Index + m.Length)..]) is { Success: true } more && NumberOf(more.Groups["a"].Value) is { } extra)
                 total += extra;
-            return (int)Math.Floor(total);
+            int? high = m.Groups["b"].Success && NumberOf(m.Groups["b"].Value) is { } upper && upper > amount.Value ? (int)Math.Floor(hours ? upper * 60m : upper) : null;
+            return ((int)Math.Floor(total), high);
         }
 
         private static decimal? NumberOf(string text)
@@ -516,7 +565,7 @@ namespace Nom.Orch.Services.Support
         internal static string SignatureSource()
         {
             var text = new StringBuilder(Version);
-            foreach (var regex in new[] { SentenceSplit, NotHeating, OffHeat, GasFlame, Stove, GenericHeat, Oven, Flame, OvernightWords, Duration, MoreMinutes, SeparateStep, PauseStep, Frozen, Cold, ClauseVerb, DryHalf, Mixture, Soak, ClauseBreak, AddVerb, DrinkGeneric, GenericMention, MixAll, DryIngredients, NotMention, EveryBefore })
+            foreach (var regex in new[] { SentenceSplit, NotHeating, OffHeat, GasFlame, TimeOnly, NotCooking, Served, NewComponent, HotInto, Stove, GenericHeat, Oven, Flame, OvernightWords, Duration, MoreMinutes, SeparateStep, PauseStep, Frozen, Cold, ClauseVerb, DryHalf, Mixture, Soak, ClauseBreak, AddVerb, DrinkGeneric, GenericMention, MixAll, DryIngredients, NotMention, EveryBefore })
                 text.Append('\n').Append(regex);
             foreach (var (pattern, replacement) in Phrases) text.Append('\n').Append(pattern).Append('=').Append(replacement);
             foreach (var row in Rows) text.Append('\n').Append(row.Code).Append('=').Append(row.Percent.ToString(CultureInfo.InvariantCulture)).Append(':').Append(row.Minutes?.ToString(CultureInfo.InvariantCulture));

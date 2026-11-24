@@ -1,0 +1,476 @@
+# Diet vocabulary (diet-vocabulary/1): what each severe restriction class restricts, derived and measured rather than added by example (staging checkpoint 5, Q5, Q7, Q19).
+# class: the class of what a restriction restricts; DietVocabulary.Classes gives its reference type and the default types it feeds (DefaultRestrictionCriteria).
+# basis: category = the head term of every food of the frozen USDA catalog (Nom.Api.Tests/Fixtures/Golden/gate-catalog.tsv) in the categories that carry the class, by rule (DietVocabulary.Derive; categories and foods say which and how many gave it; the test checks these rows against the catalog); marker = the term a coating or treatment word of the descriptions gives (battered, sulfured); label = a name an authority lists for the class on labels.
+# decision: in = the pattern is part of the class's default patterns; covered = another pattern of the class already reads the term; out = the term is free of what the class restricts, for the cited reason, and no pattern of the class reads it.
+# pattern: the name pattern, read by words (DietPatternRule); "%term %" reads the term only as a whole word, "% term%" only where a word begins.
+# Sources: FALCPA = Federal Food, Drug, and Cosmetic Act 201(qq) and 403(w) as amended by the Food Allergen Labeling and Consumer Protection Act of 2004 and the FASTER Act of 2021. FDA-QA5 = FDA, Questions and Answers Regarding Food Allergens, edition 5 (2025). FDA-SESAME = FDA, Voluntary Disclosure of Sesame as an Allergen: Guidance for Industry (2020), the other names under which sesame appears in ingredient statements. FARE = Food Allergy Research and Education, How to Read a Label (the names of each major allergen in ingredient statements), as given in CDC, Voluntary Guidelines for Managing Food Allergies in Schools and Early Care and Education Programs (2013). 21CFR = Title 21, Code of Federal Regulations (139.110 macaroni products: dough of semolina, durum flour or farina; 136.110 bread, rolls and buns: wheat flour; 182.3616 to 182.3862 the sulfiting agents; 101.100(a)(4) sulfites declared at 10 ppm or more). SR = USDA FoodData Central SR Legacy description. CDF = Celiac Disease Foundation, gluten-free grains and flours.
+class	term	pattern	basis	categories	foods	decision	source
+wheat	amaranth grain	%amaranth grain%	category	20	2	out	gluten-free (Celiac Disease Foundation, gluten-free grains and flours); no wheat
+wheat	andrea's	%andrea's%	category	18	1	out	a maker's name, not a food: its foods are judged by the next part of their description and by their own words
+wheat	archway home style cookie	%archway home style cookie%	category	18	17	covered	rule: head of USDA Baked Products (17 foods); another pattern of the class reads it
+wheat	arrowroot flour	%arrowroot flour%	category	20	1	out	arrowroot starch; no grain (named exception of %flour%)
+wheat	artificial blueberry muffin mix	%artificial blueberry muffin mix%	category	18	1	covered	rule: head of USDA Baked Products (1 food); another pattern of the class reads it
+wheat	bagel	%bagel%	category	18	12	in	rule: head of USDA Baked Products (12 foods)
+wheat	barley	%barley%	category	20	3	out	barley is no wheat (FALCPA names wheat only); the gluten types hold it by %barley%
+wheat	barley malt flour	%barley malt flour%	category	20	1	out	malted barley flour is no wheat; the gluten types hold it by %barley% and %malt% (exception of %flour% scoped to Wheat Allergy)
+wheat	batter	%batter%	marker	5|15|25	17	in	rule: the coating word of breaded and battered foods (17 foods: Poultry Products, Finfish and Shellfish Products, Restaurant Foods); batter is wheat flour and liquid (SR: batter-fried foods)
+wheat	biscuit	%biscuit%	category	18	9	in	rule: head of USDA Baked Products (9 foods)
+wheat	bread	%bread%	category	18	78	in	rule: head of USDA Baked Products (78 foods)
+wheat	buckwheat	%buckwheat%	category	20	2	out	gluten-free (Celiac Disease Foundation, gluten-free grains and flours); no wheat (named exception of %wheat%)
+wheat	buckwheat groat	%buckwheat groat%	category	20	2	out	gluten-free (Celiac Disease Foundation, gluten-free grains and flours); no wheat (named exception of %wheat%)
+wheat	bulgur	%bulgur%	category	20	3	in	rule: head of USDA Cereal Grains and Pasta (3 foods)
+wheat	cake	%cake%	category	18	44	in	rule: head of USDA Baked Products (44 foods) (a cake of yeast, chocolate or tofu and rice cakes are named exceptions)
+wheat	cinnamon bun	%cinnamon bun%	category	18	1	covered	rule: head of USDA Baked Products (1 food); another pattern of the class reads it
+wheat	continental mill	%continental mill%	category	18	1	out	a maker's name, not a food: its foods are judged by the next part of their description and by their own words
+wheat	cookie	%cookie%	category	18	82	in	rule: head of USDA Baked Products (82 foods)
+wheat	corn flour	%corn flour%	category	20	8	out	maize; no wheat (named exception of %flour%)
+wheat	corn grain	%corn grain%	category	20	2	out	maize; no wheat
+wheat	cornmeal	%cornmeal%	category	20	11	out	maize; no wheat
+wheat	cornstarch	%cornstarch%	category	20	1	out	maize starch; no wheat
+wheat	couscous	%couscous%	category	20	2	in	rule: head of USDA Cereal Grains and Pasta (2 foods)
+wheat	cracker	%cracker%	category	18	50	in	rule: head of USDA Baked Products (50 foods)
+wheat	cream puff	%cream puff%	category	18	1	in	rule: head of USDA Baked Products (1 food)
+wheat	cream puff shell	%cream puff shell%	category	18	1	covered	rule: head of USDA Baked Products (1 food); another pattern of the class reads it
+wheat	croissant	%croissant%	category	18	3	in	rule: head of USDA Baked Products (3 foods)
+wheat	crouton	%crouton%	category	18	2	in	rule: head of USDA Baked Products (2 foods)
+wheat	crunchmaster	%crunchmaster%	category	18	1	out	a maker's name, not a food: its foods are judged by the next part of their description and by their own words
+wheat	danish pastry	%danish pastry%	category	18	7	covered	rule: head of USDA Baked Products (7 foods); another pattern of the class reads it
+wheat	doughnut	%doughnut%	category	18	9	covered	rule: head of USDA Baked Products (9 foods); another pattern of the class reads it
+wheat	einkorn	%einkorn%	category	20	1	in	rule: head of USDA Cereal Grains and Pasta (1 food)
+wheat	english muffin	%english muffin%	category	18	4	covered	rule: head of USDA Baked Products (4 foods); another pattern of the class reads it
+wheat	farro	%farro%	category	20	1	in	rule: head of USDA Cereal Grains and Pasta (1 food)
+wheat	flour	%flour%	category	20	16	in	rule: head of USDA Cereal Grains and Pasta (16 foods)
+wheat	focaccia	%focaccia%	category	18	1	in	rule: head of USDA Baked Products (1 food)
+wheat	fonio	%fonio%	category	20	1	out	gluten-free (Celiac Disease Foundation, gluten-free grains and flours); no wheat
+wheat	french toast	%french toast%	category	18	2	in	rule: head of USDA Baked Products (2 foods)
+wheat	garlic bread	%garlic bread%	category	18	1	covered	rule: head of USDA Baked Products (1 food); another pattern of the class reads it
+wheat	george weston bakery	%george weston bakery%	category	18	2	out	a maker's name, not a food: its foods are judged by the next part of their description and by their own words
+wheat	glutino	%glutino%	category	18	4	out	a maker's name, not a food: its foods are judged by the next part of their description and by their own words
+wheat	heinz	%heinz%	category	18	1	out	a maker's name, not a food: its foods are judged by the next part of their description and by their own words
+wheat	hominy	%hominy%	category	20	2	out	nixtamalized maize; no wheat
+wheat	hush puppy	%hush puppy%	category	18	1	in	rule: head of USDA Baked Products (1 food)
+wheat	ice cream cone	%ice cream cone%	category	18	2	in	rule: head of USDA Baked Products (2 foods)
+wheat	interstate brands corp	%interstate brands corp%	category	18	1	out	a maker's name, not a food: its foods are judged by the next part of their description and by their own words
+wheat	keebler	%keebler%	category	18	1	out	a maker's name, not a food: its foods are judged by the next part of their description and by their own words
+wheat	keikito	%keikito%	category	18	1	out	a maker's name, not a food: its foods are judged by the next part of their description and by their own words
+wheat	khorasan	%khorasan%	category	20	1	in	rule: head of USDA Cereal Grains and Pasta (1 food)
+wheat	kraft	%kraft%	category	18	1	out	a maker's name, not a food: its foods are judged by the next part of their description and by their own words
+wheat	kraft food	%kraft food%	category	18	1	out	a maker's name, not a food: its foods are judged by the next part of their description and by their own words
+wheat	leavening agent	%leavening agent%	category	18	6	out	SR leavening agents are baking powder, baking soda, cream of tartar and yeast; no wheat
+wheat	macaroni	%macaroni%	category	20	2	in	rule: head of USDA Cereal Grains and Pasta (2 foods)
+wheat	martha white food	%martha white food%	category	18	2	out	a maker's name, not a food: its foods are judged by the next part of their description and by their own words
+wheat	mary's gone cracker	%mary's gone cracker%	category	18	1	covered	rule: head of USDA Baked Products (1 food); another pattern of the class reads it
+wheat	mckee baking	%mckee baking%	category	18	1	out	a maker's name, not a food: its foods are judged by the next part of their description and by their own words
+wheat	millet	%millet%	category	20	3	out	gluten-free (Celiac Disease Foundation, gluten-free grains and flours); no wheat
+wheat	millet flour	%millet flour%	category	20	1	out	gluten-free (Celiac Disease Foundation, gluten-free grains and flours); no wheat (named exception of %flour%)
+wheat	mission food	%mission food%	category	18	1	out	a maker's name, not a food: its foods are judged by the next part of their description and by their own words
+wheat	muffin	%muffin%	category	18	21	in	rule: head of USDA Baked Products (21 foods)
+wheat	nabisco	%nabisco%	category	18	3	out	a maker's name, not a food: its foods are judged by the next part of their description and by their own words
+wheat	noodle	%noodle%	category	20	13	in	rule: head of USDA Cereal Grains and Pasta (13 foods)
+wheat	oat	%oat%	category	20	3	out	oats are no wheat (FALCPA); the gluten types hold them by their oat patterns
+wheat	pan dulce	%pan dulce%	category	18	1	in	rule: head of USDA Baked Products (1 food)
+wheat	pancake	%pancake%	category	18	15	covered	rule: head of USDA Baked Products (15 foods); another pattern of the class reads it
+wheat	pancakes plain	%pancakes plain%	category	18	1	covered	rule: head of USDA Baked Products (1 food); another pattern of the class reads it
+wheat	pasta	%pasta%	category	20	23	in	rule: head of USDA Cereal Grains and Pasta (23 foods)
+wheat	pastry	%pastry%	category	18	1	in	rule: head of USDA Baked Products (1 food)
+wheat	pepperidge farm	%pepperidge farm%	category	18	5	out	a maker's name, not a food: its foods are judged by the next part of their description and by their own words
+wheat	phyllo dough	%phyllo dough%	category	18	1	covered	rule: head of USDA Baked Products (1 food); another pattern of the class reads it
+wheat	pie	%pie%	category	18	28	in	rule: head of USDA Baked Products (28 foods) (pie filling, pie spice and pie cherries are named exceptions)
+wheat	pie crust	%pie crust%	category	18	15	covered	rule: head of USDA Baked Products (15 foods); another pattern of the class reads it
+wheat	pillsbury	%pillsbury%	category	18	4	out	a maker's name, not a food: its foods are judged by the next part of their description and by their own words
+wheat	pillsbury golden layer buttermilk biscuit	%pillsbury golden layer buttermilk biscuit%	category	18	1	covered	rule: head of USDA Baked Products (1 food); another pattern of the class reads it
+wheat	pillsbury grand	%pillsbury grand%	category	18	1	out	a maker's name, not a food: its foods are judged by the next part of their description and by their own words
+wheat	popover	%popover%	category	18	2	in	rule: head of USDA Baked Products (2 foods)
+wheat	puff pastry	%puff pastry%	category	18	2	covered	rule: head of USDA Baked Products (2 foods); another pattern of the class reads it
+wheat	quinoa	%quinoa%	category	20	2	out	gluten-free (Celiac Disease Foundation, gluten-free grains and flours); no wheat
+wheat	rice	%rice%	category	20	28	out	gluten-free (Celiac Disease Foundation, gluten-free grains and flours); no wheat
+wheat	rice flour	%rice flour%	category	20	2	out	gluten-free (Celiac Disease Foundation, gluten-free grains and flours); no wheat (named exception of %flour%)
+wheat	rice noodle	%rice noodle%	category	20	2	out	noodles of rice flour; no wheat (named exception of %noodle%)
+wheat	roll	%roll%	category	18	20	in	rule: head of USDA Baked Products (20 foods) ("rolled", "rolling" and fruit rolls are named exceptions)
+wheat	rudi's	%rudi's%	category	18	1	out	a maker's name, not a food: its foods are judged by the next part of their description and by their own words
+wheat	rye flour	%rye flour%	category	20	3	out	rye is no wheat (FALCPA names wheat only); the gluten types hold it by %rye% (exception of %flour% scoped to Wheat Allergy)
+wheat	rye grain	%rye grain%	category	20	1	out	rye is no wheat; the gluten types hold it by %rye%
+wheat	sage valley	%sage valley%	category	18	1	out	a maker's name, not a food: its foods are judged by the next part of their description and by their own words
+wheat	schar	%schar%	category	18	2	out	a maker's name, not a food: its foods are judged by the next part of their description and by their own words
+wheat	semolina	%semolina%	category	20	2	in	rule: head of USDA Cereal Grains and Pasta (2 foods)
+wheat	sorghum	%sorghum%	category	20	1	out	gluten-free (Celiac Disease Foundation, gluten-free grains and flours); no wheat
+wheat	sorghum bran	%sorghum bran%	category	20	1	out	gluten-free (Celiac Disease Foundation, gluten-free grains and flours); no wheat
+wheat	sorghum flour	%sorghum flour%	category	20	3	out	gluten-free (Celiac Disease Foundation, gluten-free grains and flours); no wheat (named exception of %flour%; staging checkpoint 5, Q19)
+wheat	sorghum grain	%sorghum grain%	category	20	2	out	gluten-free (Celiac Disease Foundation, gluten-free grains and flours); no wheat
+wheat	spaghetti	%spaghetti%	category	20	4	in	rule: head of USDA Cereal Grains and Pasta (4 foods)
+wheat	spelt	%spelt%	category	20	2	in	rule: head of USDA Cereal Grains and Pasta (2 foods)
+wheat	strudel	%strudel%	category	18	1	in	rule: head of USDA Baked Products (1 food)
+wheat	sweet roll	%sweet roll%	category	18	4	covered	rule: head of USDA Baked Products (4 foods); another pattern of the class reads it
+wheat	taco shell	%taco shell%	category	18	2	out	SR: taco shells, baked, are fried corn tortillas; no wheat
+wheat	tapioca	%tapioca%	category	20	1	out	cassava starch; no grain
+wheat	tart	%tart%	category	18	1	out	in recipe lines "tart" is most often the adjective of sour fruit ("tart apples", "tart cherries"); a tart is read by its pastry (%pastry%, "tart shell")
+wheat	teff	%teff%	category	20	2	out	gluten-free (Celiac Disease Foundation, gluten-free grains and flours); no wheat
+wheat	toaster pastry	%toaster pastry%	category	18	4	covered	rule: head of USDA Baked Products (4 foods); another pattern of the class reads it
+wheat	tortilla	%tortilla%	category	18	5	in	rule: head of USDA Baked Products (5 foods)
+wheat	tostada shell	%tostada shell%	category	18	1	out	SR: tostada shells are fried corn tortillas; no wheat
+wheat	triticale	%triticale%	category	20	1	in	rule: head of USDA Cereal Grains and Pasta (1 food)
+wheat	triticale flour	%triticale flour%	category	20	1	covered	rule: head of USDA Cereal Grains and Pasta (1 food); another pattern of the class reads it
+wheat	udi's	%udi's%	category	18	4	out	a maker's name, not a food: its foods are judged by the next part of their description and by their own words
+wheat	van's	%van's%	category	18	3	out	a maker's name, not a food: its foods are judged by the next part of their description and by their own words
+wheat	vital wheat gluten	%vital wheat gluten%	category	20	1	covered	rule: head of USDA Cereal Grains and Pasta (1 food); another pattern of the class reads it
+wheat	waffle	%waffle%	category	18	10	in	rule: head of USDA Baked Products (10 foods)
+wheat	wheat	%wheat%	category	20	9	in	rule: head of USDA Cereal Grains and Pasta (9 foods)
+wheat	wheat flour	%wheat flour%	category	20	18	covered	rule: head of USDA Cereal Grains and Pasta (18 foods); another pattern of the class reads it
+wheat	wheat germ	%wheat germ%	category	20	1	covered	rule: head of USDA Cereal Grains and Pasta (1 food); another pattern of the class reads it
+wheat	wild rice	%wild rice%	category	20	2	out	Zizania, a grass seed; gluten-free (Celiac Disease Foundation, gluten-free grains and flours); no wheat
+wheat	wonton wrapper	%wonton wrapper%	category	18	1	in	rule: head of USDA Baked Products (1 food)
+milk	beverage	%beverage%	category	1	2	out	a class word naming no food ("Beverage, instant breakfast powder"); the drink is judged by its own words
+milk	butter	%butter%	category	1	4	in	rule: head of USDA Dairy and Egg Products (4 foods)
+milk	butter oil	%butter oil%	category	1	1	covered	rule: head of USDA Dairy and Egg Products (1 food); another pattern of the class reads it
+milk	buttermilk	%buttermilk%	category	1	1	covered	rule: head of USDA Dairy and Egg Products (1 food); another pattern of the class reads it
+milk	cheese	%cheese%	category	1	87	in	rule: head of USDA Dairy and Egg Products (87 foods)
+milk	cheese food	%cheese food%	category	1	4	covered	rule: head of USDA Dairy and Egg Products (4 foods); another pattern of the class reads it
+milk	cheese product	%cheese product%	category	1	2	covered	rule: head of USDA Dairy and Egg Products (2 foods); another pattern of the class reads it
+milk	cheese sauce	%cheese sauce%	category	1	1	covered	rule: head of USDA Dairy and Egg Products (1 food); another pattern of the class reads it
+milk	cheese spread	%cheese spread%	category	1	3	covered	rule: head of USDA Dairy and Egg Products (3 foods); another pattern of the class reads it
+milk	cheese substitute	%cheese substitute%	category	1	1	covered	rule: head of USDA Dairy and Egg Products (1 food); another pattern of the class reads it
+milk	cottage cheese	%cottage cheese%	category	1	1	covered	rule: head of USDA Dairy and Egg Products (1 food); another pattern of the class reads it
+milk	cream	%cream%	category	1	9	in	rule: head of USDA Dairy and Egg Products (9 foods)
+milk	cream cheese	%cream cheese%	category	1	1	covered	rule: head of USDA Dairy and Egg Products (1 food); another pattern of the class reads it
+milk	cream substitute	%cream substitute%	category	1	7	covered	rule: head of USDA Dairy and Egg Products (7 foods); another pattern of the class reads it
+milk	dessert topping	%dessert topping%	category	1	4	in	rule: head of USDA Dairy and Egg Products (4 foods)
+milk	dulce de leche	%dulce de leche%	category	1	1	in	rule: head of USDA Dairy and Egg Products (1 food)
+milk	egg	%egg%	category	1	28	out	21 CFR 160: eggs and egg products hold no milk; the egg types hold them by %egg%
+milk	egg substitute	%egg substitute%	category	1	2	out	SR: egg substitute of egg white; no milk; the egg types hold it by %egg%
+milk	eggnog	%eggnog%	category	1	1	in	rule: head of USDA Dairy and Egg Products (1 food)
+milk	fat free ice cream	%fat free ice cream%	category	1	1	covered	rule: head of USDA Dairy and Egg Products (1 food); another pattern of the class reads it
+milk	fat free sour cream	%fat free sour cream%	category	1	1	covered	rule: head of USDA Dairy and Egg Products (1 food); another pattern of the class reads it
+milk	ice cream	%ice cream%	category	1	4	covered	rule: head of USDA Dairy and Egg Products (4 foods); another pattern of the class reads it
+milk	ice cream bar	%ice cream bar%	category	1	2	covered	rule: head of USDA Dairy and Egg Products (2 foods); another pattern of the class reads it
+milk	ice cream cone	%ice cream cone%	category	1	1	covered	rule: head of USDA Dairy and Egg Products (1 food); another pattern of the class reads it
+milk	ice cream cookie sandwich	%ice cream cookie sandwich%	category	1	1	covered	rule: head of USDA Dairy and Egg Products (1 food); another pattern of the class reads it
+milk	ice cream sandwich	%ice cream sandwich%	category	1	3	covered	rule: head of USDA Dairy and Egg Products (3 foods); another pattern of the class reads it
+milk	ice cream sundae cone	%ice cream sundae cone%	category	1	1	covered	rule: head of USDA Dairy and Egg Products (1 food); another pattern of the class reads it
+milk	imitation cheese	%imitation cheese%	category	1	1	covered	rule: head of USDA Dairy and Egg Products (1 food); another pattern of the class reads it
+milk	kefir	%kefir%	category	1	2	in	rule: head of USDA Dairy and Egg Products (2 foods)
+milk	light ice cream	%light ice cream%	category	1	1	covered	rule: head of USDA Dairy and Egg Products (1 food); another pattern of the class reads it
+milk	milk	%milk%	category	1	45	in	rule: head of USDA Dairy and Egg Products (45 foods)
+milk	milk dessert bar	%milk dessert bar%	category	1	1	covered	rule: head of USDA Dairy and Egg Products (1 food); another pattern of the class reads it
+milk	milk shake	%milk shake%	category	1	2	covered	rule: head of USDA Dairy and Egg Products (2 foods); another pattern of the class reads it
+milk	milk substitute	%milk substitute%	category	1	1	covered	rule: head of USDA Dairy and Egg Products (1 food); another pattern of the class reads it
+milk	nutritional supplement for people with diabete	%nutritional supplement for people with diabete%	category	1	1	out	a class phrase naming no food; the product is judged by its own words
+milk	parmesan cheese topping	%parmesan cheese topping%	category	1	1	covered	rule: head of USDA Dairy and Egg Products (1 food); another pattern of the class reads it
+milk	pasteurized process cheese product	%pasteurized process cheese product%	category	1	1	covered	rule: head of USDA Dairy and Egg Products (1 food); another pattern of the class reads it
+milk	pasteurized process cheese sauce	%pasteurized process cheese sauce%	category	1	1	covered	rule: head of USDA Dairy and Egg Products (1 food); another pattern of the class reads it
+milk	pasteurized process cheese spread	%pasteurized process cheese spread%	category	1	1	covered	rule: head of USDA Dairy and Egg Products (1 food); another pattern of the class reads it
+milk	protein supplement	%protein supplement%	category	1	2	out	a class phrase naming no food; the product is judged by its own words
+milk	reddi wip fat free whipped topping	%reddi wip fat free whipped topping%	category	1	1	covered	rule: head of USDA Dairy and Egg Products (1 food); another pattern of the class reads it
+milk	reduced fat pasteurized process cheese product	%reduced fat pasteurized process cheese product%	category	1	1	covered	rule: head of USDA Dairy and Egg Products (1 food); another pattern of the class reads it
+milk	reduced fat sour cream	%reduced fat sour cream%	category	1	1	covered	rule: head of USDA Dairy and Egg Products (1 food); another pattern of the class reads it
+milk	singles american nonfat pasteurized process cheese product	%singles american nonfat pasteurized process cheese product%	category	1	1	covered	rule: head of USDA Dairy and Egg Products (1 food); another pattern of the class reads it
+milk	sour cream	%sour cream%	category	1	4	covered	rule: head of USDA Dairy and Egg Products (4 foods); another pattern of the class reads it
+milk	sour dressing	%sour dressing%	category	1	1	in	rule: head of USDA Dairy and Egg Products (1 food)
+milk	whey	%whey%	category	1	4	in	rule: head of USDA Dairy and Egg Products (4 foods)
+milk	whipped cream substitute	%whipped cream substitute%	category	1	1	covered	rule: head of USDA Dairy and Egg Products (1 food); another pattern of the class reads it
+milk	whipped topping	%whipped topping%	category	1	1	in	rule: head of USDA Dairy and Egg Products (1 food)
+milk	yogurt	%yogurt%	category	1	50	in	rule: head of USDA Dairy and Egg Products (50 foods)
+egg	egg	%egg%	category	1	28	in	rule: head of USDA Dairy and Egg Products (28 foods)
+egg	egg substitute	%egg substitute%	category	1	2	covered	rule: head of USDA Dairy and Egg Products (2 foods); another pattern of the class reads it
+egg	eggnog	%eggnog%	category	1	1	covered	rule: head of USDA Dairy and Egg Products (1 food); another pattern of the class reads it
+soy	banana-strawberry soy yogurt	%banana-strawberry soy yogurt%	category	16	1	covered	rule: head of USDA Legumes and Legume Products (1 food); another pattern of the class reads it
+soy	black cherry soy yogurt	%black cherry soy yogurt%	category	16	1	covered	rule: head of USDA Legumes and Legume Products (1 food); another pattern of the class reads it
+soy	blueberry soy yogurt	%blueberry soy yogurt%	category	16	1	covered	rule: head of USDA Legumes and Legume Products (1 food); another pattern of the class reads it
+soy	flour	%flour%	category	16	2	out	SR: "Flour, soy" names the soy in its second part, and %soy% reads the description; plain flour is no soy
+soy	key lime soy yogurt	%key lime soy yogurt%	category	16	1	covered	rule: head of USDA Legumes and Legume Products (1 food); another pattern of the class reads it
+soy	meatless	%meatless%	marker	16	9	in	rule: the word of the meat analogues (9 foods: Legumes and Legume Products), soy protein products of the legume category (SR: Bacon, meatless; Frankfurter, meatless; Veggie burgers or soyburgers)
+soy	miso	%miso%	category	16	1	in	rule: head of USDA Legumes and Legume Products (1 food)
+soy	natto	%natto%	category	16	1	in	rule: head of USDA Legumes and Legume Products (1 food)
+soy	peach soy yogurt	%peach soy yogurt%	category	16	1	covered	rule: head of USDA Legumes and Legume Products (1 food); another pattern of the class reads it
+soy	plain soy yogurt	%plain soy yogurt%	category	16	1	covered	rule: head of USDA Legumes and Legume Products (1 food); another pattern of the class reads it
+soy	premium firm tofu	%premium firm tofu%	category	16	1	covered	rule: head of USDA Legumes and Legume Products (1 food); another pattern of the class reads it
+soy	premium soft tofu	%premium soft tofu%	category	16	1	covered	rule: head of USDA Legumes and Legume Products (1 food); another pattern of the class reads it
+soy	raspberry soy yogurt	%raspberry soy yogurt%	category	16	1	covered	rule: head of USDA Legumes and Legume Products (1 food); another pattern of the class reads it
+soy	soy flour	%soy flour%	category	16	4	covered	rule: head of USDA Legumes and Legume Products (4 foods); another pattern of the class reads it
+soy	soy meal	%soy meal%	category	16	1	covered	rule: head of USDA Legumes and Legume Products (1 food); another pattern of the class reads it
+soy	soy milk	%soy milk%	category	16	2	covered	rule: head of USDA Legumes and Legume Products (2 foods); another pattern of the class reads it
+soy	soy protein concentrate	%soy protein concentrate%	category	16	2	covered	rule: head of USDA Legumes and Legume Products (2 foods); another pattern of the class reads it
+soy	soy protein isolate	%soy protein isolate%	category	16	2	covered	rule: head of USDA Legumes and Legume Products (2 foods); another pattern of the class reads it
+soy	soy sauce	%soy sauce%	category	16	1	covered	rule: head of USDA Legumes and Legume Products (1 food); another pattern of the class reads it
+soy	soy sauce made from hydrolyzed vegetable protein	%soy sauce made from hydrolyzed vegetable protein%	category	16	1	covered	rule: head of USDA Legumes and Legume Products (1 food); another pattern of the class reads it
+soy	soy sauce made from soy	%soy sauce made from soy%	category	16	1	covered	rule: head of USDA Legumes and Legume Products (1 food); another pattern of the class reads it
+soy	soy sauce made from soy and wheat	%soy sauce made from soy and wheat%	category	16	2	covered	rule: head of USDA Legumes and Legume Products (2 foods); another pattern of the class reads it
+soy	soybean	%soybean%	category	16	7	covered	rule: head of USDA Legumes and Legume Products (7 foods); another pattern of the class reads it
+soy	strawberry soy yogurt	%strawberry soy yogurt%	category	16	1	covered	rule: head of USDA Legumes and Legume Products (1 food); another pattern of the class reads it
+soy	tempeh	%tempeh%	category	16	2	in	rule: head of USDA Legumes and Legume Products (2 foods)
+soy	tofu	%tofu%	category	16	17	in	rule: head of USDA Legumes and Legume Products (17 foods)
+soy	tofu yogurt	%tofu yogurt%	category	16	1	covered	rule: head of USDA Legumes and Legume Products (1 food); another pattern of the class reads it
+soy	vanilla soy yogurt	%vanilla soy yogurt%	category	16	2	covered	rule: head of USDA Legumes and Legume Products (2 foods); another pattern of the class reads it
+soy	vermicelli	%vermicelli%	category	16	1	out	SR: "Vermicelli, made from soy beans" names the soy in its second part, and %soy% reads the description; vermicelli as such is wheat pasta (class wheat)
+soy	vitasoy usa	%vitasoy usa%	category	16	5	covered	rule: head of USDA Legumes and Legume Products (5 foods); another pattern of the class reads it
+soy	vitasoy usa azumaya	%vitasoy usa azumaya%	category	16	3	covered	rule: head of USDA Legumes and Legume Products (3 foods); another pattern of the class reads it
+soy	vitasoy usa nasoya	%vitasoy usa nasoya%	category	16	1	covered	rule: head of USDA Legumes and Legume Products (1 food); another pattern of the class reads it
+soy	vitasoy usa organic nasoya	%vitasoy usa organic nasoya%	category	16	3	covered	rule: head of USDA Legumes and Legume Products (3 foods); another pattern of the class reads it
+soy	vitasoy usa organic nasoya sprouted	%vitasoy usa organic nasoya sprouted%	category	16	1	covered	rule: head of USDA Legumes and Legume Products (1 food); another pattern of the class reads it
+peanut	mixed nut	%mixed nut%	category	12	10	covered	rule: head of USDA Nut and Seed Products (10 foods); another pattern of the class reads it
+peanut	peanut	%peanut%	category	16	16	in	rule: head of USDA Legumes and Legume Products (16 foods)
+peanut	peanut butter	%peanut butter%	category	16	8	covered	rule: head of USDA Legumes and Legume Products (8 foods); another pattern of the class reads it
+peanut	peanut butter with omega-3	%peanut butter with omega-3%	category	16	1	covered	rule: head of USDA Legumes and Legume Products (1 food); another pattern of the class reads it
+peanut	peanut flour	%peanut flour%	category	16	2	covered	rule: head of USDA Legumes and Legume Products (2 foods); another pattern of the class reads it
+peanut	peanut spread	%peanut spread%	category	16	1	covered	rule: head of USDA Legumes and Legume Products (1 food); another pattern of the class reads it
+treenut	acorn	%acorn%	category	12	2	in	rule: head of USDA Nut and Seed Products (2 foods)
+treenut	acorn flour	%acorn flour%	category	12	1	covered	rule: head of USDA Nut and Seed Products (1 food); another pattern of the class reads it
+treenut	almond	%almond%	category	12	9	in	rule: head of USDA Nut and Seed Products (9 foods)
+treenut	almond butter	%almond butter%	category	12	2	covered	rule: head of USDA Nut and Seed Products (2 foods); another pattern of the class reads it
+treenut	almond paste	%almond paste%	category	12	1	covered	rule: head of USDA Nut and Seed Products (1 food); another pattern of the class reads it
+treenut	beechnut	%beechnut%	category	12	1	in	rule: head of USDA Nut and Seed Products (1 food)
+treenut	brazilnut	%brazilnut%	category	12	2	in	rule: head of USDA Nut and Seed Products (2 foods)
+treenut	butternut	%butternut%	category	12	1	in	rule: head of USDA Nut and Seed Products (1 food) (butternut squash is a named exception for the tree nut types)
+treenut	cashew butter	%cashew butter%	category	12	2	covered	rule: head of USDA Nut and Seed Products (2 foods); another pattern of the class reads it
+treenut	cashew nut	%cashew nut%	category	12	6	covered	rule: head of USDA Nut and Seed Products (6 foods); another pattern of the class reads it
+treenut	chestnut	%chestnut%	category	12	14	in	rule: head of USDA Nut and Seed Products (14 foods)
+treenut	coconut cream	%coconut cream%	category	12	2	out	coconut is no longer a tree nut for allergen labelling (FDA-QA5); Coconut Allergy holds it by %coconut%
+treenut	coconut meat	%coconut meat%	category	12	7	out	coconut is no longer a tree nut for allergen labelling (FDA-QA5)
+treenut	coconut milk	%coconut milk%	category	12	3	out	coconut is no longer a tree nut for allergen labelling (FDA-QA5)
+treenut	coconut water	%coconut water%	category	12	1	out	coconut is no longer a tree nut for allergen labelling (FDA-QA5)
+treenut	filbert	%filbert%	category	12	3	in	rule: head of USDA Nut and Seed Products (3 foods)
+treenut	formulated	%formulated%	category	12	2	out	a class word ("Nuts, formulated, wheat-based"): the product is judged by its own words
+treenut	ginkgo nut	%ginkgo nut%	category	12	3	covered	rule: head of USDA Nut and Seed Products (3 foods); another pattern of the class reads it
+treenut	hazelnut	%hazelnut%	category	12	3	in	rule: head of USDA Nut and Seed Products (3 foods)
+treenut	hickorynut	%hickorynut%	category	12	1	in	rule: head of USDA Nut and Seed Products (1 food)
+treenut	macadamia nut	%macadamia nut%	category	12	3	covered	rule: head of USDA Nut and Seed Products (3 foods); another pattern of the class reads it
+treenut	mixed nut	%mixed nut%	category	12	10	covered	rule: head of USDA Nut and Seed Products (10 foods); another pattern of the class reads it
+treenut	pecan	%pecan%	category	12	5	in	rule: head of USDA Nut and Seed Products (5 foods)
+treenut	pilinut	%pilinut%	category	12	1	in	rule: head of USDA Nut and Seed Products (1 food)
+treenut	pine nut	%pine nut%	category	12	2	covered	rule: head of USDA Nut and Seed Products (2 foods); another pattern of the class reads it
+treenut	pistachio nut	%pistachio nut%	category	12	4	covered	rule: head of USDA Nut and Seed Products (4 foods); another pattern of the class reads it
+treenut	walnut	%walnut%	category	12	4	in	rule: head of USDA Nut and Seed Products (4 foods)
+fish	anchovy	%anchovy%	category	15	2	covered	rule: head of USDA Finfish and Shellfish Products (2 foods); another pattern of the class reads it
+fish	bass	%bass%	category	15	4	in	rule: head of USDA Finfish and Shellfish Products (4 foods)
+fish	bluefish	%bluefish%	category	15	2	covered	rule: head of USDA Finfish and Shellfish Products (2 foods); another pattern of the class reads it
+fish	burbot	%burbot%	category	15	2	in	rule: head of USDA Finfish and Shellfish Products (2 foods)
+fish	butterfish	%butterfish%	category	15	2	covered	rule: head of USDA Finfish and Shellfish Products (2 foods); another pattern of the class reads it
+fish	carp	%carp%	category	15	2	in	rule: head of USDA Finfish and Shellfish Products (2 foods) ("carpaccio" is a named exception)
+fish	catfish	%catfish%	category	15	5	covered	rule: head of USDA Finfish and Shellfish Products (5 foods); another pattern of the class reads it
+fish	caviar	%caviar%	category	15	1	in	rule: head of USDA Finfish and Shellfish Products (1 food)
+fish	cisco	%cisco%	category	15	2	in	rule: head of USDA Finfish and Shellfish Products (2 foods) ("Francisco" is a named exception)
+fish	cod	%cod%	category	15	8	in	rule: head of USDA Finfish and Shellfish Products (8 foods)
+fish	croaker	%croaker%	category	15	2	in	rule: head of USDA Finfish and Shellfish Products (2 foods)
+fish	cusk	%cusk%	category	15	2	in	rule: head of USDA Finfish and Shellfish Products (2 foods)
+fish	drum	%drum%	category	15	2	in	rule: head of USDA Finfish and Shellfish Products (2 foods) ("drumstick" is a named exception)
+fish	eel	%eel%	category	15	2	in	rule: head of USDA Finfish and Shellfish Products (2 foods)
+fish	fish stick	%fish stick%	category	15	1	covered	rule: head of USDA Finfish and Shellfish Products (1 food); another pattern of the class reads it
+fish	flatfish	%flatfish%	category	15	2	covered	rule: head of USDA Finfish and Shellfish Products (2 foods); another pattern of the class reads it
+fish	gefiltefish	%gefiltefish%	category	15	1	covered	rule: head of USDA Finfish and Shellfish Products (1 food); another pattern of the class reads it
+fish	grouper	%grouper%	category	15	2	in	rule: head of USDA Finfish and Shellfish Products (2 foods)
+fish	haddock	%haddock%	category	15	4	in	rule: head of USDA Finfish and Shellfish Products (4 foods)
+fish	halibut	%halibut%	category	15	4	in	rule: head of USDA Finfish and Shellfish Products (4 foods)
+fish	herring	%herring%	category	15	6	in	rule: head of USDA Finfish and Shellfish Products (6 foods)
+fish	ling	% ling%	category	15	2	in	rule: head of USDA Finfish and Shellfish Products (2 foods) (a word start: "dumpling" holds no ling; "linguine" and "lingonberry" are named exceptions)
+fish	lingcod	%lingcod%	category	15	2	covered	rule: head of USDA Finfish and Shellfish Products (2 foods); another pattern of the class reads it
+fish	mackerel	%mackerel%	category	15	10	in	rule: head of USDA Finfish and Shellfish Products (10 foods)
+fish	mahimahi	%mahimahi%	category	15	2	covered	rule: head of USDA Finfish and Shellfish Products (2 foods); another pattern of the class reads it
+fish	milkfish	%milkfish%	category	15	2	covered	rule: head of USDA Finfish and Shellfish Products (2 foods); another pattern of the class reads it
+fish	monkfish	%monkfish%	category	15	2	covered	rule: head of USDA Finfish and Shellfish Products (2 foods); another pattern of the class reads it
+fish	mullet	%mullet%	category	15	2	in	rule: head of USDA Finfish and Shellfish Products (2 foods)
+fish	ocean perch	%ocean perch%	category	15	2	covered	rule: head of USDA Finfish and Shellfish Products (2 foods); another pattern of the class reads it
+fish	perch	%perch%	category	15	2	in	rule: head of USDA Finfish and Shellfish Products (2 foods)
+fish	pike	%pike%	category	15	4	in	rule: head of USDA Finfish and Shellfish Products (4 foods) ("pikelet" is a named exception)
+fish	pollock	%pollock%	category	15	7	in	rule: head of USDA Finfish and Shellfish Products (7 foods)
+fish	pompano	%pompano%	category	15	2	in	rule: head of USDA Finfish and Shellfish Products (2 foods)
+fish	pout	%pout%	category	15	2	in	rule: head of USDA Finfish and Shellfish Products (2 foods) ("poutine" is a named exception)
+fish	rockfish	%rockfish%	category	15	2	covered	rule: head of USDA Finfish and Shellfish Products (2 foods); another pattern of the class reads it
+fish	roe	%roe%	category	15	2	in	rule: head of USDA Finfish and Shellfish Products (2 foods)
+fish	roughy	%roughy%	category	15	2	in	rule: head of USDA Finfish and Shellfish Products (2 foods)
+fish	sablefish	%sablefish%	category	15	3	covered	rule: head of USDA Finfish and Shellfish Products (3 foods); another pattern of the class reads it
+fish	salmon	%salmon%	category	15	27	in	rule: head of USDA Finfish and Shellfish Products (27 foods)
+fish	sardine	%sardine%	category	15	2	in	rule: head of USDA Finfish and Shellfish Products (2 foods)
+fish	scup	%scup%	category	15	2	in	rule: head of USDA Finfish and Shellfish Products (2 foods)
+fish	sea bass	%sea bass%	category	15	2	covered	rule: head of USDA Finfish and Shellfish Products (2 foods); another pattern of the class reads it
+fish	seatrout	%seatrout%	category	15	2	covered	rule: head of USDA Finfish and Shellfish Products (2 foods); another pattern of the class reads it
+fish	shad	%shad%	category	15	2	in	rule: head of USDA Finfish and Shellfish Products (2 foods) ("shadow" is a named exception)
+fish	shark	%shark%	category	15	2	in	rule: head of USDA Finfish and Shellfish Products (2 foods)
+fish	sheepshead	%sheepshead%	category	15	2	in	rule: head of USDA Finfish and Shellfish Products (2 foods)
+fish	smelt	%smelt%	category	15	2	in	rule: head of USDA Finfish and Shellfish Products (2 foods)
+fish	snapper	%snapper%	category	15	2	in	rule: head of USDA Finfish and Shellfish Products (2 foods)
+fish	spot	%spot%	category	15	2	in	rule: head of USDA Finfish and Shellfish Products (2 foods) ("spotted" is a named exception)
+fish	sturgeon	%sturgeon%	category	15	3	in	rule: head of USDA Finfish and Shellfish Products (3 foods)
+fish	sucker	%sucker%	category	15	2	in	rule: head of USDA Finfish and Shellfish Products (2 foods)
+fish	sunfish	%sunfish%	category	15	2	covered	rule: head of USDA Finfish and Shellfish Products (2 foods); another pattern of the class reads it
+fish	surimi	%surimi%	category	15	1	in	rule: head of USDA Finfish and Shellfish Products (1 food)
+fish	swordfish	%swordfish%	category	15	2	covered	rule: head of USDA Finfish and Shellfish Products (2 foods); another pattern of the class reads it
+fish	tilapia	%tilapia%	category	15	3	in	rule: head of USDA Finfish and Shellfish Products (3 foods)
+fish	tilefish	%tilefish%	category	15	2	covered	rule: head of USDA Finfish and Shellfish Products (2 foods); another pattern of the class reads it
+fish	trout	%trout%	category	15	7	in	rule: head of USDA Finfish and Shellfish Products (7 foods)
+fish	tuna	%tuna%	category	15	14	in	rule: head of USDA Finfish and Shellfish Products (14 foods)
+fish	tuna salad	%tuna salad%	category	15	1	covered	rule: head of USDA Finfish and Shellfish Products (1 food); another pattern of the class reads it
+fish	turbot	%turbot%	category	15	2	in	rule: head of USDA Finfish and Shellfish Products (2 foods)
+fish	whitefish	%whitefish%	category	15	3	covered	rule: head of USDA Finfish and Shellfish Products (3 foods); another pattern of the class reads it
+fish	whiting	%whiting%	category	15	2	in	rule: head of USDA Finfish and Shellfish Products (2 foods)
+fish	wolffish	%wolffish%	category	15	2	covered	rule: head of USDA Finfish and Shellfish Products (2 foods); another pattern of the class reads it
+fish	yellowtail	%yellowtail%	category	15	2	in	rule: head of USDA Finfish and Shellfish Products (2 foods)
+shellfish	abalone	%abalone%	category	15	2	in	rule: head of USDA Finfish and Shellfish Products (2 foods)
+shellfish	clam	%clam%	category	15	5	in	rule: head of USDA Finfish and Shellfish Products (5 foods)
+shellfish	conch	%conch%	category	15	1	in	rule: head of USDA Finfish and Shellfish Products (1 food)
+shellfish	crab	%crab%	category	15	12	in	rule: head of USDA Finfish and Shellfish Products (12 foods)
+shellfish	crayfish	%crayfish%	category	15	2	in	rule: head of USDA Finfish and Shellfish Products (2 foods)
+shellfish	cuttlefish	%cuttlefish%	category	15	2	in	rule: head of USDA Finfish and Shellfish Products (2 foods)
+shellfish	lobster	%lobster%	category	15	2	in	rule: head of USDA Finfish and Shellfish Products (2 foods)
+shellfish	mussel	%mussel%	category	15	2	in	rule: head of USDA Finfish and Shellfish Products (2 foods)
+shellfish	octopus	%octopus%	category	15	2	in	rule: head of USDA Finfish and Shellfish Products (2 foods)
+shellfish	oyster	%oyster%	category	15	9	in	rule: head of USDA Finfish and Shellfish Products (9 foods)
+shellfish	scallop	%scallop%	category	15	4	in	rule: head of USDA Finfish and Shellfish Products (4 foods)
+shellfish	shrimp	%shrimp%	category	15	7	in	rule: head of USDA Finfish and Shellfish Products (7 foods)
+shellfish	snail	%snail%	category	15	1	in	rule: head of USDA Finfish and Shellfish Products (1 food)
+shellfish	spiny lobster	%spiny lobster%	category	15	2	covered	rule: head of USDA Finfish and Shellfish Products (2 foods); another pattern of the class reads it
+shellfish	squid	%squid%	category	15	2	in	rule: head of USDA Finfish and Shellfish Products (2 foods)
+shellfish	whelk	%whelk%	category	15	2	in	rule: head of USDA Finfish and Shellfish Products (2 foods)
+sesame	sesame butter	%sesame butter%	category	12	5	covered	rule: head of USDA Nut and Seed Products (5 foods); another pattern of the class reads it
+sesame	sesame flour	%sesame flour%	category	12	3	covered	rule: head of USDA Nut and Seed Products (3 foods); another pattern of the class reads it
+sesame	sesame meal	%sesame meal%	category	12	1	covered	rule: head of USDA Nut and Seed Products (1 food); another pattern of the class reads it
+sesame	sesame seed	%sesame seed%	category	12	2	covered	rule: head of USDA Nut and Seed Products (2 foods); another pattern of the class reads it
+sesame	sesame seed kernel	%sesame seed kernel%	category	12	3	covered	rule: head of USDA Nut and Seed Products (3 foods); another pattern of the class reads it
+sulfite	dried apple	%dried apple%	marker	9	5	in	rule: sulfured dried fruit (5 foods, Fruits and Fruit Juices): dried fruit is sulfured with sulfur dioxide (21 CFR 182.3862)
+sulfite	dried apricot	%dried apricot%	marker	9	5	in	rule: sulfured dried fruit (5 foods, Fruits and Fruit Juices): dried fruit is sulfured with sulfur dioxide (21 CFR 182.3862)
+sulfite	dried peach	%dried peach%	marker	9	5	in	rule: sulfured dried fruit (5 foods, Fruits and Fruit Juices): dried fruit is sulfured with sulfur dioxide (21 CFR 182.3862)
+sulfite	dried pear	%dried pear%	marker	9	3	in	rule: sulfured dried fruit (3 foods, Fruits and Fruit Juices): dried fruit is sulfured with sulfur dioxide (21 CFR 182.3862)
+wheat	rigatoni	%rigatoni%	label	-	-	in	21CFR 139.110: a pasta shape, a macaroni product of semolina, durum flour or farina
+wheat	penne	%penne%	label	-	-	in	21CFR 139.110: a pasta shape, a macaroni product of semolina, durum flour or farina
+wheat	fettuccine	%fettuccine%	label	-	-	in	21CFR 139.150: egg noodle ribbons of wheat flour and egg
+wheat	fettuccini	%fettuccini%	label	-	-	in	21CFR 139.150: fettuccine in the common spelling of recipe lines
+wheat	fettucine	%fettucine%	label	-	-	in	21CFR 139.150: fettuccine in the common misspelling of recipe lines
+wheat	linguine	%linguine%	label	-	-	in	21CFR 139.110: a pasta shape, a macaroni product of semolina, durum flour or farina
+wheat	linguini	%linguini%	label	-	-	in	21CFR 139.110: linguine in the common spelling of recipe lines
+wheat	vermicelli	%vermicelli%	label	-	-	in	21CFR 139.110(e): vermicelli is a macaroni product of semolina, durum flour or farina (rice vermicelli is a named exception)
+wheat	maccaroni	%maccaroni%	label	-	-	in	21CFR 139.110: macaroni in the older spelling of nineteenth-century cookbooks
+wheat	maccheroni	%maccheroni%	label	-	-	in	21CFR 139.110: macaroni in the Italian spelling
+wheat	lasagna	%lasagna%	label	-	-	in	21CFR 139.110: a pasta shape, a macaroni product of semolina, durum flour or farina
+wheat	lasagne	%lasagne%	label	-	-	in	21CFR 139.110: lasagna in the Italian plural
+wheat	ziti	%ziti%	label	-	-	in	21CFR 139.110: a pasta shape, a macaroni product of semolina, durum flour or farina
+wheat	rotini	%rotini%	label	-	-	covered	21CFR 139.110: a pasta shape, a macaroni product of semolina, durum flour or farina
+wheat	fusilli	%fusilli%	label	-	-	in	21CFR 139.110: a pasta shape, a macaroni product of semolina, durum flour or farina
+wheat	farfalle	%farfalle%	label	-	-	in	21CFR 139.110: a pasta shape, a macaroni product of semolina, durum flour or farina
+wheat	orecchiette	%orecchiette%	label	-	-	in	21CFR 139.110: a pasta shape, a macaroni product of semolina, durum flour or farina
+wheat	tagliatelle	%tagliatelle%	label	-	-	in	21CFR 139.150: egg noodle ribbons of wheat flour and egg
+wheat	pappardelle	%pappardelle%	label	-	-	in	21CFR 139.150: egg noodle ribbons of wheat flour and egg
+wheat	ditalini	%ditalini%	label	-	-	in	21CFR 139.110: a pasta shape, a macaroni product of semolina, durum flour or farina
+wheat	cavatelli	%cavatelli%	label	-	-	in	21CFR 139.110: a pasta shape, a macaroni product of semolina, durum flour or farina
+wheat	manicotti	%manicotti%	label	-	-	in	21CFR 139.110: a pasta shape, a macaroni product of semolina, durum flour or farina
+wheat	cannelloni	%cannelloni%	label	-	-	in	21CFR 139.110: a pasta shape, a macaroni product of semolina, durum flour or farina
+wheat	bucatini	%bucatini%	label	-	-	in	21CFR 139.110: a pasta shape, a macaroni product of semolina, durum flour or farina
+wheat	capellini	%capellini%	label	-	-	in	21CFR 139.110: a pasta shape, a macaroni product of semolina, durum flour or farina
+wheat	angel hair	%angel hair%	label	-	-	in	21CFR 139.110: capellini, a pasta shape of semolina, durum flour or farina
+wheat	gemelli	%gemelli%	label	-	-	in	21CFR 139.110: a pasta shape, a macaroni product of semolina, durum flour or farina
+wheat	rotelle	%rotelle%	label	-	-	in	21CFR 139.110: a pasta shape, a macaroni product of semolina, durum flour or farina
+wheat	mostaccioli	%mostaccioli%	label	-	-	in	21CFR 139.110: a pasta shape, a macaroni product of semolina, durum flour or farina
+wheat	tubetti	%tubetti%	label	-	-	in	21CFR 139.110: a pasta shape, a macaroni product of semolina, durum flour or farina
+wheat	pastina	%pastina%	label	-	-	in	21CFR 139.110: a pasta shape, a macaroni product of semolina, durum flour or farina
+wheat	acini di pepe	%acini di pepe%	label	-	-	in	21CFR 139.110: a pasta shape, a macaroni product of semolina, durum flour or farina
+wheat	cappelletti	%cappelletti%	label	-	-	in	21CFR 139.150: filled egg pasta of wheat flour and egg
+wheat	agnolotti	%agnolotti%	label	-	-	in	21CFR 139.150: filled egg pasta of wheat flour and egg
+wheat	baguette	%baguette%	label	-	-	in	21CFR 136.110: a bread of wheat flour (French bread)
+wheat	ciabatta	%ciabatta%	label	-	-	in	21CFR 136.110: a bread of wheat flour (Italian bread)
+wheat	sourdough	%sourdough%	label	-	-	covered	21CFR 136.110: a bread, or its starter, of wheat flour
+wheat	pumpernickel	%pumpernickel%	label	-	-	in	21CFR 136.110: a rye bread made with wheat flour (SR: bread, pumpernickel)
+wheat	pita	%pita%	label	-	-	in	SR: pita, white (enriched wheat flour)
+wheat	chapati	%chapati%	label	-	-	in	SR: chapati, an unleavened flatbread of whole wheat flour
+wheat	chapatti	%chapatti%	label	-	-	in	SR: chapati in the other spelling
+wheat	roti	%roti%	label	-	-	in	SR: roti, a flatbread of whole wheat flour ("rotisserie" is a named exception)
+wheat	paratha	%paratha%	label	-	-	in	SR: paratha, a layered flatbread of whole wheat flour
+wheat	lavash	%lavash%	label	-	-	in	a flatbread of wheat flour (21CFR 136.110)
+wheat	crumpet	%crumpet%	label	-	-	in	a griddle bread of wheat flour (21CFR 136.110)
+wheat	bun	%bun%	label	-	-	in	21CFR 136.110: buns are bread of wheat flour ("bunch" is a named exception)
+wheat	rusk	%rusk%	label	-	-	in	SR: rusk toast, a twice-baked bread of wheat flour
+wheat	melba toast	%melba toast%	label	-	-	in	SR: melba toast, plain (wheat flour)
+wheat	pizza	%pizza%	label	-	-	in	SR: Pizza, cheese topping, regular crust (enriched wheat flour); a pizza is a wheat flour crust (pizza sauce, seasoning and cheese are named exceptions)
+wheat	gravy	%gravy%	label	-	-	in	SR: Gravy, brown, chicken and turkey, dry: thickened with wheat flour; a gravy a line does not say otherwise of is held
+wheat	sandwich	%sandwich%	label	-	-	in	21CFR 136.110: a sandwich is made with bread, rolls or buns (sandwich spread is a named exception)
+wheat	bran	%bran%	label	-	-	in	FARE: wheat bran; a bran a line does not name is wheat bran (SR: Cereals ready-to-eat, raisin bran; oat, rice and corn bran are named exceptions)
+wheat	multigrain	%multigrain%	label	-	-	in	SR: Bread, multi-grain and Crackers, multigrain are wheat flour with other grains; a multigrain food a line names is held
+wheat	multi-grain	%multi-grain%	label	-	-	in	SR: Bread, multi-grain (wheat flour with other grains)
+wheat	dough	%dough%	label	-	-	in	21CFR 139.110 and 136.110: a dough of the recipes is wheat flour and liquid unless the line names another (masa and corn dough are named exceptions)
+wheat	durum	%durum%	label	-	-	in	FARE: durum is wheat; 21CFR 137.220 durum flour
+wheat	emmer	%emmer%	label	-	-	in	FDA-QA5 and FARE: emmer is wheat
+gluten	cereal	%cereal%	label	-	-	in	SR: Breakfast Cereals; a ready-to-eat cereal is made with wheat, barley malt or oats unless its label says gluten-free (CDF), so a cereal a line does not name the grain of is held for the gluten types
+milk	lactalbumin	%lactalbumin%	label	-	-	in	FARE: lactalbumin and lactalbumin phosphate are milk proteins
+milk	lactoglobulin	%lactoglobulin%	label	-	-	in	FARE: lactoglobulin is a milk protein
+milk	lactoferrin	%lactoferrin%	label	-	-	in	FARE: lactoferrin is a milk protein
+milk	lactose	%lactose%	label	-	-	in	FARE: lactose is milk sugar (21CFR 168.122: obtained from whey)
+milk	curd	%curd%	label	-	-	in	FARE: curds are milk (bean curd and soy curd, which are tofu, are named exceptions)
+milk	half and half	%half and half%	label	-	-	in	FARE: half-and-half is milk and cream (21CFR 131.180)
+milk	creme fraiche	%creme fraiche%	label	-	-	in	FARE: cream in all forms; creme fraiche is cultured cream
+milk	crème fraîche	%crème fraîche%	label	-	-	in	FARE: cream in all forms; creme fraiche in the French spelling
+milk	quark	%quark%	label	-	-	in	a fresh cheese of soured milk (FARE: cheese in all forms)
+milk	skyr	%skyr%	label	-	-	in	a cultured milk product (FARE: yogurt in all forms)
+milk	recaldent	%recaldent%	label	-	-	in	FARE: Recaldent is casein phosphopeptide from milk
+milk	dairy	%dairy%	label	-	-	in	FALCPA: milk is the major allergen the word dairy names ("dairy drink mix"; "dairy-free" is not read)
+milk	pudding	%pudding%	label	-	-	in	FARE: pudding; a pudding is a custard of milk (black and blood pudding are named exceptions)
+egg	albumin	%albumin%	label	-	-	in	FARE: albumin (also spelled albumen) is egg white protein (lactalbumin, a milk protein, is a named exception)
+egg	albumen	%albumen%	label	-	-	in	FARE: albumen is egg white
+egg	ovalbumin	%ovalbumin%	label	-	-	in	FARE: ovalbumin is egg white protein
+egg	ovoglobulin	%ovoglobulin%	label	-	-	in	FARE: ovoglobulin is an egg protein
+egg	ovomucin	%ovomucin%	label	-	-	in	FARE: ovomucin is an egg protein
+egg	ovomucoid	%ovomucoid%	label	-	-	in	FARE: ovomucoid is an egg protein
+egg	ovotransferrin	%ovotransferrin%	label	-	-	in	FARE: ovotransferrin is an egg protein
+egg	vitellin	%vitellin%	label	-	-	in	FARE: vitellin, apovitellin and ovovitellin are egg yolk proteins
+egg	livetin	%livetin%	label	-	-	in	FARE: livetin is an egg yolk protein
+egg	lysozyme	%lysozyme%	label	-	-	in	FARE: lysozyme is taken from egg white (INS 1105)
+egg	yolk	%yolk%	label	-	-	in	FARE: egg yolk; a yolk in a recipe line is an egg's
+soy	textured vegetable protein	%textured vegetable protein%	label	-	-	in	FARE: textured vegetable protein (TVP) is soy flour
+soy	tvp	%tvp%	label	-	-	in	FARE: TVP is textured vegetable protein of soy
+soy	okara	%okara%	label	-	-	in	FARE: okara is soy pulp
+soy	yuba	%yuba%	label	-	-	in	FARE: yuba is soy milk skin
+soy	bean curd	%bean curd%	label	-	-	in	FARE: bean curd is tofu
+peanut	arachis	%arachis%	label	-	-	in	FARE: arachis oil is peanut oil (Arachis hypogaea)
+peanut	goober	%goober%	label	-	-	in	FARE: goobers are peanuts
+peanut	monkey nut	%monkey nut%	label	-	-	covered	FARE: monkey nuts are peanuts
+peanut	beer nut	%beer nut%	label	-	-	covered	FARE: beer nuts are peanuts
+peanut	mandelona	%mandelona%	label	-	-	in	FARE: mandelonas are peanuts soaked in almond flavouring
+peanut	nut	% nut%	label	-	-	in	FARE: artificial nuts, nut pieces and nutmeats may be peanuts; a nut a line does not name may be a peanut (a word start: "doughnut" is not; "nutmeg" and the named tree nuts are named exceptions)
+treenut	nut	% nut%	label	-	-	in	FARE: nut pieces, nut meal, nut paste and nutmeats; a nut a line does not name may be a tree nut (a word start: "doughnut" is not; "nutmeg" and the peanut names are named exceptions)
+treenut	nutmeat	%nutmeat%	label	-	-	covered	FARE: nutmeat is the kernel of a nut
+treenut	chinquapin	%chinquapin%	label	-	-	in	FARE: chinquapin is a tree nut (a chestnut)
+treenut	nangai	%nangai%	label	-	-	in	FARE: nangai is a tree nut
+treenut	pignoli	%pignoli%	label	-	-	in	FARE: pignoli and pignolia are pine nuts
+treenut	pinon	%pinon%	label	-	-	in	FARE: pinon (pinyon) is a pine nut
+treenut	piñon	%piñon%	label	-	-	in	FARE: pinon in the Spanish spelling
+treenut	pinyon	%pinyon%	label	-	-	in	FARE: pinyon is a pine nut
+treenut	hickory nut	%hickory nut%	label	-	-	covered	FARE: hickory nut is a tree nut (SR: Nuts, hickorynuts)
+treenut	pili nut	%pili nut%	label	-	-	covered	FARE: pili nut is a tree nut (SR: Nuts, pilinuts)
+fish	kipper	%kipper%	label	-	-	in	SR: Fish, herring, kippered
+fish	gravlax	%gravlax%	label	-	-	in	cured salmon (FALCPA: fish)
+fish	bacalao	%bacalao%	label	-	-	in	salt cod (FALCPA: fish)
+fish	bacalhau	%bacalhau%	label	-	-	in	salt cod (FALCPA: fish)
+fish	baccala	%baccala%	label	-	-	in	salt cod (FALCPA: fish)
+fish	unagi	%unagi%	label	-	-	in	freshwater eel (SR: Fish, eel)
+fish	nam pla	%nam pla%	label	-	-	in	fish sauce (label-terms.tsv: fish sauce, fermented anchovy)
+fish	nuoc mam	%nuoc mam%	label	-	-	in	fish sauce (label-terms.tsv: fish sauce, fermented anchovy)
+fish	tarama	%tarama%	label	-	-	in	salted fish roe, and taramasalata made of it (SR: Fish, roe)
+shellfish	krill	%krill%	label	-	-	in	FARE: krill is a crustacean shellfish
+shellfish	crawdad	%crawdad%	label	-	-	in	FARE: crawdad is crawfish
+shellfish	ecrevisse	%ecrevisse%	label	-	-	in	FARE: ecrevisse is crawfish
+shellfish	langouste	%langouste%	label	-	-	in	FARE: langouste is a lobster
+shellfish	tomalley	%tomalley%	label	-	-	in	FARE: tomalley is lobster liver
+shellfish	crevette	%crevette%	label	-	-	in	FARE: crevette is shrimp
+shellfish	quahog	%quahog%	label	-	-	in	FARE: quahog is a clam
+shellfish	geoduck	%geoduck%	label	-	-	in	FARE: geoduck is a clam
+shellfish	cockle	%cockle%	label	-	-	in	FARE: cockle is a mollusk
+shellfish	limpet	%limpet%	label	-	-	in	FARE: limpet is a mollusk
+shellfish	periwinkle	%periwinkle%	label	-	-	in	FARE: periwinkle is a sea snail
+shellfish	sea urchin	%sea urchin%	label	-	-	in	FARE: sea urchin is a mollusk-like shellfish
+shellfish	sea cucumber	%sea cucumber%	label	-	-	in	FARE: sea cucumber is shellfish
+shellfish	escargot	%escargot%	label	-	-	in	FARE: escargot is snail
+sesame	benne	%benne%	label	-	-	in	FDA-SESAME: benne, benne seed, benniseed
+sesame	benniseed	%benniseed%	label	-	-	in	FDA-SESAME: benniseed
+sesame	gingelly	%gingelly%	label	-	-	in	FDA-SESAME: gingelly, gingelly oil
+sesame	sesamol	%sesamol%	label	-	-	in	FDA-SESAME: sesamol
+sesame	sesamum	%sesamum%	label	-	-	in	FDA-SESAME: Sesamum indicum
+sesame	sim sim	%sim sim%	label	-	-	in	FDA-SESAME: sim sim
+sesame	til	% til%	label	-	-	in	FDA-SESAME: til (a word start: "lentil" and "until" are not; "tilapia" is a named exception)
+sesame	tehina	%tehina%	label	-	-	in	FDA-SESAME: tehina
+sulfite	sulfite	%sulfite%	label	-	-	in	21CFR 101.100(a)(4) and 182.3766-182.3798: sulfites, sodium sulfite, sodium and potassium metabisulfite
+sulfite	sulphite	%sulphite%	label	-	-	in	21CFR 101.100(a)(4): sulfites in the British spelling
+sulfite	bisulfite	%bisulfite%	label	-	-	in	21CFR 182.3616 and 182.3739: potassium and sodium bisulfite
+sulfite	bisulphite	%bisulphite%	label	-	-	in	21CFR 182.3739: bisulfite in the British spelling
+sulfite	sulfur dioxide	%sulfur dioxide%	label	-	-	in	21CFR 182.3862: sulfur dioxide
+sulfite	sulphur dioxide	%sulphur dioxide%	label	-	-	in	21CFR 182.3862: sulfur dioxide in the British spelling
+sulfite	sulfured	%sulfured%	label	-	-	in	21CFR 182.3862: a food sulfured is treated with sulfur dioxide (sulfured molasses, sulfured fruit; "unsulfured" is not read)
+sulfite	sulphured	%sulphured%	label	-	-	in	21CFR 182.3862: sulfured in the British spelling
+sulfite	potato flakes	%potato flakes%	label	-	-	in	LABEL: dehydrated potato flakes (sodium bisulfite)
+sulfite	instant mashed potato	%instant mashed potato%	label	-	-	in	LABEL: instant mashed potatoes (sodium bisulfite)
+sulfite	sweetened coconut	%sweetened coconut%	label	-	-	in	LABEL: sweetened flaked coconut (Baker's Angel Flake: coconut, sugar, sodium metabisulfite)
+sulfite	dehydrated	%dehydrated%	label	-	-	in	21CFR 182.3862 and 101.100(a)(4): dehydrated fruit and vegetables (potatoes, carrots, apples) are sulfited to keep their colour; dehydrated foods a line names are held

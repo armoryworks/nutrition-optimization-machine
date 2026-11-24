@@ -157,6 +157,8 @@ namespace Nom.Orch.Models.Curation
         public int OnRebuiltRecipes { get; set; }
         public int SkippedRebuilt { get; set; }
         public int Skipped { get; set; }
+        /// <summary>Lines left where the run put them because moving them back would lower a recipe's diet flags (<see cref="Nom.Orch.Services.Support.LineMoveDietGuard"/>); counted by a dry run too.</summary>
+        public int HeldByDiet { get; set; }
         public int NamesRestored { get; set; }
         public int AliasEntries { get; set; }
         public int AliasesRestored { get; set; }

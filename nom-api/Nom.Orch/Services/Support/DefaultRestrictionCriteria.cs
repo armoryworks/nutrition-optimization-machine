@@ -26,6 +26,8 @@ namespace Nom.Orch.Services.Support
     /// (<c>\mrum\M</c>), which match whole words, and the alcohol diets also carry a nutrient
     /// row (<see cref="NutrientsByName"/>, capped per serving for the types in <see cref="MaxPerServingByName"/>;
     /// both read by <see cref="DietCriteriaMatcher"/>).
+    /// The wheat, gluten, milk, egg, soy, peanut, tree nut, fish, shellfish, sesame and sulfite patterns carry their class's
+    /// derived and cited vocabulary (<see cref="DietVocabulary"/>, decided in), so every type that holds the class holds it.
     /// Severity 5 = allergy, 4 = medical/intolerance, 3 = diet/religious.
     /// </summary>
     public static class DefaultRestrictionCriteria
@@ -34,16 +36,18 @@ namespace Nom.Orch.Services.Support
 
         private static readonly string[] Meat = { "%beef%", "%pork%", "%lamb%", "%veal%", "%venison%", "%bison%", "%goat%", "%bacon%", "%ham%", "%sausage%", "%pepperoni%", "%salami%", "%prosciutto%", "%steak%", "%ground meat%", "%meatball%", "%hot dog%", "%chorizo%", "%pancetta%", "%lard%", "%gelatin%" };
         private static readonly string[] Poultry = { "%chicken%", "%turkey%", "%duck%", "%goose%", "%quail%", "%poultry%" };
-        private static readonly string[] Fish = { "%salmon%", "%tuna%", "%cod%", "%tilapia%", "%trout%", "%halibut%", "%anchov%", "%sardine%", "%mackerel%", "%haddock%", "%bass%", "%snapper%", "%swordfish%", "%mahi%", "%fish%", "%catfish%", "%herring%", "%pollock%", "%flounder%", "%sole%" };
-        private static readonly string[] Shellfish = { "%shrimp%", "%prawn%", "%crab%", "%lobster%", "%clam%", "%mussel%", "%oyster%", "%scallop%", "%crawfish%", "%crayfish%", "%squid%", "%calamari%", "%octopus%", "%shellfish%" };
-        private static readonly string[] Dairy = { "%milk%", "%cheese%", "%butter%", "%yogurt%", "%yoghurt%", "%cream%", "%whey%", "%casein%", "%ghee%", "%kefir%", "%custard%", "%ice cream%", "%mozzarella%", "%cheddar%", "%parmesan%", "%feta%", "%ricotta%", "%brie%", "%gouda%" };
-        private static readonly string[] Eggs = { "%egg%", "%mayonnaise%", "%meringue%", "%aioli%" };
+        private static readonly string[] Fish = new[] { "%salmon%", "%tuna%", "%cod%", "%tilapia%", "%trout%", "%halibut%", "%anchov%", "%sardine%", "%mackerel%", "%haddock%", "%bass%", "%snapper%", "%swordfish%", "%mahi%", "%fish%", "%catfish%", "%herring%", "%pollock%", "%flounder%", "%sole%" }.Concat(DietVocabulary.PatternsOf("fish")).ToArray();
+        private static readonly string[] Shellfish = new[] { "%shrimp%", "%prawn%", "%crab%", "%lobster%", "%clam%", "%mussel%", "%oyster%", "%scallop%", "%crawfish%", "%crayfish%", "%squid%", "%calamari%", "%octopus%", "%shellfish%" }.Concat(DietVocabulary.PatternsOf("shellfish")).ToArray();
+        private static readonly string[] Dairy = new[] { "%milk%", "%cheese%", "%butter%", "%yogurt%", "%yoghurt%", "%cream%", "%whey%", "%casein%", "%ghee%", "%kefir%", "%custard%", "%ice cream%", "%mozzarella%", "%cheddar%", "%parmesan%", "%feta%", "%ricotta%", "%brie%", "%gouda%" }.Concat(DietVocabulary.PatternsOf("milk")).ToArray();
+        private static readonly string[] Eggs = new[] { "%egg%", "%mayonnaise%", "%meringue%", "%aioli%" }.Concat(DietVocabulary.PatternsOf("egg")).ToArray();
         private static readonly string[] Honey = { "%honey%" };
-        private static readonly string[] Gluten = { "%wheat%", "%flour%", "%barley%", "%rye%", "%bread%", "%pasta%", "%spaghetti%", "%noodle%", "%couscous%", "%seitan%", "%bulgur%", "%farro%", "%semolina%", "%cracker%", "%tortilla%", "%pita%", "%bagel%", "%croissant%", "%breadcrumb%", "%panko%", "%soy sauce%", "%malt%", "%beer%", "oat%", "% oat%", "%granola%", "%muesli%", "%spelt%", "%kamut%", "%triticale%", "%farina%", "%orzo%", "%gnocchi%" };
-        private static readonly string[] Peanut = { "%peanut%" };
-        private static readonly string[] TreeNuts = { "%almond%", "%walnut%", "%cashew%", "%pecan%", "%pistachio%", "%hazelnut%", "%macadamia%", "%brazil nut%", "%pine nut%", "%chestnut%", "%tree nut%", "%mixed nut%", "%nut butter%", "%marzipan%", "%praline%", "%nutella%" };
-        private static readonly string[] Soy = { "%soy%", "%tofu%", "%tempeh%", "%edamame%", "%miso%", "%tamari%", "%natto%" };
-        private static readonly string[] Sesame = { "%sesame%", "%tahini%", "%halva%", "%hummus%" };
+        private static readonly string[] Gluten = new[] { "%wheat%", "%flour%", "%barley%", "%rye%", "%bread%", "%pasta%", "%spaghetti%", "%noodle%", "%couscous%", "%seitan%", "%bulgur%", "%farro%", "%semolina%", "%cracker%", "%tortilla%", "%pita%", "%bagel%", "%croissant%", "%breadcrumb%", "%panko%", "%soy sauce%", "%malt%", "%beer%", "oat%", "% oat%", "%granola%", "%muesli%", "%spelt%", "%kamut%", "%triticale%", "%farina%", "%orzo%", "%gnocchi%" }.Concat(DietVocabulary.PatternsOf("wheat")).Concat(DietVocabulary.PatternsOf("gluten")).ToArray();
+        private static readonly string[] Peanut = new[] { "%peanut%" }.Concat(DietVocabulary.PatternsOf("peanut")).ToArray();
+        private static readonly string[] TreeNuts = new[] { "%almond%", "%walnut%", "%cashew%", "%pecan%", "%pistachio%", "%hazelnut%", "%macadamia%", "%brazil nut%", "%pine nut%", "%chestnut%", "%tree nut%", "%mixed nut%", "%nut butter%", "%marzipan%", "%praline%", "%nutella%" }.Concat(DietVocabulary.PatternsOf("treenut")).ToArray();
+        private static readonly string[] Soy = new[] { "%soy%", "%tofu%", "%tempeh%", "%edamame%", "%miso%", "%tamari%", "%natto%" }.Concat(DietVocabulary.PatternsOf("soy")).ToArray();
+        private static readonly string[] Sesame = new[] { "%sesame%", "%tahini%", "%halva%", "%hummus%" }.Concat(DietVocabulary.PatternsOf("sesame")).ToArray();
+        private static readonly string[] Sulfite = new[] { "%wine%", "%dried fruit%", "%dried apricot%", "%raisin%", "%vinegar%", "%pickle%", "%sauerkraut%" }.Concat(DietVocabulary.PatternsOf("sulfite")).ToArray();
+        private static readonly string[] WheatOnly = new[] { "%wheat%", "%flour%", "%bread%", "%pasta%", "%couscous%", "%seitan%", "%bulgur%", "%farro%", "%semolina%", "%breadcrumb%", "%panko%", "%tortilla%", "%cracker%", "%spelt%", "%kamut%", "%triticale%", "%farina%", "%orzo%", "%gnocchi%" }.Concat(DietVocabulary.PatternsOf("wheat")).ToArray();
         private static readonly string[] Corn = { "%corn%", "%maize%", "%polenta%", "%grits%", "%popcorn%", "%tortilla%" };
         private static readonly string[] Coconut = { "%coconut%" };
         private static readonly string[] Mustard = { "%mustard%" };
@@ -86,6 +90,7 @@ namespace Nom.Orch.Services.Support
         private static readonly string[] FatTypes = { "Pancreatitis", "Gallbladder Disease" };
         private static readonly string[] VeganTypes = { "Vegan", "Ethical Vegan", "Raw Vegan", "Plant-Based" };
         private static readonly string[] ShellfishMeatTypes = VeganTypes.Concat(new[] { "Vegetarian", "Hindu Vegetarian", "Buddhist Vegetarian", "Jain" }).ToArray();
+        private static readonly string[] WineTypes = { "Sulfite Sensitivity", "Sulfites Sensitivity", "Histamine Intolerance" };
         private static readonly string[] FlourTypes = { "Wheat Allergy", "Celiac Disease", "Gluten Sensitivity", "Gluten-Free", "Grain-Free", "Paleo", "Whole30" };
 
         private static IEnumerable<RestrictionCompanion> Companion(IEnumerable<string> types, string pattern, string reason, params string[] companions) =>
@@ -116,6 +121,8 @@ namespace Nom.Orch.Services.Support
             .Concat(Companion(new[] { "Pancreatitis" }, "%butter%", "nut, seed and cocoa butters are among the fattiest foods, restricted here for fat, not dairy; the exceptions of %butter% clear them", "%peanut butter%", "%almond butter%", "%cashew butter%", "%nut butter%", "%seed butter%", "%sunflower butter%", "%cocoa butter%", "%cacao butter%"))
             .Concat(Companion(FatTypes, "%bacon%", "turkey and beef bacon are cured fatty meats, restricted here for fat, not pork; the exceptions of %bacon% clear them", "%turkey bacon%", "%beef bacon%"))
             .Concat(Companion(FlourTypes, "%flour%", "flower is the old spelling of flour in seventeenth- to nineteenth-century cookbooks (staging checkpoint 4, P12); the blossoms are named exceptions of %flower%", "%flower%"))
+            .Concat(Companion(WineTypes, "%wine%", "sherry, port, Madeira, Marsala, claret, champagne and the other semi-generic type names are wines (27 CFR 4.21 and 4.24(b)(2)), vermouth an aperitif wine (27 CFR 4.21(g)) and Shaoxing a rice wine (27 CFR 4.21(f)), which these types restrict as wine though the line does not say wine (staging checkpoint 5, Q13)", "%sherry%", "%port%", "%madeira%", "%marsala%", "%vermouth%", "%claret%", "%champagne%", "%prosecco%", "%sauterne%", "%chablis%", "%chianti%", "%burgundy%", "%moselle%", "%tokay%", "%shaoxing%"))
+            .Concat(Companion(WineTypes, "%wine%", "hard cider is fermented apple juice, a fruit wine (27 CFR 4.21(e)) sulfited and aged like wine (staging checkpoint 5, Q13); sweet cider is juice and is not read", "%hard cider%"))
             .Concat(Companion(new[] { "Peanut Allergy" }, "%peanut%", "a nut butter that does not name its nut may be peanut butter, sold and named among the nut butters though peanuts are legumes (staging checkpoint 4, P3); peanut butter itself is held by %peanut%", "%nut butter%"))
             .ToList();
 
@@ -160,7 +167,7 @@ namespace Nom.Orch.Services.Support
                 ["Mussel Allergy"] = (5, new[] { "%mussel%" }),
                 ["Oyster Allergy"] = (5, new[] { "%oyster%" }),
                 ["Scallop Allergy"] = (5, new[] { "%scallop%" }),
-                ["Wheat Allergy"] = (5, new[] { "%wheat%", "%flour%", "%bread%", "%pasta%", "%couscous%", "%seitan%", "%bulgur%", "%farro%", "%semolina%", "%breadcrumb%", "%panko%", "%tortilla%", "%cracker%", "%spelt%", "%kamut%", "%triticale%", "%farina%", "%orzo%", "%gnocchi%" }),
+                ["Wheat Allergy"] = (5, WheatOnly),
                 ["Sesame Allergy"] = (5, Sesame),
                 ["Corn Allergy"] = (5, Corn),
                 ["Coconut Allergy"] = (5, Coconut),
@@ -179,8 +186,8 @@ namespace Nom.Orch.Services.Support
                 ["Lactose Intolerance"] = (4, Lactose),
                 ["Gluten Sensitivity"] = (4, Gluten),
                 ["Celiac Disease"] = (4, Gluten),
-                ["Sulfites Sensitivity"] = (4, new[] { "%wine%", "%dried fruit%", "%dried apricot%", "%raisin%", "%vinegar%", "%pickle%", "%sauerkraut%" }),
-                ["Sulfite Sensitivity"] = (4, new[] { "%wine%", "%dried fruit%", "%dried apricot%", "%raisin%", "%vinegar%", "%pickle%", "%sauerkraut%" }),
+                ["Sulfites Sensitivity"] = (4, Sulfite),
+                ["Sulfite Sensitivity"] = (4, Sulfite),
                 ["Caffeine Sensitivity"] = (4, Caffeine),
                 ["Nightshade Sensitivity"] = (4, Nightshade),
                 ["Nightshade-Free"] = (3, Nightshade),

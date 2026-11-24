@@ -75,7 +75,7 @@ known by its listed parts** (a name of at most six words whose parts the stateme
 hide a missing comma). Anything else is **unresolved**. A recognised term is judged by its text alone, exactly
 as a recipe line naming it would be.
 
-### Label language (`StatementLabelTerms`, `label-terms/2`; staging checkpoint 3, N5; checkpoint 4, P4)
+### Label language (`StatementLabelTerms`, `label-terms/3`; staging checkpoint 3, N5; checkpoint 4, P4; checkpoint 5, Q7, Q8)
 
 **Label terms first (`label-terms/2`, staging checkpoint 4, P4).** A name the cited table reads is a label item
 before it is a catalog food: `PreparedContentsService.Resolve` reads the label table first and keeps the catalog
@@ -87,6 +87,21 @@ oil sources on the safe side. A name the table does not read (a plain vocabulary
 resolves as before, and a catalog-only food that is no longer curated still makes the meal unknown. The table
 gained the composites of `diet-gate.md` (checkpoint 4 section); a stored row of `label-terms/1` is read again by
 `--prepared-contents --reread`.
+
+**Sulfiting agents and listed parts (`label-terms/3`, staging checkpoint 5, Q7 and Q8).** The sulfite types hold the
+names 21 CFR 182 gives the sulfiting agents (`%sulfite%`, `%bisulfite%`, `%sulfur dioxide%` and the British
+spellings, `diet-vocabulary.tsv`), so "sodium bisulfite", "sodium metabisulfite as a preservative" and "freshness
+preserved with sodium bisulfite" hold the meal, by the item's own words and by the `sulfite` term it stands for.
+An ingredient whose parts the statement lists in its bracket is decided by those parts, each read as an ingredient of
+its own: "vegetable oil (soybean and/or canola oil)" is soybean and canola oil, so what a bare vegetable oil may be
+(peanut) is not read for it (`PreparedContentsGate.UncertainNames`); a bare "vegetable oil" still keeps the meal
+unknown for Peanut Allergy. Only a part that names a source decides: a food of the label table that is not itself
+of an unstated source ("canola oil", "soybean"). A bracket of only an additive or a word the reader cannot place
+("TBHQ", "preserved with TBHQ", "non-hydrogenated") names none, so the term stays unknown; a source beside an
+additive ("canola oil, TBHQ") decides. Each occurrence is decided by its own bracket, by its place in the statement:
+"vegetable oil (canola oil), seasoning (salt, vegetable oil, spices)" keeps the seasoning's bare vegetable oil
+unknown (review CK10C-1, CK10C-2). Egg roll wrappers are their own row (wheat flour and egg, nothing that may be
+filling); a filled egg roll may still hold pork or shrimp (review CK10C-7). The table gained the classic composites of `diet-gate.md` (checkpoint 5 section).
 
 At checkpoint 3 none of the 96 read FDC statements on staging was fully known: the plain names a label uses
 ("wheat", "soybeans", "cream", "pasteurized milk", "enriched flour", "soybean oil", "basmati rice", "chick
@@ -154,6 +169,9 @@ lines:
 1. The meal itself in the restricted set (its own name, category or nutrients) holds it (`restricted_food`).
    While the diet gate's warm has not yet computed a food probe the restrictions need (`RestrictedIngredientSet.Pending`,
    `cleanup2/ck9-diet-speed`, see `diet-gate.md`) the foods are not all known, and every meal is held (`diet_gate_pending`).
+   Since `cleanup2/ck10-diet-store` the meal and the foods its statements resolve to are looked up in the gate's stored
+   facts (`DietFoodFact`), and a meal the active build has not decided yet (a food made since the last cycle) is
+   unknown: held as `diet_gate_pending` for a severe restriction, also in the check without contents.
 2. The statement that decides is the household's own latest confirmed label, else the latest FDC statement.
    None → held (`contents_none`).
 3. In either statement that was read, each named ingredient is a line: held when the curated food it
@@ -196,7 +214,7 @@ A household with no such restriction is not judged by contents, as before.
    counts, the unread reasons and the most frequent unresolved names, then run it without `--dry-run` and keep
    the printed batch. `--prepared-contents --undo <batch>` reverses it.
 3. After a wording load, and once after a release that raises the reader or label-terms version (stored as
-   `ReaderVersion`, now `contents-reader/3 label-terms/2`): `--prepared-contents --reread --dry-run`, then
+   `ReaderVersion`, now `contents-reader/3 label-terms/3`): `--prepared-contents --reread --dry-run`, then
    apply. `--prepared-contents <dir> --all-branded` also stores the statements of every branded food in the
    catalog (not only the whole meals), so a recipe line linked to a branded food carries what its label names
    (`diet-gate.md`).

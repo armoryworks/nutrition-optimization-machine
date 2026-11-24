@@ -39,7 +39,11 @@ namespace Nom.Orch.Models.Curation
         public int ProseWithheld { get; init; }
         /// <summary>Of those withheld, the approved ones, which the rewrite lane takes first.</summary>
         public int ProseWithheldApproved { get; init; }
-        /// <summary>Recipes whose own prose the prose check is unsure of (weak signals only): shown and counted, and the prose judge's to read.</summary>
+        /// <summary>Of those withheld, the ones withheld as copy-unsure (copy measures between the two lines of the copy rule), also the rewrite lane's work.</summary>
+        public int ProseCopyUnsure { get; init; }
+        /// <summary>Of those copy-unsure, the approved ones.</summary>
+        public int ProseCopyUnsureApproved { get; init; }
+        /// <summary>Recipes whose own prose the prose check is unsure of on facts (weak signals and fact classes not proven): shown, marked and counted, and the prose judge's to read.</summary>
         public int ProseUnsure { get; init; }
         /// <summary>Of those unsure, the approved ones.</summary>
         public int ProseUnsureApproved { get; init; }

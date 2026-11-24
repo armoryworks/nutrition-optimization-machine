@@ -1,7 +1,9 @@
-# The credit line a recipe keeps from its source text (CreditLines, credit-lines/3): the cue and the credited name only.
+# The credit line a recipe keeps from its source text (CreditLines, credit-lines/4): the cue and the credited name only.
 # texts: the source texts the rule reads (description and steps), split by " | ". Every text is written for the rule; the n26 rows rebuild
 # the shape of the 17 malformed credits staging checkpoint 3 logged (N26) around the credited name, not the page's own prose, and the
-# p29 rows the 7 wrong and 2 of the 3 doubtful credits of staging checkpoint 4 (P29): book and author names are facts, the sentences constructed.
+# p29 rows the 7 wrong and 2 of the 3 doubtful credits of staging checkpoint 4 (P29), and the ck10-q24 rows the 4 wrong and 2 of the 3 doubtful credits of
+# staging checkpoint 5 (Q24): book and author names are facts, the sentences constructed; the ck10-rev rows (a credit word after a three-word name)
+# are constructed whole, names included, except Japanese Farm Food by Nancy Singleton Hachisu.
 id	texts	expect	status	source	note
 keep-none	Inspired by Thai street food, these noodles are tossed in a spicy peanut sauce and finished with lime.	-	ok	rule:construction	an influence, not a credit
 keep-name	Adapted from Martha Stewart and made dairy-free with coconut milk.	Adapted from Martha Stewart	ok	rule:construction	-
@@ -47,3 +49,16 @@ p29-title-sentence	Recipe adapted from Joe Yonan and published by Ten Speed Pres
 p29-title-run-on	Adapted from Bountiful This salad is the one my son asked for by Sunday	Adapted from Bountiful	ok	rule:construction	a word that starts a sentence inside the words before "by" ends the title, so the old reading stands
 ck9s-colon-sentence-from	Recipe courtesy of Jane Doe: serve with bread from Tartine Bakery.	Recipe courtesy of Jane Doe	ok	rule:construction	a colon followed by a sentence is no dish title, so the person before the colon keeps the credit, not the bakery after "from"
 ck9s-colon-sentence-place	Adapted from Ottolenghi: we used tomatoes from Sicily, sliced thin.	Adapted from Ottolenghi	ok	rule:construction	the words after the colon are a sentence, so "from Sicily" credits no one
+ck10-q24-next-red	Adapted from Almonds, Anchovies and Pancetta: A Vegetarian Cookbook, Kind Of by Cal Peternell Red chile flakes go in with the garlic	Adapted from Almonds, Anchovies and Pancetta: A Vegetarian Cookbook, Kind Of by Cal Peternell	ok	rule:staging-q24	141874: the next sentence's first word follows the name with no stop between
+ck10-q24-next-as	Adapted from Coming Home to Sicily by Fabrizia Lanza As noted above the dough rests overnight	Adapted from Coming Home to Sicily by Fabrizia Lanza	ok	rule:staging-q24	141876
+ck10-q24-glued-word	Adapted from Très Green, Très Clean, Très Chic by Rebecca LefflerLentils double in volume as they cook	Adapted from Très Green, Très Clean, Très Chic by Rebecca Leffler	ok	rule:staging-q24	141882: the next sentence's first word glued to the surname
+ck10-q24-glued-i	Adapted from Modern Israeli Cooking by Danielle OronI tend to use less oil	Adapted from Modern Israeli Cooking by Danielle Oron	ok	rule:staging-q24	24081: a glued "I"
+ck10-q24-publisher-colon	Adapted from Burma: Rivers of Flavor (Artisan), by Naomi Duguid. Toast the rice first.	Adapted from Burma: Rivers of Flavor by Naomi Duguid	agent	agent-ck10-sources	141906 (doubtful at checkpoint 5): a publisher in brackets before "by" is left out and the author kept
+ck10-q24-publisher-plain	Adapted from Plenty (Chronicle Books) by Yotam Ottolenghi, with less oil.	Adapted from Plenty by Yotam Ottolenghi	agent	agent-ck10-sources	141896 (doubtful at checkpoint 5)
+ck10-q24-keep-and	Adapted from Chez Panisse Desserts by Lindsey Remolif Shere and served cold.	Adapted from Chez Panisse Desserts by Lindsey Remolif Shere	ok	rule:construction	"and" after a three-word name ends nothing
+ck10-q24-keep-two	Adapted from Cool Beans by Joe Yonan makes a big pot.	Adapted from Cool Beans by Joe Yonan	ok	rule:construction	a name of two words is never cut
+ck10-q24-keep-writes	Adapted from Seven Spoons by Tara Lynn O'Brady writes that it keeps.	Adapted from Seven Spoons by Tara Lynn O'Brady	ok	rule:construction	"writes" after a name ends nothing
+ck10-rev-keep-copyright	Excerpted from Salt and Smoke by Mara Jean Whitfield copyright 2021, used with permission.	Excerpted from Salt and Smoke by Mara Jean Whitfield	ok	rule:construction	"copyright" after a three-word name ends nothing
+ck10-rev-keep-courtesy	Adapted from Japanese Farm Food by Nancy Singleton Hachisu courtesy of the publisher.	Adapted from Japanese Farm Food by Nancy Singleton Hachisu	ok	rule:construction	"courtesy" after a three-word name ends nothing
+ck10-rev-keep-photography	Adapted from Recipes for a Small Kitchen by Ada Lynn Corrigan photography by a friend.	Adapted from Recipes for a Small Kitchen by Ada Lynn Corrigan	ok	rule:construction	"photography" after a three-word name ends nothing
+ck10-rev-keep-via	Adapted from Weeknight Pots by Anna Marie Okafor via the newsletter, with less salt.	Adapted from Weeknight Pots by Anna Marie Okafor	ok	rule:construction	"via" after a three-word name ends nothing

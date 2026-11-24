@@ -2,6 +2,10 @@ using System;
 using System.Collections.Generic;
 using System.IO;
 using System.Linq;
+using System.Net;
+using System.Net.Http;
+using System.Text.Json;
+using System.Threading;
 using System.Threading.Tasks;
 using FluentAssertions;
 using Nom.Import.Golden;
@@ -131,6 +135,65 @@ namespace Nom.Api.Tests.Golden
 
             signatures.Should().OnlyHaveUniqueItems();
             (await ModelLanes.SignatureAsync(ModelLanes.LinkVerify)).Should().Be(signatures[1]);
+        }
+
+        [Fact]
+        public async Task The_line_judge_rows_split_into_two_fixed_halves_that_keep_both_cases_of_a_row_together()
+        {
+            var ids = ModelLanes.JudgeCases(GoldenSet.Folder).Select(c => c.Id).ToList();
+            var working = ids.Where(id => ModelLanes.InSplit(id, ModelLanes.SplitWorking)).ToList();
+            var heldOut = ids.Where(id => ModelLanes.InSplit(id, ModelLanes.SplitHeldOut)).ToList();
+
+            working.Should().NotBeEmpty();
+            heldOut.Should().NotBeEmpty();
+            working.Concat(heldOut).Should().BeEquivalentTo(ids);
+            working.Select(ModelLanes.SplitRow).Should().NotIntersectWith(heldOut.Select(ModelLanes.SplitRow));
+            ids.Should().OnlyContain(id => ModelLanes.InSplit(id, ModelLanes.SplitAll));
+            var other = () => ModelLanes.RunAsync(ModelLanes.LinkVerify, GoldenSet.Folder, null!, null!, null, _ => { }, split: ModelLanes.SplitWorking);
+            await other.Should().ThrowAsync<ArgumentException>();
+        }
+
+        [Fact]
+        public async Task A_call_the_host_does_not_answer_in_time_is_asked_again_instead_of_ending_the_run()
+        {
+            var handler = new SlowOnceHandler();
+            using var http = new HttpClient(handler);
+
+            var results = await ModelLanes.RunAsync(ModelLanes.LinkVerify, GoldenSet.Folder, http, ModelLanes.Config("http://model.invalid", "m"), ModelLanes.VerifyBatch, _ => { });
+
+            results.Should().HaveCount(ModelLanes.VerifyBatch).And.OnlyContain(r => r.Actual == "Same");
+            handler.Calls.Should().Be(2);
+        }
+
+        [Fact]
+        public async Task A_call_that_keeps_timing_out_still_ends_the_run()
+        {
+            var handler = new SlowOnceHandler(timeouts: ModelLanes.CallAttempts);
+            using var http = new HttpClient(handler);
+
+            var run = () => ModelLanes.RunAsync(ModelLanes.LinkVerify, GoldenSet.Folder, http, ModelLanes.Config("http://model.invalid", "m"), ModelLanes.VerifyBatch, _ => { });
+
+            await run.Should().ThrowAsync<TaskCanceledException>();
+            handler.Calls.Should().Be(ModelLanes.CallAttempts);
+        }
+
+        private sealed class SlowOnceHandler : HttpMessageHandler
+        {
+            private readonly int _timeouts;
+
+            public SlowOnceHandler(int timeouts = 1) => _timeouts = timeouts;
+
+            public int Calls { get; private set; }
+
+            protected override Task<HttpResponseMessage> SendAsync(HttpRequestMessage request, CancellationToken cancellationToken)
+            {
+                Calls++;
+                if (Calls <= _timeouts)
+                    throw new TaskCanceledException("The request was canceled due to the configured HttpClient.Timeout.", new TimeoutException());
+                var results = string.Join(",", Enumerable.Range(1, ModelLanes.VerifyBatch).Select(n => $"{{\"n\":{n},\"verdict\":\"same\"}}"));
+                var content = JsonSerializer.Serialize(new { message = new { content = $"{{\"results\":[{results}]}}" } });
+                return Task.FromResult(new HttpResponseMessage(HttpStatusCode.OK) { Content = new StringContent(content) });
+            }
         }
     }
 }

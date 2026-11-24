@@ -16,12 +16,14 @@ namespace Nom.Orch.Services.Support
     {
         /// <summary>
         /// Re-points one line and returns the position it ended at, or null when the line is no
-        /// longer where the caller found it. A recipe that already has the target food at the
-        /// wanted position (most scraped recipes keep every line at position 0) gets the line at
-        /// the next free position, so both lines keep their own quantity.
+        /// longer where the caller found it or the diet guard holds the move (counted in <see cref="LineMoveDietGuard.Held"/>),
+        /// read with the line's text or, for a move that rewrites the line, with <paramref name="asLine"/>. A recipe
+        /// that already has the target food at the wanted position (most scraped recipes keep every line at position
+        /// 0) gets the line at the next free position, so both lines keep their own quantity.
         /// </summary>
-        public static async Task<int?> MoveAsync(ApplicationDbContext db, long recipeId, long fromId, int fromSortOrder, long toId, int wantedSortOrder, long personId)
+        public static async Task<int?> MoveAsync(ApplicationDbContext db, LineMoveDietGuard guard, long recipeId, long fromId, int fromSortOrder, long toId, int wantedSortOrder, long personId, string? asLine = null)
         {
+            if (await guard.HoldsAsync(db, recipeId, fromId, fromSortOrder, toId, asLine)) return null;
             if (db.Database.IsRelational())
             {
                 var positions = await db.Database.SqlQuery<int>(

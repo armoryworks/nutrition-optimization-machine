@@ -75,6 +75,24 @@ Since `link-recheck/6` (staging checkpoint 4, P13), three more holds are no proo
   preparation word apart): "heavy cream, whipped", "eggs, preferably at room temperature", "dates
   stoned and sliced" are one food.
 
+Since `link-recheck/7` (staging checkpoint 5, Q14 and Q15), two more:
+
+- a `fresh-herb` hold when every fresh cue of the wording and its lines qualifies a later item, not the
+  food named first (`LinkRecheckRules.FreshOfLaterItem`): the cue stands in an item (split at a comma,
+  semicolon, colon, bracket or "or") after the first item that names a word of the food, and a word
+  follows it there that the first item does not hold. "1 cinnamon stick, 1-inch piece of fresh turmeric"
+  on Cinnamon (38519) and "cayenne pepper, 1/2 teaspoon, or chopped sweet pepper, 1 small" on Cayenne
+  Pepper (49500) keep their spice; "rosemary, chopped" and "rosemary, 2 sprigs fresh rosemary" on the dried
+  rosemary are still taken off it (golden lr-ck10s-01 to lr-ck10s-03);
+- a `group` or `compound` hold that only the part after a ratio phrase raises
+  (`LinkRecheckRules.BeforeRatio`: "per", "for each", "for every", "to each", "to every", "to a
+  <measure> of"; a bare "each" or "every" is none, since "1 cup each sugar and flour" spreads one amount
+  over two foods, review CK10S-7): the gate checked again on the wording cut before the phrase no longer
+  raises it. "sugar per quart of juice", "sugar, 10 oz. for each pound of juice", "sugar to a gallon of
+  vinegar" on Sugar (lr-ck10s-04 to lr-ck10s-06). The gate already read the ratio for its part rule
+  (P13); these classes now read it too. Both classes stay below the bar and write nothing; the rule
+  only takes wrong refutations out of their candidates.
+
 The `separable lean only` and `lean only` segments of a meat entry are its ordinary eaten part, as
 "meat only" is ("shoulder of veal" on Veal Shoulder). Fixes in the gate itself (`link-gate/13`, see
 `link-gate.md`) remove other wrong refutations the checkpoint's rows showed: "not sweetened" is
@@ -160,15 +178,16 @@ those classes would make the same move or take-back, so a class is scored on exa
 would write, and no figure depends on which classes are proven when the rows are scored (review
 CK7R-2; `A_class_is_scored_on_every_row_it_refutes_whichever_classes_are_proven`). It prints judged rows, precision, the agent and rule split, coverage (the share of
 all rows judged wrong the class puts right), whether it meets the bar and whether it writes by rule;
-`--rows` adds every row's decision. On this build (`link-recheck/6`, 992 rows: 662 judged wrong, 270
+`--rows` adds every row's decision. On this build (`link-recheck/7`, 998 rows: 663 judged wrong, 275
 right, 60 doubtful; the 242 rows of staging checkpoint 4's reading, section 10 of its log, are lr-751 to
-lr-992, source `agent-operator-checkpoint4-2026-11-23`, read from the unread groups the ck7 build listed):
+lr-992, source `agent-operator-checkpoint4-2026-11-23`, read from the unread groups the ck7 build listed; lr-ck10s-01 to
+lr-ck10s-06 are rule rows of staging checkpoint 5, Q14 and Q15):
 
 | Class | Checkpoint-judged right / judged | Rule rows | Precision | Writes |
 |---|---|---|---|---|
 | alcohol | 302 / 302 | 20 / 20 | 100 % | **by rule** |
 | prepared | 86 / 86 | 40 / 40 | 100 % | **by rule** |
-| fresh-herb | 55 / 55 | | 100 % | **by rule** (since `link-recheck/6`) |
+| fresh-herb | 55 / 55 | 1 / 1 | 100 % | **by rule** (since `link-recheck/6`) |
 | part | 64 / 69 | | 92.8 % | candidates only: **not proven** |
 | compound | 23 / 35 | | 65.7 % | candidates only: **not proven** |
 | form | 15 / 26 | | 57.7 % | candidates only: **not proven** |
@@ -178,7 +197,7 @@ lr-992, source `agent-operator-checkpoint4-2026-11-23`, read from the unread gro
 | percent, polarity | 5 / 5, 3 / 3 | | 100 % | candidates only (too few rows) |
 | head-noun, head-lead, heading | 0 / 2, 1 / 1, 1 / 1 | | | candidates only |
 
-Written by rule: 521 rows, 503 of them rows judged wrong and put right, the rest doubtful. None is
+Written by rule: 522 rows, 504 of them rows judged wrong and put right (lr-ck10s-03 the new one), the rest doubtful. None is
 written against its judgement. Part, compound, form, group and other-food still fail the bar on the
 checkpoints' rows after the fixes above, and percent and polarity have too few: their refutations
 stay candidates, which the model audit decides on their own tiers (`candidate:<class>`); none of them
@@ -282,7 +301,9 @@ alias, counted `aliasesRefused`. Staging checkpoint 3 (N21): the alcohol set gav
 spirits the alias "corn brandy", and Corn Allergy then kept out 1,040 brandy recipes and Grain-Free
 655. That alias and the lines it moved
 are read again by the `alcohol`, `part-herb`, `compound` and `aliases` sets, so a move made under an
-older gate is checked again when the gate's signature changes.
+older gate is checked again when the gate's signature changes. Since `diet-patterns/5` a companion pattern
+(`%sherry%` beside `%wine%`) adds no restricted word when every default type that holds it already reads the food
+by another pattern, so "dry sherry" may still become an alias of a dessert wine (staging checkpoint 5, Q13).
 
 ## Journal and undo
 
@@ -386,6 +407,39 @@ was not. Two parts close it:
   CK9T-2), "the food" off a biscuit, a seasoning off a rice mix, an orange liqueur off orange juice for Citrus
   Allergy, a hard cider off cider vinegar for Sulfite Sensitivity). A group with no lines (an alias only) is not
   judged: no recipe's flag depends on it.
+
+### Every other path that moves a line (staging checkpoint 5, Q21)
+
+The w01 round trip (retract, unload with lines, reload, `relink/verified`) moved the 25 "Franco-American Spaghetti"
+lines off USDA `Pasta with tomato sauce, no meat, canned`, where the prepared set's guard held them, back onto the
+uncurated `Franco-American Spaghetti` of their name, and the reload refused the row (a prepared food), so they stayed:
+Nightshade Sensitivity and Interstitial Cystitis stopped flagging the recipes. The unload did what the re-check had
+refused to do. Since this build every path that moves a recipe line to another food passes the same guard,
+`LineMoveDietGuard` (the re-check's `RecheckDietGuard` read line by line, with each food's name, USDA description and
+FDC id read from the database the guard was loaded from, so a dry run on a scratch copy decides as the apply does):
+
+| Path | Where | What a held move does |
+|---|---|---|
+| relink by name (`relink/preview`, `relink/apply`) | `LineRelinkService.PlanAsync` | left out of the plan, counted `heldByDiet` |
+| a food's lines (`relink/food`, before `relink/retire`) | `MoveFoodAsync` | left on the food, counted; the retire then finds lines left and refuses |
+| a wording's lines (`relink/wordings`) | `MoveWordingsAsync` | left out, counted by the dry run too |
+| a verified wording's relink (`relink/verified`, the reload) | `LinkVerifiedWordingsAsync` | left on its uncurated row, which is then kept |
+| the return of retracted import landings (the reload) | `ReturnLandingsAsync` | left where the retract put it, its entry kept; counted once (the verified relink that follows leaves the line out, review CK10S-5) |
+| the put-back of import landings (retract, unload) | `PutBackLandingsAsync` | left on the wording's food, its entry kept; no food is made for it |
+| the undo sweep (`relink/undo`, a retract's and an unload's line moves, LinkRecheck `undo`, a picked alternative, an unsplit) | `UndoEntriesAsync`, `CompoundLineService.UnpickAsync`, `UnsplitAsync` (read with the joined line it puts back) | left where it is, its entry kept for a later undo, counted `heldByDiet` (not `skipped`) |
+| a picked alternative, a split | `CompoundLineService.ApplyAsync` (read with the line's whole text) | left, counted `heldByDiet`, by its preview too (left out of `lines` and the samples) |
+| an applied link's undo (`LinkApply/undo-applied`) | `LinkApplyUndoService` | the link is left as it is, with the reason, unless `leaveMovedLines`; then the line stays on the linked food |
+| a food merge (a link approval, a person's or a lane's) | `CatalogCleanupService.MergeIntoAsync`; `FoodCatalogReviewService.ApplyFdcLinkAsync` asks `LowersDietAsync` first | the link is held: it stays pending, and neither the merge nor the nutrient copy is made (the USDA food lacks what the ingredient's lines name, so it is another food; review CK10S-2) |
+
+The re-check's own writes pass the guard group by group before its dry run counts them (above), so its writer does not
+read them again line by line (`LineMoveDietGuard.Decided`). A move onto a USDA food with its description, a move onto
+a food whose name or description still names what a type restricts, and a line whose own text names it are never held;
+a move that raises a flag never is. Results carry `heldByDiet` (`relink`, `relink/undo`, `relink/verified`, the
+retract's and unload's `lines`, LinkRecheck `undo`, `LinkApply/undo-applied` as `linesHeldByDiet`, the compound lines) and, where the
+service moves lines itself, the first 200 holds with the types each keeps (`dietHolds`). Tests:
+`LineMoveDietGuardTests` drives each path with a move that would lower a flag (the Q21 unload and reload round trip
+leaves every line where it was), with the held link approval, the reload's single count and the unsplit; the compound
+apply and preview by `CompoundLineServiceTests`.
 
 The guard reads what the default patterns and stored criteria read in text; a food's trusted aliases beside its
 USDA description, its category probe (`%pork%`) and a branded food's statement are not read, so a flag the old

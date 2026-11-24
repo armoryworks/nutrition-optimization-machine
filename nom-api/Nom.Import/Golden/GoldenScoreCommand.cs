@@ -10,7 +10,7 @@ namespace Nom.Import.Golden
 {
     /// <summary>
     /// Scores one model lane against its golden set on a model host the operator names:
-    /// <c>dotnet run -- --golden-score --lane link-verify --host http://ai-host:11434 --model qwen3:8b [--limit 200] [--golden &lt;dir&gt;] [--out failures.tsv] [--record]</c>; the prose lanes also take <c>[--check-model mistral-nemo]</c>, the judge that checks the writer, and the reader lanes (wording-read, wording-lexicon, alcohol-reading) and link-audit take it as reader B (default the roster's), which the record names; alcohol-reading also takes <c>[--audit-model phi4]</c>, the auditor it scores in the fixed-reading mode (default the roster's).
+    /// <c>dotnet run -- --golden-score --lane link-verify --host http://ai-host:11434 --model qwen3:8b [--limit 200] [--golden &lt;dir&gt;] [--out failures.tsv] [--record] [--split working|held-out|all]</c>; a lane of <see cref="ModelLanes.Splittable"/> can be scored on one fixed half of its rows (--split, never with --record); the prose lanes also take <c>[--check-model mistral-nemo]</c>, the judge that checks the writer, and the reader lanes (wording-read, wording-lexicon, alcohol-reading) and link-audit take it as reader B (default the roster's), which the record names; alcohol-reading also takes <c>[--audit-model phi4]</c>, the auditor it scores in the fixed-reading mode (default the roster's).
     /// Prints the lane's score, its false-accept rate, the floor from <c>model-lanes.json</c> and every
     /// case that passed in the recorded run and fails now, and exits 1 when the lane is below its
     /// floor. <c>--record</c> writes the score file the release gate reads. Refused under CI, and it
@@ -34,7 +34,7 @@ namespace Nom.Import.Golden
             var model = Option(args, "--model") ?? (noModel ? ModelLanes.NoModelVersion(lane!) : null);
             if (lane == null || host == null || model == null || !ModelLanes.Scored.Contains(lane))
             {
-                Console.Error.WriteLine($"usage: {Flag} --lane <{string.Join('|', ModelLanes.Scored)}> --host <url> --model <name> [--limit N] [--golden <dir>] [--out <file>] [--record] [--check-model <name>] [--audit-model <name>] ({string.Join(", ", ModelLanes.NoModel)} needs no host or model)");
+                Console.Error.WriteLine($"usage: {Flag} --lane <{string.Join('|', ModelLanes.Scored)}> --host <url> --model <name> [--limit N] [--golden <dir>] [--out <file>] [--record] [--split <working|held-out|all>] [--check-model <name>] [--audit-model <name>] ({string.Join(", ", ModelLanes.NoModel)} needs no host or model)");
                 return 2;
             }
 
@@ -45,17 +45,29 @@ namespace Nom.Import.Golden
                 return 2;
             }
 
+            var split = Option(args, "--split") ?? ModelLanes.SplitAll;
+            if (!ModelLanes.Splits.Contains(split) || (split != ModelLanes.SplitAll && !ModelLanes.Splittable.Contains(lane)))
+            {
+                Console.Error.WriteLine($"--split takes {string.Join('|', ModelLanes.Splits)}; only {string.Join(", ", ModelLanes.Splittable)} can be scored on one half.");
+                return 2;
+            }
+            if (split != ModelLanes.SplitAll && args.Contains("--record"))
+            {
+                Console.Error.WriteLine("--record scores every row; leave out --split.");
+                return 2;
+            }
+
             int? limit = int.TryParse(Option(args, "--limit"), out var l) && l > 0 ? l : null;
             var floor = ModelLanes.Floors(goldenDir).TryGetValue(lane, out var f) ? f : new LaneFloor();
             var signature = await ModelLanes.SignatureAsync(lane);
             var recorded = ModelLanes.Recorded(goldenDir, lane);
 
-            Console.WriteLine($"Lane {lane}, model {model} on {host}, prompt signature {signature}{(limit is { } n ? $", first {n} cases" : string.Empty)}");
+            Console.WriteLine($"Lane {lane}, model {model} on {host}, prompt signature {signature}{(limit is { } n ? $", first {n} cases" : string.Empty)}{(split == ModelLanes.SplitAll ? string.Empty : $", {split} half")}");
             using var http = new HttpClient { Timeout = TimeSpan.FromMinutes(5) };
             IReadOnlyList<LaneCaseResult> results;
             try
             {
-                results = await ModelLanes.RunAsync(lane, goldenDir, http, ModelLanes.Config(host, model, Option(args, "--check-model"), Option(args, "--audit-model")), limit, Console.Error.WriteLine);
+                results = await ModelLanes.RunAsync(lane, goldenDir, http, ModelLanes.Config(host, model, Option(args, "--check-model"), Option(args, "--audit-model")), limit, Console.Error.WriteLine, split: split);
             }
             catch (Exception ex) when (ex is HttpRequestException or TaskCanceledException or InvalidOperationException)
             {

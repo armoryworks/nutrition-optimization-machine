@@ -116,7 +116,7 @@ namespace Nom.Orch.Services.Support
             return Rules(await DietCriteriaMatcher.CriteriaAsync(db, typeIds));
         }
 
-        private static string? Seed(DietPatternRule rule)
+        internal static string? Seed(DietPatternRule rule)
         {
             var seed = rule.Substring
                 ? rule.Pattern.Split('%', '_', '\\').OrderByDescending(p => p.Length).FirstOrDefault()?.ToLowerInvariant()
@@ -323,7 +323,7 @@ namespace Nom.Orch.Services.Support
             return hash;
         }
 
-        private sealed class Matcher
+        internal sealed class Matcher
         {
             private readonly (string Seed, Rule[] Rules)[] _seeded;
             private readonly Rule[] _unseeded;

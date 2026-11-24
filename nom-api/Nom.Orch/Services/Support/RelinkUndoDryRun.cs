@@ -89,12 +89,41 @@ namespace Nom.Orch.Services.Support
             }
         }
 
-        /// <summary>A dry run reading from <paramref name="db"/> into a new empty copy.</summary>
-        public static RelinkUndoDryRun Create(ApplicationDbContext db) =>
-            new(db, new ApplicationDbContext(new DbContextOptionsBuilder<ApplicationDbContext>()
+        /// <summary>
+        /// A dry run reading from <paramref name="db"/> into a new empty copy, once no other copy of the process is open: copies
+        /// run one at a time, so two dry runs called together (staging checkpoint 5, Q20: T1 and T7 beside it took the API to
+        /// 367 % CPU) take turns part by part instead of filling every core.
+        /// </summary>
+        public static async Task<RelinkUndoDryRun> StartAsync(ApplicationDbContext db, CancellationToken cancellationToken = default)
+        {
+            await OneAtATime.WaitAsync(cancellationToken);
+            var open = Interlocked.Increment(ref _open);
+            InterlockedMax(ref _mostOpen, open);
+            return new(db, new ApplicationDbContext(new DbContextOptionsBuilder<ApplicationDbContext>()
                 .UseInMemoryDatabase("relink-undo-dry-run-" + Guid.NewGuid().ToString("N"))
                 .ConfigureWarnings(w => w.Ignore(InMemoryEventId.TransactionIgnoredWarning))
                 .Options));
+        }
+
+        private static readonly SemaphoreSlim OneAtATime = new(1, 1);
+        private static int _open;
+        private static int _mostOpen;
+
+        /// <summary>The most copies the process has held open at once since the count was last reset.</summary>
+        internal static int MostOpen => Volatile.Read(ref _mostOpen);
+
+        internal static void ResetMostOpen() => Interlocked.Exchange(ref _mostOpen, Volatile.Read(ref _open));
+
+        private static void InterlockedMax(ref int target, int value)
+        {
+            var seen = Volatile.Read(ref target);
+            while (value > seen)
+            {
+                var was = Interlocked.CompareExchange(ref target, value, seen);
+                if (was == seen) return;
+                seen = was;
+            }
+        }
 
         /// <summary>
         /// Gives the copy what the chunk at <paramref name="index"/> of <paramref name="chunks"/> can touch,
@@ -185,11 +214,19 @@ namespace Nom.Orch.Services.Support
             _recipes.ExceptWith(recipes);
         }
 
-        /// <summary>Drops the copy's store, which the in-memory provider would otherwise keep for the life of the process.</summary>
+        /// <summary>Drops the copy's store, which the in-memory provider would otherwise keep for the life of the process, and lets the next copy open.</summary>
         public async ValueTask DisposeAsync()
         {
-            await Copy.Database.EnsureDeletedAsync();
-            await Copy.DisposeAsync();
+            try
+            {
+                await Copy.Database.EnsureDeletedAsync();
+                await Copy.DisposeAsync();
+            }
+            finally
+            {
+                Interlocked.Decrement(ref _open);
+                OneAtATime.Release();
+            }
         }
     }
 }

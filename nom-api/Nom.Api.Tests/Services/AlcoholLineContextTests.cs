@@ -122,6 +122,19 @@ namespace Nom.Api.Tests.Services
         }
 
         [Theory]
+        [InlineData("1 cup Burgundy Pinot Noir")]
+        [InlineData("1/2 cup Sauternes dessert wine")]
+        [InlineData("1 cup Burgundy table wine")]
+        [InlineData("2 cups Rioja Tempranillo")]
+        [InlineData("1 cup vodka infused with lemon peel")]
+        public void A_place_word_before_a_grape_or_wine_noun_and_a_drink_infused_with_something_stay_the_drink(string line)
+        {
+            var reading = AlcoholLineContext.Read(line);
+            reading.Sense.Should().NotBe("dish", "review CK10S-3: these read as dishes and lost their drink");
+            reading.Kind.Should().Be(AlcoholSenseKind.Drink);
+        }
+
+        [Theory]
         [InlineData("2 cubes chicken flavor bouillon", "none")]
         [InlineData("1 (3 oz) pkg lemon flavor gelatin", "none")]
         [InlineData("1 envelope onion flavour soup mix", "none")]

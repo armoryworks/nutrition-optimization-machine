@@ -132,7 +132,7 @@ namespace Nom.Api.Tests.Services.MealPlan
         public void Every_exception_belongs_to_a_default_patterns_term_or_to_a_term_an_admin_may_write()
         {
             var terms = DefaultLikePatterns.Select(p => DietPatternRule.For(p)).Where(r => !r.Substring).Select(r => r.Term).ToHashSet(StringComparer.Ordinal);
-            DietPatternRule.All.Select(e => e.Term).Distinct().Where(t => !terms.Contains(t)).Should().BeEquivalentTo(new[] { "nut", "pea" });
+            DietPatternRule.All.Select(e => e.Term).Distinct().Where(t => !terms.Contains(t)).Should().BeEquivalentTo(new[] { "pea" }, "Peanut Allergy and the tree nut types hold % nut% since diet-patterns/5, a nut a line does not name (staging checkpoint 5)");
         }
 
         [Fact]

@@ -59,7 +59,10 @@ namespace Nom.Orch.Interfaces
 
         Task<List<SourceJournalEntryModel>> JournalAsync(int limit, CancellationToken cancellationToken = default);
 
-        /// <summary>Undoes one journal row of an undoable field while the field still holds the row's new state.</summary>
+        /// <summary>Undoes one journal row of an undoable field while the field still holds the row's new state; a class recorded by hand is withdrawn as a whole.</summary>
         Task<SourceActionResult> UndoAsync(long entryId, long personId);
+
+        /// <summary>An admin has looked at a site that refused discovery: it is no longer held from discovery until it refuses again; null when there is no such row.</summary>
+        Task<SourceRefusingHostModel?> ReleaseRefusingHostAsync(long id, long personId, string? note);
     }
 }

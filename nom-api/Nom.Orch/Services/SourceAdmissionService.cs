@@ -70,13 +70,18 @@ namespace Nom.Orch.Services
         public async Task<SourceDiscoveryRunModel> RunDiscoveryAsync(CancellationToken cancellationToken = default)
         {
             await ExpireStaleAsync(cancellationToken);
+            await SourceRightsService.ApplyRecordsAsync(_db, Now(), cancellationToken);
             var seeds = await _db.ScrapingSources
                 .Where(s => s.Status == ScrapingSourceStatusEnum.Approved && s.Kind == ScrapingSourceEntity.WebKind && s.HarvestPausedAt == null)
                 .OrderBy(s => s.LastDiscoveredUtc ?? DateTime.MinValue).ThenBy(s => s.Id)
                 .ToListAsync(cancellationToken);
             var unclassed = seeds.Count(s => s.RightsClass == null);
             var factsOnlyUnapproved = seeds.Count(s => SourceRightsService.EffectiveClass(s) == SourceRightsRule.FactsOnly && s.FactsOnlyApprovedAt == null);
-            if (_rights.Enforce) seeds = seeds.Where(SourceRightsService.MayFetch).ToList();
+            seeds = _rights.Enforce ? seeds.Where(SourceRightsService.MayFetch).ToList() : seeds.Where(s => !SourceRightsService.HeldByHand(s)).ToList();
+            var refusing = await HeldRefusingHostsAsync(cancellationToken);
+            var refusingSeeds = seeds.Select(s => SourceAdmissionPolicy.NormalizeDomain(s.Domain)).Where(d => d != null && SourceDiscoveryExclusion.Covers(refusing, d)).Select(d => d!)
+                .Distinct(StringComparer.Ordinal).ToList();
+            seeds = seeds.Where(s => !refusingSeeds.Contains(SourceAdmissionPolicy.NormalizeDomain(s.Domain) ?? s.Domain)).ToList();
             if (!_settings.FullChecks) seeds.Clear();
             var exclusion = seeds.Count == 0 ? SourceDiscoveryExclusion.Build(Array.Empty<(string, string, DateTime)>(), null) : await ExclusionAsync(seeds, cancellationToken);
             var seedHosts = seeds
@@ -106,6 +111,11 @@ namespace Nom.Orch.Services
                 _logger.LogError("Source discovery: approved seed(s) {Seeds} are also held as excluded by another row of the host or a parent host; they were not sent (a fault in NOM's source rows)", string.Join(", ", heldBack));
             }
 
+            if (refusingSeeds.Count > 0 && _settings.FullChecks)
+            {
+                notes.Add($"approved seed(s) {string.Join(", ", refusingSeeds)} refused an earlier discovery run and are held until an admin looks at the refusal (Admin -> Scraping Sources, refusing hosts)");
+            }
+
             run.ExcludeNote = Clip(notes.Count == 0 ? null : string.Join("; ", notes), 1023);
 
             if (seedDomains.Count == 0)
@@ -114,6 +124,8 @@ namespace Nom.Orch.Services
                     ? "Full checks are held (SourceDiscovery:FullChecks off): discovery reads each seed's sitemap and recipe pages and probes the sites it links to, so it waits, like the full checks, until the terms-only pass has been reviewed."
                     : heldBack.Count > 0
                     ? $"Every seed that may be fetched is also held as excluded ({string.Join(", ", heldBack)}), so none was sent."
+                    : refusingSeeds.Count > 0
+                    ? $"Every seed that may be fetched refused an earlier discovery run ({string.Join(", ", refusingSeeds)}) and is held until an admin looks at the refusal."
                     : _rights.Enforce && unclassed + factsOnlyUnapproved > 0
                     ? $"No approved web source may seed discovery yet: a seed must be one that may be fetched (clear, a recorded permission, or facts-only with facts-only use approved by an admin); {unclassed} approved web source(s) have no class yet and are classed by their terms-only check first, and {factsOnlyUnapproved} are facts-only and wait for an admin to approve facts-only use."
                     : "No approved web source to seed from.";
@@ -182,6 +194,7 @@ namespace Nom.Orch.Services
                 run.PagesFetched = result.PagesFetched;
                 run.CandidatesExcluded = result.CandidatesExcluded.Count;
                 run.CandidatesExcludedJson = result.CandidatesExcluded.Count == 0 ? null : JsonSerializer.Serialize(result.CandidatesExcluded, JsonOptions);
+                await KeepRefusingHostsAsync(run, result.RefusingHosts ?? new List<ScraperRefusingHost>(), cancellationToken);
                 if (result.SeedsExcluded.Count > 0)
                 {
                     run.SeedsExcluded = Clip(string.Join(",", heldBack.Concat(result.SeedsExcluded).Distinct(StringComparer.Ordinal)), 2047);
@@ -282,6 +295,7 @@ namespace Nom.Orch.Services
         public async Task<SourceCheckModel?> RunNextCheckAsync(CancellationToken cancellationToken = default)
         {
             await ExpireStaleAsync(cancellationToken);
+            await SourceRightsService.ApplyRecordsAsync(_db, Now(), cancellationToken);
             var queued = await _db.SourceChecks
                 .Where(c => c.Status == Queued && c.Purpose == TermsOnlyPurpose)
                 .OrderBy(c => c.StartedUtc).ThenBy(c => c.Id)
@@ -366,6 +380,8 @@ namespace Nom.Orch.Services
             if (source == null) return SourceActionResult.Missing("No such source.");
             if (source.Status != ScrapingSourceStatusEnum.Approved || source.Kind != ScrapingSourceEntity.WebKind)
                 return SourceActionResult.Refused("Only an approved web source is checked.");
+            if (source.RightsRecordId != null)
+                return SourceActionResult.Refused($"{source.Domain} is {SourceRightsService.EffectiveClass(source)} by a class recorded by hand, so no check fetches it; undo the record's journal entry first.");
             if (!SourceRightsService.TermsCheckAllowed(source))
                 return SourceActionResult.Refused($"{source.Domain} is {SourceRightsService.EffectiveClass(source)}: it keeps the weekly check, so a terms-only check is not needed.");
             if (!_settings.TermsOnlyChecks)
@@ -407,7 +423,9 @@ namespace Nom.Orch.Services
             var source = check.ScrapingSourceId is { } id ? await _db.ScrapingSources.FirstOrDefaultAsync(s => s.Id == id, cancellationToken) : null;
             if (source == null || !_settings.TermsOnlyChecks || !SourceRightsService.TermsCheckAllowed(source))
             {
-                var why = source == null ? "its source is gone" : !_settings.TermsOnlyChecks ? "the scraper's terms-only mode is not enabled" : $"the source is {SourceRightsService.EffectiveClass(source)} now and keeps the weekly check";
+                var why = source == null ? "its source is gone" : !_settings.TermsOnlyChecks ? "the scraper's terms-only mode is not enabled"
+                    : source.RightsRecordId != null ? $"the source is {SourceRightsService.EffectiveClass(source)} by a class recorded by hand, so no check fetches it"
+                    : $"the source is {SourceRightsService.EffectiveClass(source)} now and keeps the weekly check";
                 return await EndTermsCheckAsync(check, source, SourceCheckEntity.Failed, $"The terms-only check did not start: {why}.", cancellationToken);
             }
 
@@ -677,8 +695,9 @@ namespace Nom.Orch.Services
                 return false;
             }).ToList();
             var barred = await BarredCandidatesAsync(due, cancellationToken);
+            var records = await SourceRightsService.ActiveRecordsAsync(_db, cancellationToken);
             var next = due
-                .Where(c => !barred.Contains(c.Id))
+                .Where(c => !barred.Contains(c.Id) && !SourceRightsService.Bars(records.GetValueOrDefault(c.Domain)))
                 .Select(c => (Candidate: c, Mode: CheckMode(false, true, terms.ForCandidate(c), recheckBefore)))
                 .Where(c => c.Mode != null && (c.Candidate.State != SourceCandidateEntity.Lead || c.Mode == SourceRightsRule.TermsOnlyMode))
                 .OrderBy(c => c.Candidate.State == SourceCandidateEntity.Lead ? 1 : 0)
@@ -742,8 +761,9 @@ namespace Nom.Orch.Services
                     .Select(c => new { c.Id, c.ReportJson })
                     .ToListAsync(cancellationToken))
                 .ToDictionary(c => c.Id, c => SourceRightsRule.Derive(Read<ScraperSourceCheckReport>(c.ReportJson)).Class);
+            var records = await SourceRightsService.ActiveRecordsAsync(_db, cancellationToken);
             return leads
-                .Where(l => SourceDiscoveryExclusion.ForCandidate(l, l.LastCheckId is { } id ? classes.GetValueOrDefault(id) : null) is { } reason
+                .Where(l => SourceDiscoveryExclusion.ForCandidate(l, records.GetValueOrDefault(l.Domain)?.RightsClass ?? (l.LastCheckId is { } id ? classes.GetValueOrDefault(id) : null)) is { } reason
                     && !SourceDiscoveryExclusion.YieldsTo(l.Domain, reason, fetchable))
                 .Select(l => l.Id).ToHashSet();
         }
@@ -824,9 +844,10 @@ namespace Nom.Orch.Services
                     .Select(c => new { c.Id, c.ReportJson })
                     .ToListAsync(cancellationToken))
                 .ToDictionary(c => c.Id, c => SourceRightsRule.Derive(Read<ScraperSourceCheckReport>(c.ReportJson)).Class);
+            var records = await SourceRightsService.ActiveRecordsAsync(_db, cancellationToken);
             foreach (var candidate in candidates)
             {
-                var rightsClass = candidate.LastCheckId is { } id ? classes.GetValueOrDefault(id) : null;
+                var rightsClass = records.GetValueOrDefault(candidate.Domain)?.RightsClass ?? (candidate.LastCheckId is { } id ? classes.GetValueOrDefault(id) : null);
                 if (SourceDiscoveryExclusion.ForCandidate(candidate, rightsClass) is not { } reason) continue;
                 if (SourceDiscoveryExclusion.YieldsTo(candidate.Domain, reason, fetchableHosts))
                 {
@@ -835,6 +856,18 @@ namespace Nom.Orch.Services
                 }
 
                 held.Add((candidate.Domain, reason, candidate.FirstSeenUtc));
+            }
+
+            var permitted = (await _db.ScrapingSources.AsNoTracking().Where(s => s.Kind == ScrapingSourceEntity.WebKind && s.PermissionRecordedAtUtc != null).Select(s => s.Domain).ToListAsync(cancellationToken))
+                .Select(SourceAdmissionPolicy.NormalizeDomain).Where(d => d != null).ToHashSet(StringComparer.Ordinal);
+            foreach (var record in records.Values.Where(r => SourceRightsService.Bars(r) && !permitted.Contains(r.Host)))
+            {
+                held.Add((record.Host, record.RightsClass, record.RecordedAtUtc));
+            }
+
+            foreach (var refusing in await _db.SourceRefusingHosts.AsNoTracking().Where(h => h.ReleasedAtUtc == null || h.ReleasedAtUtc < h.LastRefusedUtc).ToListAsync(cancellationToken))
+            {
+                held.Add((refusing.Host, SourceDiscoveryExclusion.PermissionNeeded, refusing.FirstRefusedUtc));
             }
 
             var last = await _db.SourceDiscoveryRuns.AsNoTracking()
@@ -984,7 +1017,7 @@ namespace Nom.Orch.Services
             if (candidate == null) return SourceActionResult.Missing("No such candidate.");
 
             var check = candidate.LastCheckId == null ? null : await _db.SourceChecks.FirstOrDefaultAsync(c => c.Id == candidate.LastCheckId);
-            var blocked = ApproveBlocked(candidate, check);
+            var blocked = ApproveBlocked(candidate, check, (await SourceRightsService.ActiveRecordsAsync(_db)).GetValueOrDefault(candidate.Domain));
             if (blocked != null) return SourceActionResult.Refused(blocked);
 
             var now = Now();
@@ -1042,10 +1075,11 @@ namespace Nom.Orch.Services
             return new SourceActionResult { Ok = true, Source = await SourceModelAsync(source) };
         }
 
-        private string? ApproveBlocked(SourceCandidateEntity candidate, SourceCheckEntity? check)
+        private string? ApproveBlocked(SourceCandidateEntity candidate, SourceCheckEntity? check, SourceRightsRecordEntity? record = null)
         {
             if (candidate.State == SourceCandidateEntity.Approved) return "This candidate is already approved.";
             if (candidate.State == SourceCandidateEntity.Rejected) return "An admin rejected this domain.";
+            if (SourceRightsService.Bars(record)) return $"{candidate.Domain} is {record!.RightsClass} by a class recorded by hand: \"{record.Quote}\" ({record.QuoteUrl}).";
             if (check == null || check.Verdict == null) return "This candidate has no check yet.";
             if (check.Verdict != SourceAdmissionPolicy.Clear || !check.Conclusive) return "Its last check is not clear.";
             if (check.PolicyVersion != SourceAdmissionPolicy.Version || check.RuleVersion != SourceAdmissionPolicy.ScraperRuleVersion) return "Its last check is under older rules; it will be checked again.";
@@ -1217,7 +1251,7 @@ namespace Nom.Orch.Services
                     && s.HarvestPausedAt == null && s.RecipesWithheldAt == null)
                 .OrderBy(s => s.Domain)
                 .ToListAsync(cancellationToken);
-            return _rights.Enforce ? sources.Where(SourceRightsService.MayFetch).ToList() : sources;
+            return _rights.Enforce ? sources.Where(SourceRightsService.MayFetch).ToList() : sources.Where(s => !SourceRightsService.HeldByHand(s)).ToList();
         }
 
         public async Task<List<HarvestableSourceModel>> HarvestableAsync(CancellationToken cancellationToken = default)
@@ -1255,25 +1289,80 @@ namespace Nom.Orch.Services
         public async Task<List<SourceJournalEntryModel>> JournalAsync(int limit, CancellationToken cancellationToken = default)
         {
             var rows = await _db.AuditLogEntries.AsNoTracking()
-                .Where(e => e.EntityType == SourceJournal.EntityType)
+                .Where(e => e.EntityType == SourceJournal.EntityType || e.EntityType == SourceJournal.RecordEntityType || e.EntityType == RefusingHostEntityType)
                 .OrderByDescending(e => e.Timestamp).ThenByDescending(e => e.Id)
                 .Take(Math.Clamp(limit, 1, 500))
                 .ToListAsync(cancellationToken);
-            var ids = rows.Select(r => r.EntityId).Distinct().ToList();
+            var ids = rows.Where(r => r.EntityType == SourceJournal.EntityType).Select(r => r.EntityId).Distinct().ToList();
             var sources = await _db.ScrapingSources.IgnoreQueryFilters().AsNoTracking().Where(s => ids.Contains(s.Id)).ToDictionaryAsync(s => s.Id, cancellationToken);
+            var recordIds = rows.Where(r => r.EntityType == SourceJournal.RecordEntityType).Select(r => r.EntityId)
+                .Concat(sources.Values.Where(s => s.RightsRecordId != null).Select(s => s.RightsRecordId!.Value))
+                .Concat(rows.Where(r => r.EntityType == SourceJournal.EntityType && r.PropertyName == SourceJournal.RightsField)
+                    .Select(r => SourceRightsService.RecordIdIn(r.OldValue)).OfType<long>())
+                .Distinct().ToList();
+            var records = await _db.SourceRightsRecords.AsNoTracking().Where(r => recordIds.Contains(r.Id)).ToDictionaryAsync(r => r.Id, cancellationToken);
             var latest = await LatestEntriesAsync(ids, cancellationToken);
-            return rows.Select(r => new SourceJournalEntryModel
+            var refusingIds = rows.Where(r => r.EntityType == RefusingHostEntityType).Select(r => r.EntityId).Distinct().ToList();
+            var refusing = await _db.SourceRefusingHosts.AsNoTracking().Where(h => refusingIds.Contains(h.Id)).ToDictionaryAsync(h => h.Id, cancellationToken);
+            var latestRefusing = await LatestRefusingEntriesAsync(refusingIds, cancellationToken);
+            return rows.Select(r =>
             {
-                Id = r.Id,
-                SourceId = r.EntityId,
-                Domain = sources.TryGetValue(r.EntityId, out var s) ? s.Domain : null,
-                ChangeType = r.ChangeType,
-                Field = r.PropertyName,
-                OldValue = r.OldValue,
-                NewValue = r.NewValue,
-                Timestamp = r.Timestamp,
-                ChangedByPersonId = r.ChangedByPersonId,
-                CanUndo = s != null && SourceJournal.Undoable(r.PropertyName) && latest.Contains(r.Id) && CurrentState(s, r.PropertyName!) == SourceJournal.State(r.NewValue),
+                if (r.EntityType == RefusingHostEntityType)
+                {
+                    var host = refusing.GetValueOrDefault(r.EntityId);
+                    return new SourceJournalEntryModel
+                    {
+                        Id = r.Id,
+                        SourceId = 0,
+                        Domain = host?.Host,
+                        ChangeType = r.ChangeType,
+                        Field = r.PropertyName,
+                        OldValue = r.OldValue,
+                        NewValue = r.NewValue,
+                        Timestamp = r.Timestamp,
+                        ChangedByPersonId = r.ChangedByPersonId,
+                        CanUndo = r.ChangeType == RefusingReleaseChangeType && host != null && !RefusingHeld(host) && latestRefusing.Contains(r.Id),
+                    };
+                }
+
+                if (r.EntityType == SourceJournal.RecordEntityType)
+                {
+                    var record = records.GetValueOrDefault(r.EntityId);
+                    return new SourceJournalEntryModel
+                    {
+                        Id = r.Id,
+                        SourceId = 0,
+                        RecordId = r.EntityId,
+                        Domain = record?.Host,
+                        ChangeType = r.ChangeType,
+                        Field = r.PropertyName,
+                        OldValue = r.OldValue,
+                        NewValue = r.NewValue,
+                        Timestamp = r.Timestamp,
+                        ChangedByPersonId = r.ChangedByPersonId,
+                        CanUndo = r.ChangeType == SourceJournal.RightsByHand && record != null && record.WithdrawnAtUtc == null,
+                    };
+                }
+
+                var s = sources.GetValueOrDefault(r.EntityId);
+                var byHand = r.ChangeType == SourceJournal.RightsByHand ? SourceRightsService.RecordIdOf(r) : null;
+                return new SourceJournalEntryModel
+                {
+                    Id = r.Id,
+                    SourceId = r.EntityId,
+                    RecordId = byHand,
+                    Domain = s?.Domain,
+                    ChangeType = r.ChangeType,
+                    Field = r.PropertyName,
+                    OldValue = r.OldValue,
+                    NewValue = r.NewValue,
+                    Timestamp = r.Timestamp,
+                    ChangedByPersonId = r.ChangedByPersonId,
+                    CanUndo = s != null && SourceJournal.Undoable(r.PropertyName) && latest.Contains(r.Id) && CurrentState(s, r.PropertyName!) == SourceJournal.State(r.NewValue)
+                        && (byHand == null || (s.RightsRecordId == byHand && records.TryGetValue(byHand.Value, out var held) && held.WithdrawnAtUtc == null))
+                        && (r.PropertyName != SourceJournal.RightsField || SourceRightsService.RecordIdIn(r.OldValue) is not { } backedBy
+                            || (records.TryGetValue(backedBy, out var backing) && backing.WithdrawnAtUtc == null)),
+                };
             }).ToList();
         }
 
@@ -1295,8 +1384,20 @@ namespace Nom.Orch.Services
 
         public async Task<SourceActionResult> UndoAsync(long entryId, long personId)
         {
-            var entry = await _db.AuditLogEntries.AsNoTracking().FirstOrDefaultAsync(e => e.Id == entryId && e.EntityType == SourceJournal.EntityType);
+            var entry = await _db.AuditLogEntries.AsNoTracking().FirstOrDefaultAsync(e => e.Id == entryId && (e.EntityType == SourceJournal.EntityType || e.EntityType == SourceJournal.RecordEntityType || e.EntityType == RefusingHostEntityType));
             if (entry == null) return SourceActionResult.Missing("No such source journal entry.");
+            if (entry.EntityType == RefusingHostEntityType) return await UndoRefusingReleaseAsync(entry, personId);
+            if (entry.EntityType == SourceJournal.RecordEntityType || entry.ChangeType == SourceJournal.RightsByHand)
+            {
+                var recordId = entry.EntityType == SourceJournal.RecordEntityType ? entry.EntityId : SourceRightsService.RecordIdOf(entry);
+                if (entry.ChangeType != SourceJournal.RightsByHand || recordId == null)
+                    return SourceActionResult.Refused($"A {entry.ChangeType} entry of a class recorded by hand cannot be undone; record the class again.");
+                var refusal = await SourceRightsService.WithdrawRecordAsync(_db, recordId.Value, entry.Id, Now(), personId);
+                if (refusal != null) return SourceActionResult.Refused(refusal);
+                var held = entry.EntityType == SourceJournal.EntityType ? await _db.ScrapingSources.FirstOrDefaultAsync(s => s.Id == entry.EntityId) : null;
+                return new SourceActionResult { Ok = true, Source = held == null ? null : await SourceModelAsync(held) };
+            }
+
             if (!SourceJournal.Undoable(entry.PropertyName)) return SourceActionResult.Refused($"A {entry.ChangeType} entry cannot be undone.");
 
             var source = await _db.ScrapingSources.FirstOrDefaultAsync(s => s.Id == entry.EntityId);
@@ -1307,6 +1408,12 @@ namespace Nom.Orch.Services
             if (!(await LatestEntriesAsync(new[] { source.Id }, CancellationToken.None)).Contains(entry.Id) || CurrentState(source, field) != SourceJournal.State(entry.NewValue))
             {
                 return SourceActionResult.Refused("The source changed since; undo the later entries first.");
+            }
+
+            if (field == SourceJournal.RightsField && SourceRightsService.RecordIdIn(entry.OldValue) is { } backedBy
+                && !await _db.SourceRightsRecords.AsNoTracking().AnyAsync(r => r.Id == backedBy && r.WithdrawnAtUtc == null))
+            {
+                return SourceActionResult.Refused($"The class this entry would bring back stood on class recorded by hand {backedBy}, which is withdrawn; record the class again.");
             }
 
             if (field == SourceJournal.FactsOnlyProseField && entry.ChangeType == SourceJournal.Undo)
@@ -1409,6 +1516,153 @@ namespace Nom.Orch.Services
             return new SourceActionResult { Ok = true, Source = await SourceModelAsync(source) };
         }
 
+        /// <summary>
+        /// Stores the sites that refused the run (the scraper's refusingHosts) on the run and as refusing hosts: each is held from
+        /// every later discovery run until an admin looks (<see cref="ReleaseRefusingHostAsync"/>), and a refusal after the admin
+        /// looked holds it again. Nothing else follows from a refusal: no candidate, class or check.
+        /// </summary>
+        private async Task KeepRefusingHostsAsync(SourceDiscoveryRunEntity run, List<ScraperRefusingHost> refusing, CancellationToken cancellationToken)
+        {
+            var now = Now();
+            var kept = new List<ScraperRefusingHost>();
+            foreach (var host in refusing)
+            {
+                var domain = SourceAdmissionPolicy.NormalizeDomain(host.Domain);
+                if (domain == null || SourceDiscoveryExclusion.Entry(domain) == null) continue;
+                if (kept.Any(k => SourceAdmissionPolicy.NormalizeDomain(k.Domain) == domain)) continue;
+                kept.Add(host);
+                var row = await _db.SourceRefusingHosts.FirstOrDefaultAsync(h => h.Host == domain, cancellationToken)
+                    ?? _db.SourceRefusingHosts.Local.FirstOrDefault(h => h.Host == domain);
+                if (row == null)
+                {
+                    row = new SourceRefusingHostEntity { Host = Clip(domain, 253)!, FirstRefusedUtc = now, CreatedDate = now };
+                    _db.SourceRefusingHosts.Add(row);
+                }
+
+                row.LastRefusedUtc = now;
+                row.TimesRefused++;
+                row.LastUrl = Clip(host.Url, 2047);
+                row.LastHttpStatus = host.HttpStatus;
+                row.LastBotChallenge = host.BotChallenge;
+                row.LastRunId = run.Id;
+                row.LastModifiedDate = now;
+            }
+
+            run.RefusingHosts = kept.Count;
+            run.RefusingHostsJson = kept.Count == 0 ? null : JsonSerializer.Serialize(kept, JsonOptions);
+            if (kept.Count > 0)
+                _logger.LogInformation("Source discovery run {RunId}: {Count} site(s) refused it ({Hosts}); each is held from later runs until an admin looks", run.Id, kept.Count, string.Join(", ", kept.Select(k => k.Domain)));
+            await _db.SaveChangesAsync(cancellationToken);
+        }
+
+        /// <summary>The hosts that refused a discovery run and that no admin has looked at since: held from discovery.</summary>
+        private async Task<HashSet<string>> HeldRefusingHostsAsync(CancellationToken cancellationToken) =>
+            (await _db.SourceRefusingHosts.AsNoTracking()
+                .Where(h => h.ReleasedAtUtc == null || h.ReleasedAtUtc < h.LastRefusedUtc)
+                .Select(h => h.Host).ToListAsync(cancellationToken))
+            .ToHashSet(StringComparer.Ordinal);
+
+        private async Task<List<SourceRefusingHostModel>> RefusingHostsAsync(CancellationToken cancellationToken) =>
+            (await _db.SourceRefusingHosts.AsNoTracking().OrderByDescending(h => h.LastRefusedUtc).ThenBy(h => h.Host).Take(200).ToListAsync(cancellationToken))
+            .Select(RefusingModel)
+            .OrderByDescending(h => h.Held)
+            .ToList();
+
+        private static SourceRefusingHostModel RefusingModel(SourceRefusingHostEntity h) => new()
+        {
+            Id = h.Id,
+            Host = h.Host,
+            FirstRefusedUtc = h.FirstRefusedUtc,
+            LastRefusedUtc = h.LastRefusedUtc,
+            TimesRefused = h.TimesRefused,
+            LastUrl = h.LastUrl,
+            LastHttpStatus = h.LastHttpStatus,
+            LastBotChallenge = h.LastBotChallenge,
+            LastRunId = h.LastRunId,
+            Held = RefusingHeld(h),
+            ReleasedAtUtc = h.ReleasedAtUtc,
+            ReleasedByPersonId = h.ReleasedByPersonId,
+            ReleasedNote = h.ReleasedNote,
+        };
+
+        public async Task<SourceRefusingHostModel?> ReleaseRefusingHostAsync(long id, long personId, string? note)
+        {
+            var row = await _db.SourceRefusingHosts.FirstOrDefaultAsync(h => h.Id == id);
+            if (row == null) return null;
+            var now = Now();
+            row.ReleasedAtUtc = now;
+            row.ReleasedByPersonId = personId;
+            row.ReleasedNote = Clip(string.IsNullOrWhiteSpace(note) ? "looked at by an admin" : note.Trim(), 1023);
+            row.LastModifiedDate = now;
+            row.LastModifiedByPersonId = personId;
+            _db.AuditLogEntries.Add(new AuditLogEntryEntity
+            {
+                EntityType = RefusingHostEntityType,
+                EntityId = row.Id,
+                ChangeType = RefusingReleaseChangeType,
+                PropertyName = "Held",
+                OldValue = SourceJournal.Value("held", $"{row.Host}: {row.LastUrl} answered {row.LastHttpStatus?.ToString(System.Globalization.CultureInfo.InvariantCulture) ?? "-"}{(row.LastBotChallenge ? " with a bot challenge" : string.Empty)}"),
+                NewValue = SourceJournal.Value("released", row.ReleasedNote),
+                Timestamp = now,
+                ChangedByPersonId = personId,
+            });
+            await _db.SaveChangesAsync();
+            _logger.LogInformation("Refusing host {Host} released for discovery by person {PersonId}", row.Host, personId);
+            return RefusingModel(row);
+        }
+
+        public const string RefusingHostEntityType = "SourceRefusingHost";
+
+        private static bool RefusingHeld(SourceRefusingHostEntity h) => h.ReleasedAtUtc == null || h.ReleasedAtUtc < h.LastRefusedUtc;
+
+        /// <summary>The newest journal row of each of the given refusing hosts: only it can be undone.</summary>
+        private async Task<HashSet<long>> LatestRefusingEntriesAsync(List<long> hostIds, CancellationToken cancellationToken) =>
+            hostIds.Count == 0
+                ? new HashSet<long>()
+                : (await _db.AuditLogEntries.AsNoTracking()
+                    .Where(e => e.EntityType == RefusingHostEntityType && hostIds.Contains(e.EntityId))
+                    .GroupBy(e => e.EntityId)
+                    .Select(g => g.Max(e => e.Id))
+                    .ToListAsync(cancellationToken))
+                .ToHashSet();
+
+        /// <summary>
+        /// Undoes an admin's release of a refusing host while it is the host's newest journal row and no later refusal has held it
+        /// again: the host is held from discovery again until an admin looks, journaled as an undo.
+        /// </summary>
+        private async Task<SourceActionResult> UndoRefusingReleaseAsync(AuditLogEntryEntity entry, long personId)
+        {
+            if (entry.ChangeType != RefusingReleaseChangeType) return SourceActionResult.Refused($"A {entry.ChangeType} entry cannot be undone.");
+            var row = await _db.SourceRefusingHosts.FirstOrDefaultAsync(h => h.Id == entry.EntityId);
+            if (row == null) return SourceActionResult.Missing("The refusing host of this entry is gone.");
+            if (RefusingHeld(row)) return SourceActionResult.Refused($"{row.Host} is held from discovery already.");
+            if (!(await LatestRefusingEntriesAsync(new List<long> { row.Id }, CancellationToken.None)).Contains(entry.Id))
+                return SourceActionResult.Refused("The host changed since; undo the later entries first.");
+            var now = Now();
+            var released = SourceJournal.Value("released", row.ReleasedNote);
+            row.ReleasedAtUtc = null;
+            row.ReleasedByPersonId = null;
+            row.ReleasedNote = null;
+            row.LastModifiedDate = now;
+            row.LastModifiedByPersonId = personId;
+            _db.AuditLogEntries.Add(new AuditLogEntryEntity
+            {
+                EntityType = RefusingHostEntityType,
+                EntityId = row.Id,
+                ChangeType = SourceJournal.Undo,
+                PropertyName = entry.PropertyName,
+                OldValue = released,
+                NewValue = SourceJournal.Value("held", $"{row.Host}: undo of entry {entry.Id}"),
+                Timestamp = now,
+                ChangedByPersonId = personId,
+            });
+            await _db.SaveChangesAsync();
+            _logger.LogInformation("Release of refusing host {Host} undone by person {PersonId}; it is held from discovery again", row.Host, personId);
+            return new SourceActionResult { Ok = true };
+        }
+
+        public const string RefusingReleaseChangeType = "SourceRefusingRelease";
+
         /// <summary>The newest journal row of each field of the given sources: only it can be undone.</summary>
         private async Task<HashSet<long>> LatestEntriesAsync(IEnumerable<long> sourceIds, CancellationToken cancellationToken)
         {
@@ -1474,9 +1728,13 @@ namespace Nom.Orch.Services
             var prose = await SourceRightsService.ProseFiguresAsync(_db,
                 sources.Where(s => s.Status == ScrapingSourceStatusEnum.Approved && s.Kind == ScrapingSourceEntity.WebKind), cancellationToken);
 
+            var records = await SourceRightsService.RecordModelsAsync(_db, cancellationToken);
+            var recordsById = records.ToDictionary(r => r.Id);
+
             ScrapingSourceModel SourceModel(ScrapingSourceEntity s)
             {
                 var model = ScrapingSourceService.Map(s);
+                model.RightsRecord = s.RightsRecordId is { } recordId ? recordsById.GetValueOrDefault(recordId) : null;
                 model.Check = s.LastCheckId is { } id && checks.TryGetValue(id, out var check) ? MapCheck(check) : null;
                 model.TermsCheck = termsChecks.TryGetValue(s.Id, out var terms) ? MapCheck(terms) : null;
                 model.Prose = prose.GetValueOrDefault(s.Id);
@@ -1502,6 +1760,8 @@ namespace Nom.Orch.Services
                 Runs = runs.Select(Map).ToList(),
                 FailedChecks = failed.Select(MapCheck).ToList(),
                 Journal = await JournalAsync(50, cancellationToken),
+                RightsRecords = records,
+                RefusingHosts = await RefusingHostsAsync(cancellationToken),
             };
         }
 
@@ -1591,6 +1851,8 @@ namespace Nom.Orch.Services
         private async Task<ScrapingSourceModel> SourceModelAsync(ScrapingSourceEntity source)
         {
             var model = ScrapingSourceService.Map(source);
+            if (source.RightsRecordId is { } recordId)
+                model.RightsRecord = (await SourceRightsService.RecordModelsAsync(_db)).FirstOrDefault(r => r.Id == recordId);
             if (await _db.SourceChecks.AsNoTracking().Where(c => c.ScrapingSourceId == source.Id && c.Purpose == TermsOnlyPurpose)
                     .OrderByDescending(c => c.StartedUtc).ThenByDescending(c => c.Id).FirstOrDefaultAsync() is { } terms)
             {
@@ -1688,6 +1950,8 @@ namespace Nom.Orch.Services
             CandidatesExcluded = run.CandidatesExcluded,
             CandidatesExcludedHosts = Read<List<ScraperExcludedDomain>>(run.CandidatesExcludedJson) ?? new List<ScraperExcludedDomain>(),
             ExcludeNote = run.ExcludeNote,
+            RefusingHosts = run.RefusingHosts,
+            RefusingHostsList = Read<List<ScraperRefusingHost>>(run.RefusingHostsJson) ?? new List<ScraperRefusingHost>(),
         };
 
         private static T? Read<T>(JsonElement? element) where T : class

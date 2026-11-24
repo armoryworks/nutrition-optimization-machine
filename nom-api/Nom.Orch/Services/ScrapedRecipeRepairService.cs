@@ -69,7 +69,9 @@ namespace Nom.Orch.Services
                 .Select(i => new { i.Id, i.Name, i.GramsPerItem })
                 .ToDictionaryAsync(i => i.Id, i => (i.Name, Counted: i.GramsPerItem > 0), cancellationToken);
 
-            int repaired = 0, unparsed = 0, revetted = 0, cleared = 0, split = 0, decoded = 0, reread = 0;
+            int repaired = 0, unparsed = 0, revetted = 0, cleared = 0, split = 0, decoded = 0, reread = 0, guardKept = 0, guardReplaced = 0;
+            var guardHolds = new List<LineGuardHolds.Held>();
+            var read = new List<long>();
             foreach (var recipe in recipes)
             {
                 if (rebuilt.Contains(recipe.Id)) continue;
@@ -82,14 +84,22 @@ namespace Nom.Orch.Services
 
                 var rows = (recipe.RecipeIngredients ?? Enumerable.Empty<Nom.Data.Recipe.RecipeIngredientEntity>()).Where(ri => !ri.IsDeleted).ToList();
                 if (held.Contains(recipe.Id)) rows.Clear();
+                else read.Add(recipe.Id);
                 foreach (var row in rows)
                 {
                     var (was, wasUnit, wasModified) = (row.Quantity, row.MeasurementId, row.LastModifiedDate);
                     if (!Fill(recipe, row, rows, measurements, foodNames, SetElsewhere(recipe.Id, row, filled))) unparsed++;
-                    if ((row.Quantity != was || row.MeasurementId != wasUnit) && !NeverWorse(recipe, row, was, wasUnit, measurements, foodNames))
+                    if (row.Quantity != was || row.MeasurementId != wasUnit)
                     {
-                        if (was == 0 && row.Quantity != 0) unparsed++;
-                        (row.Quantity, row.MeasurementId) = (was, wasUnit);
+                        var (decision, hold) = NeverWorse(recipe, row, was, wasUnit, measurements, foodNames);
+                        if (decision.Verdict == LineAmountGuard.Verdict.Keep) guardKept++;
+                        if (decision.Verdict == LineAmountGuard.Verdict.Replace) guardReplaced++;
+                        if (decision.Verdict == LineAmountGuard.Verdict.Hold) guardHolds.Add(hold);
+                        if (!LineAmountGuard.Takes(decision.Verdict))
+                        {
+                            if (was == 0 && row.Quantity != 0) unparsed++;
+                            (row.Quantity, row.MeasurementId) = (was, wasUnit);
+                        }
                     }
                     if (row.Quantity == was && row.MeasurementId == wasUnit)
                     {
@@ -108,9 +118,17 @@ namespace Nom.Orch.Services
                 if (await RevetAsync(_vetting, recipe)) cleared++;
             }
 
+            await LineGuardHolds.RecordAsync(_context, LineGuardHoldOrigin.StartupFill, read, guardHolds, RecipeLineBuilder.Version, now,
+                new Dictionary<string, string> { [LineGuardHoldOrigin.StartupFill] = LineGuardHolds.Released }, cancellationToken);
             await _context.SaveChangesAsync(cancellationToken);
             _context.ChangeTracker.Clear();
-            return new ScrapedRepairBatchResult(recipes.Count, repaired, unparsed, revetted, cleared, recipes[^1].Id, split, decoded, held.Except(rebuilt).Count(), rebuilt.Count, reread);
+            return new ScrapedRepairBatchResult(recipes.Count, repaired, unparsed, revetted, cleared, recipes[^1].Id, split, decoded, held.Except(rebuilt).Count(), rebuilt.Count, reread)
+            {
+                GuardKept = guardKept,
+                GuardReplaced = guardReplaced,
+                GuardHeld = guardHolds.Count,
+                GuardHeldByReason = guardHolds.GroupBy(h => h.Reason).ToDictionary(g => g.Key, g => g.Count(), StringComparer.Ordinal),
+            };
         }
 
         /// <summary>
@@ -148,11 +166,12 @@ namespace Nom.Orch.Services
 
         /// <summary>
         /// Whether the amount <see cref="Fill"/> gave a row may stand, by <see cref="LineAmountGuard"/>: an empty
-        /// amount is filled only with one grounded in the line, or in the method sentences naming the food when the
-        /// line states none, and a stored amount is replaced only where it contradicts the source and the new one
-        /// is grounded; a grounded stored amount is never emptied.
+        /// amount is filled only with one grounded in the line's own source text (the line, or the method sentences
+        /// naming its food or wording when the line states none) on a line of a kind that takes an amount, and a
+        /// stored amount is replaced only where it contradicts the source and the new one is grounded; a stored
+        /// amount is never emptied. The decision, and the hold the line becomes when the guard holds it.
         /// </summary>
-        private static bool NeverWorse(RecipeEntity recipe, Nom.Data.Recipe.RecipeIngredientEntity row, decimal was, long wasUnit,
+        private static (LineAmountGuard.Decision Decision, LineGuardHolds.Held Hold) NeverWorse(RecipeEntity recipe, Nom.Data.Recipe.RecipeIngredientEntity row, decimal was, long wasUnit,
             Dictionary<string, long> measurements, Dictionary<long, (string Name, bool Counted)> foods)
         {
             var units = measurements.GroupBy(m => m.Value).ToDictionary(g => g.Key, g => g.First().Key);
@@ -164,7 +183,11 @@ namespace Nom.Orch.Services
             var stored = new LineAmountGuard.Amount(was, units.GetValueOrDefault(wasUnit), row.LineKind, food?.Name, grams);
             var proposed = new LineAmountGuard.Amount(row.Quantity, units.GetValueOrDefault(row.MeasurementId), row.LineKind, food?.Name, grams,
                 FromMethod: IngredientLineParser.Parse(firstLine) == null);
-            return LineAmountGuard.Takes(LineAmountGuard.Decide(rawLine, stored, proposed, method));
+            var decision = LineAmountGuard.Judge(rawLine, stored, proposed, method);
+            var hold = new LineGuardHolds.Held(
+                recipe.Id, row.IngredientId, row.SortOrder, rawLine, decision.Reason,
+                food?.Name, was, stored.Unit, row.LineKind, row.IngredientId, food?.Name, row.Quantity, proposed.Unit, row.LineKind, proposed.FromMethod);
+            return (decision, hold);
         }
 
         private void Journal(long recipeId, Nom.Data.Recipe.RecipeIngredientEntity row, decimal quantity, long measurementId, DateTime now)

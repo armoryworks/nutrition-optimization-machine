@@ -285,7 +285,7 @@ namespace Nom.Api.Tests.Services
             var first = await PrintAsync(f);
             var started = DateTime.UtcNow.AddSeconds(-1);
             var (junk, milk) = (f.Foods["2 tbsp milk"], f.Foods["milk"]);
-            var position = await RecipeLineRowWriter.MoveAsync(f.Db, f.RecipeId, junk, 0, milk, 0, Operator);
+            var position = await RecipeLineRowWriter.MoveAsync(f.Db, LineMoveDietGuard.Decided, f.RecipeId, junk, 0, milk, 0, Operator);
             f.Db.ChangeTracker.Clear();
             position.Should().Be(1, "milk already holds a line at position 0, so the relink puts this one at the next free position");
             await JournalAsync(f, LineRelinkService.RelinkEntityType, LineRelinkService.RelinkChangeType, nameof(RecipeIngredientEntity.IngredientId),
@@ -306,7 +306,7 @@ namespace Nom.Api.Tests.Services
             var f = await SetUpAsync(Cake, "Raw Potato Skins");
             var first = await PrintAsync(f);
             var (eggs, wrong) = (f.Foods["eggs"], f.Foods["Raw Potato Skins"]);
-            await RecipeLineRowWriter.MoveAsync(f.Db, f.RecipeId, eggs, 0, wrong, 0, Operator);
+            await RecipeLineRowWriter.MoveAsync(f.Db, LineMoveDietGuard.Decided, f.RecipeId, eggs, 0, wrong, 0, Operator);
             f.Db.ChangeTracker.Clear();
             var entry = await JournalAsync(f, LineRelinkService.RelinkEntityType, LinkRecheckService.LineChangeType, nameof(RecipeIngredientEntity.IngredientId),
                 LineRelinkService.Place(eggs, 0), LineRelinkService.Place(wrong, 0));
@@ -329,7 +329,7 @@ namespace Nom.Api.Tests.Services
             var first = await PrintAsync(f);
             var started = DateTime.UtcNow.AddSeconds(-1);
             var (margarine, butter) = (f.Foods["margarine"], f.Foods["butter"]);
-            var position = await RecipeLineRowWriter.MoveAsync(f.Db, f.RecipeId, margarine, 0, butter, 0, Operator);
+            var position = await RecipeLineRowWriter.MoveAsync(f.Db, LineMoveDietGuard.Decided, f.RecipeId, margarine, 0, butter, 0, Operator);
             f.Db.ChangeTracker.Clear();
             await JournalAsync(f, LineRelinkService.RelinkEntityType, CompoundLineService.AlternativeChangeType, nameof(RecipeIngredientEntity.IngredientId),
                 LineRelinkService.Place(margarine, 0), LineRelinkService.Place(butter, position!.Value));
@@ -394,7 +394,7 @@ namespace Nom.Api.Tests.Services
             var f = await SetUpAsync(c, "Cremini Mushrooms");
             var first = await PrintAsync(f);
             var (holder, target) = (f.Foods["baby bella mushrooms"], f.Foods["Cremini Mushrooms"]);
-            await RecipeLineRowWriter.MoveAsync(f.Db, f.RecipeId, holder, 0, target, 0, Operator);
+            await RecipeLineRowWriter.MoveAsync(f.Db, LineMoveDietGuard.Decided, f.RecipeId, holder, 0, target, 0, Operator);
             var proposal = new Nom.Data.Curation.FoodCatalogProposalEntity
             {
                 Action = Nom.Data.Curation.FoodProposalAction.Update, IngredientId = holder, Field = FoodCatalogReviewService.FdcLinkField, CurrentValue = "baby bella mushrooms",
@@ -445,7 +445,7 @@ namespace Nom.Api.Tests.Services
             var milkAt = (await PrintAsync(f)).Single(p => p.IngredientId == milk).SortOrder;
             await Task.Delay(5);
             var later = DateTime.UtcNow.AddMilliseconds(-1);
-            (await RecipeLineRowWriter.MoveAsync(f.Db, f.RecipeId, milk, milkAt, whole, milkAt, Operator)).Should().Be(milkAt);
+            (await RecipeLineRowWriter.MoveAsync(f.Db, LineMoveDietGuard.Decided, f.RecipeId, milk, milkAt, whole, milkAt, Operator)).Should().Be(milkAt);
             f.Db.ChangeTracker.Clear();
             await JournalAsync(f, LineRelinkService.RelinkEntityType, LineRelinkService.RelinkChangeType, nameof(RecipeIngredientEntity.IngredientId),
                 LineRelinkService.Place(milk, milkAt), LineRelinkService.Place(whole, milkAt));
@@ -488,7 +488,7 @@ namespace Nom.Api.Tests.Services
             var order = await OrderOnlyAsync(f);
             var (milk, whole) = (f.Foods["milk"], f.Foods["whole milk"]);
             var milkAt = (await PrintAsync(f)).Single(p => p.IngredientId == milk).SortOrder;
-            (await RecipeLineRowWriter.MoveAsync(f.Db, f.RecipeId, milk, milkAt, whole, milkAt, Operator)).Should().Be(milkAt);
+            (await RecipeLineRowWriter.MoveAsync(f.Db, LineMoveDietGuard.Decided, f.RecipeId, milk, milkAt, whole, milkAt, Operator)).Should().Be(milkAt);
             f.Db.ChangeTracker.Clear();
             await JournalAsync(f, LineRelinkService.RelinkEntityType, LineRelinkService.RelinkChangeType, nameof(RecipeIngredientEntity.IngredientId),
                 LineRelinkService.Place(milk, milkAt), LineRelinkService.Place(whole, milkAt));
@@ -522,7 +522,7 @@ namespace Nom.Api.Tests.Services
             var afterPass = await PrintAsync(f);
             var (milk, whole) = (f.Foods["milk"], f.Foods["whole milk"]);
             var milkAt = afterPass.Single(p => p.IngredientId == milk).SortOrder;
-            (await RecipeLineRowWriter.MoveAsync(f.Db, f.RecipeId, milk, milkAt, whole, milkAt, Operator)).Should().Be(milkAt);
+            (await RecipeLineRowWriter.MoveAsync(f.Db, LineMoveDietGuard.Decided, f.RecipeId, milk, milkAt, whole, milkAt, Operator)).Should().Be(milkAt);
             f.Db.ChangeTracker.Clear();
             var pass = await f.Db.RecipeReprocessJournals.AsNoTracking().SingleAsync(j => j.Id == order.Results.Single().JournalId);
             var json = new System.Text.Json.JsonSerializerOptions(System.Text.Json.JsonSerializerDefaults.Web);
@@ -573,7 +573,7 @@ namespace Nom.Api.Tests.Services
             var f = await SetUpAsync(c);
             var started = DateTime.UtcNow.AddSeconds(-1);
             var (junk, milk) = (f.Foods["2 tbsp milk"], f.Foods["milk"]);
-            var position = await RecipeLineRowWriter.MoveAsync(f.Db, f.RecipeId, junk, 0, milk, 0, Operator);
+            var position = await RecipeLineRowWriter.MoveAsync(f.Db, LineMoveDietGuard.Decided, f.RecipeId, junk, 0, milk, 0, Operator);
             f.Db.ChangeTracker.Clear();
             await JournalAsync(f, LineRelinkService.RelinkEntityType, LineRelinkService.RelinkChangeType, nameof(RecipeIngredientEntity.IngredientId),
                 LineRelinkService.Place(junk, 0), LineRelinkService.Place(milk, position!.Value));

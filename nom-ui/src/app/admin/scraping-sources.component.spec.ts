@@ -383,4 +383,92 @@ describe('ScrapingSources', () => {
     fixture.detectChanges();
     expect(byId(el, 'scraping-sources-step-undo-btn')).toBeNull();
   });
+
+  it('marks a class recorded by hand beside one derived by rule, offers no terms-only check for it, and withdraws it from its entry', () => {
+    const record = {
+      id: 3, host: 'budgetbytes.com', rightsClass: 'forbidden' as const, quote: 'you agree that you will not scrape any web pages',
+      quoteUrl: 'https://www.budgetbytes.com/terms-conditions/', readOn: '2026-11-21T00:00:00Z', recordedByPersonId: 7, recordedAtUtc: '2026-11-24T10:00:00Z',
+      journalEntryId: 90, sources: ['www.budgetbytes.com'], candidate: null,
+    };
+    const byHand = {
+      ...blog, id: 21, domain: 'www.budgetbytes.com', rightsClass: 'forbidden' as const, effectiveRightsClass: 'forbidden' as const, rightsRecordId: 3, rightsRecord: record,
+      rightsQuote: record.quote, recheckSkipped: 'The weekly re-check skips www.budgetbytes.com: it is forbidden by a class recorded by hand.',
+    };
+    const derived = { ...blog, rightsClass: 'facts-only' as const, effectiveRightsClass: 'facts-only' as const };
+    const fixture = create(review({ approved: [derived, byHand], rightsRecords: [record] }));
+    const el = fixture.nativeElement as HTMLElement;
+
+    const items = el.querySelectorAll('[data-testid="scraping-source-item"]');
+    expect(items[0].querySelector('[data-testid="scraping-source-rights-by-lane"]')).not.toBeNull();
+    expect(items[0].querySelector('[data-testid="scraping-source-rights-by-hand"]')).toBeNull();
+    expect(items[1].querySelector('[data-testid="scraping-source-rights-by-hand"]')?.textContent).toContain('Recorded by hand by person 7');
+    expect(items[1].querySelector('[data-testid="scraping-source-rights-by-hand"]')?.textContent).toContain('nothing fetches the site');
+    expect(items[1].querySelector('[data-testid="scraping-source-terms-check-btn"]')).toBeNull();
+    expect(byId(el, 'scraping-sources-by-hand-item')?.textContent).toContain('budgetbytes.com (forbidden, by hand)');
+    expect(byId(el, 'scraping-sources-by-hand-link')?.getAttribute('href')).toBe('https://www.budgetbytes.com/terms-conditions/');
+
+    (byId(el, 'scraping-sources-by-hand-undo-btn') as HTMLButtonElement).click();
+    const undo = http.expectOne((r) => r.url.endsWith('/ScrapingSource/journal/90/undo'));
+    expect(undo.request.method).toBe('POST');
+    undo.flush(blog);
+    flush(review());
+    fixture.detectChanges();
+    expect(byId(el, 'scraping-sources-by-hand-empty')).not.toBeNull();
+  });
+
+  it('records a class by hand only after a dry run shows what it holds, and shows the rule refusing one', () => {
+    const fixture = create();
+    const el = fixture.nativeElement as HTMLElement;
+    const component = fixture.componentInstance;
+    component.byHandForm.setValue({
+      host: 'www.eatingwell.com', rightsClass: 'forbidden', quote: 'Use of any crawler to scrape the content on this website is prohibited.',
+      quoteUrl: 'https://www.eatingwell.com/robots.txt', readOn: '2026-11-21',
+    });
+    fixture.detectChanges();
+
+    (byId(el, 'scraping-sources-by-hand-dry-btn') as HTMLButtonElement).click();
+    const dry = http.expectOne((r) => r.url.endsWith('/ScrapingSource/rights/by-hand'));
+    expect(dry.request.params.get('apply')).toBe('false');
+    expect(dry.request.body.host).toBe('www.eatingwell.com');
+    dry.flush({ applied: false, host: 'eatingwell.com', rightsClass: 'forbidden', alreadyRecorded: false, excluded: true, candidate: 'eatingwell.com', candidateClass: null,
+      sources: [{ sourceId: 4, domain: 'www.eatingwell.com', oldClass: 'permission-needed', newClass: 'forbidden', recipes: 0 }] });
+    fixture.detectChanges();
+    expect(byId(el, 'scraping-sources-by-hand-result')?.textContent).toContain('would be recorded');
+    expect(byId(el, 'scraping-sources-by-hand-result')?.textContent).toContain('www.eatingwell.com permission-needed → forbidden');
+    expect(byId(el, 'scraping-sources-by-hand-result')?.textContent).toContain('excluded from discovery, never fetched');
+
+    (byId(el, 'scraping-sources-by-hand-submit-btn') as HTMLButtonElement).click();
+    const apply = http.expectOne((r) => r.url.endsWith('/ScrapingSource/rights/by-hand'));
+    expect(apply.request.params.get('apply')).toBe('true');
+    apply.flush({ applied: false, host: 'eatingwell.com', rightsClass: 'forbidden', alreadyRecorded: false, excluded: false, sources: [],
+      refused: 'a class recorded by hand may be as strict or stricter, never laxer' }, { status: 409, statusText: 'Conflict' });
+    fixture.detectChanges();
+    expect(byId(el, 'scraping-sources-by-hand-error')?.textContent).toContain('never laxer');
+  });
+
+  it('shows the sites that refused a run on the run and in a list, and releases a held one after an admin looked', () => {
+    const fixture = create(review({
+      runs: [{ id: 2, startedUtc: '2026-11-24T00:19:52Z', status: 'completed', seeds: 'acozykitchen.com', candidates: 0, leads: 0, pagesFetched: 40, refusingHosts: 2,
+        refusingHostsList: [{ domain: 'booksamillion.com', url: 'https://booksamillion.com/robots.txt', httpStatus: 403, botChallenge: false }, { domain: 'bookshop.org', url: 'https://bookshop.org/', httpStatus: 403, botChallenge: true }] }],
+      refusingHosts: [
+        { id: 1, host: 'booksamillion.com', firstRefusedUtc: '2026-11-24T00:20:00Z', lastRefusedUtc: '2026-11-24T00:20:00Z', timesRefused: 1, lastUrl: 'https://booksamillion.com/robots.txt', lastHttpStatus: 403, lastBotChallenge: false, held: true },
+        { id: 2, host: 'link.example', firstRefusedUtc: '2026-11-20T00:20:00Z', lastRefusedUtc: '2026-11-20T00:20:00Z', timesRefused: 1, lastHttpStatus: 403, lastBotChallenge: false, held: false, releasedAtUtc: '2026-11-21T00:00:00Z', releasedNote: 'looked' },
+      ],
+    }));
+    const el = fixture.nativeElement as HTMLElement;
+
+    expect(byId(el, 'scraping-sources-run-refusing')?.textContent).toContain('booksamillion.com (HTTP 403), bookshop.org (bot challenge)');
+    const items = el.querySelectorAll('[data-testid="scraping-sources-refusing-item"]');
+    expect(items.length).toBe(2);
+    expect(items[0].textContent).toContain('held');
+    expect(items[1].querySelector('[data-testid="scraping-sources-refusing-release-btn"]')).toBeNull();
+
+    (items[0].querySelector('[data-testid="scraping-sources-refusing-release-btn"]') as HTMLButtonElement).click();
+    const release = http.expectOne((r) => r.url.endsWith('/ScrapingSource/refusing/1/release'));
+    expect(release.request.method).toBe('POST');
+    release.flush({ id: 1, host: 'booksamillion.com', held: false });
+    flush(review());
+    fixture.detectChanges();
+    expect(byId(el, 'scraping-sources-refusing-empty')).not.toBeNull();
+  });
 });

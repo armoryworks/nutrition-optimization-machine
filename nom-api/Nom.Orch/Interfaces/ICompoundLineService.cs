@@ -14,8 +14,9 @@ namespace Nom.Orch.Interfaces
     {
         /// <summary>
         /// What applying the given rules (every rule when none are given) would do: lines, row
-        /// moves and rows added per rule, the compound lines left alone by reason, and samples.
-        /// Writes nothing.
+        /// moves and rows added per rule, the compound lines left alone by reason, and samples; a
+        /// line whose move the diet guard would hold is counted apart (HeldByDiet), as the apply
+        /// counts it. Writes nothing.
         /// </summary>
         Task<CompoundLinePreview> PreviewAsync(IReadOnlyCollection<string>? rules = null, int sampleSize = 50);
 

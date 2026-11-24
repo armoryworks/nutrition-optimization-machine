@@ -89,6 +89,8 @@ namespace Nom.Orch.Services.Support
                     .Select(i => i.Id)
                     .ToListAsync())
                 .ToHashSet();
+            await set.LoadFoodsAsync(db, foodIds.Concat(resolved));
+            var undecided = await DietGateStore.UndecidedAsync(db, set, foodIds);
             var namedIds = set.NamedFoods.Keys.ToList();
             var named = namedIds.Count == 0
                 ? new List<NamedRestrictedFood>()
@@ -98,7 +100,10 @@ namespace Nom.Orch.Services.Support
                         .ToListAsync())
                     .Select(i => NamedRestrictedFood.Of(i.Id, set.NamedFoods[i.Id], i.Name))
                     .ToList();
-            foreach (var id in foodIds.Distinct()) result[id] = Judge(id, byFood[id].ToList(), householdId, set, curated, named);
+            foreach (var id in foodIds.Distinct())
+                result[id] = undecided.Contains(id) && !set.IngredientIds.Contains(id)
+                    ? new PreparedContentsVerdict(id, PreparedContentsHeld.Pending, Array.Empty<string>())
+                    : Judge(id, byFood[id].ToList(), householdId, set, curated, named);
             return result;
         }
 
@@ -166,16 +171,54 @@ namespace Nom.Orch.Services.Support
         /// <summary>
         /// What in one read statement the household's restrictions may forbid but the label does not settle: a label
         /// term that may be made of a restricted thing, its source not stated (<see cref="LabelTerm.May"/>: a bare
-        /// "lecithin" may be soy or egg, "vegetable oil" may be peanut oil). Such a meal is unknown, never offered.
+        /// "lecithin" may be soy or egg, "vegetable oil" may be peanut oil). Such a meal is unknown, never offered. A term
+        /// whose parts the statement lists in its bracket is decided by those parts, each read as an ingredient of its own
+        /// ("vegetable oil (soybean and/or canola oil)" names its oils: staging checkpoint 5, Q8).
         /// </summary>
         public static IEnumerable<string> UncertainNames(IngredientContentsEntity row, RestrictedIngredientSet set, IReadOnlyCollection<NamedRestrictedFood>? named = null)
         {
             if (row.Outcome != IngredientContentsOutcome.Read) yield break;
             named ??= Array.Empty<NamedRestrictedFood>();
             var patterns = set.Criteria.Where(c => c.LikePattern != null || c.WordPattern != null).ToList();
-            foreach (var item in PreparedContentsService.Items(row))
-                if (FactNamed(item.LabelTerms()?.SelectMany(t => t.May), patterns, named, 4) is { } fact)
-                    yield return item.Name + " (may be " + fact + ", source not stated)";
+            var items = PreparedContentsService.Items(row).ToList();
+            var parents = ParentPositions(items);
+            for (var i = 0; i < items.Count; i++)
+            {
+                if (Enumerable.Range(0, items.Count).Any(c => parents[c] == i && NamesSource(items[c]))) continue;
+                if (FactNamed(items[i].LabelTerms()?.SelectMany(t => t.May), patterns, named, 4) is { } fact)
+                    yield return items[i].Name + " (may be " + fact + ", source not stated)";
+            }
+        }
+
+        /// <summary>
+        /// The position of each item's own parent in the stored order, or -1 for a top-level item: a reader lists an
+        /// ingredient's parts right after it, so a part belongs to the nearest open item of its parent's name, never to
+        /// another occurrence of that name elsewhere in the statement (review CK10C-2).
+        /// </summary>
+        private static int[] ParentPositions(IReadOnlyList<ContentsItem> items)
+        {
+            var positions = new int[items.Count];
+            var open = new List<int>();
+            for (var i = 0; i < items.Count; i++)
+            {
+                while (open.Count > 0 && (items[i].Parent == null || items[open[^1]].Name != items[i].Parent)) open.RemoveAt(open.Count - 1);
+                positions[i] = open.Count > 0 ? open[^1] : -1;
+                open.Add(i);
+            }
+            return positions;
+        }
+
+        /// <summary>
+        /// Whether a part in a bracket names a source: a food of the label table that is not itself of an unstated source
+        /// ("canola oil", "soybean"). An additive, a vocabulary term or a word the reader cannot place ("TBHQ", "preserved
+        /// with TBHQ", "non-hydrogenated") names none, so a bracket of only those leaves the term's source unstated (review CK10C-1).
+        /// </summary>
+        private static bool NamesSource(ContentsItem part)
+        {
+            if (part.Kind == ContentsKinds.Food) return true;
+            if (part.Kind != ContentsKinds.Label) return false;
+            var terms = part.LabelTerms();
+            return terms is { Count: > 0 } && terms.All(t => t.Kind == LabelTermKinds.Food && t.May.Count == 0);
         }
 
         /// <summary>The first fact word a pattern names (read with every word of its major-allergen class), or a food the household avoids directly by its head or class, at <paramref name="minimumNamedSeverity"/> or above; null when none.</summary>

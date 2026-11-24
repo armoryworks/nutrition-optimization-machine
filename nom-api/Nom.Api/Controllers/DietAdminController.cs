@@ -26,8 +26,12 @@ namespace Nom.Api.Controllers
         }
 
         [HttpGet("gate-counts")]
-        public async Task<ActionResult<Nom.Orch.Services.Support.DietGateCountsReport>> GetGateCounts()
-            => Ok(await Nom.Orch.Services.Support.DietGateCounts.ReadAsync(_db, Nom.Orch.Services.Support.DietGateCache.Shared, Nom.Orch.Services.Support.DietLineIndex.Shared));
+        public async Task<ActionResult<Nom.Orch.Services.Support.DietStoredCountsReport>> GetGateCounts()
+            => Ok(await Nom.Orch.Services.Support.DietGateStoreReports.CountsAsync(_db));
+
+        [HttpGet("gate-build")]
+        public async Task<ActionResult<List<Nom.Orch.Services.Support.DietGateBuildReport>>> GetGateBuild()
+            => Ok(await Nom.Orch.Services.Support.DietGateStoreReports.BuildsAsync(_db));
 
         [HttpGet("groups")]
         public async Task<ActionResult<List<RestrictionGroupModel>>> GetGroups()

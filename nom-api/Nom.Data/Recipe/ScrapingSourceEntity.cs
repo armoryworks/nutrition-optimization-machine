@@ -105,7 +105,7 @@ namespace Nom.Data.Recipe
 
         /// <summary>
         /// What the source's own words allow, derived by rule (<c>SourceRightsRule</c>) from its stored
-        /// source-check report and nothing else: <c>clear</c> (a licence or public-domain statement grants
+        /// source-check report and nothing else, or recorded by an admin by hand (<see cref="RightsRecordId"/>): <c>clear</c> (a licence or public-domain statement grants
         /// reuse), <c>facts-only</c> (nothing grants reuse and nothing forbids automated access),
         /// <c>permission-needed</c> (the terms could not be read or the site refuses automated fetches) or
         /// <c>forbidden</c> (the site's words forbid automated access or reuse). Null = no report yet.
@@ -125,6 +125,12 @@ namespace Nom.Data.Recipe
         public long? RightsCheckId { get; set; }
 
         public DateTime? RightsDerivedAtUtc { get; set; }
+
+        /// <summary>
+        /// While set, <see cref="RightsClass"/> is a class an admin recorded by hand (<see cref="SourceRightsRecordEntity"/>) with
+        /// its quote and page, not the rule's reading of a report: the source lane never overwrites it.
+        /// </summary>
+        public long? RightsRecordId { get; set; }
 
         /// <summary>
         /// The site reserves its content against AI use: named AI crawlers blocked in robots.txt, a

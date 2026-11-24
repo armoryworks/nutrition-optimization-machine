@@ -23,9 +23,10 @@ namespace Nom.Import.Golden
         /// <summary>Known-bad and known-good link pairs link-audit reads, each taken by a stable hash of its id so the set does not move with the file's order.</summary>
         public const int AuditPairsPerSide = 400;
 
-        /// <summary>The check model a run records: the one named, else reader B of the roster for the reader lanes and link-audit, else none.</summary>
+        /// <summary>The check model a run records, only for a lane that asks one (the reader lanes, link-audit and prose-rewrite): the one named, else reader B of the roster; else none, whatever was named.</summary>
         public static string? CheckModelOf(string lane, string? named) =>
-            named is { Length: > 0 } ? named : Readers.Contains(lane) || Prose.Contains(lane) ? new Nom.Orch.Settings.LaneModelRoster().ReaderB : null;
+            !Readers.Contains(lane) && lane != ProseRewriteLane ? null
+            : named is { Length: > 0 } ? named : new Nom.Orch.Settings.LaneModelRoster().ReaderB;
 
         /// <summary>The auditor a run scores alone and records: for link-audit the model scored; for alcohol-reading the one named, else the roster's auditor; else none.</summary>
         public static string? AuditModelOf(string lane, string model, string? named) => lane switch
@@ -191,9 +192,9 @@ namespace Nom.Import.Golden
                     foreach (var batch in cases.Chunk(VerifyBatch))
                     {
                         var pairs = batch.Select((c, i) => new LinkPair(i, c.Wording, c.Description)).ToList();
-                        var first = (await auditor.JudgeAsync(pairs, cancellationToken)).ToDictionary(v => v.IngredientId, v => v.Judgement);
+                        var first = (await AskAsync(() => auditor.JudgeAsync(pairs, cancellationToken), progress, cancellationToken)).ToDictionary(v => v.IngredientId, v => v.Judgement);
                         var flagged = pairs.Where(p => first.TryGetValue(p.IngredientId, out var j) && j is not (LinkJudgement.Same or LinkJudgement.Unsure)).ToList();
-                        var second = flagged.Count == 0 ? new Dictionary<long, LinkJudgement>() : (await check.JudgeAsync(flagged, cancellationToken)).ToDictionary(v => v.IngredientId, v => v.Judgement);
+                        var second = flagged.Count == 0 ? new Dictionary<long, LinkJudgement>() : (await AskAsync(() => check.JudgeAsync(flagged, cancellationToken), progress, cancellationToken)).ToDictionary(v => v.IngredientId, v => v.Judgement);
                         results.AddRange(batch.Select((c, i) => c.Outcome(first.TryGetValue(i, out var a) ? a : null, second.TryGetValue(i, out var b) ? b : null)));
                         progress($"{lane}: {results.Count}/{cases.Count}");
                     }
@@ -298,7 +299,7 @@ namespace Nom.Import.Golden
                 IReadOnlyList<ReaderAnswer?> read;
                 try
                 {
-                    read = await reader.ReadAsync(call, cancellationToken);
+                    read = await AskAsync(() => reader.ReadAsync(call, cancellationToken), null, cancellationToken);
                 }
                 catch (InvalidOperationException)
                 {
@@ -313,7 +314,7 @@ namespace Nom.Import.Golden
         {
             try
             {
-                return await reader.ReadFixedAsync(pack, cancellationToken);
+                return await AskAsync(() => reader.ReadFixedAsync(pack, cancellationToken), null, cancellationToken);
             }
             catch (InvalidOperationException)
             {
@@ -325,7 +326,7 @@ namespace Nom.Import.Golden
         {
             try
             {
-                return await refuter.RefuteAsync(term, means, Array.Empty<string>(), cancellationToken);
+                return await AskAsync(() => refuter.RefuteAsync(term, means, Array.Empty<string>(), cancellationToken), null, cancellationToken);
             }
             catch (InvalidOperationException)
             {

@@ -36,7 +36,13 @@ namespace Nom.Orch.Models.Curation
         public Dictionary<string, int> FailedApprovedByReason { get; set; } = new();
         /// <summary>Failing recipes by curation status.</summary>
         public Dictionary<string, int> FailedByStatus { get; set; } = new();
-        /// <summary>Recipes the check is unsure of: only weak signals (<c>lost-step</c>, <c>out-of-order</c>, <c>added-quantity</c>, <c>too-short</c>, <c>too-long</c>), so they stay shown and are the prose judge's to read.</summary>
+        /// <summary>Failing recipes whose only failing reason is <c>copy-unsure</c> (copy measures between the two lines of the copy rule): counted in <see cref="Failed"/> and withheld like a copy, and counted here apart.</summary>
+        public int CopyUnsure { get; set; }
+        /// <summary>Copy-unsure recipes that are approved.</summary>
+        public int CopyUnsureApproved { get; set; }
+        /// <summary>Recipes this call withheld as copy-unsure (marked <c>ProseCopyUnsure</c>).</summary>
+        public int WithheldCopyUnsure { get; set; }
+        /// <summary>Recipes the check is unsure of on facts: only weak signals (<c>lost-step</c>, <c>out-of-order</c>, <c>added-quantity</c>, <c>too-short</c>, <c>too-long</c>) and fact classes not yet proven, so they stay shown, marked, and are the prose judge's to read.</summary>
         public int Unsure { get; set; }
         /// <summary>Unsure recipes that are approved.</summary>
         public int UnsureApproved { get; set; }

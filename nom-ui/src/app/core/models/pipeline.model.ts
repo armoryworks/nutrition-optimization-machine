@@ -19,6 +19,8 @@ export interface PipelineRecipeCounts {
   waitingWithSourceProse: number;
   proseWithheld: number;
   proseWithheldApproved: number;
+  proseCopyUnsure: number;
+  proseCopyUnsureApproved: number;
   proseUnsure: number;
   proseUnsureApproved: number;
   proseGaveUp: number;

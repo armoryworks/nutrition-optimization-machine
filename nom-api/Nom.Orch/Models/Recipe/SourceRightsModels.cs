@@ -91,6 +91,10 @@ namespace Nom.Orch.Models.Recipe
         public int Examined { get; set; }
         public int Changed { get; set; }
         public int Skipped { get; set; }
+
+        /// <summary>Of the skipped rows of an undo, those an earlier undo already put back.</summary>
+        public int AlreadyUndone { get; set; }
+
         public string? Refused { get; set; }
         public Dictionary<string, int> SkippedByReason { get; set; } = new();
         public List<SourceRecipeChangeModel> Changes { get; set; } = new();

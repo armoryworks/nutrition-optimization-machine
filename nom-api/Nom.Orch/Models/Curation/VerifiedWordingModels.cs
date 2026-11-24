@@ -89,6 +89,8 @@ namespace Nom.Orch.Models.Curation
         public int Repositioned { get; set; }
         /// <summary>Lines that were no longer where the plan found them.</summary>
         public int Skipped { get; set; }
+        /// <summary>Lines and import landings left where they are because the move would lower a recipe's diet flags (<see cref="Nom.Orch.Services.Support.LineMoveDietGuard"/>); counted by a dry run too.</summary>
+        public int HeldByDiet { get; set; }
         /// <summary>Lines planned and not moved yet; without apply, the lines that would move.</summary>
         public int Remaining { get; set; }
         /// <summary>Uncurated ingredients with no line left that were retired; on a dry run, those every batch of the apply together would retire.</summary>
@@ -163,6 +165,8 @@ namespace Nom.Orch.Models.Curation
         public int LandingsSkipped { get; set; }
         /// <summary>Import landings on a recipe rebuilt after them; their entries stay.</summary>
         public int LandingsSkippedRebuilt { get; set; }
+        /// <summary>Line moves and import landings left where they are, with their entries, because moving them back would lower a recipe's diet flags (<see cref="Nom.Orch.Services.Support.LineMoveDietGuard"/>); counted by a dry run too.</summary>
+        public int HeldByDiet { get; set; }
     }
 
     public class WordingRetractResult

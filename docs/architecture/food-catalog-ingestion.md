@@ -876,7 +876,10 @@ dry run grew with the square of the window (staging checkpoint 4, P16: T1 took 1
 1.5 GiB on the API host). On a generated window of 6,000 line entries over 3,000 recipes, each recipe
 named again 3,000 entries later, one copy took 97.7 s and the parts 11.4 s, with the same counts; the parts
 grow with the window, not its square. The order-only journal rows an undo carries into are read once
-per chunk and written once per chunk, not once per line.
+per chunk and written once per chunk, not once per line. The copies run one at a time in the API process
+(`RelinkUndoDryRun.StartAsync`): two dry runs called together take turns part by part rather than each
+filling cores of their own (staging checkpoint 5, Q20: T1 in 150 s with T7 beside it, but the API at up to
+367 % CPU and 1.35 GiB).
 
 Apply also marks the unchanged can and package lines that were weighed as one item or one
 serving as modified, so the nutrition sweep recalculates their recipes' labels; a derived
@@ -1343,8 +1346,13 @@ longer fills the line, reads "add to two quarts of" and "seven to eight cups of"
 per-pound sentence past ";" and the point of "lb.", reads "for thirty pounds" as a proportion and takes
 nothing for a utensil line ("tin plate") or from the vessel a food is put into ("Put into a tumbler ...
 syrup"). Every amount the start-up repair would write passes the line guard of the rebuild
-(`LineAmountGuard`, see `recipe-reprocess.md`): an empty amount is filled only from one grounded mention,
-and a stored amount the source grounds is never emptied or changed by rule.
+(`LineAmountGuard`, see `recipe-reprocess.md`): an empty amount is filled only from one mention grounded in
+the line's own source text, and a stored amount is never emptied by rule. Since checkpoint 5 (Q1, Q11) a line
+the classifier marked `reference` (a sauce another recipe makes) or `equipment` (boiling water) takes the
+amount its method states, as an ingredient line does; a note, an instruction or an artefact never does. The
+done line counts the guard's `guardKept`, `guardReplaced` and `guardHeld` with the held ones by reason, and
+each held line is stored as a hold (`recipe."LineGuardHold"`, origin `startup-fill`), read with
+`GET /api/RecipeReprocess/line-holds`.
 
 **Held-out measure.** `line-holdout.tsv` holds every line the three checkpoint logs judged, split once by
 a hash of the row id; rules are written against one half, and the other half's errors per class are
@@ -1593,7 +1601,10 @@ back as a retract does (below, `lines` in the result), in the same transaction, 
 memory is written: an unload is a rollback, not a verdict. Unload, load and `relink/verified?batch=`
 again give the same rows, byte for byte, also for a row in an older key form: the relink finds its
 source by the name as written and a line whose text ends with the wording after an amount
-(`LineRelinkService.NamesWording`).
+(`LineRelinkService.NamesWording`). A line whose move back would lower a recipe's diet flags stays where it
+is with its entry (`lines.heldByDiet`, counted by the dry run too), so an unload and a reload that refuses
+the row leave the lines as they were (staging checkpoint 5, Q21; `link-recheck.md`, "Every other path that
+moves a line").
 
 **Retract one wording.** `POST api/FoodCatalog/wordings/{id}/retract?reason=<why>&apply=false&evidenceKey=`
 takes one live row back with everything it did, found by the journal rather than by time

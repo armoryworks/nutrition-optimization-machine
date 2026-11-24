@@ -505,7 +505,10 @@ namespace Nom.Orch.Services
         /// prepared food are never a link target, for a person either, and a food the catalog admission rule holds (pending with a stored
         /// reason) is lifted only by a person, never by a lane. Only a person's approval
         /// gives the USDA food the everyday name; a link the lanes apply on their own leaves the
-        /// description in place, because a wrong pick would otherwise rename the food after it.
+        /// description in place, because a wrong pick would otherwise rename the food after it. A link whose
+        /// merge would lower a recipe's diet flags (<see cref="ICatalogCleanupService.LowersDietAsync"/>: the USDA
+        /// food lacks what the ingredient's lines name) is held: it stays pending, and neither the merge nor the
+        /// nutrient copy is made (staging checkpoint 5, Q21).
         /// </summary>
         private async Task<bool> ApplyFdcLinkAsync(FoodCatalogProposalEntity p, long reviewerPersonId)
         {
@@ -516,6 +519,7 @@ namespace Nom.Orch.Services
             if (target.CurationStatusId == (long)Nom.Data.Recipe.CurationStatusEnum.Rejected || Nom.Data.Nutrition.PreparedFoods.IsPrepared(target)) return false;
             if (reviewerPersonId == SystemConstants.SystemPersonId && target.CurationStatusId == (long)Nom.Data.Recipe.CurationStatusEnum.PendingCuration
                 && target.AdmissionReason != null) return false;
+            if (await _cleanup.LowersDietAsync(source.Id, target.Id)) return false;
 
             var before = (Status: target.CurationStatusId, SourceStatus: source.CurationStatusId);
             target.CurationStatusId = (long)Nom.Data.Recipe.CurationStatusEnum.Curated;

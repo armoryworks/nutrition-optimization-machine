@@ -125,6 +125,15 @@ namespace Nom.Data.Recipe
         /// </summary>
         public bool ProseUnsure { get; set; }
 
+        /// <summary>
+        /// True while <see cref="ProseWithheld"/> stands because the prose check's copy measures sat
+        /// between its two lines (copy-unsure), not over a copied line: withheld like a copy, counted
+        /// apart, and the rewrite lane's work. Set by the journaled re-check, cleared by its undo, by a
+        /// person's own method ending the withhold and by a facts-only withhold; read only while the
+        /// recipe is withheld.
+        /// </summary>
+        public bool ProseCopyUnsure { get; set; }
+
         /// <summary>Rewrite attempts the prose lane has spent on this recipe under <see cref="ProseLaneVersion"/>.</summary>
         public int ProseAttempts { get; set; }
 

@@ -84,6 +84,12 @@ namespace Nom.Data
         public DbSet<PlanEntity> Plans { get; set; } = default!;
         public DbSet<PlanParticipantEntity> PlanParticipants { get; set; } = default!;
         public DbSet<RestrictionEntity> Restrictions { get; set; } = default!;
+        public DbSet<DietGateBuildEntity> DietGateBuilds { get; set; } = default!;
+        public DbSet<DietGateSetEntity> DietGateSets { get; set; } = default!;
+        public DbSet<DietFoodFactEntity> DietFoodFacts { get; set; } = default!;
+        public DbSet<DietFoodStateEntity> DietFoodStates { get; set; } = default!;
+        public DbSet<DietRecipeFlagEntity> DietRecipeFlags { get; set; } = default!;
+        public DbSet<DietRecipeStateEntity> DietRecipeStates { get; set; } = default!;
 
         // New Plan entities (from Mealie)
         public DbSet<HouseholdEntity> Households { get; set; } = default!;
@@ -154,10 +160,13 @@ namespace Nom.Data
         public DbSet<SourceCandidateEntity> SourceCandidates { get; set; } = default!;
         public DbSet<SourceCheckEntity> SourceChecks { get; set; } = default!;
         public DbSet<SourceDiscoveryRunEntity> SourceDiscoveryRuns { get; set; } = default!;
+        public DbSet<SourceRightsRecordEntity> SourceRightsRecords { get; set; } = default!;
+        public DbSet<SourceRefusingHostEntity> SourceRefusingHosts { get; set; } = default!;
         public DbSet<ScrapedDocumentEntity> ScrapedDocuments { get; set; } = default!;
         public DbSet<ProseStockPhraseEntity> ProseStockPhrases { get; set; } = default!;
         public DbSet<RecipeReprocessJournalEntity> RecipeReprocessJournals { get; set; } = default!;
         public DbSet<ReprocessCandidateEntity> ReprocessCandidates { get; set; } = default!;
+        public DbSet<LineGuardHoldEntity> LineGuardHolds { get; set; } = default!;
         public DbSet<RecipeSourceEraEntity> RecipeSourceEras { get; set; } = default!;
         public DbSet<RecipeSubstitutionEntity> RecipeSubstitutions { get; set; } = default!;
         public DbSet<RecipeSubstitutionStepEffectEntity> RecipeSubstitutionStepEffects { get; set; } = default!;

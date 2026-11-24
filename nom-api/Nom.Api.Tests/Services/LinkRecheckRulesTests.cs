@@ -295,6 +295,50 @@ namespace Nom.Api.Tests.Services
             LinkGate.NamesOtherFood("dates stoned and sliced", Food(7, "Dates", "Dates, deglet noor"), catalog).Should().BeFalse();
         }
 
+        [Theory]
+        [InlineData("1 cinnamon stick, 1-inch piece of fresh turmeric", "Cinnamon", true)]
+        [InlineData("cayenne pepper, 1/2 teaspoon, or chopped sweet pepper, 1 small", "Cayenne Pepper", true)]
+        [InlineData("rosemary, chopped", "Dried Rosemary", false)]
+        [InlineData("1 tablespoon rosemary, 2 sprigs fresh rosemary", "Dried Rosemary", false)]
+        [InlineData("fresh turmeric, 1 cinnamon stick", "Cinnamon", false)]
+        [InlineData("2 tsp cinnamon", "Cinnamon", false)]
+        public void A_fresh_cue_proves_nothing_against_the_food_named_first_when_it_qualifies_a_later_item(string text, string food, bool later)
+        {
+            LinkRecheckRules.FreshOfLaterItem(text, Food(1, food)).Should().Be(later);
+        }
+
+        [Theory]
+        [InlineData("sugar per quart of juice", "sugar")]
+        [InlineData("sugar, 10 oz. for each pound of juice", "sugar, 10 oz.")]
+        [InlineData("sugar to a gallon of vinegar", "sugar")]
+        [InlineData("powdered sugar per egg", "powdered sugar")]
+        [InlineData("orange juice", null)]
+        [InlineData("per person", null)]
+        [InlineData("1/2 cup each butter and sugar", null)]
+        [InlineData("1 cup every flour and sugar", null)]
+        public void A_ratio_phrase_cuts_the_wording_to_the_food_it_measures(string wording, string? cut)
+        {
+            LinkRecheckRules.BeforeRatio(wording).Should().Be(cut);
+        }
+
+        [Fact]
+        public void The_fresh_herb_class_and_the_ratio_shape_in_group_and_compound_decide_the_checkpoint_5_rows_by_rule()
+        {
+            var folder = Nom.Api.Tests.Golden.GoldenSet.Folder;
+            var catalog = ModelLanes.GoldenGateCatalog(folder);
+            var foods = ModelLanes.GateFoods(folder).ToDictionary(f => f.Id);
+            var byFdc = foods.Values.Where(f => f.FdcId != null).GroupBy(f => f.FdcId!).ToDictionary(g => g.Key, g => g.First());
+            var rows = LinkRecheckClassScorer.Rows(folder).Where(r => r.Id.StartsWith("lr-ck10s-", StringComparison.Ordinal)).ToDictionary(r => r.Id);
+            IReadOnlyList<string> Classes(string id) => LinkRecheckClassScorer.Decide(rows[id], catalog, foods, byFdc).Verdict.Classes ?? Array.Empty<string>();
+
+            Classes("lr-ck10s-01").Should().NotContain(LinkGate.FreshHerb, "staging checkpoint 5, Q14 (38519): the fresh turmeric is a later item");
+            Classes("lr-ck10s-02").Should().NotContain(LinkGate.FreshHerb, "staging checkpoint 5, Q14 (49500): the chopped sweet pepper is the second alternative");
+            Classes("lr-ck10s-03").Should().Contain(LinkGate.FreshHerb, "fresh rosemary is named again, so the dried spice is wrong");
+            Classes("lr-ck10s-04").Should().NotContain(LinkGate.Group, "staging checkpoint 5, Q15: the juice after per is a measure");
+            Classes("lr-ck10s-05").Should().NotContain(LinkGate.Compound);
+            Classes("lr-ck10s-06").Should().NotContain(LinkGate.Group);
+        }
+
         [Fact]
         public void A_move_gives_no_alias_that_names_a_restricted_food_its_new_food_does_not()
         {

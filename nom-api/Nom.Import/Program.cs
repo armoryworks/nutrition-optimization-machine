@@ -742,7 +742,8 @@ namespace Nom.Import
                     });
 
                     services.AddDbContext<ApplicationDbContext>(options =>
-                        options.UseNpgsql(connectionString, o => o.CommandTimeout(300)));
+                        options.UseNpgsql(connectionString, o => o.CommandTimeout(300))
+                            .AddInterceptors(Nom.Orch.Services.Support.DietRecipeStateClearer.Shared));
 
                     // Register the combined USDA + OFF import service
                     var useCombinedImport = hostContext.Configuration.GetValue<bool>("ImportSettings:UseCombinedImport", false);

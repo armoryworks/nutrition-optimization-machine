@@ -1,7 +1,7 @@
-# Label terms (label-terms/2): the names a United States ingredient statement uses, each with what it tells the diet gate beyond its own words.
+# Label terms (label-terms/3): the names a United States ingredient statement uses, each with what it tells the diet gate beyond its own words.
 # term: the name as read, lower case, singular. kind: food (a single food or a regulated common name), additive (a functional additive, with its INS/E number), flavour (a flavouring or spice term, judged by its own words), composite (a prepared food whose name hides what it is made of; a composite also gives the restriction types that restrict one of its contents a companion pattern, DefaultRestrictionCriteria.CompositeCompanions).
 # names: other spellings and numbers, joined by |. contains: what the term is or is made of, as words the restriction patterns read (a major-allergen word is read with every word of its class). may: what it may be made of when the label does not say (held as unknown where a restriction names it). source: why.
-# Sources: FALCPA = Federal Food, Drug, and Cosmetic Act 201(qq) and 403(w) as amended by the Food Allergen Labeling and Consumer Protection Act of 2004 and the FASTER Act of 2021 (major food allergens; a major allergen in any ingredient, flavouring, colouring or incidental additive is declared by its source name in the statement or a Contains line, highly refined oils excepted). FDA-QA5 = FDA, Questions and Answers Regarding Food Allergens, edition 5 (2025). 21CFR = Title 21, Code of Federal Regulations (standards of identity; 101.4 and 101.22 for the naming of ingredients, spices and flavourings). INS = Codex Alimentarius, Class Names and the International Numbering System for Food Additives (CAC/GL 36-1989). SR = USDA FoodData Central SR Legacy food description. LABEL = the ingredient statement of the leading brand, as USDA FoodData Central's branded file publishes it.
+# Sources: FALCPA = Federal Food, Drug, and Cosmetic Act 201(qq) and 403(w) as amended by the Food Allergen Labeling and Consumer Protection Act of 2004 and the FASTER Act of 2021 (major food allergens; a major allergen in any ingredient, flavouring, colouring or incidental additive is declared by its source name in the statement or a Contains line, highly refined oils excepted). FDA-QA5 = FDA, Questions and Answers Regarding Food Allergens, edition 5 (2025). 21CFR = Title 21, Code of Federal Regulations (standards of identity; 101.4 and 101.22 for the naming of ingredients, spices and flavourings). INS = Codex Alimentarius, Class Names and the International Numbering System for Food Additives (CAC/GL 36-1989). SR = USDA FoodData Central SR Legacy food description. LABEL = the ingredient statement of the leading brand, as USDA FoodData Central's branded file publishes it. Classic composites whose name does not say what is in them (label-terms/3, staging checkpoint 5) cite public-domain references: ESCOFFIER = A. Escoffier, Le Guide Culinaire (1903; in English A Guide to Modern Cookery, 1907). FARMER = Fannie Merritt Farmer, The Boston Cooking-School Cook Book (1896). BEETON = Isabella Beeton, The Book of Household Management (1861). IT-DM-2005 = Italy, Decreto ministeriale 22 luglio 2005 on panettone, pandoro and colomba (the composition the names may be sold under). WIEGAND = E. H. Wiegand, the maraschino process, cherries held in a sulfur dioxide and calcium brine (Oregon Agricultural College, 1925).
 term	kind	names	contains	may	source
 water	food	filtered water|purified water|tap water	-	-	21CFR 101.4: water is declared as water
 salt	food	sea salt|kosher salt|iodized salt	-	-	SR: salt, table
@@ -356,3 +356,45 @@ peanut butter cup	composite	peanut butter cups|chocolate peanut butter cup|choco
 peanut butter cookie	composite	peanut butter cookies	peanut|wheat flour|butter|egg	-	SR: cookies, peanut butter (wheat flour, peanut butter); butter and egg held on the safe side, as recipes and brands vary; the peanut butter exception of %butter% would otherwise clear them
 coconut cream pie	composite	coconut cream pies	coconut|milk|egg|wheat flour	-	SR: pie, coconut cream (a cooked filling of milk, egg and coconut in a wheat-flour crust); the coconut cream exception of %cream% would otherwise clear the filling's milk
 corned beef hash	composite	hash of corned beef	beef|potato	-	SR: Beef, corned beef hash, with potato, canned
+allemande sauce	composite	allemande|sauce allemande|parisienne sauce	egg yolk|butter|wheat flour	-	ESCOFFIER: sauce allemande (parisienne) is velouté, a roux of butter and flour moistened with white stock, thickened with egg yolks (staging checkpoint 5, Q19)
+veloute	composite	veloute sauce|velouté|velouté sauce	butter|wheat flour	-	ESCOFFIER: velouté is white stock thickened with a roux of butter and flour
+espagnole	composite	espagnole sauce|sauce espagnole	butter|wheat flour	-	ESCOFFIER: espagnole is brown stock thickened with a brown roux of butter and flour
+mornay sauce	composite	mornay|sauce mornay	milk|butter|wheat flour|cheese	-	ESCOFFIER: Mornay sauce is béchamel (milk, butter, flour) with Gruyère and Parmesan
+supreme sauce	composite	sauce supreme|sauce suprême|suprême sauce	butter|wheat flour|cream	-	ESCOFFIER: sauce suprême is velouté of chicken finished with cream and butter
+mousseline sauce	composite	sauce mousseline	egg yolk|butter|cream	-	ESCOFFIER: mousseline sauce is hollandaise (egg yolk and butter) with whipped cream
+creme anglaise	composite	crème anglaise|custard sauce	egg yolk|milk	-	ESCOFFIER: crème anglaise is egg yolks and sugar cooked with milk
+pastry cream	composite	creme patissiere|crème pâtissière|confectioners custard	egg yolk|milk|wheat flour	-	ESCOFFIER: crème pâtissière is egg yolks, sugar and flour cooked with milk
+sponge cake	composite	sponge cakes|genoise|génoise	egg|wheat flour	-	FARMER: sponge cake is eggs, sugar and flour; génoise adds butter (staging checkpoint 5, Q5 and Q19)
+ladyfinger	composite	ladyfingers|lady finger|lady fingers|savoiardi|boudoir biscuits	egg|wheat flour	-	FARMER: lady fingers are a sponge batter of eggs, sugar and flour piped in fingers (staging checkpoint 5, Q5)
+angel food cake	composite	angel food cakes|angel cake|angel food	egg white|wheat flour	-	FARMER: angel cake is whites of eggs, sugar and flour (staging checkpoint 5, Q5)
+pound cake	composite	pound cakes	butter|egg|wheat flour	-	FARMER: pound cake is a pound each of butter, sugar, eggs and flour
+madeleine	composite	madeleines	butter|egg|wheat flour	-	ESCOFFIER: madeleines are a génoise batter of butter, eggs, sugar and flour
+choux pastry	composite	pate a choux|pâte à choux|cream puff|cream puffs|eclair|eclairs|éclair|éclairs|profiterole|profiteroles	butter|egg|wheat flour	-	FARMER: cream cakes and éclairs are a paste of butter, flour and eggs
+popover	composite	popovers|yorkshire pudding|yorkshire puddings	wheat flour|egg|milk	-	FARMER: popovers are flour, milk and eggs; BEETON: Yorkshire pudding is flour, eggs and milk
+panettone	composite	panettoni	wheat flour|egg yolk|butter|raisin	-	IT-DM-2005: panettone is wheat flour, sugar, egg yolk, butter, raisins and candied citrus peel, leavened with natural yeast (staging checkpoint 5, Q5)
+pandoro	composite	-	wheat flour|egg|butter	-	IT-DM-2005: pandoro is wheat flour, sugar, eggs and butter, leavened with natural yeast
+biscotti	composite	cantucci|biscotto	wheat flour|egg	almond	twice-baked biscuits of wheat flour, sugar and eggs; cantucci di Prato hold almonds, held as may when the line does not say
+scone	composite	scones	wheat flour|butter|milk	-	FARMER: scones are a quick bread of flour, butter and milk or cream
+graham	composite	graham meal|graham cracker|graham crackers	wheat flour	-	21CFR 137.200: graham flour is whole wheat flour (staging checkpoint 5, Q5: graham meal)
+bisquick	composite	bisquick mix|bisquick baking mix	wheat flour	-	LABEL: Bisquick Original Pancake and Baking Mix (enriched flour bleached, vegetable oil, leavening); Contains: wheat (staging checkpoint 5, Q5)
+pizza roll	composite	pizza rolls	wheat flour|cheese	pork	LABEL: Totino's Pizza Rolls (enriched wheat flour, mozzarella cheese); the combination and pepperoni rolls hold pork, held as may when the line does not say (staging checkpoint 5, Q19)
+stuffing	composite	stuffing mix|bread stuffing|bread dressing	bread|wheat flour	-	SR: Bread, stuffing, dry mix (enriched wheat flour)
+egg roll	composite	egg rolls	wheat flour|egg	pork|shrimp	SR: Wonton wrappers (includes egg roll wrappers): wheat flour and egg; a filled egg roll may hold pork or shrimp
+egg roll wrapper	composite	egg roll wrappers|egg roll skin|egg roll skins	wheat flour|egg	-	SR: Wonton wrappers (includes egg roll wrappers): wheat flour and egg, no filling (review CK10C-7)
+french toast	composite	-	bread|egg|milk	-	SR: French toast, prepared from recipe (bread, egg, milk)
+spaetzle	composite	spätzle|spatzle	wheat flour|egg	-	egg noodle dumplings of wheat flour and egg (21CFR 139.150)
+pierogi	composite	pierogies|perogies|pirogi|pierogy	wheat flour	cheese|egg	dumplings of wheat flour dough; filled with potato and cheese most often, held as may when the line does not say
+empanada	composite	empanadas	wheat flour	beef	a turnover of wheat flour dough; filled with beef most often, held as may when the line does not say
+samosa	composite	samosas	wheat flour|potato	-	a fried turnover of wheat flour dough filled with potato
+calzone	composite	calzones	wheat flour|cheese	-	a folded pizza of wheat flour dough and mozzarella
+flan	composite	flans|creme caramel|crème caramel	egg|milk	-	ESCOFFIER: crème renversée (caramel custard) is eggs and milk
+creme brulee	composite	crème brûlée	egg yolk|cream	-	a baked custard of egg yolks and cream
+tartar sauce	composite	tartare sauce|sauce tartare	egg yolk	-	ESCOFFIER: sauce tartare is a mayonnaise of hard-boiled egg yolks and oil
+remoulade	composite	rémoulade|remoulade sauce	egg yolk	-	ESCOFFIER: rémoulade is mayonnaise (egg yolk) with mustard, gherkins and capers
+bouillabaisse	composite	-	fish|shellfish	-	ESCOFFIER: bouillabaisse is a stew of Mediterranean fish and shellfish
+maraschino cherry	composite	maraschino cherries	cherry|sulfite	-	WIEGAND: maraschino cherries are cherries held in a brine of sulfur dioxide, then dyed and sweetened (Oregon Agricultural College, 1925; staging checkpoint 5, Q19)
+snickers	composite	snickers bar|snickers bars	peanut|milk|egg|soybean	-	LABEL: Snickers (milk chocolate, peanuts, egg whites, soy lecithin); Contains: peanuts, milk, egg, soy
+butterfinger	composite	butterfingers	peanut|milk|soybean	-	LABEL: Butterfinger (peanuts, nonfat milk, soy lecithin); Contains: peanuts, milk, soy
+baby ruth	composite	-	peanut|milk|soybean	-	LABEL: Baby Ruth (peanuts, nonfat milk, soy lecithin); Contains: peanuts, milk, soy
+payday	composite	pay day	peanut|milk|soybean	-	LABEL: PayDay (peanuts, nonfat milk, soy lecithin); Contains: peanuts, milk, soy
+mr goodbar	composite	mr. goodbar	peanut|milk|soybean	-	LABEL: Mr. Goodbar (milk chocolate, peanuts, soy lecithin); Contains: peanuts, milk, soy

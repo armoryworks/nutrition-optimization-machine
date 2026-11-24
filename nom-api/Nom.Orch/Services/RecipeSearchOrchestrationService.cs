@@ -45,16 +45,7 @@ namespace Nom.Orch.Services
             {
                 var severe = await new HouseholdRestrictionResolver(_context).ResolveSevereForPersonAsync(requesterId);
                 dietConflictsHidden = searchModel.HideDietConflicts == true || severe.HasSevere;
-                if (dietConflictsHidden && severe.IngredientIds.Count > 0)
-                {
-                    var forbidden = severe.IngredientIds.ToList();
-                    query = query.Where(r => !r.RecipeIngredients!.Any(ri => forbidden.Contains(ri.IngredientId)));
-                }
-                if (dietConflictsHidden && severe.RecipeIds.Count > 0)
-                {
-                    var forbiddenRecipes = severe.RecipeIds.ToList();
-                    query = query.Where(r => !forbiddenRecipes.Contains(r.Id));
-                }
+                if (dietConflictsHidden) query = query.WithoutHeld(_context, severe);
             }
 
             // Apply sorting
@@ -63,14 +54,12 @@ namespace Nom.Orch.Services
             // Get total count for pagination
             var totalCount = await query.CountAsync();
 
-            // Apply pagination
             var skip = (searchModel.Page - 1) * searchModel.PageSize;
-            query = query.Skip(skip).Take(searchModel.PageSize);
-
-            // Include related data based on request
-            query = IncludeRelatedData(query, searchModel);
-
-            var recipes = await query.ToListAsync();
+            var pageIds = await query.Skip(skip).Take(searchModel.PageSize).Select(r => r.Id).ToListAsync();
+            var order = pageIds.Select((id, i) => (id, i)).ToDictionary(x => x.id, x => x.i);
+            var recipes = (await IncludeRelatedData(_context.Recipes.Where(r => pageIds.Contains(r.Id)), searchModel).ToListAsync())
+                .OrderBy(r => order[r.Id])
+                .ToList();
 
             var results = recipes.Select(r => MapToSearchResult(r, searchModel)).ToList();
 
@@ -226,18 +215,7 @@ namespace Nom.Orch.Services
             if (householdId.HasValue)
             {
                 var restricted = await new Support.HouseholdRestrictionResolver(_context).ResolveAsync(householdId.Value);
-                var restrictedIngredientIds = restricted.IngredientIds.ToList();
-                var restrictedRecipeIds = restricted.RecipeIds.ToList();
-
-                if (restrictedIngredientIds.Count > 0)
-                {
-                    query = query.Where(r => !r.RecipeIngredients!
-                        .Any(ri => restrictedIngredientIds.Contains(ri.IngredientId)));
-                }
-                if (restrictedRecipeIds.Count > 0)
-                {
-                    query = query.Where(r => !restrictedRecipeIds.Contains(r.Id));
-                }
+                query = query.WithoutHeld(_context, restricted);
             }
 
             // Filter by calorie range using the recipe's nutrition data

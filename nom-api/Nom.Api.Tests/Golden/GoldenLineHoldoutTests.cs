@@ -105,8 +105,8 @@ namespace Nom.Api.Tests.Golden
                 $"the held-out figures are recorded by hand in {Record} whenever a rule change moves them; now:\n{report}\n{string.Join("\n", misses)}");
         }
 
-        /// <summary>What the line guard does on the held-out half, with the build that last wrote the line (logged) as the stored amount and the current reading as the new one.</summary>
-        public sealed record GuardFigures(int Rows, int Same, int Kept, int Replaced, int Held, int Worse, int Better);
+        /// <summary>What the line guard does on the held-out half, with the build that last wrote the line (logged) as the stored amount and the current reading as the new one; replaced-wrong counts the replaced lines that end other than judged.</summary>
+        public sealed record GuardFigures(int Rows, int Same, int Kept, int Replaced, int Held, int Worse, int Better, int ReplacedWrong);
 
         private static LineAmountGuard.Amount Amount(string cell, GoldenRow row, bool fromMethod)
         {
@@ -118,7 +118,7 @@ namespace Nom.Api.Tests.Golden
         [Fact]
         public void The_line_guard_on_the_held_out_half_makes_no_line_worse_and_scores_as_recorded()
         {
-            int rows = 0, same = 0, kept = 0, replaced = 0, held = 0, worse = 0, better = 0;
+            int rows = 0, same = 0, kept = 0, replaced = 0, held = 0, worse = 0, better = 0, replacedWrong = 0;
             foreach (var row in GoldenSet.Read(File).Rows.Where(r => r["half"] == HeldOut && r["status"] != GoldenTsv.NoAnswer && r["logged"] != GoldenTsv.NotJudged))
             {
                 var now = Read(row);
@@ -134,11 +134,13 @@ namespace Nom.Api.Tests.Golden
                 }
                 if (row["logged"] == row["expect"] && final != row["expect"]) worse++;
                 if (row["logged"] != row["expect"] && final == row["expect"]) better++;
+                if (verdict == LineAmountGuard.Verdict.Replace && final != row["expect"]) replacedWrong++;
             }
 
-            var measured = new GuardFigures(rows, same, kept, replaced, held, worse, better);
+            var measured = new GuardFigures(rows, same, kept, replaced, held, worse, better, replacedWrong);
             _output.WriteLine(measured.ToString());
             measured.Worse.Should().Be(0, "the guard never makes a line worse than the build before it left it");
+            measured.ReplacedWrong.Should().Be(0, "a replace needs the new amount grounded in the line's own source text");
             using var recorded = JsonDocument.Parse(System.IO.File.ReadAllText(Path.Combine(GoldenSet.Folder, Record)));
             var expected = JsonSerializer.Deserialize<GuardFigures>(recorded.RootElement.GetProperty("guard").GetRawText(), new JsonSerializerOptions(JsonSerializerDefaults.Web));
             measured.Should().Be(expected, $"the guard's figures on the held-out half are recorded by hand in {Record}; now: {measured}");

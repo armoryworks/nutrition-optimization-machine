@@ -152,6 +152,23 @@ is named in no step. Golden rows are step texts written for the rule in the shap
 
 ar-095 to ar-097 cover braise, seethe and fricassee as stove heat.
 
+### Staging checkpoint 5: six readings wrong (`alcohol-retention/7`)
+
+40 fresh recipes read 26 right, 6 wrong and 8 doubtful (Q18). The heat that counts is the heat of the step in which
+the drink goes in and of the later steps of the same part of the dish; where that is unknown (no step places the drink)
+the safe-side "up to" factor stays and the reading is counted as estimated, as before (ar-091). Golden rows are step
+texts written for the rule in the shape the log gives (no staging text copied).
+
+| Item | Cause and decision | Golden row |
+|---|---|---|
+| 22358 wine boiled with the broth, chicken simmered 12 to 15 minutes, read `up-to:simmer:12` 85 % | A range read at its lower end, under 15 minutes. A range after heat the steps give no time for counts at its upper end: 15 minutes, 5004, 40 % | ar-ck10s-01 |
+| 17337 vanilla in a butter cake baked 1¼ hours, read `up-to:bake` 45 % | "one and a quarter hours" (and "an hour and three quarters", "two and a quarter hours") were no time; with the vanilla named, 75 minutes, 5006, 25 %. With no step naming it the safe side stays | ar-ck10s-02 |
+| 74304 a glass of white wine stewed with celery till tender, read `up-to:simmer` 85 % | A sentence that only states how long ("It will take about an hour") now times the heat of the sentence before it: 5006, 25 %. A time of standing, resting, chilling, setting, soaking or rising ("It needs to stand two hours") is no heat and adds nothing (review CK10S-1) | ar-ck10s-03, ar-ck10s-10 |
+| 74359 white wine in the stewpan the ham boils in for 1¾ hours, read `up-to:simmer` 85 % | "h" is an hour ("1 3/4 h"): 105 minutes, 5007, 20 % when a step names the wine; unnamed it keeps the safe side | ar-ck10s-04 |
+| 70088 sherry in a sauce made on the fire, read `no-heat` 100 % | "on the fire", "on a slow fire", "on the stove" are stove heat like "over the fire": no time, up to 5002, 85 % | ar-ck10s-05 |
+| 24434 vanilla in an uncooked icing, read `hot-liquid` 85 % from the frying of the dough (the low side) | The sentence before a drink's own counts as its heat only when the drink's sentence does not start a part of its own ("For the icing, ...", "Make the sauce", "Glaze:"); such a sentence after the drink's also ends its segment. No heat, 100 % | ar-ck10s-06, ar-ck10s-09 |
+| 74884, 74588 (doubtful) a drink stirred into a hot sauce, tossed till hot | "into the hot ...", "on the boiling ...", "till hot" is a hot liquid: 5002, 85 %. Only the part of the clause before a serving word counts: "serve with hot plum pudding" names the dish the cold mixture goes with, not a liquid the drink goes into (review CK10S-4) | ar-ck10s-07, ar-ck10s-08, ar-ck10s-11 |
+
 ## Where it is stored and how the label uses it
 
 Two nullable columns on `recipe."RecipeIngredient"`: `AlcoholRetention` (numeric(5,4), the share that
@@ -242,7 +259,7 @@ No Alcohol household and kept out for a Halal one (`diet-gate.tsv` dg-33 to dg-4
 
 ## Golden set and scorer
 
-`alcohol-retention.tsv` (107 rows since `alcohol-retention/6`: 97 rule-given, `rule:alcohol-retention`, `ok`; 10 realistic methods
+`alcohol-retention.tsv` (118 rows since `alcohol-retention/7`: 108 rule-given, `rule:alcohol-retention`, `ok`, ar-ck10s-01 to ar-ck10s-11 from staging checkpoint 5 and its review; 10 realistic methods
 judged by the builder, `agent-review-alcohol-retention-2026-11-21`, `agent`). No-model scorer lane
 `alcohol-retention` in `model-lanes.json` (`required`, floor 100 %, no false accept; a false accept is
 a factor below the row's). Record: `dotnet run --project nom-api/Nom.Import -- --golden-score --lane

@@ -516,7 +516,6 @@ namespace Nom.Orch.Services
             //    no IngredientId of its own — the criteria supply the ingredients).
             var restrictedSet = await new Support.HouseholdRestrictionResolver(_context).ResolveAsync(model.HouseholdId);
             var restrictedIngredientIds = restrictedSet.IngredientIds.ToList();
-            var restrictedRecipeIds = restrictedSet.RecipeIds.ToList();
 
             // 2b. Safety gate: does any active member carry a SEVERE restriction
             //     (severity >= 4 — allergy/medical)? If so, recipes are limited
@@ -625,15 +624,7 @@ namespace Nom.Orch.Services
                             cr.RecipeId == r.Id && cr.HouseholdCookbook!.HouseholdId == model.HouseholdId));
                 }
 
-                if (restrictedIngredientIds.Count > 0)
-                {
-                    query = query.Where(r => !r.RecipeIngredients!
-                        .Any(ri => restrictedIngredientIds.Contains(ri.IngredientId)));
-                }
-                if (restrictedRecipeIds.Count > 0)
-                {
-                    query = query.Where(r => !restrictedRecipeIds.Contains(r.Id));
-                }
+                query = Support.DietGateStore.WithoutHeld(query, _context, restrictedSet);
 
                 if (hasSevereRestriction)
                 {
@@ -1058,7 +1049,7 @@ namespace Nom.Orch.Services
             // then topping up with standalone whole foods.
             var topUps = await ApplyFoodGroupRulesAsync(
                 model.HouseholdId, authorId, model.StartDate, model.EndDate,
-                newEntities, restrictedIngredientIds, now);
+                newEntities, restrictedIngredientIds, now, restrictedSet);
             newEntities.AddRange(topUps);
 
             // 7. Bulk insert
@@ -1141,7 +1132,7 @@ namespace Nom.Orch.Services
             var excluded = restricted.IngredientIds.Concat(await _policy.GetLockedIngredientIdsAsync(householdId)).Distinct().ToList();
             foreach (var (mealTypeId, cells) in cellsByMeal)
             {
-                var query = PreparedMealPoolQuery(_context, householdId, excluded, byContents);
+                var query = PreparedMealPoolQuery(_context, householdId, excluded, byContents, restricted);
                 List<(long Id, string Name, decimal? ReferenceServingGrams)> foods;
                 if (byContents)
                 {
@@ -1186,15 +1177,17 @@ namespace Nom.Orch.Services
 
         /// <summary>
         /// The curated prepared meals shuffle may draw, less the excluded foods (restricted or locked); with
-        /// <paramref name="withReadContents"/>, only those with a read statement of FDC or of the household.
+        /// <paramref name="withReadContents"/>, only those with a read statement of FDC or of the household; with
+        /// <paramref name="restricted"/>, none the diet gate's stored sets count or hold (<see cref="Support.DietGateStore.WithoutHeld(IQueryable{IngredientEntity}, ApplicationDbContext, Support.RestrictedIngredientSet)"/>).
         /// </summary>
-        internal static IQueryable<IngredientEntity> PreparedMealPoolQuery(ApplicationDbContext db, long householdId, IReadOnlyCollection<long> excluded, bool withReadContents)
+        internal static IQueryable<IngredientEntity> PreparedMealPoolQuery(ApplicationDbContext db, long householdId, IReadOnlyCollection<long> excluded, bool withReadContents, Support.RestrictedIngredientSet? restricted = null)
         {
             var read = Nom.Data.Recipe.IngredientContentsOutcome.Read;
             var query = db.Ingredients
                 .Where(i => i.CurationStatusId == (long)CurationStatusEnum.Curated)
                 .Where(Nom.Data.Nutrition.PreparedFoods.Meals)
                 .Where(i => !excluded.Contains(i.Id));
+            if (restricted != null) query = Support.DietGateStore.WithoutHeld(query, db, restricted);
             return withReadContents
                 ? query.Where(i => db.IngredientContents.Any(c => c.IngredientId == i.Id && c.Outcome == read && (c.HouseholdId == null || c.HouseholdId == householdId)))
                 : query;
@@ -1220,9 +1213,15 @@ namespace Nom.Orch.Services
 
             var restricted = await new Support.HouseholdRestrictionResolver(_context).ResolveAsync(householdId);
             if (!restricted.HasSevere && !restricted.ReadsContents)
+            {
+                await restricted.LoadFoodsAsync(_context, prepared);
+                var undecided = await Support.DietGateStore.UndecidedAsync(_context, restricted, prepared);
                 return prepared.Select(id => restricted.IngredientIds.Contains(id)
                     ? new PreparedMealCheckModel { IngredientId = id, Held = Support.PreparedContentsHeld.Food }
-                    : new PreparedMealCheckModel { IngredientId = id }).ToList();
+                    : restricted.Pending || undecided.Contains(id)
+                        ? new PreparedMealCheckModel { IngredientId = id, Held = Support.PreparedContentsHeld.Pending }
+                        : new PreparedMealCheckModel { IngredientId = id }).ToList();
+            }
 
             var verdicts = await Support.PreparedContentsGate.JudgeAsync(_context, householdId, restricted, prepared);
             return prepared.Select(id => new PreparedMealCheckModel
@@ -1248,7 +1247,7 @@ namespace Nom.Orch.Services
         /// </summary>
         internal async Task<List<MealPlanEntity>> ApplyFoodGroupRulesAsync(
             long householdId, long authorId, DateOnly startDate, DateOnly endDate,
-            List<MealPlanEntity> placed, List<long> restrictedIngredientIds, DateTime now)
+            List<MealPlanEntity> placed, List<long> restrictedIngredientIds, DateTime now, Support.RestrictedIngredientSet? restricted = null)
         {
             const int MaxTopUpsPerBucket = 12; // safety cap against pathological rules
 
@@ -1289,7 +1288,7 @@ namespace Nom.Orch.Services
             var candidateGroupOf = new Dictionary<long, long>();
             foreach (var gid in groupIds)
             {
-                var cands = await _context.Ingredients
+                var candidates = _context.Ingredients
                     .Where(i => i.FoodGroupId == gid
                         && i.CurationStatusId == (long)CurationStatusEnum.Curated
                         && i.IsWholeFood != false
@@ -1297,7 +1296,9 @@ namespace Nom.Orch.Services
                         && !(i.FdcDataType == Nom.Data.Nutrition.CatalogAdmissionRule.BrandedFood && i.FdcCategory != null && Nom.Data.Nutrition.PreparedFoods.BrandedMealCategories.Contains(i.FdcCategory))
                         && !i.IngredientNutrients.Any(n => !n.IsDeleted && n.Nutrient.Name.ToLower() == "alcohol" && n.Amount > MaxTopUpAlcoholGramsPer100g)
                         && !restrictedIngredientIds.Contains(i.Id)
-                        && !lockedIds.Contains(i.Id))
+                        && !lockedIds.Contains(i.Id));
+                if (restricted != null) candidates = Support.DietGateStore.WithoutHeld(candidates, _context, restricted);
+                var cands = await candidates
                     .OrderBy(i => i.Id)
                     .Select(i => new { i.Id, i.Name })
                     .Take(10)

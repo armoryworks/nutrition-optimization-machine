@@ -112,6 +112,19 @@ namespace Nom.Import.Golden
         public const int ClassifyBatch = 20;
         public const int JudgeBatch = 8;
 
+        /// <summary>How many times a scorer asks one batch when the host does not answer within the client's timeout.</summary>
+        public const int CallAttempts = 3;
+
+        public const string SplitAll = "all";
+        public const string SplitWorking = "working";
+        public const string SplitHeldOut = "held-out";
+
+        /// <summary>The values of --split.</summary>
+        public static readonly IReadOnlyList<string> Splits = new[] { SplitAll, SplitWorking, SplitHeldOut };
+
+        /// <summary>The lanes a run may score on one half of their golden rows (--split working or held-out).</summary>
+        public static readonly IReadOnlyList<string> Splittable = new[] { LineJudge, ProseJudgeLane };
+
         public static readonly IReadOnlyList<string> Scored = new[] { LinkPick, LinkVerify, LineClassify, LinkGateLane, AlcoholContextLane, AlcoholRetentionLane, WordingTiersLane, LineJudge, ProseRewriteLane, ProseJudgeLane, ProseAuditLane, WordingReadLane, WordingLexiconLane, AlcoholReadingLane, LinkAuditLane };
 
         /// <summary>The prose lanes, scored on prose-judge.tsv; their signatures are <see cref="ProseLaneGolden.Signature"/>.</summary>
@@ -178,6 +191,27 @@ namespace Nom.Import.Golden
             body.Remove("model");
             var bytes = Encoding.UTF8.GetBytes(capture.Path + "\n" + body.ToJsonString());
             return Convert.ToHexString(SHA256.HashData(bytes))[..16].ToLowerInvariant();
+        }
+
+        /// <summary>
+        /// One model call of a scorer lane, asked again when the host does not answer within the
+        /// client's timeout (a shared host can hold a request behind another lane's), up to
+        /// <see cref="CallAttempts"/> times, so one slow answer does not end a run of hours. Any other
+        /// failure, a timeout on the last attempt and the caller's own cancellation end the run as before.
+        /// </summary>
+        public static async Task<T> AskAsync<T>(Func<Task<T>> call, Action<string>? progress, CancellationToken cancellationToken)
+        {
+            for (var attempt = 1; ; attempt++)
+            {
+                try
+                {
+                    return await call();
+                }
+                catch (TaskCanceledException ex) when (ex.InnerException is TimeoutException && !cancellationToken.IsCancellationRequested && attempt < CallAttempts)
+                {
+                    progress?.Invoke($"The model host did not answer in time; asking again ({attempt + 1} of {CallAttempts}).");
+                }
+            }
         }
 
         public static Dictionary<string, LaneFloor> Floors(string goldenDir) =>
@@ -272,14 +306,39 @@ namespace Nom.Import.Golden
             return results.Where(r => !r.Pass && !before.Contains(r.Id)).ToList();
         }
 
-        public static async Task<IReadOnlyList<LaneCaseResult>> RunAsync(string lane, string goldenDir, HttpClient http, IConfiguration config, int? limit, Action<string> progress, CancellationToken cancellationToken = default)
+        /// <summary>
+        /// The golden row a case comes from: the case id without its lane's prefix and without its
+        /// "better" or "worse" ending, so both cases of one line-judge row fall in the same half.
+        /// </summary>
+        public static string SplitRow(string caseId)
         {
+            var id = Prose.FirstOrDefault(l => caseId.StartsWith(l + ":", StringComparison.Ordinal)) is { } lane ? caseId[(lane.Length + 1)..] : caseId;
+            return id.EndsWith(":better", StringComparison.Ordinal) ? id[..^":better".Length]
+                : id.EndsWith(":worse", StringComparison.Ordinal) ? id[..^":worse".Length]
+                : id;
+        }
+
+        /// <summary>
+        /// Whether a case is in a half of its lane's golden rows: the working half holds the rows
+        /// whose SHA-256 of the row id starts with an even byte, the held-out half the others, and
+        /// "all" holds every case. The split is fixed by the id alone, so it never moves between runs.
+        /// </summary>
+        public static bool InSplit(string caseId, string split)
+        {
+            if (split == SplitAll) return true;
+            var even = (SHA256.HashData(Encoding.UTF8.GetBytes(SplitRow(caseId)))[0] & 1) == 0;
+            return split == SplitWorking ? even : split == SplitHeldOut ? !even : throw new ArgumentException($"Unknown split '{split}'.", nameof(split));
+        }
+
+        public static async Task<IReadOnlyList<LaneCaseResult>> RunAsync(string lane, string goldenDir, HttpClient http, IConfiguration config, int? limit, Action<string> progress, CancellationToken cancellationToken = default, string split = SplitAll)
+        {
+            if (split != SplitAll && !Splittable.Contains(lane)) throw new ArgumentException($"Lane '{lane}' is scored on all its rows only.", nameof(split));
             switch (lane)
             {
                 case ProseRewriteLane:
                 case ProseJudgeLane:
                 case ProseAuditLane:
-                    return await ProseResultsAsync(lane, goldenDir, http, config, limit, progress, cancellationToken);
+                    return await ProseResultsAsync(lane, goldenDir, http, config, limit, progress, cancellationToken, split);
                 case WordingReadLane:
                 case WordingLexiconLane:
                 case AlcoholReadingLane:
@@ -323,12 +382,12 @@ namespace Nom.Import.Golden
                 }
                 case LineJudge:
                 {
-                    var cases = JudgeCases(goldenDir).Take(limit ?? int.MaxValue).ToList();
+                    var cases = JudgeOrder(JudgeCases(goldenDir).Where(c => InSplit(c.Id, split))).Take(limit ?? int.MaxValue).ToList();
                     var judge = new OllamaLineJudge(http, config);
                     var results = new List<LaneCaseResult>();
                     foreach (var batch in cases.Chunk(JudgeBatch))
                     {
-                        var verdicts = (await judge.JudgeAsync(batch.Select((c, i) => c.Case with { Id = i }).ToList(), cancellationToken)).ToDictionary(v => v.Id, v => v.Judgement);
+                        var verdicts = (await AskAsync(() => judge.JudgeAsync(batch.Select((c, i) => c.Case with { Id = i }).ToList(), cancellationToken), progress, cancellationToken)).ToDictionary(v => v.Id, v => v.Judgement);
                         results.AddRange(batch.Select((c, i) => c.Outcome(verdicts.TryGetValue(i, out var v) ? v : null)));
                         progress($"{lane}: {results.Count}/{cases.Count}");
                     }
@@ -342,7 +401,7 @@ namespace Nom.Import.Golden
                     foreach (var batch in cases.Chunk(PickBatch))
                     {
                         var questions = batch.Select((c, i) => new LinkQuestion(i, c.Name, c.Shortlist)).ToList();
-                        var answers = (await matcher.ChooseAsync(questions, cancellationToken)).ToDictionary(a => a.IngredientId);
+                        var answers = (await AskAsync(() => matcher.ChooseAsync(questions, cancellationToken), progress, cancellationToken)).ToDictionary(a => a.IngredientId);
                         results.AddRange(batch.Select((c, i) => c.Outcome(answers.TryGetValue(i, out var a) ? a : null)));
                         progress($"{lane}: {results.Count}/{cases.Count}");
                     }
@@ -356,7 +415,7 @@ namespace Nom.Import.Golden
                     foreach (var batch in cases.Chunk(VerifyBatch))
                     {
                         var pairs = batch.Select((c, i) => new LinkPair(i, c.Wording, c.Description)).ToList();
-                        var verdicts = (await verifier.JudgeAsync(pairs, cancellationToken)).ToDictionary(v => v.IngredientId, v => v.Judgement);
+                        var verdicts = (await AskAsync(() => verifier.JudgeAsync(pairs, cancellationToken), progress, cancellationToken)).ToDictionary(v => v.IngredientId, v => v.Judgement);
                         results.AddRange(batch.Select((c, i) => c.Outcome(verdicts.TryGetValue(i, out var v) ? v : null)));
                         progress($"{lane}: {results.Count}/{cases.Count}");
                     }
@@ -371,7 +430,7 @@ namespace Nom.Import.Golden
                     {
                         foreach (var batch in recipe.Chunk(ClassifyBatch))
                         {
-                            var kinds = await model.ClassifyLinesAsync(recipe.Key, batch.Select(c => c.Raw).ToList(), cancellationToken);
+                            var kinds = await AskAsync(() => model.ClassifyLinesAsync(recipe.Key, batch.Select(c => c.Raw).ToList(), cancellationToken), progress, cancellationToken);
                             results.AddRange(batch.Select((c, i) => c.Outcome(kinds.TryGetValue(i, out var k) ? k : null)));
                             progress($"{lane}: {results.Count}/{cases.Count}");
                         }
@@ -404,25 +463,25 @@ namespace Nom.Import.Golden
         /// planted fault is put through the gate, check v2 then the judge, which passes when it is
         /// refused and is a false accept when it is not.
         /// </summary>
-        private static async Task<IReadOnlyList<LaneCaseResult>> ProseResultsAsync(string lane, string goldenDir, HttpClient http, IConfiguration config, int? limit, Action<string> progress, CancellationToken cancellationToken)
+        private static async Task<IReadOnlyList<LaneCaseResult>> ProseResultsAsync(string lane, string goldenDir, HttpClient http, IConfiguration config, int? limit, Action<string> progress, CancellationToken cancellationToken, string split = SplitAll)
         {
             var host = config["Ai:BatchOllamaUrl"] ?? string.Empty;
             var model = config["Ai:LinkModel"] ?? string.Empty;
             var checkModel = config[CheckModelKey] is { Length: > 0 } check ? check : new Nom.Orch.Settings.LaneModelRoster().ReaderB;
-            var cases = ProseCases(goldenDir);
+            var cases = ProseCases(goldenDir).Where(c => InSplit(c.Id, split)).ToList();
             var stock = ProseStock(goldenDir);
             var results = new List<LaneCaseResult>();
             switch (lane)
             {
                 case ProseJudgeLane:
                 {
-                    var judge = new OllamaProseJudge(http, host, model);
+                    var judge = new OllamaProseStepJudge(http, host, model);
                     foreach (var c in cases.Take(limit ?? int.MaxValue))
                     {
-                        var verdict = await judge.JudgeAsync(c.Method.Select(ProseQuantities.Prepare).ToList(), c.Rewrite, cancellationToken);
+                        var verdict = await AskAsync(() => judge.JudgeAsync(c.Method.Select(ProseQuantities.Prepare).ToList(), c.Rewrite, cancellationToken), progress, cancellationToken);
                         var faithful = verdict?.Faithful;
                         results.Add(new LaneCaseResult($"{lane}:{c.Id}", faithful == c.Faithful, !c.Faithful && faithful == true, !c.Faithful,
-                            c.Faithful ? "faithful" : "fault " + c.Fault, faithful == null ? "no readable answer" : faithful.Value ? "faithful" : "fault", c.Source));
+                            c.Faithful ? "faithful" : "fault " + c.Fault, faithful == null ? "no readable answer" : faithful.Value ? "faithful" : $"fault: step {verdict!.FirstFlagged?.Number} {verdict.FirstFlagged?.Note}", c.Source));
                         progress($"{lane}: {results.Count}/{cases.Count}");
                     }
                     return results;
@@ -433,8 +492,8 @@ namespace Nom.Import.Golden
                     foreach (var c in cases.Take(limit ?? int.MaxValue))
                     {
                         var original = c.Method.Select(ProseQuantities.Prepare).ToList();
-                        var verdict = await auditor.JudgeAsync(original, c.Rewrite, cancellationToken);
-                        var flagged = verdict is { Faithful: false } && await auditor.ConfirmAsync(original, c.Rewrite, verdict.FirstFlagged?.Number ?? 1, cancellationToken) == true;
+                        var verdict = await AskAsync(() => auditor.JudgeAsync(original, c.Rewrite, cancellationToken), progress, cancellationToken);
+                        var flagged = verdict is { Faithful: false } && await AskAsync(() => auditor.ConfirmAsync(original, c.Rewrite, verdict.FirstFlagged?.Number ?? 1, cancellationToken), progress, cancellationToken) == true;
                         results.Add(new LaneCaseResult($"{lane}:{c.Id}", flagged != c.Faithful, !c.Faithful && !flagged, !c.Faithful,
                             c.Faithful ? "not flagged" : "flagged", verdict == null ? "no readable answer" : flagged ? "flagged" : "not flagged", c.Source));
                         progress($"{lane}: {results.Count}/{cases.Count}");
@@ -444,16 +503,16 @@ namespace Nom.Import.Golden
                 default:
                 {
                     var writer = new OllamaProseWriter(http, host, model);
-                    var judge = new OllamaProseJudge(http, host, checkModel);
+                    var judge = new OllamaProseStepJudge(http, host, checkModel);
                     foreach (var recipe in cases.GroupBy(c => c.Recipe).Take(limit ?? int.MaxValue))
                     {
                         var first = recipe.First();
-                        var outcome = await ProseCleanRoom.RunAsync(first.Input(stock), writer, judge, cancellationToken: cancellationToken);
+                        var outcome = await AskAsync(() => ProseCleanRoom.RunAsync(first.Input(stock), writer, judge, cancellationToken: cancellationToken), progress, cancellationToken);
                         results.Add(new LaneCaseResult($"{lane}:recipe:{recipe.Key}", outcome.Passed, false, false, "a rewrite through the gate",
                             outcome.Passed ? $"rewritten in attempt {outcome.Attempts.Count}" : $"gave up: {outcome.FailureClass}", "rule:end-to-end"));
                         foreach (var c in recipe.Where(c => !c.Faithful))
                         {
-                            var reasons = await ProseCleanRoom.GateAsync(c.Input(stock), c.RewriteText, judge, cancellationToken);
+                            var reasons = await AskAsync(() => ProseCleanRoom.GateAsync(c.Input(stock), c.RewriteText, judge, cancellationToken), progress, cancellationToken);
                             results.Add(new LaneCaseResult($"{lane}:{c.Id}", reasons.Count > 0, reasons.Count == 0, true, "refused",
                                 reasons.Count == 0 ? "accepted" : string.Join(", ", reasons), c.Source));
                         }
@@ -641,6 +700,13 @@ namespace Nom.Import.Golden
                 foreach (var c in JudgePair("kinds:" + r.Id, r["raw"], string.Empty, right, wrong, false, r["source"])) yield return c;
             }
         }
+
+        /// <summary>
+        /// The order a line-judge run asks its cases in: by a hash of the case id, so the "better"
+        /// and "worse" case of one row seldom share a call and one confusion does not cost both.
+        /// </summary>
+        public static IEnumerable<JudgeCase> JudgeOrder(IEnumerable<JudgeCase> cases) =>
+            cases.OrderBy(c => Convert.ToHexString(SHA256.HashData(Encoding.UTF8.GetBytes(c.Id))), StringComparer.Ordinal);
 
         private static IEnumerable<JudgeCase> JudgePair(string id, string raw, string method, LineJudgeRow right, LineJudgeRow wrong, bool fromMethod, string judgedBy)
         {

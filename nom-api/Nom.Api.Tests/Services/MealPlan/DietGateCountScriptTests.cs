@@ -92,8 +92,10 @@ namespace Nom.Api.Tests.Services.MealPlan
         {
             Script.Should().Contain("lower(btrim(coalesce(a.\"SourceContext\", ''))) = '" + IngredientLinkService.UsdaDescriptionContext + "'",
                 "the code reads a fdc:description alias in the order of speech too (DietPatternRule.IsDescriptionMatch), so the count's rule side must, or the drops it causes go unsampled (review CK9T-3)");
-            Script.Should().Contain("btrim(split_part(m.text, ',', 2)) || ' ' || btrim(split_part(m.text, ',', 1))")
-                .And.Contain("substring(m.text from '^[^,]*,[^,]*(,.*)$')")
+            Script.Should().Contain("generate_series(2, coalesce(array_length(s.p, 1), 0)) g(n)",
+                    "every later part is read before the first, as DietPatternRule.SpokenOrders reads it (staging checkpoint 5, Q19: \"Tortillas, ready-to-bake or -fry, corn\")")
+                .And.Contain("btrim(s.p[g.n]) || ' ' || btrim(s.p[1])")
+                .And.Contain("array_to_string(s.p[2:g.n - 1] || s.p[g.n + 1:], ',')")
                 .And.Contain("d.spoken ~* o.term_rx AND regexp_replace(d.spoken, o.blank_rx, ' ', 'gi') !~* o.term_rx");
         }
 

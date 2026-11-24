@@ -26,7 +26,17 @@ namespace Nom.Orch.Services.Support
         public bool Pending { get; set; }
         /// <summary>The recipe id up to which the line index has read every rule the restrictions need (0 before its first pass): every recipe above it (one made since the last pass) is not yet read and is held in <see cref="RecipeIds"/>; null when the restrictions read no line or no index is used.</summary>
         public long? ReadUpTo { get; set; }
+        /// <summary>The stored restriction sets the restrictions read (staging checkpoint 5, Q2), when requests read the diet gate's stored results: <see cref="IngredientIds"/> and <see cref="RecipeIds"/> then hold only what the restrictions name directly, and <see cref="DietGateStore.WithoutHeld(System.Linq.IQueryable{Nom.Data.Recipe.RecipeEntity}, ApplicationDbContext, RestrictedIngredientSet)"/> reads the rest from the stored rows.</summary>
+        public StoredDietGate? Stored { get; set; }
         public static readonly RestrictedIngredientSet Empty = new();
+
+        /// <summary>Adds to <see cref="IngredientIds"/> those of the foods a stored set counts, so a reader of a few foods (a prepared meal and what its statement names) sees them as the matcher would; nothing outside the store.</summary>
+        public async Task LoadFoodsAsync(ApplicationDbContext db, IEnumerable<long> foodIds)
+        {
+            if (Stored == null) return;
+            var ids = foodIds.Where(id => !IngredientIds.Contains(id)).Distinct().ToList();
+            IngredientIds.UnionWith(await DietGateStore.CountedAsync(db, this, ids));
+        }
 
         internal void Name(long foodId, int severity) =>
             NamedFoods[foodId] = Math.Max(severity, NamedFoods.GetValueOrDefault(foodId));
@@ -46,20 +56,23 @@ namespace Nom.Orch.Services.Support
         private readonly ApplicationDbContext _db;
         private readonly DietGateCache? _cache;
         private readonly DietLineIndex? _index;
+        private bool? _store;
 
         /// <summary>
         /// A resolver on the context; the diet gate's whole-catalog probes go through <paramref name="cache"/>, or
         /// through <see cref="DietGateCache.Shared"/> on a relational database when none is given. With a line index
         /// (<paramref name="index"/>, or <see cref="DietLineIndex.Shared"/> on a relational database when neither is
         /// given), no probe is ever computed in line: the lines are read from the index and the food probes from the
-        /// values the warm keeps, and what is not read yet is held (staging checkpoint 4, P1).
+        /// values the warm keeps, and what is not read yet is held (staging checkpoint 4, P1). With neither, the sets are
+        /// read from the diet gate's stored results (<see cref="DietGateStore"/>, staging checkpoint 5, Q2): always on a
+        /// relational database, and on another once a build is active (or as <paramref name="store"/> says).
         /// </summary>
-        public HouseholdRestrictionResolver(ApplicationDbContext db, DietGateCache? cache = null, DietLineIndex? index = null)
+        public HouseholdRestrictionResolver(ApplicationDbContext db, DietGateCache? cache = null, DietLineIndex? index = null, bool? store = null)
         {
             _db = db;
-            var relational = db.Database.IsRelational();
-            _cache = cache ?? (relational || index != null ? DietGateCache.Shared : null);
-            _index = index ?? (relational && cache == null ? DietLineIndex.Shared : null);
+            _cache = cache ?? (index != null ? DietGateCache.Shared : null);
+            _index = index;
+            _store = cache != null || index != null ? false : store ?? (db.Database.IsRelational() ? true : null);
         }
 
         public async Task<RestrictedIngredientSet> ResolveAsync(long householdId)
@@ -90,6 +103,7 @@ namespace Nom.Orch.Services.Support
 
             var result = new RestrictedIngredientSet();
             var namedFoodIds = new HashSet<long>();
+            var severeTypes = new HashSet<long>();
             foreach (var r in restrictions)
             {
                 if (r.IngredientId is { } id)
@@ -99,6 +113,7 @@ namespace Nom.Orch.Services.Support
                     result.Name(id, r.Severity ?? 0);
                 }
                 if ((r.Severity ?? 0) >= 4) result.HasSevere = true;
+                if ((r.Severity ?? 0) >= 4 && r.RestrictionTypeId is { } severeType) severeTypes.Add(severeType);
             }
 
             var typeIds = restrictions.Where(r => r.RestrictionTypeId != null).Select(r => r.RestrictionTypeId!.Value).Distinct().ToList();
@@ -133,7 +148,7 @@ namespace Nom.Orch.Services.Support
                     !preparedFoods.Any(f => f.Id == id && Nom.Data.Nutrition.PreparedFoods.IsPrepared(f.FdcCategoryId, f.FdcDataType, f.FdcCategory)));
             }
 
-            if (typeIds.Count > 0) await AddDataCriteriaAsync(result, typeIds, 0);
+            if (typeIds.Count > 0) await AddDataCriteriaAsync(result, typeIds, 0, severeTypes);
             return result;
         }
 
@@ -210,11 +225,19 @@ namespace Nom.Orch.Services.Support
         /// foods, and the recipes whose retained drink alcohol is above a capped alcohol criterion
         /// (<see cref="DietCriteriaMatcher"/>).
         /// </summary>
-        private async Task AddDataCriteriaAsync(RestrictedIngredientSet result, IReadOnlyCollection<long> typeIds, int minimumSeverity)
+        private async Task AddDataCriteriaAsync(RestrictedIngredientSet result, IReadOnlyCollection<long> typeIds, int minimumSeverity, IReadOnlySet<long>? severeTypes = null)
         {
             var data = await DietCriteriaMatcher.CriteriaAsync(_db, typeIds, minimumSeverity);
             if (data.Count == 0) return;
             result.Criteria.AddRange(data);
+            _store ??= await DietGateStore.InUseAsync(_db);
+            if (_store == true)
+            {
+                var stored = await DietGateStore.SetsAsync(_db, data.GroupBy(c => c.RestrictionTypeId).Select(g => (IReadOnlyList<DietDataCriterion>)g.ToList()), severeTypes ?? new HashSet<long>());
+                if (stored == null) result.Pending = true;
+                else result.Stored = stored;
+                return;
+            }
             if (_index != null)
             {
                 await AddFromIndexAsync(result, data, _cache!, _index);

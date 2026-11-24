@@ -8,7 +8,7 @@ is reported by the cause that held it, so the engine is fixed rather than the re
 
 Code: `ProseMasking`, `ProseFactSheet`, `ProseCleanRoom`, `ProseLanePrompts`, `ProseDescription`,
 `ProseLaneJournal`, `ProseLaneGolden` (Nom.Orch `Services/Support`); `ProseLaneService`,
-`ProseRewriteUndoService`, `OllamaProseWriter`, `OllamaProseJudge` (Nom.Orch `Services`);
+`ProseRewriteUndoService`, `OllamaProseWriter`, `OllamaProseStepJudge`, `OllamaProseJudge` (Nom.Orch `Services`), `ProseJudgeRules`;
 `ProseRewriteHostedService` (Nom.Api) runs it.
 
 ## Why the old lane failed, and what this lane changes
@@ -49,7 +49,30 @@ class has a cause in that engine; this lane removes each cause rather than catch
    the rule rendering of the sheets (`ProseFactSheet.Render`), which needs no model.
 4. **Gate.** The form rules on the masked text (`ProseCleanRoom.FormProblems`); the tokens put back;
    prose check v2 against the source with the current stock index; the judge (reader B of the
-   roster). The first attempt all three pass is the rewrite.
+   roster). The first attempt all three pass is the rewrite. A rewrite the check is only unsure of
+   (a source verb not found, amounts out of order, an added amount, a length outside its bounds)
+   goes to the judge, which reads the check's weak signal for each step as a note.
+
+   **The judge** (`OllamaProseStepJudge`, judge prompt version 2). Rules decide first and ask no
+   model (`ProseJudgeRules.Before`): a rewrite with another number of steps, one the prose check
+   fails on a fact (the copy rule is no question of meaning), and a step pair whose stove heat,
+   oven heat or serving temperature differ (`ProseJudgeRules.Heats`: "over medium heat" and "on
+   medium" agree, "moderate oven" and "hot oven" do not) are faults. Otherwise the model reads each
+   step pair in a call of its own (temperature 0, seed 17, context 8192 like the lane's other
+   mistral-nemo calls, a JSON schema): it lists every fact of the original step (action, ingredient,
+   heat, amount, cue, serving, warning) with the rewrite's words for it and same, different or
+   missing, and everything the rewrite step adds. A cooking verb of the original step that no listed
+   fact names is added as a missing fact of its clause (`ProseJudgeRules.Unread`), so an action the
+   model did not list is still checked. A fact not read as the same, or quoted from words
+   the rewrite step does not hold, is the same by rule when it is a heat fact and the step names that
+   stove or oven level and no other, or when every content word of it (heat words aside) is in the
+   rewrite step and any level it names is the step's (`ProseJudgeRules.FoundByRule`); otherwise it is asked again on its own (`JudgeKept`: the
+   rewrite's words, what the food is like after each version, then same, other or no result), and
+   so is each added thing (`JudgeAdded`). A claim is withdrawn only when that answer says the same
+   result and its quote is in the step by rule (`ProseJudgeRules.Kept`, `.AlreadySaid`), never when
+   the quoted words name another heat. A step is the same only when every
+   fact is found and nothing is added; a reading of no fact, or an answer that cannot be read, is no
+   pass. Its examples are written for the prompt; none is a golden row.
 5. **Give up.** A recipe no attempt passes keeps its withheld or quarantined state and is stamped
    with the lane version (`Recipe.ProseLaneVersion`, `ProseAttempts` = 4). Its failure class (the
    first reason of its last writer attempt; the rule rendering after it is a fallback, so its own
@@ -111,8 +134,9 @@ of 100 audited writes is above 5 %.
 
 **Audit.** When enough unaudited rewrites are waiting, the frame audits a stratified sample (strata:
 withheld approved, withheld, quarantined): a quarter while in shadow or on probation, a twentieth while
-live, at least 30. The auditor reads each sampled rewrite against its source with the judge's rubric;
-a flag counts as an error only when the auditor, asked again blind about the flagged step with the
+live, at least 30. The auditor reads each sampled rewrite against its source with a step rubric of its own;
+the auditor's rubric is the one-call step rubric the judge used before judge prompt version 2
+(`ProseLanePrompts.Audit`), so the audit does not share the judge's method; a flag counts as an error only when the auditor, asked again blind about the flagged step with the
 confirmation prompt, agrees (`ProseLaneAudit`). The judge never confirms: every rewrite in the sample
 already passed it, so a fault it misses it misses again, and a check it confirms would find almost no
 error whatever the lane's real error. The check's sensitivity and false-flag rate come from the
@@ -161,7 +185,8 @@ unless the lane's undo has since taken that rewrite back.
 ## Golden set and records
 
 `prose-judge.tsv` (golden folder, compiled into Nom.Orch): 8 recipes (4 constructed in our own
-words, 4 public domain), each with one faithful rewrite and three or four planted faults. Scored by
+words, 4 public domain), each with one faithful rewrite, three or four planted faults written by hand
+and up to 13 more planted by `ops/golden/plant-prose-faults.py` (130 rows). Scored by
 an operator on a model host, never in CI:
 
 ```
@@ -169,6 +194,16 @@ dotnet run --project nom-api/Nom.Import -- --golden-score --lane prose-judge   -
 dotnet run --project nom-api/Nom.Import -- --golden-score --lane prose-audit   --host <model host> --model phi4 --record
 dotnet run --project nom-api/Nom.Import -- --golden-score --lane prose-rewrite --host <model host> --model qwen2.5:14b-instruct --check-model mistral-nemo --record
 ```
+
+`prose-judge` takes `--split working|held-out|all` for prompt rounds; a record is always scored on
+every row. Judge prompt version 2 on mistral-nemo scores 95.4 % (124/130) with no planted fault let
+through (0/122); it refuses 6 of the 8 faithful rewrites, so the lane's gate yield will be low until
+the judge reads paraphrase better. That run was under check v4; the check version is part of the judge's
+signature, so with check v6 (since `cleanup2/ck10-prose-check`) its record is set aside (kept with the evidence) until the judge is scored
+again. The judge's signature is part of the `prose-rewrite` signature and
+of the lane version, so `prose-rewrite` must be scored again with it. `prose-audit` keeps its rubric
+and signature, but its case set grew with the planted rows: phi4 scores 74.6 % (97/130) on it,
+below its floor, so no audit record is committed.
 
 Floors (`model-lanes.json`): `prose-rewrite` 95 % end to end and 0 planted faults let through;
 `prose-judge` 95 % with at most 2 % false accepts; `prose-audit` 75 %. Commit the three records under

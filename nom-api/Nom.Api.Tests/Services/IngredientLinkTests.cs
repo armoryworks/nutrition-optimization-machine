@@ -59,6 +59,7 @@ namespace Nom.Api.Tests.Services
             }
 
             public Task<CatalogNormalizeResult> NormalizeAsync(bool apply) => throw new NotSupportedException();
+            public Task<bool> LowersDietAsync(long sourceId, long targetId) => Task.FromResult(false);
         }
 
         private sealed class NoAudit : IFoodCatalogAuditService

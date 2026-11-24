@@ -9,7 +9,10 @@ import {
   ScrapingSourceStatus,
   SourcePermissionRequest,
   SourceRecipeStep,
+  SourceRefusingHost,
   SourceReview,
+  SourceRightsByHandRequest,
+  SourceRightsByHandResult,
   SourceRightsRun,
   SourceTaken,
   SourceWithholdReport,
@@ -63,6 +66,14 @@ export class ScrapingSourceService {
 
   recordHand(request: HandSourceRequest): Observable<ScrapingSourceModel> {
     return this.http.post<ScrapingSourceModel>(`${this.apiUrl}/hand`, request);
+  }
+
+  recordRightsByHand(request: SourceRightsByHandRequest, apply: boolean): Observable<SourceRightsByHandResult> {
+    return this.http.post<SourceRightsByHandResult>(`${this.apiUrl}/rights/by-hand`, request, { params: new HttpParams().set('apply', apply) });
+  }
+
+  releaseRefusing(id: number, reason?: string): Observable<SourceRefusingHost> {
+    return this.http.post<SourceRefusingHost>(`${this.apiUrl}/refusing/${id}/release`, { reason: reason || undefined });
   }
 
   undo(entryId: number): Observable<ScrapingSourceModel> {

@@ -190,9 +190,24 @@ namespace Nom.Orch.Services
                 $"""UPDATE recipe."Ingredient" SET "Name" = left("Name" || ' (deleted #' || "Id" || ')', 2000) WHERE "Name" = {name} AND "IsDeleted" = true""");
         }
 
+        public async Task<bool> LowersDietAsync(long sourceId, long targetId)
+        {
+            var guard = await LineMoveDietGuard.LoadAsync(_db);
+            if ((await guard.LoweredAsync(sourceId, targetId, null)).Count == 0) return false;
+            var lines = await _db.RecipeIngredients.IgnoreQueryFilters().AsNoTracking()
+                .Where(ri => ri.IngredientId == sourceId)
+                .Select(ri => new { ri.RecipeId, ri.SortOrder, ri.RawLine })
+                .ToListAsync();
+            foreach (var line in lines)
+            {
+                if (await guard.HoldsAsync(line.RecipeId, sourceId, line.SortOrder, targetId, line.RawLine)) return true;
+            }
+            return false;
+        }
+
         public async Task<bool> MergeIntoAsync(long sourceId, long targetId, long? personId, bool ignoreProposals = false, long? keepProposalId = null)
         {
-            if (sourceId == targetId || await HasNonRecipeReferencesAsync(sourceId, ignoreProposals)) return false;
+            if (sourceId == targetId || await LowersDietAsync(sourceId, targetId) || await HasNonRecipeReferencesAsync(sourceId, ignoreProposals)) return false;
 
             await using var tx = _db.Database.CurrentTransaction == null ? await _db.Database.BeginTransactionAsync() : null;
             await MergeRecipeLinksAsync(sourceId, targetId, personId, keepProposalId);

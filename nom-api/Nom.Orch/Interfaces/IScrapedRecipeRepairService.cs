@@ -1,3 +1,4 @@
+using System.Collections.Generic;
 using System.Threading;
 using System.Threading.Tasks;
 
@@ -15,7 +16,20 @@ namespace Nom.Orch.Interfaces
         int TextDecoded = 0,
         int RecipesHeld = 0,
         int RecipesRebuilt = 0,
-        int RowsReread = 0);
+        int RowsReread = 0)
+    {
+        /// <summary>Amounts the line guard kept: the stored amount is grounded and the one read is empty or not grounded.</summary>
+        public int GuardKept { get; init; }
+
+        /// <summary>Amounts the line guard let the one read replace.</summary>
+        public int GuardReplaced { get; init; }
+
+        /// <summary>Amounts the line guard held, each stored as a hold for the line judge.</summary>
+        public int GuardHeld { get; init; }
+
+        /// <summary>The held amounts by the guard's reason.</summary>
+        public IReadOnlyDictionary<string, int> GuardHeldByReason { get; init; } = new Dictionary<string, int>();
+    }
 
     /// <summary>
     /// Rebuilds ingredient quantities on scraped recipes from each row's RawLine, divides a

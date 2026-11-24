@@ -719,7 +719,7 @@ namespace Nom.Orch.Services
                 m.Match.IngredientName = ProseWithholding.FoodName(m.Line.Rights, m.Line.RawLine, m.Match.IngredientName, ProseWithholding.CatalogFood(m.Line.Status, m.Line.Fdc)) ?? ProseWithholding.UnnamedFood;
             }
 
-            var byData = await DataDietMatchesAsync(activeRestrictions, recipeIngredients);
+            var byData = await DataDietMatchesAsync(activeRestrictions, recipeIngredients, recipeIds);
 
             return direct.Select(m => (m.RecipeId, m.Match)).Concat(viaCriteria.Select(m => (m.RecipeId, m.Match))).Concat(byData)
                 .GroupBy(m => new { m.RecipeId, m.Match.RestrictionName, m.Match.IngredientName })
@@ -740,9 +740,13 @@ namespace Nom.Orch.Services
         /// recipe that keeps more alcohol per serving than the cap, or each drink line that cannot be counted.
         /// A line of a facts-only recipe is named by NOM's own wording of it, never by the publisher's text
         /// (<see cref="ProseWithholding.LineName(string?, string?, string?, decimal, string?, bool)"/>).
+        /// Where requests read the diet gate's stored results, the foods come from the stored facts of each type's set
+        /// (<see cref="Support.DietGateStore.PageAsync"/>) and no probe runs; a type whose set is not built yet flags the
+        /// recipe as not checked, and a severe type flags a recipe it could not decide (no ingredient line, or a food not
+        /// decided yet) as unknown.
         /// </summary>
         private async Task<List<(long RecipeId, RecipeDietMatchModel Match)>> DataDietMatchesAsync(
-            IQueryable<Nom.Data.Plan.RestrictionEntity> activeRestrictions, IQueryable<RecipeIngredientEntity> recipeIngredients)
+            IQueryable<Nom.Data.Plan.RestrictionEntity> activeRestrictions, IQueryable<RecipeIngredientEntity> recipeIngredients, IReadOnlyCollection<long> requestedRecipeIds)
         {
             var restrictions = await activeRestrictions
                 .Where(r => r.RestrictionTypeId != null)
@@ -777,7 +781,8 @@ namespace Nom.Orch.Services
                 Shown = ProseWithholding.LineName(factsOnly.Contains(l.RecipeId) ? SourceRightsRule.FactsOnly : null, l.RawLine, l.Name, l.Quantity, units.GetValueOrDefault(l.MeasurementId), catalogFoods.Contains(l.IngredientId)),
             }).ToList();
             var shown = lines.GroupBy(l => (l.RecipeId, l.IngredientId)).ToDictionary(g => g.Key, g => g.First().Shown);
-            var probes = await Support.DietCriteriaMatcher.ProbeAsync(_context, criteria, lines.Select(l => l.IngredientId).Distinct().ToList());
+            var page = await Support.DietGateStore.PageAsync(_context, criteria, lines.Select(l => l.IngredientId).Distinct().ToList(), requestedRecipeIds);
+            var probes = page?.Probes ?? await Support.DietCriteriaMatcher.ProbeAsync(_context, criteria, lines.Select(l => l.IngredientId).Distinct().ToList());
             var foods = criteria
                 .Where(c => probes.TryGetValue(c.RestrictionTypeId, out var p) && p.Foods.ContainsKey(c.Id))
                 .ToDictionary(c => c, c => probes[c.RestrictionTypeId].Foods[c.Id]);
@@ -857,8 +862,42 @@ namespace Nom.Orch.Services
                     }
                 }
             }
-            return byFood.Concat(byLine).Concat(byAliasLine).Concat(byRetained).ToList();
+            var byStore = new List<(long, RecipeDietMatchModel)>();
+            if (page != null)
+            {
+                foreach (var r in restrictions)
+                {
+                    var type = criteria.Where(c => c.RestrictionTypeId == r.TypeId).ToList();
+                    if (type.Count == 0) continue;
+                    var severity = type.Max(c => c.Severity);
+                    var held = page.PendingTypes.Contains(r.TypeId) ? requestedRecipeIds
+                        : page.UnknownByType.TryGetValue(r.TypeId, out var unknown) ? unknown
+                        : (IReadOnlyCollection<long>)Array.Empty<long>();
+                    foreach (var recipeId in held)
+                        byStore.Add((recipeId, new RecipeDietMatchModel
+                        {
+                            RestrictionName = r.Name,
+                            RestrictionType = r.TypeName,
+                            Severity = severity,
+                            IngredientName = page.PendingTypes.Contains(r.TypeId) ? DietNotCheckedName : DietUnknownName,
+                            Notes = page.PendingTypes.Contains(r.TypeId) ? DietNotCheckedNote : DietUnknownNote,
+                        }));
+                }
+            }
+            return byFood.Concat(byLine).Concat(byAliasLine).Concat(byRetained).Concat(byStore).ToList();
         }
+
+        /// <summary>The name a recipe page gives a restriction whose stored set is not built yet.</summary>
+        public const string DietNotCheckedName = "Not checked yet";
+
+        /// <summary>The note a recipe page gives a restriction whose stored set is not built yet.</summary>
+        public const string DietNotCheckedNote = "The diet check for this restriction is still being built; until it is, the recipe is kept out of plans.";
+
+        /// <summary>The name a recipe page gives a severe restriction that could not decide the recipe.</summary>
+        public const string DietUnknownName = "Ingredients not known";
+
+        /// <summary>The note a recipe page gives a severe restriction that could not decide the recipe.</summary>
+        public const string DietUnknownNote = "The recipe has no ingredient list the diet check can read, or one of its foods is not checked yet, so it is kept out for this restriction.";
 
         public async Task<RecipeResponseModel?> UpdateRecipeAsync(long id, UpdateRecipeRequest model)
         {
@@ -1008,6 +1047,7 @@ namespace Nom.Orch.Services
                     ChangedByPersonId = _currentUser.PersonIdOrSystem,
                 });
                 recipe.ProseWithheld = false;
+                recipe.ProseCopyUnsure = false;
             }
 
             // Save all changes

@@ -255,6 +255,59 @@ namespace Nom.Api.Tests.Services
             (await service.UndoAsync(before)).Should().BeEquivalentTo(new { Restored = 0, Remaining = 0 }, "a repeat finds nothing left");
         }
 
+        private const string BarleySource = """
+            {"@type":"Recipe","description":"Pearl barley with roast beetroot, dill and feta.",
+             "recipeInstructions":[
+               {"@type":"HowToStep","text":"Rinse the pearl barley under cold water and tip it into a deep saucepan with the bay leaves. Cover it well with cold water, bring it up to a lively boil, then turn the heat right down. Let it cook gently without a lid for 35 to 40 minutes, until the grains are plump but still chewy. Drain it well and spread the barley on a tray to steam dry."},
+               {"@type":"HowToStep","text":"While the barley cooks, scrub the beetroot and cut it into thin wedges. Toss the wedges with the oil, the caraway seeds and a good pinch of salt. Roast them at 200°C for 25 minutes, turning them once halfway. Fold the warm beetroot through the barley with the dill and the crumbled feta."}]}
+            """;
+
+        private static readonly string[] LightEdit =
+        {
+            "Wash the pearl barley in cold water, then put it in a deep pan along with the bay leaves. Pour over plenty of cold water, bring to a lively boil and lower the heat. Simmer it gently, lid off, for 35 to 40 minutes, until the grains are plump yet still chewy. Drain and spread the barley over a tray so it steams dry.",
+            "As the barley cooks, scrub the beetroot and slice it into thin wedges. Toss these with oil, caraway seeds and a good pinch of salt. Roast at 200°C for 25 minutes, turning once halfway through. Fold the warm beetroot into the barley along with dill and crumbled feta.",
+        };
+
+        [Fact]
+        public async Task A_copy_unsure_recipe_is_withheld_like_a_copy_journaled_with_its_measures_marked_counted_apart_and_released_by_the_undo()
+        {
+            await using var db = NewContext();
+            await BuildStockAsync(db);
+            var copyUnsure = await SeedAsync(db, CurationStatusEnum.Curated, LightEdit, BarleySource);
+            var copied = await SeedAsync(db, CurationStatusEnum.NonCurated, CopiedStep);
+            var service = Service(db);
+
+            var dry = await service.RecheckAsync();
+
+            dry.Failed.Should().Be(2);
+            dry.CopyUnsure.Should().Be(1);
+            dry.CopyUnsureApproved.Should().Be(1);
+            dry.FailedByReason.Should().ContainKey(ProseCheck.CopyUnsure).WhoseValue.Should().Be(1);
+            dry.Unsure.Should().Be(0, "a copy-unsure recipe is never left shown as unsure");
+
+            var before = DateTime.UtcNow.AddSeconds(-1);
+            var applied = await service.RecheckAsync(apply: true);
+            db.ChangeTracker.Clear();
+
+            applied.Withheld.Should().Be(2);
+            applied.WithheldCopyUnsure.Should().Be(1);
+            var recipe = await db.Recipes.AsNoTracking().SingleAsync(r => r.Id == copyUnsure);
+            recipe.ProseWithheld.Should().BeTrue();
+            recipe.ProseCopyUnsure.Should().BeTrue();
+            recipe.CurationStatusId.Should().Be((long)CurationStatusEnum.Curated, "withheld, not unpublished");
+            (await db.Recipes.AsNoTracking().SingleAsync(r => r.Id == copied)).ProseCopyUnsure.Should().BeFalse("over a copied line is a copy, not copy-unsure");
+            var entry = await db.AuditLogEntries.AsNoTracking().SingleAsync(a => a.ChangeType == ProseRecheckService.WithholdChangeType && a.EntityId == copyUnsure);
+            entry.NewValue.Should().StartWith($"check {ProseCheck.Version} stock 1: {ProseCheck.CopyUnsure}: ").And.Contain("| measures run ");
+
+            var undo = await service.UndoAsync(before, apply: true);
+            db.ChangeTracker.Clear();
+
+            undo.RestoredWithheld.Should().Be(2);
+            var released = await db.Recipes.AsNoTracking().SingleAsync(r => r.Id == copyUnsure);
+            released.ProseWithheld.Should().BeFalse();
+            released.ProseCopyUnsure.Should().BeFalse();
+        }
+
         [Fact]
         public async Task A_recipe_the_check_is_unsure_of_stays_shown_and_is_counted_marked_cleared_and_restored_by_the_undo()
         {

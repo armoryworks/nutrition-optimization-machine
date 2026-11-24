@@ -24,6 +24,7 @@ namespace Nom.Api.Tests.Golden
     public class GoldenProseJudgeTests
     {
         public const int MinimumJudgeOnlyFaults = 12;
+        public const int MinimumCases = 120;
 
         private readonly ITestOutputHelper _output;
 
@@ -67,7 +68,9 @@ namespace Nom.Api.Tests.Golden
         public void Every_recipe_has_a_faithful_rewrite_and_planted_faults_and_no_row_is_judged_twice()
         {
             var cases = Cases();
+            cases.Should().HaveCountGreaterThanOrEqualTo(MinimumCases, "a split into a working and a held-out half needs enough rows in each");
             cases.Select(c => c.Id).Should().OnlyHaveUniqueItems();
+            cases.Select(c => string.Join(" ¦ ", c.Rewrite)).Should().OnlyHaveUniqueItems("a planted fault is never a copy of another row");
             foreach (var recipe in cases.GroupBy(c => c.Recipe))
             {
                 recipe.Count(c => c.Faithful).Should().Be(1, $"recipe {recipe.Key} needs exactly one faithful rewrite");

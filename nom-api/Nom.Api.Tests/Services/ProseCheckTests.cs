@@ -26,7 +26,7 @@ namespace Nom.Api.Tests.Services
         {
             var finding = Check(new[] { "Bake the bread for 30 minutes." }, new[] { "Bake the loaf 30 minutes." }, stock: new ProseStockIndex(7, Enumerable.Empty<long>()));
 
-            finding.CheckVersion.Should().Be(ProseCheck.Version).And.Be(5);
+            finding.CheckVersion.Should().Be(ProseCheck.Version).And.Be(6);
             finding.StockVersion.Should().Be(7);
             finding.Passed.Should().BeTrue(finding.ToString());
         }
@@ -183,31 +183,92 @@ namespace Nom.Api.Tests.Services
             var finding = Check(source, rewrite);
 
             finding.LongestRun.Should().BeLessThan(15);
-            finding.CopiedShare.Should().BeGreaterThanOrEqualTo(ProseCheck.MaximumCopiedShare);
+            finding.CopiedShare.Should().BeGreaterThanOrEqualTo(ProseCheck.CopiedLimits.Share);
             finding.Reasons.Should().Contain(ProseCheck.CopiedText, finding.ToString());
         }
 
         [Fact]
-        public void A_description_that_keeps_the_source_description_is_copied_text()
+        public void A_description_that_keeps_the_source_description_is_withheld_as_a_copy()
         {
             var source = new RewriteFidelity.SourceText("These little oat and apricot bars are dairy free, egg free, wheat free, and there's no oven needed.", new[] { "Blend the dates and cocoa until smooth, then roll into balls." });
 
-            ProseCheck.Check(source, new RewriteFidelity.SourceText("These little oat and apricot bars are dairy-free, egg-free, wheat-free, and need no oven.", new[] { "Blend the dates with the cocoa until smooth and shape the mixture into balls." }))
-                .Reasons.Should().Contain(ProseCheck.CopiedText);
+            var kept = ProseCheck.Check(source, new RewriteFidelity.SourceText("These little oat and apricot bars are dairy-free, egg-free, wheat-free, and need no oven.", new[] { "Blend the dates with the cocoa until smooth and shape the mixture into balls." }));
+            kept.Failed.Should().BeTrue(kept.ToString());
+            kept.Measures.DescriptionRun.Should().BeGreaterThanOrEqualTo(ProseCheck.CopyUnsureLimits.DescriptionRun);
             ProseCheck.Check(source, new RewriteFidelity.SourceText("No-bake cocoa bites that suit vegan and nut-free diets.", new[] { "Blend the dates with the cocoa until smooth and shape the mixture into balls." }))
                 .Passed.Should().BeTrue();
         }
 
         [Fact]
-        public void A_long_sentence_kept_nearly_word_for_word_is_copied_text()
+        public void A_light_edit_of_every_sentence_under_every_copied_line_is_copy_unsure_and_withheld_not_passed()
+        {
+            var source = new[]
+            {
+                "Rinse the pearl barley under cold water and tip it into a deep saucepan with the bay leaves. Cover it well with cold water, bring it up to a lively boil, then turn the heat right down. Let it cook gently without a lid for 35 to 40 minutes, until the grains are plump but still chewy. Drain it well and spread the barley on a tray to steam dry.",
+                "While the barley cooks, scrub the beetroot and cut it into thin wedges. Toss the wedges with the oil, the caraway seeds and a good pinch of salt. Roast them at 200°C for 25 minutes, turning them once halfway. Fold the warm beetroot through the barley with the dill and the crumbled feta.",
+            };
+            var rewrite = new[]
+            {
+                "Wash the pearl barley in cold water, then put it in a deep pan along with the bay leaves. Pour over plenty of cold water, bring to a lively boil and lower the heat. Simmer it gently, lid off, for 35 to 40 minutes, until the grains are plump yet still chewy. Drain and spread the barley over a tray so it steams dry.",
+                "As the barley cooks, scrub the beetroot and slice it into thin wedges. Toss these with oil, caraway seeds and a good pinch of salt. Roast at 200°C for 25 minutes, turning once halfway through. Fold the warm beetroot into the barley along with dill and crumbled feta.",
+            };
+
+            var finding = Check(source, rewrite);
+            var m = finding.Measures;
+
+            m.Run.Should().BeLessThan(16, "check v5 failed a run of 16");
+            m.Stretch.Should().BeLessThan(44.5m, "check v5 failed a stretch of 44.5");
+            (m.Stretch / m.Words).Should().BeLessThan(0.4m, "check v5 failed a stretch of 15 or more over 0.4 of the words");
+            m.Share.Should().BeLessThan(0.42m, "check v5 failed a share of 0.42");
+            m.Sentence.Should().BeLessThan(0.92m, "check v5 failed a sentence at 0.92");
+            finding.Outcome.Should().Be(ProseCheck.CopyUnsure, m.ToString());
+            finding.Failed.Should().BeTrue();
+            finding.Copied.Should().BeFalse();
+            finding.CopyUnsure.Should().BeTrue();
+            finding.FailReasons.Should().Equal(ProseCheck.CopyUnsure);
+            finding.Faults.Single(f => f.Reason == ProseCheck.CopyUnsure).Detail.Should().Contain(m.ToString(), "the fault carries the measures, so the withhold journal does");
+        }
+
+        [Fact]
+        public void A_rewrite_over_a_copied_line_is_copied_and_never_copy_unsure_and_one_under_every_copy_unsure_line_is_not_copied()
+        {
+            var source = new[] { "In a large pot warm the olive oil over medium high heat, add the onion, carrot and celery and cook until soft, about 6 minutes, then add the stock and the bay leaf and simmer for 20 minutes until the lentils are tender." };
+
+            var copied = Check(source, source);
+            copied.Copied.Should().BeTrue();
+            copied.CopyUnsure.Should().BeFalse();
+            copied.Reasons.Should().NotContain(ProseCheck.CopyUnsure);
+            copied.Outcome.Should().Be("failed");
+
+            var own = Check(source, new[] { "Soften the diced vegetables in hot oil in a big pan for 6 minutes. Pour in the stock, drop in a bay leaf and let it bubble gently for 20 minutes, until the lentils give." });
+            own.Measures.Over(ProseCheck.CopyUnsureLimits).Should().BeEmpty(own.Measures.ToString());
+            own.Reasons.Should().NotContain(r => ProseCheck.CopyReasons.Contains(r));
+        }
+
+        [Fact]
+        public void The_copied_lines_sit_above_the_copy_unsure_lines_on_every_measure()
+        {
+            var high = ProseCheck.CopiedLimits;
+            var low = ProseCheck.CopyUnsureLimits;
+            high.Run.Should().BeGreaterThan(low.Run);
+            high.Stretch.Should().BeGreaterThan(low.Stretch);
+            high.Share.Should().BeGreaterThan(low.Share);
+            high.DescriptionRun.Should().BeGreaterThan(low.DescriptionRun);
+            high.Sentence.Should().BeGreaterThan(low.Sentence);
+        }
+
+        [Fact]
+        public void A_long_sentence_kept_nearly_word_for_word_is_copied_text_by_its_stretch_over_its_length()
         {
             var finding = Check(
                 new[] { "In a big glass jug, beat together 2 small eggs, 3 tablespoons melted butter, 1 cup buttermilk, and 1 teaspoon almond essence." },
                 new[] { "In a big jug, beat together 2 small eggs, 3 tablespoons melted butter, 1 cup buttermilk, and 1 teaspoon almond essence." },
                 new[] { "2 small eggs", "3 tablespoons melted butter", "1 cup buttermilk", "1 teaspoon almond essence" });
 
-            finding.CopiedSentences.Should().Be(1);
-            finding.Reasons.Should().Contain(ProseCheck.CopiedText);
+            finding.Measures.Sentence.Should().BeGreaterThanOrEqualTo(ProseCheck.CopyUnsureLimits.Sentence).And.BeLessThan(ProseCheck.CopiedLimits.Sentence, "one word dropped from a sentence of 21 stays under the sentence's copied line of 0.951");
+            finding.Measures.StretchShare.Should().BeGreaterThanOrEqualTo(ProseCheck.CopiedLimits.StretchShare);
+            finding.Failed.Should().BeTrue(finding.ToString());
+            finding.Copied.Should().BeTrue("the stretch covers nearly all of a rewrite of one sentence");
         }
 
         [Theory]
@@ -302,6 +363,32 @@ namespace Nom.Api.Tests.Services
         }
 
         [Fact]
+        public void A_short_method_of_short_sentences_kept_but_for_one_word_is_copied_text_by_its_stretch_over_its_length()
+        {
+            var finding = Check(
+                new[] { "Combine all ingredients in a blender and blend until smooth. Pour into glasses and serve immediately over ice." },
+                new[] { "Combine all ingredients in a blender and blend until creamy. Pour into glasses and serve immediately over ice." });
+
+            finding.LongestRun.Should().BeLessThan(ProseCheck.CopyUnsureLimits.Run);
+            finding.CloseStretch.Should().BeLessThan(ProseCheck.CopyUnsureLimits.Stretch);
+            finding.Measures.Share.Should().Be(0m);
+            finding.Measures.Sentence.Should().Be(0m);
+            finding.Measures.StretchShare.Should().BeGreaterThanOrEqualTo(ProseCheck.CopiedLimits.StretchShare);
+            finding.Reasons.Should().Contain(ProseCheck.CopiedText, finding.ToString());
+            finding.Copied.Should().BeTrue();
+        }
+
+        [Fact]
+        public void A_stretch_under_its_minimum_has_no_stretch_share()
+        {
+            var finding = Check(new[] { "Toast the seeds in a dry pan." }, new[] { "Toast the seeds in a dry skillet." });
+
+            finding.CloseStretch.Should().BeLessThan(ProseCheck.MinimumStretchForShare);
+            finding.Measures.StretchShare.Should().Be(0m);
+            finding.Reasons.Should().NotContain(r => ProseCheck.CopyReasons.Contains(r));
+        }
+
+        [Fact]
         public void A_soft_count_changed_in_the_same_context_is_a_changed_amount()
         {
             var finding = Check(
@@ -314,7 +401,7 @@ namespace Nom.Api.Tests.Services
         }
 
         [Fact]
-        public void A_close_paraphrase_that_changes_a_word_every_few_words_is_copied_text()
+        public void A_close_paraphrase_that_changes_a_word_every_few_words_is_copied_text_by_its_stretch_over_its_length()
         {
             var source = new[]
             {
@@ -343,12 +430,13 @@ namespace Nom.Api.Tests.Services
             var finding = Check(source, close);
 
             finding.LongestRun.Should().BeLessThan(8);
-            finding.CopiedShare.Should().BeLessThan(ProseCheck.MaximumCopiedShare);
-            finding.CloseStretch.Should().BeLessThan(ProseCheck.CloseStretchLimit, "a short method is caught by the share of its words the stretch covers");
-            finding.CloseStretch.Should().BeGreaterThanOrEqualTo(ProseCheck.MinimumStretchForShare);
+            finding.CopiedShare.Should().BeLessThan(ProseCheck.CopiedLimits.Share);
+            finding.CloseStretch.Should().BeLessThan(ProseCheck.CopiedLimits.Stretch);
+            finding.CloseStretch.Should().BeGreaterThanOrEqualTo(ProseCheck.CopyUnsureLimits.Stretch);
+            finding.Measures.StretchShare.Should().BeGreaterThanOrEqualTo(ProseCheck.CopiedLimits.StretchShare);
             finding.Faults.Should().Contain(f => f.Reason == ProseCheck.CopiedText && f.Detail.StartsWith("a stretch of"), finding.ToString());
             var reversed = Check(source, close.Reverse().ToArray());
-            reversed.Faults.Where(f => f.Reason == ProseCheck.CopiedText).Select(f => f.Reason).Should().Equal(finding.Faults.Where(f => f.Reason == ProseCheck.CopiedText).Select(f => f.Reason), "the copy measures do not depend on the order of the rewrite's sentences");
+            reversed.Faults.Where(f => ProseCheck.CopyReasons.Contains(f.Reason)).Select(f => f.Reason).Should().Equal(finding.Faults.Where(f => ProseCheck.CopyReasons.Contains(f.Reason)).Select(f => f.Reason), "the copy measures do not depend on the order of the rewrite's sentences");
             reversed.CloseStretch.Should().Be(finding.CloseStretch);
             Check(source, faithful).Passed.Should().BeTrue(Check(source, faithful).ToString());
         }
@@ -492,7 +580,7 @@ namespace Nom.Api.Tests.Services
 
             var finding = Check(source, rewrite, new[] { "2 tbsp olive oil", "1 onion", "1 carrot", "2 celery stalks" });
 
-            finding.LongestRun.Should().BeGreaterThanOrEqualTo(ProseCheck.CopiedRun);
+            finding.LongestRun.Should().BeGreaterThanOrEqualTo(ProseCheck.CopiedLimits.Run);
             finding.Copied.Should().BeTrue(finding.ToString());
         }
 

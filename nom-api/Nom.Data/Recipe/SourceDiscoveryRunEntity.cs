@@ -67,5 +67,11 @@ namespace Nom.Data.Recipe
 
         /// <summary>What the exclusion list did not cover as it should: held hosts left out over the limit, seeds held back, excluded hosts the scraper probed anyway.</summary>
         public string? ExcludeNote { get; set; }
+
+        /// <summary>How many sites refused the run (the scraper's refusingHosts); each is held from later runs until an admin looks.</summary>
+        public int RefusingHosts { get; set; }
+
+        /// <summary>The scraper's refusingHosts as it came back (domain, the refusing URL, its HTTP status, whether it served a bot challenge).</summary>
+        public string? RefusingHostsJson { get; set; }
     }
 }

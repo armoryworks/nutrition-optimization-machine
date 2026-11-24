@@ -668,6 +668,18 @@ namespace Nom.Api.Tests.Services
         }
 
         [Fact]
+        public async Task A_facts_only_withhold_is_not_counted_as_copy_unsure_whatever_mark_an_earlier_withhold_left()
+        {
+            await using var db = NewContext();
+            await SourceAsync(db, "facts.example", FactsOnlyReport("facts.example"));
+            var released = await RecipeAsync(db, "https://facts.example/chili/", r => r.ProseCopyUnsure = true);
+
+            await Rights(db).DeriveAsync(apply: true);
+
+            (await db.Recipes.AsNoTracking().SingleAsync(r => r.Id == released.Id)).Should().Match<RecipeEntity>(r => r.ProseWithheld && !r.ProseCopyUnsure);
+        }
+
+        [Fact]
         public async Task A_facts_only_recipe_serves_no_publisher_line_wording_in_search_export_or_the_shopping_list()
         {
             await using var db = NewContext();

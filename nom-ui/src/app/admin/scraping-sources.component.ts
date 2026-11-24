@@ -14,6 +14,7 @@ import { MatSelectModule } from '@angular/material/select';
 import { ErrorBanner } from '../shared/components/error-banner/error-banner.component';
 import { ScrapingSourceService } from '../core/services/scraping-source.service';
 import {
+  RightsClass,
   RightsStep,
   ScrapingSourceModel,
   SourceCandidate,
@@ -23,7 +24,10 @@ import {
   SourceJournalEntry,
   SourceReason,
   SourceRecipeStep,
+  SourceRefusingHost,
   SourceReview,
+  SourceRightsByHandResult,
+  SourceRightsRecord,
   SourceRightsRun,
   SourceTaken,
 } from '../core/models/scraping-source.model';
@@ -62,6 +66,7 @@ export class ScrapingSources implements OnInit {
   private destroyRef = inject(DestroyRef);
 
   readonly licenceKinds = ['public-domain', 'cc0', 'public-domain-mark', 'cc-by'];
+  readonly handClasses: RightsClass[] = ['forbidden', 'permission-needed', 'facts-only', 'clear'];
 
   review = signal<SourceReview | null>(null);
   pending = signal<ScrapingSourceModel[]>([]);
@@ -89,6 +94,17 @@ export class ScrapingSources implements OnInit {
     text: new FormControl('', { nonNullable: true, validators: [Validators.required, Validators.maxLength(2000)] }),
   });
 
+  byHandResult = signal<SourceRightsByHandResult | null>(null);
+  byHandError = signal('');
+
+  byHandForm = new FormGroup({
+    host: new FormControl('', { nonNullable: true, validators: [Validators.required] }),
+    rightsClass: new FormControl<RightsClass>('forbidden', { nonNullable: true, validators: [Validators.required] }),
+    quote: new FormControl('', { nonNullable: true, validators: [Validators.required, Validators.maxLength(1000)] }),
+    quoteUrl: new FormControl('', { nonNullable: true, validators: [Validators.required] }),
+    readOn: new FormControl('', { nonNullable: true, validators: [Validators.required] }),
+  });
+
   handForm = new FormGroup({
     domain: new FormControl('', { nonNullable: true, validators: [Validators.required] }),
     title: new FormControl('', { nonNullable: true, validators: [Validators.required] }),
@@ -103,6 +119,9 @@ export class ScrapingSources implements OnInit {
   hand = computed(() => this.review()?.hand ?? []);
   runs = computed(() => this.review()?.runs ?? []);
   journal = computed(() => this.review()?.journal ?? []);
+  rightsRecords = computed(() => this.review()?.rightsRecords ?? []);
+  refusingHosts = computed(() => this.review()?.refusingHosts ?? []);
+  heldRefusing = computed(() => this.refusingHosts().filter((h) => h.held));
 
   ngOnInit(): void {
     this.load();
@@ -132,6 +151,54 @@ export class ScrapingSources implements OnInit {
       next: (taken) => this.taken.set(taken),
       error: () => this.taken.set([]),
     });
+  }
+
+  refusingSummary(run: SourceDiscoveryRun): string {
+    return (run.refusingHostsList ?? [])
+      .map((h) => `${h.domain} (${h.botChallenge ? 'bot challenge' : 'HTTP ' + (h.httpStatus ?? '?')})`)
+      .join(', ');
+  }
+
+  recordByHand(apply: boolean): void {
+    if (this.byHandForm.invalid) {
+      this.byHandForm.markAllAsTouched();
+      return;
+    }
+    this.processing.set(true);
+    this.byHandError.set('');
+    this.scrapingSourceService.recordRightsByHand(this.byHandForm.getRawValue(), apply).pipe(
+      takeUntilDestroyed(this.destroyRef),
+    ).subscribe({
+      next: (result) => {
+        this.byHandResult.set(result);
+        this.processing.set(false);
+        if (apply && result.applied) {
+          this.byHandForm.reset({ rightsClass: 'forbidden' });
+          this.load();
+        }
+      },
+      error: (err) => {
+        const result = err?.error as SourceRightsByHandResult | undefined;
+        if (result?.refused) this.byHandResult.set(result);
+        this.byHandError.set(result?.refused ?? err?.error?.error ?? 'Failed to record the class.');
+        this.processing.set(false);
+      },
+    });
+  }
+
+  byHandSources(result: SourceRightsByHandResult): string {
+    return result.sources
+      .map((s) => `${s.domain} ${s.oldClass ?? 'unclassed'} → ${s.newClass} (${s.recipes} recipes)`)
+      .join(', ');
+  }
+
+  withdrawRecord(record: SourceRightsRecord): void {
+    if (record.journalEntryId == null) return;
+    this.run(this.scrapingSourceService.undo(record.journalEntryId), 'Failed to withdraw the class recorded by hand.');
+  }
+
+  releaseRefusing(host: SourceRefusingHost): void {
+    this.run(this.scrapingSourceService.releaseRefusing(host.id), 'Failed to release the host.');
   }
 
   excludedHosts(run: SourceDiscoveryRun): string {

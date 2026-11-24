@@ -35,6 +35,8 @@ namespace Nom.Orch.Models.Recipe
         public string? RightsQuote { get; set; }
         public string? RightsQuoteUrl { get; set; }
         public DateTime? RightsDerivedAtUtc { get; set; }
+        public long? RightsRecordId { get; set; }
+        public SourceRightsRecordModel? RightsRecord { get; set; }
         public bool AiReserved { get; set; }
         public string? AiReservedQuote { get; set; }
         public string? AiReservedQuoteUrl { get; set; }

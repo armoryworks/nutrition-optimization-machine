@@ -123,6 +123,18 @@ namespace Nom.Api.Tests.Golden
         }
 
         [Fact]
+        public void Only_a_lane_that_asks_a_second_model_records_one()
+        {
+            var readerB = new Nom.Orch.Settings.LaneModelRoster().ReaderB;
+            ModelLanes.CheckModelOf(ModelLanes.ProseRewriteLane, null).Should().Be(readerB);
+            ModelLanes.CheckModelOf(ModelLanes.ProseRewriteLane, "granite3").Should().Be("granite3");
+            ModelLanes.CheckModelOf(ModelLanes.ProseJudgeLane, null).Should().BeNull();
+            ModelLanes.CheckModelOf(ModelLanes.ProseAuditLane, null).Should().BeNull();
+            ModelLanes.CheckModelOf(ModelLanes.ProseAuditLane, "granite3").Should().BeNull();
+            ModelLanes.CheckModelOf(ModelLanes.LinkVerify, "granite3").Should().BeNull();
+        }
+
+        [Fact]
         public void A_link_audit_case_counts_as_flagged_only_when_both_readers_find_it_wrong()
         {
             var bad = new ModelLanes.AuditCase("audit:x", "potatoes", "Potatoes, raw, skin", true, "agent-review-2026-11-13");

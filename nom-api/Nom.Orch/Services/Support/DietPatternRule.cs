@@ -55,7 +55,7 @@ namespace Nom.Orch.Services.Support
     public sealed class DietPatternRule
     {
         /// <summary>The version of the rule and its exceptions, part of every cache key that holds a reading.</summary>
-        public const string Version = "diet-patterns/4";
+        public const string Version = "diet-patterns/5";
 
         /// <summary>The fewest letters that must stand before a term inside a word for the term to be a compound's part.</summary>
         public const int CompoundPart = 3;
@@ -149,18 +149,33 @@ namespace Nom.Orch.Services.Support
 
         /// <summary>
         /// Whether a USDA description ("Flour, almond", "Leavening agents, cream of tartar") names the pattern's food:
-        /// read as it stands, and cleared only when a named exception blanks out of the order of speech, its second
-        /// part before its first ("almond Flour"), every place the term holds there (staging checkpoint 4, P18). The
-        /// order of speech never decides where a term begins or ends, so a pattern whose reading depends on position
-        /// (<c>% oat%</c> in "Cereals, oats, regular") or a substring pattern reads the description as it stands, and
-        /// the reading is never wider than the text's own.
+        /// read as it stands, and cleared only when a named exception blanks out of an order of speech, one later part
+        /// before its first ("almond Flour"; "corn Tortillas" of "Tortillas, ready-to-bake or -fry, corn"), every place
+        /// the term holds there (staging checkpoint 4, P18; checkpoint 5, Q19). The order of speech never decides where a
+        /// term begins or ends, so a pattern whose reading depends on position (<c>% oat%</c> in "Cereals, oats,
+        /// regular") or a substring pattern reads the description as it stands, and the reading is never wider than the
+        /// text's own.
         /// </summary>
         public bool IsDescriptionMatch(string? text)
         {
             if (!IsMatch(text)) return false;
             if (_blank == null) return true;
-            var spoken = SpokenOrder(text)!;
-            return !_match!.IsMatch(spoken) || _match.IsMatch(_blank.Replace(spoken, " "));
+            return SpokenOrders(text).All(spoken => !_match!.IsMatch(spoken) || _match.IsMatch(_blank.Replace(spoken, " ")));
+        }
+
+        /// <summary>A USDA description in each order of speech: each later comma-separated part before its first, the other parts after them in their order ("Squash, winter, spaghetti, raw" reads "winter Squash, spaghetti, raw", "spaghetti Squash, winter, raw" and "raw Squash, winter, spaghetti"); the first is <see cref="SpokenOrder"/>.</summary>
+        public static IEnumerable<string> SpokenOrders(string? description)
+        {
+            if (string.IsNullOrWhiteSpace(description)) yield break;
+            var parts = description.Split(',');
+            if (parts[0].Trim().Length == 0) yield break;
+            for (var k = 1; k < parts.Length; k++)
+            {
+                if (parts[k].Trim().Length == 0) continue;
+                var spoken = parts[k].Trim() + " " + parts[0].Trim();
+                var rest = parts.Skip(1).Where((_, i) => i + 1 != k).ToList();
+                yield return rest.Count == 0 ? spoken : spoken + "," + string.Join(",", rest);
+            }
         }
 
         /// <summary>A USDA description in the order of speech: its second comma-separated part before its first, the rest after them ("Cheese, goat, hard type" reads "goat Cheese, hard type").</summary>
@@ -252,6 +267,16 @@ namespace Nom.Orch.Services.Support
         private static readonly string[] NightshadeTypes = { "Nightshade Sensitivity", "Nightshade-Free" };
 
         private static readonly string[] GlutenTypes = { "Celiac Disease", "Gluten Sensitivity", "Gluten-Free", "Wheat Allergy" };
+
+        private static readonly string[] GlutenFreeTypes = { "Celiac Disease", "Gluten Sensitivity", "Gluten-Free" };
+
+        private static readonly string[] GrainTypes = GlutenTypes.Concat(new[] { "Grain-Free", "Paleo", "Whole30" }).ToArray();
+
+        private static readonly string[] GlutenAndGrainFreeTypes = GlutenTypes.Append("Grain-Free").ToArray();
+
+        private static readonly string[] SyrupTypes = GlutenAndGrainFreeTypes.Concat(new[] { "Milk Allergy", "Dairy-Free", "Lactose-Intolerant", "Lactose Intolerance", "Egg Allergy", "Vegan", "Ethical Vegan", "Raw Vegan", "Plant-Based", "Hindu Vegetarian", "Jain" }).ToArray();
+
+        private static readonly string[] MeatlessTypes = { "Vegan", "Ethical Vegan", "Raw Vegan", "Plant-Based", "Vegetarian", "Hindu Vegetarian", "Buddhist Vegetarian", "Jain", "Pescatarian", "Halal", "Kosher" };
 
         /// <summary>
         /// The compound foods that hold a term and are not its food, each with its reason. A phrase is
@@ -427,6 +452,173 @@ namespace Nom.Orch.Services.Support
             E("cola", "colander", "a kitchen strainer; not a food"),
             E("jam", "jambalaya", "a rice dish of Louisiana; no jam"),
             E("jam", "jamaican", "from Jamaica (Jamaican jerk seasoning); no jam"),
+            Scoped("flour", "sorghum flour", "flour of sorghum, gluten-free (Celiac Disease Foundation; staging checkpoint 5, Q19); Grain-Free holds it by %sorghum%; read only for the gluten types, since Grain-Free, Paleo and Whole30 exclude the grain", GlutenTypes),
+            Scoped("flour", "millet flour", "flour of millet, gluten-free (Celiac Disease Foundation); Grain-Free holds it by %millet%; read only for the gluten types, since Grain-Free, Paleo and Whole30 exclude the grain", GlutenTypes),
+            Scoped("flour", "teff flour", "flour of teff, gluten-free (Celiac Disease Foundation); read only for the gluten types, since Grain-Free, Paleo and Whole30 exclude the grain", GlutenTypes),
+            Scoped("flour", "amaranth flour", "flour of amaranth, gluten-free (Celiac Disease Foundation); read only for the gluten types, since Grain-Free, Paleo and Whole30 exclude the grain", GlutenTypes),
+            Scoped("flour", "quinoa flour", "flour of quinoa, gluten-free (Celiac Disease Foundation); Grain-Free holds it by %quinoa%; read only for the gluten types, since Grain-Free, Paleo and Whole30 exclude the grain", GlutenTypes),
+            E("flour", "hazelnut flour", "ground hazelnuts; no grain; tree nut types hold it by %hazelnut%"),
+            E("flour", "peanut flour", "ground peanuts; no grain; peanut types hold it by %peanut%"),
+            E("flour", "acorn flour", "ground acorns; no grain; tree nut types hold it by %acorn%"),
+            E("flour", "plantain flour", "dried ground plantain; no grain; Banana Allergy holds it by %plantain%"),
+            E("flour", "banana flour", "dried ground green banana; no grain; Banana Allergy holds it by %banana%"),
+            Scoped("flour", "lupin flour", "ground lupin, a legume; no grain; Lupin Allergy holds it by %lupin%; read only for the gluten and grain types, since Paleo and Whole30 exclude legumes", GlutenAndGrainFreeTypes),
+            E("flour", "soy flour", "ground soybeans; no grain; soy types hold it by %soy%"),
+            Scoped("flour", "rye flour", "flour of rye, no wheat (FALCPA names wheat); read only for Wheat Allergy, since the gluten types restrict rye", "Wheat Allergy"),
+            Scoped("flour", "barley flour", "flour of barley, no wheat (FALCPA names wheat); read only for Wheat Allergy, since the gluten types restrict barley", "Wheat Allergy"),
+            Scoped("flour", "barley malt flour", "malted barley flour, no wheat; read only for Wheat Allergy, since the gluten types restrict barley and malt", "Wheat Allergy"),
+            E("flower", "flower cluster", "the flower clusters of broccoli or cauliflower (SR: Broccoli, flower clusters; staging checkpoint 5, Q19); no grain"),
+            E("noodle", "rice noodle", "noodles of rice flour; no wheat; grain types hold them by %rice%"),
+            Scoped("noodle", "glass noodle", "noodles of mung bean or sweet potato starch; no wheat; read only for the gluten and grain types, since Paleo and Whole30 exclude legumes", GlutenAndGrainFreeTypes),
+            Scoped("noodle", "cellophane noodle", "noodles of mung bean starch; no wheat; read only for the gluten and grain types, since Paleo and Whole30 exclude legumes", GlutenAndGrainFreeTypes),
+            Scoped("noodle", "bean thread noodle", "noodles of mung bean starch; no wheat; read only for the gluten and grain types, since Paleo and Whole30 exclude legumes", GlutenAndGrainFreeTypes),
+            E("noodle", "sweet potato noodle", "noodles of sweet potato starch; no wheat"),
+            E("noodle", "shirataki noodle", "noodles of konjac; no grain"),
+            E("noodle", "kelp noodle", "noodles of seaweed; no grain"),
+            E("noodle", "zucchini noodle", "spiralized zucchini; no grain"),
+            E("vermicelli", "rice vermicelli", "rice noodles; no wheat; grain types hold them by %rice%"),
+            Scoped("pasta", "rice pasta", "pasta of rice flour; no wheat; grain types hold it by %rice%; read only for the wheat and grain types, since Carnivore excludes every plant", GrainTypes),
+            Scoped("pasta", "corn pasta", "pasta of maize; no wheat; corn types hold it by %corn%; read only for the wheat and grain types, since Carnivore excludes every plant", GrainTypes),
+            Scoped("pasta", "chickpea pasta", "pasta of chickpea flour; no wheat; legume types hold it by %chickpea%; read only for the wheat and grain types, since Carnivore excludes every plant", GrainTypes),
+            Scoped("pasta", "lentil pasta", "pasta of lentil flour; no wheat; legume types hold it by %lentil%; read only for the wheat and grain types, since Carnivore excludes every plant", GrainTypes),
+            Scoped("pasta", "quinoa pasta", "pasta of quinoa; no wheat; Grain-Free holds it by %quinoa%; read only for the wheat and grain types, since Carnivore excludes every plant", GrainTypes),
+            E("cake", "cake of", "a cake of yeast, chocolate, soap or ice is a block, the measure of old cookbooks; no cake"),
+            E("cake", "yeast cake", "a cake of compressed yeast; no wheat"),
+            E("cake", "cake yeast", "compressed yeast sold in cakes; no wheat"),
+            E("cake", "cake compressed yeast", "compressed yeast sold in cakes; no wheat"),
+            E("cake", "cake chocolate", "a cake (block) of chocolate, the measure of old cookbooks; no wheat"),
+            E("cake", "cake tofu", "a cake (block) of tofu; no wheat; soy types hold it by %tofu%"),
+            E("cake", "flourless cake", "a cake made without flour; no wheat (the line says so)"),
+            E("cake", "flourless chocolate cake", "a cake of chocolate, eggs and butter made without flour; no wheat"),
+            E("cake", "rice cake", "puffed rice; no wheat; grain types hold it by %rice%"),
+            Scoped("cake", "pancake syrup", "a table syrup; no wheat; read only for the gluten and grain types, since the sugar types restrict it", GlutenAndGrainFreeTypes),
+            Scoped("pancake", "pancake syrup", "a table syrup; no wheat; read only for the types that restrict the pancake for wheat, egg or milk, since the sugar and FODMAP types restrict the syrup", SyrupTypes),
+            Scoped("pie", "pie filling", "a fruit filling thickened with starch; no crust; read only for the gluten types, since the grain and sugar types restrict its starch and sugar", GlutenTypes),
+            E("pie", "pie spice", "a spice blend (pumpkin pie spice); no crust"),
+            E("pie", "pie cherry", "sour cherries (Prunus cerasus), named for their use; no crust"),
+            E("pie", "pie pumpkin", "a sugar pumpkin, named for its use; no crust"),
+            E("pie", "pie plate", "a baking dish; not a food"),
+            E("pie", "pie pan", "a baking dish; not a food"),
+            E("pie", "pie dish", "a baking dish; not a food"),
+            E("pie", "piece", "a portion (a 1-inch piece, cut into pieces); no crust"),
+            E("roll", "rolled", "rolled oats, a rolled roast: a shape or a step, not a bread roll; the oat and meat patterns read the food"),
+            E("roll", "rolling", "a step (rolling pin, rolling boil); not a bread roll"),
+            E("roll", "roll out", "a step; not a bread roll"),
+            Scoped("roll", "fruit roll", "a fruit leather (SR: Snacks, fruit leather, rolls); no wheat; read only for the gluten and grain types, since the sugar types restrict it", GlutenAndGrainFreeTypes),
+            Scoped("roll", "sushi roll", "rice rolled in seaweed; no wheat; read only for the gluten types, since the grain types restrict its rice", GlutenTypes),
+            E("roll", "rollmop", "rolled pickled herring; no wheat"),
+            Scoped("dough", "masa dough", "dough of nixtamalized maize; no wheat; read only for the gluten types, since the grain types restrict maize", GlutenTypes),
+            E("port", "portobello", "a mushroom (Agaricus bisporus); no wine"),
+            E("port", "portabella", "a mushroom (Agaricus bisporus); no wine"),
+            E("port", "portabello", "a mushroom (Agaricus bisporus); no wine"),
+            E("port", "portion", "a measure; no wine"),
+            E("port", "porterhouse", "a beef steak; no wine"),
+            E("port", "portuguese", "from Portugal (Portuguese sausage); no wine"),
+            E("port", "port salut", "a cow's milk cheese; no wine"),
+            E("port", "support", "not a food"),
+            E("flan", "flank", "a cut of beef; no custard"),
+            E("fish", "goldfish", "Goldfish, a brand of baked cheese cracker; no fish (milk and gluten types hold it by %goldfish%)"),
+            Scoped("bread", "breadnut", "the seed of Brosimum alicastrum, a tree; no grain; read only for the wheat and grain types, since Carnivore excludes every plant", GrainTypes),
+            Scoped("oat", "gluten free rolled oat", "oats grown and milled apart from wheat, under 20 ppm gluten (21 CFR 101.91); read only for the gluten types", GlutenFreeTypes),
+            Scoped("pizza", "pizza sauce", "a tomato sauce; no crust; read only for the wheat and grain types", GrainTypes),
+            Scoped("pizza", "pizza seasoning", "a dry herb blend; no crust; read only for the wheat and grain types", GrainTypes),
+            Scoped("pizza", "pizza cheese", "shredded cheese sold for pizza; no crust; read only for the wheat and grain types", GrainTypes),
+            Scoped("pizza", "pizza stone", "a baking stone; not a food", GrainTypes),
+            Scoped("pizza", "pizza pan", "a baking pan; not a food", GrainTypes),
+            Scoped("sandwich", "sandwich spread", "a dressing of mayonnaise and relish; no bread; read only for the gluten and grain types, since Paleo and Whole30 restrict its sugar and oil", GlutenAndGrainFreeTypes),
+            E("flour", "sesame flour", "ground sesame seed; no grain; sesame types hold it by %sesame%"),
+            E("flour", "seed flour", "ground sunflower, pumpkin or other seed; no grain"),
+            E("flour", "cottonseed flour", "ground cottonseed; no grain"),
+            Scoped("tortilla", "tortilla chip", "fried pieces of corn tortilla (SR: Snacks, tortilla chips); no wheat; read only for the gluten types, since the corn and grain types restrict the maize", GlutenTypes),
+            E("cream", "cream of wheat", "farina, a wheat cereal cooked with water; no dairy; wheat types hold it by %wheat%"),
+            E("bran", "brand", "a maker's name (any brand); not a food"),
+            E("bran", "brandy", "a distilled wine; no grain"),
+            E("bran", "branch", "a sprig (a branch of thyme); no grain"),
+            E("bran", "brandade", "a purée of salt cod; no grain"),
+            E("bran", "sorghum bran", "the bran of sorghum, gluten-free (Celiac Disease Foundation)"),
+            E("bran", "oat bran", "the bran of oats; no wheat; the gluten types hold it by their oat patterns"),
+            E("bran", "rice bran", "the bran of rice; no wheat; grain types hold it by %rice%"),
+            E("bran", "corn bran", "the bran of maize; no wheat; corn types hold it by %corn%"),
+            Scoped("cereal", "gluten free cereal", "a cereal under 20 ppm gluten (21 CFR 101.91); read only for the gluten types", GlutenFreeTypes),
+            Scoped("pudding", "black pudding", "a blood sausage; no milk; read only for the milk types", "Milk Allergy", "Dairy-Free"),
+            Scoped("pudding", "blood pudding", "a blood sausage; no milk; read only for the milk types", "Milk Allergy", "Dairy-Free"),
+            Scoped("snickers", "snickers almond", "the almond Snickers bar holds almonds, not peanuts (LABEL); read only for Peanut Allergy", "Peanut Allergy"),
+            E("bun", "bunch", "a bunch of herbs or greens, a measure; no bread"),
+            E("roti", "rotisserie", "a spit-roasted meat; no bread"),
+            E("drum", "drumstick", "the lower leg of a bird, or the pod of the moringa tree (drumstick vegetable); no fish; the meat types hold a bird's drumstick by its bird where the line names one, as before the fish vocabulary"),
+            E("drum", "drumette", "the upper wing of a chicken; no fish; the meat types hold it by its bird where the line names one"),
+            E("drum", "drummette", "the upper wing of a chicken; no fish; the meat types hold it by its bird where the line names one"),
+            E("ling", "linguine", "a pasta shape; no fish or meat; wheat types hold it by %linguine%"),
+            E("ling", "linguini", "a pasta shape; no fish or meat; wheat types hold it by %linguini%"),
+            E("ling", "lingonberry", "the fruit of Vaccinium vitis-idaea; no fish or meat"),
+            Scoped("ling", "linguica", "a Portuguese pork sausage; no fish; read only for Fish Allergy, since the meat types restrict it or read it on the safe side", "Fish Allergy"),
+            Scoped("pout", "poutine", "fries with cheese curds and gravy; no fish; read only for Fish Allergy, since the meat types restrict it or read it on the safe side", "Fish Allergy"),
+            Scoped("spot", "spotted", "a mark or a pattern (spotted dick); no fish; read only for Fish Allergy, since the meat types restrict it or read it on the safe side", "Fish Allergy"),
+            E("shad", "shadow", "not a food"),
+            E("cisco", "francisco", "a place name (San Francisco); no fish or meat"),
+            Scoped("carp", "carpaccio", "thinly sliced raw beef; no fish; read only for Fish Allergy, since the meat types restrict it or read it on the safe side", "Fish Allergy"),
+            E("pike", "pikelet", "a small griddle cake; no fish or meat"),
+            E("eel", "unpeeled", "not peeled (garlic, potatoes, chestnuts); no fish"),
+            E("til", "tilapia", "a fish (Oreochromis); no sesame; fish types hold it by %tilapia%"),
+            E("til", "tilefish", "a fish (Malacanthidae); no sesame"),
+            E("til", "tilsit", "a cow's milk cheese; no sesame"),
+            E("til", "tillamook", "a cheese maker's name (Tillamook cheddar); no sesame"),
+            E("til", "till", "until (simmer till thick); not a food"),
+            E("nut", "nutrition", "not a food"),
+            E("nut", "nutritious", "not a food"),
+            E("nut", "nutrient", "not a food"),
+            E("nut", "nutty", "a flavour or a texture (nutty brown butter); no nut"),
+            Scoped("nut", "nutella", "a spread of hazelnuts and milk; no peanut; read only for Peanut Allergy, since tree nut types hold it by %nutella%", "Peanut Allergy"),
+            E("dough", "corn dough", "dough of maize; no wheat; corn types hold it by %corn%"),
+            E("pita", "pitaya", "dragon fruit (Selenicereus); no bread"),
+            E("curd", "bean curd", "tofu; no milk; soy types hold it by %bean curd%"),
+            E("curd", "soy curd", "tofu; no milk; soy types hold it by %soy%"),
+            E("albumin", "lactalbumin", "a milk protein; no egg; milk types hold it by %lactalbumin%"),
+            E("conch", "conchiglie", "a pasta shape (shells); no shellfish; the wheat types hold it as a pasta shape where a line says pasta"),
+            E("butter", "fruit butter", "fruit cooked down to a spread (SR: Fruit butters, apple; staging checkpoint 5, Q19); no dairy"),
+            E("butter", "pear butter", "pears cooked down to a spread; no dairy"),
+            E("butter", "plum butter", "plums cooked down to a spread; no dairy"),
+            E("butter", "peach butter", "peaches cooked down to a spread; no dairy"),
+            E("butter", "pumpkin butter", "pumpkin cooked down to a spread; no dairy"),
+            E("egg", "flax egg", "an egg replacer of ground flaxseed and water (staging checkpoint 5, Q19); no egg"),
+            E("egg", "chia egg", "an egg replacer of ground chia seed and water; no egg"),
+            Scoped("bacon", "meatless bacon", "a meat analogue (SR: Bacon, meatless, of soy and wheat protein; staging checkpoint 5, Q19); no meat or pork; read only for the meat and pork types, since the fat types restrict it for its fat", MeatlessTypes),
+            Scoped("bacon", "vegetarian bacon", "a meat analogue; no meat or pork", MeatlessTypes),
+            Scoped("bacon", "vegan bacon", "a meat analogue; no meat or pork", MeatlessTypes),
+            Scoped("bacon", "coconut bacon", "toasted coconut flakes; no meat or pork; Coconut Allergy holds it by %coconut%", MeatlessTypes),
+            Scoped("bacon", "tempeh bacon", "smoked tempeh; no meat or pork; soy types hold it by %tempeh%", MeatlessTypes),
+            Scoped("bacon", "mushroom bacon", "smoked mushrooms; no meat or pork", MeatlessTypes),
+            Scoped("fish", "jellyfish", "a cnidarian, not a fish (SR lists it apart from the Fish entries); read only for Fish Allergy, since the vegetarian types mean it as an animal", "Fish Allergy"),
+            Scoped("fish", "cuttlefish", "a mollusk, not a fish; read only for Fish Allergy, since the shellfish types hold it by %cuttlefish% and the vegetarian types mean it as an animal", "Fish Allergy"),
+            Scoped("spaghetti", "spaghetti sauce", "a tomato sauce (staging checkpoint 5, Q19); no pasta; read only for the wheat and grain types", GrainTypes),
+            Scoped("spaghetti", "spaghetti seasoning", "a dry herb blend; no pasta; read only for the wheat and grain types", GrainTypes),
+            E("stuffing", "for stuffing", "a step, what a vegetable is for (poblano peppers, for stuffing); no bread"),
+            Scoped("pasta", "pasta sauce", "a tomato sauce; no pasta; read only for the wheat and grain types", GrainTypes),
+            Scoped("nut", "pine nut", "a tree nut named as such, no peanut (FALCPA names peanuts apart from tree nuts); read only for Peanut Allergy, whose % nut% reads a nut a line does not name", "Peanut Allergy"),
+            Scoped("nut", "brazil nut", "a tree nut named as such; no peanut; read only for Peanut Allergy", "Peanut Allergy"),
+            Scoped("nut", "macadamia nut", "a tree nut named as such; no peanut; read only for Peanut Allergy", "Peanut Allergy"),
+            Scoped("nut", "cashew nut", "a tree nut named as such; no peanut; read only for Peanut Allergy", "Peanut Allergy"),
+            Scoped("nut", "pistachio nut", "a tree nut named as such; no peanut; read only for Peanut Allergy", "Peanut Allergy"),
+            Scoped("nut", "ginkgo nut", "a tree nut named as such; no peanut; read only for Peanut Allergy", "Peanut Allergy"),
+            Scoped("nut", "hickory nut", "a tree nut named as such; no peanut; read only for Peanut Allergy", "Peanut Allergy"),
+            Scoped("nut", "hazel nut", "a tree nut named as such; no peanut; read only for Peanut Allergy", "Peanut Allergy"),
+            Scoped("nut", "pili nut", "a tree nut named as such; no peanut; read only for Peanut Allergy", "Peanut Allergy"),
+            Scoped("nut", "kola nut", "the seed of Cola, a flavouring; no peanut", "Peanut Allergy", "Tree Nut Allergy"),
+            Scoped("nut", "tiger nut", "the tuber of Cyperus esculentus; no nut of either class", "Peanut Allergy", "Tree Nut Allergy"),
+            Scoped("nut", "ground nut", "groundnuts are peanuts (FDA-QA5), no tree nut; read only for Tree Nut Allergy, since peanut types hold it by % nut%", "Tree Nut Allergy"),
+            Scoped("nut", "monkey nut", "monkey nuts are peanuts, no tree nut; read only for Tree Nut Allergy", "Tree Nut Allergy"),
+            Scoped("nut", "beer nut", "beer nuts are peanuts, no tree nut; read only for Tree Nut Allergy", "Tree Nut Allergy"),
+            Scoped("butternut", "butternut squash", "Cucurbita moschata, a squash; no tree nut; read only for the tree nut types, whose %butternut% means the nut of Juglans cinerea", "Tree Nut Allergy", "Nut Allergy"),
+            Scoped("flour", "gluten free flour", "a flour blend under 20 ppm gluten (21 CFR 101.91); read only for the gluten types, since a gluten-free food may hold wheat starch (Wheat Allergy still holds it)", GlutenFreeTypes),
+            Scoped("bread", "gluten free bread", "bread under 20 ppm gluten (21 CFR 101.91); read only for the gluten types", GlutenFreeTypes),
+            Scoped("breadcrumb", "gluten free breadcrumb", "breadcrumbs under 20 ppm gluten (21 CFR 101.91); read only for the gluten types", GlutenFreeTypes),
+            Scoped("pasta", "gluten free pasta", "pasta under 20 ppm gluten (21 CFR 101.91); read only for the gluten types", GlutenFreeTypes),
+            Scoped("noodle", "gluten free noodle", "noodles under 20 ppm gluten (21 CFR 101.91); read only for the gluten types", GlutenFreeTypes),
+            Scoped("spaghetti", "gluten free spaghetti", "spaghetti under 20 ppm gluten (21 CFR 101.91); read only for the gluten types", GlutenFreeTypes),
+            Scoped("cracker", "gluten free cracker", "crackers under 20 ppm gluten (21 CFR 101.91); read only for the gluten types", GlutenFreeTypes),
+            Scoped("cake", "gluten free cake", "cake under 20 ppm gluten (21 CFR 101.91); read only for the gluten types", GlutenFreeTypes),
+            Scoped("cookie", "gluten free cookie", "cookies under 20 ppm gluten (21 CFR 101.91); read only for the gluten types", GlutenFreeTypes),
+            Scoped("oat", "gluten free oat", "oats grown and milled apart from wheat, under 20 ppm gluten (21 CFR 101.91; Celiac Disease Foundation); read only for the gluten types", GlutenFreeTypes),
             Scoped("potato", "sweet potato", "Ipomoea batatas, a morning glory (Convolvulaceae), not a nightshade (Solanaceae); read only for the nightshade types, since Jain avoids it as a root and Carnivore as a plant", NightshadeTypes),
             Scoped("sugar", "sugar snap", "sugar snap peas are a pea pod (Pisum sativum var. macrocarpon) with no added sugar; read only for Sugar-Free, since Carnivore means it as a vegetable", "Sugar-Free"),
             Scoped("licorice", "licorice root", "the dried root of Glycyrrhiza glabra, an herb with no grain; the candy, made with wheat flour, is what the gluten types hold %licorice% for (CompositeFoods)", GlutenTypes),

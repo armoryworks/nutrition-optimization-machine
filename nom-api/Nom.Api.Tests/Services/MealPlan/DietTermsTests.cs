@@ -255,7 +255,8 @@ namespace Nom.Api.Tests.Services.MealPlan
             guard.Lowered(breaded, "chicken thighs", new[] { "6 chicken thighs" }).Should().BeEmpty("chicken thighs are known by the label table, so the breading the prepared food had may leave with it");
 
             var vinegar = new GateFood(9, "Apple Cider Vinegar");
-            guard.Lowered(vinegar, "qt hard cider", new[] { "1 qt hard cider" }).Should().Contain("Sulfite Sensitivity", "a take-back to an unknown wording keeps the flag the vinegar gave");
+            guard.Lowered(vinegar, "qt sweet cider", new[] { "1 qt sweet cider" }).Should().Contain("Sulfite Sensitivity", "a take-back to an unknown wording keeps the flag the vinegar gave");
+            guard.Lowered(vinegar, "qt hard cider", new[] { "1 qt hard cider" }).Should().NotContain("Sulfite Sensitivity", "hard cider is a fruit wine the sulfite types hold by %hard cider% (staging checkpoint 5, Q13), so its own words keep the flag");
         }
 
         [Theory]
@@ -265,6 +266,14 @@ namespace Nom.Api.Tests.Services.MealPlan
         [InlineData("Whole Wheat Berries", "einkorn", "2 cups einkorn", "Wheat Allergy")]
         [InlineData("Whole Wheat Berries", "emmer", "2 cups emmer", "Celiac Disease")]
         [InlineData("Dried Egg White", "lysozyme", "1 tsp lysozyme", "Egg Allergy")]
+        public void A_label_name_the_vocabulary_carries_keeps_the_flag_by_the_lines_own_words(string food, string wording, string line, string type)
+        {
+            RecheckDietGuard.Known(wording).Should().BeTrue();
+            TypeNames(type, line).Should().BeTrue($"{wording} is a label name of the class {type} restricts (diet-vocabulary.tsv, staging checkpoint 5)");
+            RecheckDietGuard.For().Lowered(new GateFood(1, food), wording, new[] { line }).Should().NotContain(type, "the line's own words keep the flag, so a take-back lowers nothing");
+        }
+
+        [Theory]
         [InlineData("Veal Rennet Tablets", "animal rennet", "1 tsp animal rennet", "Vegetarian")]
         [InlineData("Veal Rennet Tablets", "calf rennet", "1 tsp calf rennet", "Vegetarian")]
         public void A_known_wording_whose_contents_the_type_restricts_but_its_name_does_not_say_keeps_the_flag(string food, string wording, string line, string type)

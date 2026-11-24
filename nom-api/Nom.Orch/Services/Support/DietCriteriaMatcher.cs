@@ -761,7 +761,7 @@ namespace Nom.Orch.Services.Support
         }
 
         /// <summary>Every word the gate may read in a statement row, lower-cased in one text: the named ingredients, what their label terms contain or may contain, the declared and warned allergens, and every word of their major-allergen classes; a name pattern whose first word is not in it cannot hold the row.</summary>
-        private static string ContentsWords(IngredientContentsEntity row)
+        internal static string ContentsWords(IngredientContentsEntity row)
         {
             var words = new List<string>();
             void Add(string word)

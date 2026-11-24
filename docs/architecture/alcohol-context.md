@@ -48,7 +48,21 @@ first rule that fires wins:
    cherry brandy" are the liqueur: review CK9S-3), and a food made or measured with a
    drink ("custard (flavoured with French brandy)", "almonds moistened with a tablespoonful of
    kirsch", "To every pint of new milk allow 2 dessertspoonfuls of brandy"): `dish`, which counts for
-   the diet gate and refuses only an alcoholic food, so the line keeps its own food.
+   the diet gate and refuses only an alcoholic food, so the line keeps its own food. Since
+   `alcohol-context/9` (staging checkpoint 5, Q17: the wording tiers wrote 4 of 37 alcohol-context rows
+   to a drink that is not one): a food kept, washed or cooked in a drink with the drink after it
+   ("drained cherries preserved in brandy"; preserved, pickled, kept, packed, washed, rinsed, dipped,
+   bottled, conserved, candied and potted join soaked, steeped and the rest), a drink word joined to such a
+   participle before a food ("rum-soaked pineapple", "beer-braised ribs"), and a place's drink name
+   before another thing ("Burgundy pitch", a resin; "three Bordeaux pigeons", birds; Burgundy, Bordeaux,
+   Champagne, Madeira, Marsala, Malaga, Tokay, Moselle, Chablis, Sauternes, Rioja, Chianti, Cognac,
+   Armagnac, Rhenish and the other place names of wine) are `dish`. A drink, colour, style or measure
+   word, a participle ("divided"), "or", "and" and a comma after the place word keep the drink ("Burgundy
+   wine", "Champagne brut", "Marsala, divided"), and so does any drink word, grape or wine noun later in the
+   name before a comma or bracket ("Burgundy Pinot Noir", "Sauternes dessert wine", "Burgundy table wine", "Rioja
+   Tempranillo"). A participle followed by "with", "in", "by" and the like ("vodka infused with lemon peel") names
+   how the drink was made, not a food soaked in it, so the drink stays (review CK10S-3). Calomel, laudanum and
+   paregoric, medicines washed or dissolved in spirits in old books, are `not-food`.
 5. **A flavouring** ("rum extract", "almond essence", "brandy flavouring", "1 tsp rum flavor",
    "spirits of nutmeg"): `extract`. The flavour word is read only outside a cook's note
    (`alcohol-context/5`, M21: 33 of 86 sampled extract take-backs rested on one): brackets, nested or
@@ -252,7 +266,13 @@ the old release's own start-up, since its defaults are then missing again.
   216 rows, 0 false accepts of 163. `alcohol-context/8` (`cleanup2/ck9-small`): ac-203 to ac-205
   re-judged as `dish` (`agent-review-ck9-small-2026-11-23`), ac-217 (checkpoint 4's "cognac
   cherries", `agent`), ac-218 to ac-221 (a liqueur named with its fruit flavour, and a fruit kept in
-  brandy; `rule:construction`, `ok`): 221 rows, 0 false accepts of 168. `GoldenAlcoholContextTests` requires every row to pass, every
+  brandy; `rule:construction`, `ok`): 221 rows, 0 false accepts of 168. `alcohol-context/9`
+  (`cleanup2/ck10-small`, staging checkpoint 5, Q17): ac-ck10s-01 to ac-ck10s-05 (calomel, Burgundy pitch,
+  Bordeaux pigeons, rum-soaked pineapple, cherries preserved in brandy) and ac-ck10s-06 to ac-ck10s-09
+  (Burgundy wine, Champagne brut, Marsala with a comma or "divided" still the drink), all
+  `rule:construction`, `ok`: 230 rows, 0 false accepts of 173. The review added ac-ck10s-10 to ac-ck10s-14 (a grape,
+  "dessert wine" and "table wine" after the place word, and a drink infused with something, all still the drink):
+  235 rows. `GoldenAlcoholContextTests` requires every row to pass, every
   sense to have a row, and every sense of the design a rule-given one.
 - Scorer lane `alcohol-context` in `model-lanes.json`: no model, `required`, floor 98 % and no false
   accept; the committed record must be what the rules score now

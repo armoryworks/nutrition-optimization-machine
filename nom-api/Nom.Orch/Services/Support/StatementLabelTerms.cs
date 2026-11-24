@@ -46,7 +46,7 @@ namespace Nom.Orch.Services.Support
     /// </summary>
     public static class StatementLabelTerms
     {
-        public const string Version = "label-terms/2";
+        public const string Version = "label-terms/3";
         public const string ResourceName = "Nom.Orch.Contents.label-terms.tsv";
         private const int MaxDepth = 8;
 

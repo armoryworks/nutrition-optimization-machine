@@ -10,8 +10,8 @@ namespace Nom.Orch.Services.Support
     /// The rule checks the reprocess lane runs on every line a rebuild changes, written apart from
     /// the line builder so they do not share its mistakes (reprocess.md section 3). A1: a stored
     /// amount stands in the line's text, or for a method fill in a method sentence that names the
-    /// food, as a number read here (digits, fractions, number words, "a couple"; "a" or "an" only
-    /// before a measure or the food) times one of the old measures' factors that text names, or as
+    /// food or the line's wording, as a number read here (digits, fractions, number words, "a couple"; "a" or "an" only
+    /// before a measure, a can or the food, a size word such as "scant" or "large" between) times one of the old measures' factors that text names, or as
     /// pounds and ounces it states added up in ounces. A2: a
     /// line the rebuild moved to another food names that food. A3: a count in pieces is not of a
     /// liquid or of a line that states a measure, a whole bird is not measured by volume, and a volume
@@ -22,7 +22,7 @@ namespace Nom.Orch.Services.Support
     /// </summary>
     public static class ReprocessRuleAudit
     {
-        public const string Version = "reprocess-audit/6";
+        public const string Version = "reprocess-audit/7";
 
         public const string Grounded = "A1";
         public const string Named = "A2";
@@ -168,9 +168,10 @@ namespace Nom.Orch.Services.Support
         /// the sum also times a measure's factor ("2 cans of 15 oz", "a pint and a half" is 3 cups), or to pounds and ounces it states added up in ounces, alone or times a
         /// number stated before them ("1 lb. 13 oz. can" is 29, "2 cans (1 lb. 4 oz. each)" 40), or to two
         /// measures joined by "and" added up, in the smaller measure or in the first ("one quart and a pint"
-        /// is 6 cups, "1 pound and 2 ounces" 1.125 pounds). "A" or "an" counts one only before a measure or a word of
+        /// is 6 cups, "1 pound and 2 ounces" 1.125 pounds). "A" or "an" counts one only before a measure, a can or a word of
         /// <paramref name="named"/> (the food), so a stray article grounds nothing, and a measure the text opens with
-        /// counts one ("pinch of salt", "tablespoonful grated onion"). A number that names another recipe of the book ("al N. 579",
+        /// counts one ("pinch of salt", "tablespoonful grated onion"); a size word may stand before the measure ("a scant
+        /// teaspoonful", "a large tablespoon", "scant cup of water"). A number that names another recipe of the book ("al N. 579",
         /// "du N. 579") is no amount, nor is a price ("twenty cents' worth").
         /// </summary>
         public static bool GroundedIn(decimal quantity, IEnumerable<string?> texts, IEnumerable<string?>? named = null)
@@ -230,7 +231,7 @@ namespace Nom.Orch.Services.Support
         private static List<(decimal Value, bool Range)> Stated(string text, IReadOnlyList<string> food)
         {
             var found = new List<(decimal Value, bool Range)>();
-            if (Measure.Match(text.TrimStart()) is { Success: true, Index: 0 }) found.Add((1m, false));
+            if (Measure.Match(Unsized(text.TrimStart())) is { Success: true, Index: 0 }) found.Add((1m, false));
             var matches = Token.Matches(text).ToList();
             var lastEnd = -1;
             for (var i = 0; i < matches.Count; i++)
@@ -243,9 +244,9 @@ namespace Nom.Orch.Services.Support
                 }
                 else if (Articles.Contains(m.Value))
                 {
-                    var rest = text[(m.Index + m.Length)..].TrimStart();
+                    var rest = Unsized(text[(m.Index + m.Length)..].TrimStart());
                     var ahead = string.Join(" ", matches.Skip(i + 1).Take(2).Where(n => n.Groups["word"].Success).Select(n => n.Value));
-                    if (Measure.Match(rest) is { Success: true, Index: 0 } || Factors.Any(f => f.Word.Match(rest) is { Success: true, Index: 0 })
+                    if (Measure.Match(rest) is { Success: true, Index: 0 } || Factors.Any(f => f.Word.Match(rest) is { Success: true, Index: 0 }) || CanWord.IsMatch(rest)
                         || (ahead.Length > 0 && food.Any(f => FoodNameMatcher.NamesFood(ahead, f))))
                         value = 1;
                 }
@@ -262,6 +263,92 @@ namespace Nom.Orch.Services.Support
         }
 
         private static bool Near(decimal a, decimal b) => Math.Abs(a - b) <= 0.01m;
+
+        private const string SizeText = @"(?:(?:scant|heaping|heaped|large|small|level|good|full|rounded|generous|big|even)\s+)*";
+
+        private static readonly Regex Size = new("^" + SizeText, RegexOptions.Compiled | RegexOptions.IgnoreCase | RegexOptions.CultureInvariant);
+
+        private static readonly Regex CanWord = new(@"^cans?\b(?!\s+opener)", RegexOptions.Compiled | RegexOptions.IgnoreCase | RegexOptions.CultureInvariant);
+
+        private static string Unsized(string text) => Size.Replace(text, string.Empty, 1);
+
+        private const string MeasureText =
+            @"cups?|cupfuls?|tea-?cups?\w*|tumblers?|glass(?:es|fuls?)?|wine-?glass\w*|spoons?|spoonfuls?|tablesp\w*|teasp\w*|tbsp?s?|tsps?|tbp|dessertsp\w*|salt-?spoon\w*|" +
+            @"pints?|quarts?|qts?|gallons?|gills?|jills?|pounds?|lbs?|ounces?|oz|grams?|kilo\w*|kg|litres?|liters?|ml|pinch(?:es)?|dash(?:es)?|ponies|pony|cans?";
+
+        private static readonly Regex CountOfMeasure = new(
+            @"\b(?<n>" + AmountText + @")\s+" + SizeText + @"(?:" + MeasureText + @")\b\.?(?<rest>(?:\s+[\p{L}'’-]+){1,6})",
+            RegexOptions.Compiled | RegexOptions.IgnoreCase | RegexOptions.CultureInvariant);
+
+        private static readonly Regex MeasureAndPart = new(
+            @"\b(?<a>" + AmountText + @")\s+" + SizeText + @"(?:" + MeasureText + @")\b\.?\s+and\s+(?:a\s+|one[\s-]+)?(?<b>half|quarter|third)\b(?<rest>(?:\s+[\p{L}'’-]+){1,6})",
+            RegexOptions.Compiled | RegexOptions.IgnoreCase | RegexOptions.CultureInvariant);
+
+        private static bool NamesAny(string text, IReadOnlyList<string> named) => named.Any(n => FoodNameMatcher.NamesFood(text, n));
+
+        private static List<string> Naming(IEnumerable<string?> named) =>
+            named.Where(n => !string.IsNullOrWhiteSpace(n) && !FoodNameMatcher.NamesFood(string.Empty, n)).Select(n => n!).Distinct().ToList();
+
+        /// <summary>
+        /// Whether a count stands in one of the texts as the number of a measure of the food ("a large tablespoon of
+        /// butter", "two large spoonfuls of butter", "1 tbp chopped pickle", "one pony of maraschino"): the number,
+        /// with any size word, is followed by a measure, and the next words name the food or the line's wording. Such
+        /// a count stored in pieces counts the measure, not the food.
+        /// </summary>
+        public static bool CountsMeasure(decimal count, IEnumerable<string?> texts, IEnumerable<string?> named) =>
+            MeasureCounts(count, texts, named).Any();
+
+        /// <summary>
+        /// The phrases in which a count stands in the texts as the number of a measure of the food, as <see cref="CountsMeasure"/>
+        /// reads them ("two large spoonfuls of butter"), from the number to the words naming the food.
+        /// </summary>
+        public static IEnumerable<string> MeasureCounts(decimal count, IEnumerable<string?> texts, IEnumerable<string?> named)
+        {
+            var food = Naming(named);
+            if (food.Count == 0) return Enumerable.Empty<string>();
+            return texts.Where(t => !string.IsNullOrWhiteSpace(t)).SelectMany(text => CountOfMeasure.Matches(text!))
+                .Where(m => Amount(m.Groups["n"].Value) is { } n && Near(n, count) && NamesAny(m.Groups["rest"].Value, food))
+                .Select(m => m.Value)
+                .ToList();
+        }
+
+        private static readonly Regex BareCount = new(
+            @"(?<![\p{L}\d/.,])(?<n>\d+(?:[.,]\d+)?|one|two|three|four|five|six|seven|eight|nine|ten|eleven|twelve)\s+" + SizeText + @"(?<rest>[\p{L}'’-]+(?:\s+[\p{L}'’-]+)?)",
+            RegexOptions.Compiled | RegexOptions.IgnoreCase | RegexOptions.CultureInvariant);
+
+        private static readonly Regex MeasureFirst = new(@"^(?:" + MeasureText + @"|of)\b", RegexOptions.Compiled | RegexOptions.IgnoreCase | RegexOptions.CultureInvariant);
+
+        /// <summary>
+        /// Whether a count stands in one of the texts as a bare count of the food ("Beat 2 eggs"): a number or number word, with
+        /// any size word, followed by words naming the food or the line's wording, with no measure between them.
+        /// </summary>
+        public static bool CountsFood(decimal count, IEnumerable<string?> texts, IEnumerable<string?> named)
+        {
+            var food = Naming(named);
+            return food.Count > 0 && texts.Where(t => !string.IsNullOrWhiteSpace(t)).Any(text => BareCount.Matches(text!)
+                .Any(m => Amount(m.Groups["n"].Value) is { } n && Near(n, count) && !MeasureFirst.IsMatch(m.Groups["rest"].Value)
+                    && NamesAny(m.Groups["rest"].Value, food)));
+        }
+
+        /// <summary>
+        /// Whether <paramref name="part"/> is the first part of an amount the texts state as a measure "and a half",
+        /// "and a quarter" or "and a third" of the food ("a pound and a half of grated bread" is 1.5 pounds, not 1),
+        /// <paramref name="whole"/> being that amount in the same measure.
+        /// </summary>
+        public static bool AddsPart(decimal part, decimal whole, IEnumerable<string?> texts, IEnumerable<string?> named)
+        {
+            var food = Naming(named);
+            if (whole <= part || food.Count == 0) return false;
+            foreach (var text in texts.Where(t => !string.IsNullOrWhiteSpace(t)))
+            {
+                foreach (Match m in MeasureAndPart.Matches(text!))
+                {
+                    if (Amount(m.Groups["a"].Value) is not { } a || !Near(a, part) || !Words.TryGetValue(m.Groups["b"].Value, out var b)) continue;
+                    if (Near(a + b, whole) && NamesAny(m.Groups["rest"].Value, food)) return true;
+                }
+            }
+            return false;
+        }
 
         private static readonly Regex LeadNumber = new(
             @"^\s*(?:about\s+|~\s*)?(?:(?<digit>[\d¼½¾⅓⅔⅛⅜⅝⅞])|(?<word>(?:one|two|three|four|five|six|eight|ten|twelve|half\s+an?|an?)\s+))",
@@ -282,14 +369,32 @@ namespace Nom.Orch.Services.Support
             return Measure.Match(rest) is { Success: true, Index: 0 };
         }
 
+        /// <summary>Whether the text names a measure of volume or weight, a pinch or a dash ("cup", "pints", "oz.", "grammi").</summary>
+        public static bool NamesMeasure(string? text) => Measure.IsMatch(text ?? string.Empty);
+
         private static readonly Regex SentenceBreak = new(
-            @"(?<=[;!?]|(?<!\b(?:lb|lbs|oz|ozs|pt|pts|qt|qts|doz|tsp|tsps|tbsp|tbsps|gal|teaspn|tablespn))\.)\s+",
+            @"(?<=[;!?]|(?<!\b(?:lb|lbs|oz|ozs|pt|pts|qt|qts|doz|tsp|tsps|tbsp|tbsps|gal|teaspn|tablespn|(?-i:[A-Z])))\.)\s+",
             RegexOptions.Compiled | RegexOptions.IgnoreCase | RegexOptions.CultureInvariant);
 
-        /// <summary>The method sentences a fill may come from: those that name the line's food; the point of a measure's abbreviation ("1/2 pt.") ends no sentence.</summary>
-        public static IEnumerable<string> MethodSentences(IEnumerable<string> steps, string? food, string raw) =>
-            steps.SelectMany(s => SentenceBreak.Split(s ?? string.Empty))
-                .Where(s => FoodNameMatcher.NamesFood(s, food) && (food != null || FoodNameMatcher.NamesFood(s, raw)));
+        /// <summary>
+        /// The method sentences a fill may come from: those that name the line's food or the line's own wording (a
+        /// line "sweetbreads" on a USDA food named "Veal, ..., thymus"); the point of a measure's abbreviation ("1/2
+        /// pt.") or of an initial ("J. P. Smith's") ends no sentence.
+        /// </summary>
+        public static IEnumerable<string> MethodSentences(IEnumerable<string> steps, string? food, string raw)
+        {
+            var named = Naming(new[] { food, Wording(raw) });
+            return steps.SelectMany(s => SentenceBreak.Split(s ?? string.Empty))
+                .Where(s => named.Count == 0 ? food == null && FoodNameMatcher.NamesFood(s, raw) : NamesAny(s, named));
+        }
+
+        /// <summary>The food words of a line's first part, its amount and measure left out ("one pony of maraschino" is "maraschino").</summary>
+        public static string? Wording(string? raw)
+        {
+            var first = (raw ?? string.Empty).Split(FoldedLine.Separator, 2)[0];
+            var name = IngredientNameNormalizer.Normalize(first);
+            return string.IsNullOrWhiteSpace(name) ? null : name;
+        }
 
         /// <summary>The checks of A1 to A3 that fail on one line, by code; empty when all pass.</summary>
         public static IReadOnlyList<string> Failures(Line line, IEnumerable<string>? method = null)

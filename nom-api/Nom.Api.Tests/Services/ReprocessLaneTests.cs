@@ -198,10 +198,15 @@ namespace Nom.Api.Tests.Services
                 new LineJudgeCase(7, "Cake", "2 tablespns. water", string.Empty, new LineJudgeRow("water", 2, "Piece"), new LineJudgeRow("water", 2, "Tablespoon")),
                 new LineJudgeCase(9, "Cake", "salt", string.Empty, null, new LineJudgeRow("salt", 0, null)),
             };
-            var verdicts = OllamaLineJudge.Read("{\"results\":[{\"n\":1,\"verdict\":\"better\"},{\"n\":2,\"verdict\":\"maybe\"}]}", cases);
+            string Letter(LineJudgeCase c, bool rebuilt) => OllamaLineJudge.NewIsA(c) == rebuilt ? "A" : "B";
+            var verdicts = OllamaLineJudge.Read($"{{\"results\":[{{\"n\":1,\"source_amount\":\"2 tablespns.\",\"right\":\"{Letter(cases[0], true)}\"}},{{\"n\":2,\"source_amount\":\"none\",\"right\":\"maybe\"}}]}}", cases);
 
             verdicts.Should().Equal(new LineJudgeVerdict(7, LineJudgement.Better));
-            OllamaLineJudge.Body(cases).Should().Contain("BEFORE: water; 2 Piece").And.Contain("AFTER: water; 2 Tablespoon").And.Contain("BEFORE: (no row)");
+            OllamaLineJudge.Read($"{{\"results\":[{{\"n\":1,\"source_amount\":\"2 tablespns.\",\"right\":\"{Letter(cases[0], false)}\"}}]}}", cases).Should().Equal(new LineJudgeVerdict(7, LineJudgement.Worse));
+            var body = OllamaLineJudge.Body(cases);
+            body.Should().Contain("food \"water\" | amount: 2 Piece (a count of 2 whole items) | kind: ingredient")
+                .And.Contain("food \"water\" | amount: 2 Tablespoon (= 6 teaspoons = 3 dessertspoons) | kind: ingredient").And.Contain("(no row)")
+                .And.NotContain("BEFORE").And.NotContain("AFTER");
             OllamaLineJudge.Signature.Should().HaveLength(16);
             var settings = new ConfigurationBuilder().AddInMemoryCollection(new Dictionary<string, string?> { ["Ai:Roster:ReaderB"] = "mistral-small" }).Build();
             OllamaLineJudge.ModelFor(settings).Should().Be("mistral-small");
@@ -209,9 +214,56 @@ namespace Nom.Api.Tests.Services
         }
 
         [Fact]
+        public void The_line_judge_shows_the_same_two_rows_in_the_same_order_whichever_is_rebuilt_and_takes_the_bare_row_when_both_are_wrong()
+        {
+            var counted = new LineJudgeRow("milk", 3, "Piece");
+            var bare = new LineJudgeRow("milk", 0, null);
+            var rebuilt = new LineJudgeCase(0, "Cake", "1 cup + 3 oz milk", string.Empty, counted, bare);
+            var reverted = new LineJudgeCase(0, "Cake", "1 cup + 3 oz milk", string.Empty, bare, counted);
+
+            OllamaLineJudge.Body(new[] { rebuilt }).Should().Be(OllamaLineJudge.Body(new[] { reverted }));
+            OllamaLineJudge.NewIsA(rebuilt).Should().Be(!OllamaLineJudge.NewIsA(reverted));
+            const string neither = "{\"results\":[{\"n\":1,\"source_amount\":\"1 cup + 3 oz\",\"right\":\"neither\"}]}";
+            OllamaLineJudge.Read(neither, new[] { rebuilt }).Single().Judgement.Should().Be(LineJudgement.Better);
+            OllamaLineJudge.Read(neither, new[] { reverted }).Single().Judgement.Should().Be(LineJudgement.Worse);
+            var noBare = new LineJudgeCase(0, "Cake", "1 cup + 3 oz milk", string.Empty, counted, new LineJudgeRow("milk", 1, "Cup"));
+            OllamaLineJudge.Read(neither, new[] { noBare }).Single().Judgement.Should().Be(LineJudgement.Same);
+        }
+
+        [Fact]
+        public void The_line_judge_corrects_a_choice_that_contradicts_its_own_reading_of_the_line()
+        {
+            string Reply(LineJudgeCase c, string kind, string amount, bool pickNew) =>
+                $"{{\"results\":[{{\"n\":1,\"line_kind\":\"{kind}\",\"source_amount\":\"{amount}\",\"right\":\"{(OllamaLineJudge.NewIsA(c) == pickNew ? "A" : "B")}\"}}]}}";
+            LineJudgement Judge(LineJudgeCase c, string kind, string amount, bool pickNew) => OllamaLineJudge.Read(Reply(c, kind, amount, pickNew), new[] { c }).Single().Judgement;
+
+            var counted = new LineJudgeCase(0, "Cake", "a couple of onions", string.Empty, new LineJudgeRow("onions", 0, null), new LineJudgeRow("onions", 2, "Piece"));
+            Judge(counted, "ingredient", "a couple of onions", pickNew: false).Should().Be(LineJudgement.Better);
+
+            var measured = new LineJudgeCase(0, "Cake", "two pints and a half of milk", string.Empty, new LineJudgeRow("milk", 5, "Cup"), new LineJudgeRow("milk", 5, "Piece"));
+            Judge(measured, "ingredient", "2.5 pints", pickNew: true).Should().Be(LineJudgement.Worse);
+
+            var vague = new LineJudgeCase(0, "Cake", "a little salt", string.Empty, new LineJudgeRow("salt", 0, null), new LineJudgeRow("salt", 1, "Pinch"));
+            Judge(vague, "ingredient", "a little salt", pickNew: true).Should().Be(LineJudgement.Worse);
+
+            var heading = new LineJudgeCase(0, "Cake", "For the glaze:", string.Empty, new LineJudgeRow("glaze", 1, "Piece"), new LineJudgeRow("glaze", 0, null, "note"));
+            Judge(heading, "heading", "none", pickNew: false).Should().Be(LineJudgement.Better);
+
+            var fromRow = new LineJudgeCase(0, "Cake", "water", "Add the water and stir.", new LineJudgeRow("water", 0, null), new LineJudgeRow("water", 1, "Piece"));
+            OllamaLineJudge.Quotes("1 Piece", fromRow.SourceLine, fromRow.Method).Should().BeFalse();
+            Judge(fromRow, "ingredient", "1 Piece", pickNew: true).Should().Be(LineJudgement.Better);
+
+            var unshown = new LineJudgeCase(0, "Cake", "1/4 cup + 1 tablespoon sugar", string.Empty, new LineJudgeRow("sugar", 0, null), new LineJudgeRow("sugar", 0.313m, "Cup"));
+            Judge(unshown, "ingredient", "1/4 cup + 1 tablespoon", pickNew: true).Should().Be(LineJudgement.Unclear);
+            Judge(unshown with { Old = new LineJudgeRow("sugar", 0.313m, "Piece") }, "ingredient", "1/4 cup + 1 tablespoon", pickNew: true).Should().Be(LineJudgement.Better);
+            var bothCounted = new LineJudgeCase(0, "Cake", "3 lemons", string.Empty, new LineJudgeRow("lemons", 3, "Piece"), new LineJudgeRow("lemons", 4, "Piece"));
+            Judge(bothCounted, "ingredient", "3 lemons", pickNew: true).Should().Be(LineJudgement.Unclear);
+        }
+
+        [Fact]
         public async Task The_line_judge_asks_the_batch_host_with_its_schema()
         {
-            var handler = new Capture("{\"message\":{\"content\":\"{\\\"results\\\":[{\\\"n\\\":1,\\\"verdict\\\":\\\"worse\\\"}]}\"}}");
+            var handler = new Capture("{\"message\":{\"content\":\"{\\\"results\\\":[{\\\"n\\\":1,\\\"source_amount\\\":\\\"1 cup\\\",\\\"right\\\":\\\"both\\\"}]}\"}}");
             var settings = new ConfigurationBuilder().AddInMemoryCollection(new Dictionary<string, string?>
             {
                 ["Ai:BatchOllamaUrl"] = "http://model-host:11434", ["Reprocess:JudgeModel"] = "mistral-nemo:12b",
@@ -220,9 +272,9 @@ namespace Nom.Api.Tests.Services
 
             var verdicts = await judge.JudgeAsync(new[] { new LineJudgeCase(0, "Cake", "1 cup sugar", string.Empty, new LineJudgeRow("sugar", 1, "Cup"), new LineJudgeRow("sugar", 1, "Piece")) });
 
-            verdicts.Single().Judgement.Should().Be(LineJudgement.Worse);
+            verdicts.Single().Judgement.Should().Be(LineJudgement.Same);
             handler.Uri!.ToString().Should().Be("http://model-host:11434/api/chat");
-            handler.Body.Should().Contain("\"model\":\"mistral-nemo:12b\"").And.Contain("\"enum\":[\"better\",\"same\",\"worse\",\"unclear\"]");
+            handler.Body.Should().Contain("\"model\":\"mistral-nemo:12b\"").And.Contain("\"enum\":[\"A\",\"B\",\"both\",\"neither\",\"unsure\"]");
         }
 
         private sealed class Capture : HttpMessageHandler
@@ -628,6 +680,23 @@ namespace Nom.Api.Tests.Services
             ReprocessRuleAudit.GroundedIn(8m, new[] { "two quarts of water", "a cup of sugar" }).Should().BeTrue();
             ReprocessRuleAudit.GroundedIn(4m, new[] { "a cup of sugar", "a quart of water" }).Should().BeTrue();
             ReprocessRuleAudit.GroundedIn(4m, new[] { "a cup of sugar and 1 egg" }).Should().BeFalse("a quart named in another text gives no factor here");
+        }
+
+        [Fact]
+        public void The_rule_audit_reads_a_size_word_before_a_measure_a_can_an_initial_and_the_lines_own_wording()
+        {
+            ReprocessRuleAudit.GroundedIn(1m, new[] { "Add a scant teaspoonful of table salt." }, new[] { "Salt" }).Should().BeTrue();
+            ReprocessRuleAudit.GroundedIn(1m, new[] { "scant cup of water" }).Should().BeTrue();
+            ReprocessRuleAudit.GroundedIn(1m, new[] { "Turn a can of tomatoes into a stew-pan." }, new[] { "Tomatoes" }).Should().BeTrue();
+            ReprocessRuleAudit.GroundedIn(1m, new[] { "Fry it in a large pan." }, new[] { "Butter" }).Should().BeFalse("a pan is no measure");
+            ReprocessRuleAudit.MethodSentences(new[] { "Strew over it a teaspoonful of J. P. Smith's Curry Powder. Serve hot." }, "Curry Powder", "J. P. Smith's Curry Powder")
+                .Should().Equal("Strew over it a teaspoonful of J. P. Smith's Curry Powder.");
+            ReprocessRuleAudit.MethodSentences(new[] { "Boil four sweetbreads. Chop the mushrooms." }, "Veal, variety meats and by-products, thymus, raw", "sweetbreads")
+                .Should().Equal("Boil four sweetbreads.");
+            ReprocessRuleAudit.CountsMeasure(2m, new[] { "add two large spoonfuls of butter, and keep on the stove" }, new[] { "Butter" }).Should().BeTrue();
+            ReprocessRuleAudit.CountsMeasure(2m, new[] { "Beat 2 eggs with 2 cups of milk." }, new[] { "Eggs" }).Should().BeFalse("the cups are the milk's");
+            ReprocessRuleAudit.AddsPart(1m, 1.5m, new[] { "Take a pound and a half of grated bread and two pounds of liver." }, new[] { "bread" }).Should().BeTrue();
+            ReprocessRuleAudit.AddsPart(2m, 2.5m, new[] { "Take a pound and a half of grated bread and two pounds of liver." }, new[] { "liver" }).Should().BeFalse();
         }
 
         [Fact]

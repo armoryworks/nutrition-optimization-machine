@@ -1,4 +1,4 @@
-# Prose check v5
+# Prose check v6
 
 A scraped recipe's method and description are shown only in our own words. The prose check decides
 whether a text is our own: it compares a rewrite with the stored source (`recipe.ScrapedDocument`) by
@@ -12,6 +12,10 @@ recipe: they mark it **unsure**, a third outcome that withholds nothing. Version
 (`ProseCheck.Version = 5`, the staging checkpoint 4 round, "Check v5" below) makes each fact rule
 earn the right to fail a recipe: a fact rule is a class with its own judged rows, and fails a recipe
 only while those rows prove it (see "Fact classes"); until then its faults mark the recipe unsure.
+Version 6 (`ProseCheck.Version = 6`, the staging checkpoint 5 round, "Check v6" below) gives the copy
+rule two lines per measure instead of one, set on the judged rows: under every lower line a text is
+not copied, over any upper line it is copied, and between them it is **copy-unsure**, a fourth
+outcome that is withheld like a copy.
 The re-check and the rewrite
 lane call the same function, so they always agree. The re-check runs it (see "The withheld state"
 below), and so does the clean-room rewrite lane (prose lane v2, `prose-lane.md`) on every rewrite
@@ -23,7 +27,8 @@ stock-index version it ran with, and its outcome (`Finding.Outcome`):
 
 | Outcome | When | What happens |
 |---|---|---|
-| `failed` (`Finding.Failed`) | a copy rule or a form rule is broken, or a fact rule whose class is proven (`ProseCheck.ProvenClasses`) | the re-check withholds the prose; the lane tries again |
+| `failed` (`Finding.Failed`) | a copy measure at or over its copied line, a form rule broken, or a fact rule whose class is proven (`ProseCheck.ProvenClasses`) | the re-check withholds the prose; the lane tries again |
+| `copy-unsure` (`Finding.CopyUnsure`, also `Failed`) | no copied line reached, but a copy measure at or over its copy-unsure line, and nothing else that fails | withheld like a copy, journaled with its measures, marked `Recipe.ProseCopyUnsure` and counted apart on the Pipeline page; the rewrite lane rewrites it |
 | `unsure` (`Finding.Unsure`) | only weak signals (`ProseCheck.UnsureReasons`: `lost-step`, `out-of-order`, `added-quantity`, `too-short`, `too-long`) and faults of fact classes not proven (`Finding.UnprovenReasons`) | the prose stays shown, is marked `Recipe.ProseUnsure` and counted on the Pipeline page; it is the prose judge's to read (in the lane, the judge reads it like any rewrite) |
 | `passed` (`Finding.Passed`) | no fault at all | shown |
 
@@ -43,28 +48,28 @@ included (v3 weighed them at half, which let copied sentences through an ingredi
 (`ProseCheck.InSourceOrder`: each placed where its best close stretch ends in the source, sentences
 that follow none last), so no measure depends on the order of the rewrite's sentences either: a copy
 whose sentences are shuffled, cut one per step or merged into one step measures the same. Each test
-looks for passages anywhere in the two streams:
+looks for passages anywhere in the two streams. Six measures (`ProseCheck.CopyMeasures`, on every
+finding as `Finding.Measures`):
 
-- **Run:** no common run (words the two streams share in order) of 16 words or more (`CopiedRun`).
-- **Close stretch:** no stretch of the rewrite that follows the source in order with a score of 44.5
-  or more (`CloseStretchLimit`), or of 15 or more (`MinimumStretchForShare`) that reaches 0.4 of the
-  rewrite's word count (`CloseStretchShare`, for short methods). Each word kept in order adds 1 and
-  each word changed, added or dropped costs 1.5 (`StretchPenalty`): a local alignment of the two
-  streams (Smith-Waterman), so it needs no run of any length. It catches the close paraphrase that
-  changes a word every few words, and a one-block source cut into short sentences nearly word for word
-  (checkpoint 3, 36371).
-- **Share:** in a rewrite of 40 words or more (`MinimumWordsForShare`), the words that sit in common
-  runs of 7 words or more (`SharedRun`) make up less than 0.42 of the rewrite (`MaximumCopiedShare`).
-- **Description:** the two descriptions share no run of 11 words or more (`DescriptionRun`).
-- **Sentence:** no rewrite sentence of 15 words or more (`SentenceWords`) matches a source sentence at
-  0.92 of its words in order (`SentenceSimilarity`, the longest common subsequence over the longer of
-  the two).
-- Stock phrases count like any other words (review CK4P-3): the limits were set and are measured with
+| Measure | What it reads | Copy-unsure line (`CopyUnsureLimits`) | Copied line (`CopiedLimits`) |
+|---|---|---|---|
+| Run | the longest common run (words the two streams share in order) | 16 | 17 |
+| Stretch | the score of the stretch of the rewrite that follows the source most closely in order: each word kept adds 1, each word changed, added or dropped costs 1.5 (`StretchPenalty`), a local alignment (Smith-Waterman) that needs no run of any length | 17.1 | 57 |
+| Stretch share | the stretch's score over the rewrite's word count, for a stretch of 15 or more (`MinimumStretchForShare`); 0 for a smaller one | 0.4 | 0.41 |
+| Share | in a rewrite of 40 words or more (`MinimumWordsForShare`), the share of its words inside common runs of 7 words or more (`SharedRun`); 0 for a shorter one | 0.169 | 0.433 |
+| Description run | the longest run the two descriptions share | 9 | 16 |
+| Sentence | the closest a rewrite sentence of 15 words or more (`SentenceWords`) comes to a source sentence: the longest common subsequence over the longer of the two | 0.865 | 0.951 |
+
+- A measure at or over its copied line is `copied-text` (`Finding.Copied`), the detail naming the
+  passage. Steps word for word equal to the source method are `unchanged`.
+- Otherwise a measure at or over its copy-unsure line is `copy-unsure` (`ProseCheck.CopyUnsure`), one
+  fault whose detail lists every measure over its line and all six measures.
+- Under every copy-unsure line the text is not copied.
+- Stock phrases count like any other words (review CK4P-3): the lines were set and are measured with
   no stock excuse.
-- Steps word for word equal to the source method are `unchanged`.
 
-All copy rules report `copied-text` (`Finding.Copied`). How the limits were set and what they miss is
-in "Check v4".
+`copy-unsure` is one of `ProseCheck.CopyReasons`, fails the rewrite (`Finding.Failed`) and is withheld,
+but it is not `Finding.Copied`. How the two lines were set is in "Check v6".
 
 ### 2. Facts (fail the rewrite while their class is proven)
 
@@ -273,8 +278,10 @@ before an apply.
   at most 5 % of faithful rows
   (`The_check_refuses_every_constructed_fault_its_rules_decide_marks_every_weak_signal_fault_unsure_and_rejects_at_most_5_percent_of_faithful_rewrites`),
   and a fault row for every rule.
-- `prose-check.tsv`: the 200 recipes read against their source at staging checkpoints 2 and 3 (at
-  each, 40 the re-check failed and 40 it passed) and 4 (40 it failed), one row each, referred to by staging recipe id: the
+- `prose-check.tsv`: the 320 recipes read against their source at staging checkpoints 2 and 3 (at
+  each, 40 the re-check failed and 40 it passed), 4 (40 it failed) and 5 (40 it failed, 40 it passed
+  and 40 it was unsure of; `ck5-`, column `v5`), one row each, with the copy judgement of each in
+  column `copy` (`copy`, `doubtful` or `not`; see "Check v6"), referred to by staging recipe id: the
   whole stored source description and method and the whole shown rewrite (check v4's length and share
   tests read the whole text, so the excerpts of the v3 rows were replaced by the whole texts), the
   ingredient lines it reads, `expect`, `verdict` (the operator's reading), `v2`, `v3` and `v4` (the
@@ -342,6 +349,21 @@ meal plans.
   person as its last editor (a save that sends a step unchanged leaves its editor as it was), and a
   recipe with a `ProseWithholdEnd` row counts as edited by a person, so neither the re-check nor the
   marker cleanup touches the person's own method.
+- **Copy-unsure is withheld.** A recipe whose copy measures sit between the two lines is withheld
+  like a copy: showing a publisher's wording is the costly error, and a withheld recipe still shows its
+  key facts, its lines and the source link. Its `ProseWithhold` journal row reads
+  "check N stock M: copy-unsure: finding | measures run R, stretch S, stretch share T, share H, description run D,
+  sentence C, words W" (every withhold row now names the outcome and the measures), the recipe is
+  marked `Recipe.ProseCopyUnsure`, and the Pipeline page counts it as its own figure of the withheld
+  ("Of those, withheld as copy-unsure (approved)", `data-testid`
+  `pipeline-metric-recipes-prose-copy-unsure`); the dry run counts it in `failed` and apart in
+  `copyUnsure` and `copyUnsureApproved` (`failedByReason` `copy-unsure`), the apply in
+  `withheldCopyUnsure`. The undo releases it like any withhold and clears the mark; so does a person's
+  own method ending the withhold, and a facts-only withhold clears any mark an earlier withhold left,
+  so a recipe held for another reason is never counted as copy-unsure (review CK10-R2). A lane rewrite
+  that ends the withhold leaves the mark, which is read only while the recipe is withheld, so the lane's
+  undo, which restores that withhold, restores it as copy-unsure. The rewrite lane
+  reads every withheld recipe, so copy-unsure recipes are its queue with no change to the lane.
 - **Unsure is not withheld.** A recipe the check is only unsure of (weak signals only, see "Rules")
   stays shown. The re-check marks it `Recipe.ProseUnsure` and journals each mark and each clearing as
   `ProseUnsure` (old value, then "true | check N stock M: finding" or "false | check N stock M: why":
@@ -427,6 +449,76 @@ and myplate included, so its total is larger than the analysis figure of about 3
 recipes, which counted only shown recipes of unknown licence; `stepsByLicence`, `recipesByLicence`,
 `stepsShownUnknownLicence` and `recipesShownUnknownLicence` split the count so the two can be
 compared.
+
+## Check v6
+
+Staging checkpoint 5 ran v5's re-check dry run over 21,377 shown recipes: 7,208 failed (33.7 %, all
+`copied-text`), 9,082 were unsure (42.5 %) and 5,087 passed (23.8 %). The operator read 40 of each:
+the failures were right (0 false), but 4 of 40 passes copied their source (60214, 24134, 31704,
+63162: a light edit of every sentence), 11 more were doubtful, and 2 of the 3 unsure recipes read in
+full were copies (31735, 62797; finding Q9, high, and Q10). The copy measures of the passes (runs 5
+to 17, 5-gram shares 0.02 to 0.33) overlap those of the failures (11 to 38, 0.09 to 0.47), so no
+single line separates copies from faithful rewrites: a light edit of every sentence stays under each
+line of v5 (run 16, stretch 44.5, share 0.42, description run 11, sentence 0.92) while a failure of the
+same closeness meets one.
+
+v6 therefore draws two lines per measure from the judged rows and calls the band between them
+copy-unsure:
+
+- **Judged rows.** All 120 checkpoint 5 rows were added to `prose-check.tsv` (`ck5-`), masked as
+  before, with a `copy` judgement on every one of the 320 rows: `copy`, `doubtful` or `not`. Old rows
+  take it from `expect` (a copy reason is `copy`, anything else `not`), except 7 checkpoint 2 to 4 rows
+  judged on facts whose copy measures v5 already failed and which follow the source with light edits
+  (`doubtful`). New rows keep the operator's reading where the operator read them (copy, clean, right);
+  the 14 rows the operator left doubtful and the 37 unsure rows the operator judged by the measures
+  only were read in full by the ck10 builder (`agent-review-ck10-2026-11-23`): copy when the text
+  follows the source sentence after sentence with a word or two changed, a long sentence kept nearly
+  whole or the description kept; doubtful when several sentences, often with their lists, are light
+  edits and the rest rephrased; not otherwise. Two rows the operator called clean after reading two
+  steps (37510, 36162) were read in full and are doubtful. Totals: 117 copies, 25 doubtful, 178 not.
+- **Copied lines** (`CopiedLimits`): just above the highest value of each measure on any row judged
+  not a copy or doubtful (run 16, stretch 56.5, share 0.432, description run 15, sentence 0.95), so no
+  judged non-copy is called copied.
+- **Copy-unsure lines** (`CopyUnsureLimits`): chosen so that every row judged a copy or doubtful
+  reaches at least one line with a margin (`CopyUnsureMargin` 0.9: its value times 0.9 is still at or
+  over the line), with as few rows judged not a copy over a line as the lines allow (a search over the
+  lines each copy row could set). Taking the lowest value any copy has on every measure at once, as the
+  plain reading of "below every copy" would, withholds all 178 non-copies: a copy caught only by its
+  description has a run of 6, and one caught only by its run has a description run of 0.
+- **The price.** 94 of the 178 rows judged not a copy (52.8 %) land in the band and are withheld; 24 of
+  the 51 of checkpoint 5 (47 %). On the rows: 0 of 142 copies and doubtful pass the copy rule, 0 of 79
+  failed or copied verdicts are false, no non-copy is copied.
+- **Staging estimate** (checkpoint 5's samples applied to its run; the 40 passes were drawn from the
+  2,843 certain passes, approved or with an id up to 50,971, so the pass figures lean on those): of
+  the 7,208 failures 34 of 40 stay copied and 6 become copy-unsure; of the 9,082 unsure 24 of 40 become
+  copy-unsure and 16 stay unsure on facts; of the 5,087 passes 29 of 40 become copy-unsure and 11 pass.
+  About 6,100 copied (29 %), 10,200 copy-unsure (48 %), 3,600 unsure on facts and shown (17 %) and
+  1,400 passed (6.5 %): about 16,300 withheld (76 %), against 7,208 under v5.
+
+**Stretch share (review CK10-R1).** v5 also called a stretch of 15 or more that covers 0.4 of the
+rewrite's words copied; v6 as first built dropped it, so a short method of short sentences kept but
+for one word (an 18-word drink method: run 9, stretch 15.5, no share under 40 words, no sentence of
+15 words) passed. The stretch share puts it back as a sixth measure: its copy-unsure line is v5's 0.4,
+above every row judged not a copy (highest 0.309), so it adds nothing to the price; its copied line is
+0.41, just above the highest doubtful row (0.409). On the rows it moves one copy from copy-unsure to
+copied (79 failed or copied verdicts, 0 false) and the constructed close paraphrase `k4-swap` of
+`prose.tsv` back to `copied-text`; the checkpoint 5 rows and so the staging estimate are unchanged.
+
+The two lines are a fit to these rows; the next staging reading is their held-out test. The golden
+test `The_two_copy_lines_sit_where_the_judged_rows_put_them` refuses lines that no longer sit where the
+rows put them (a copied line at or under a non-copy's value, or a copy or doubtful row that reaches no
+copy-unsure line by the margin) and prints the price; adding judged rows means setting the lines again.
+
+**Facts on the new rows.** Every fact firing on the 120 rows was judged (`classes`). Of the 34
+`lost-quantity` firings, 25 are right, 7 false (an aside or tip, a bracketed conversion, a range
+restated, a "1-cup measuring cup", an example pan) and 2 doubtful; `lost-ingredient` 1 of 6 right
+("vegetables of your choice", "ingredients", "a splash of olive oil" read as olives); `wrong-amount`
+5 of 6, `changed-range` 1 of 2. The committed record (`--prose-classes --record`, check 6) now holds
+`lost-quantity` at 55 of 65 checkpoint-judged rows (84.6 %, below 95 %), `wrong-amount` 10 of 11,
+`lost-ingredient` 3 of 8, `changed-range` 4 of 5: no class is proven, so fact faults still only mark a
+recipe unsure. With every class taken as proven 7 of 132 verdicts would be false, so that figure is
+shown by the golden test and no longer held as a bar. Fact-unsure recipes stay shown, marked
+(`ProseUnsure`), counted, and are the prose judge's queue.
 
 ## Check v5
 
@@ -683,16 +775,14 @@ not stable.
 
 1. Rebuild the stock index as a dry run: it must read about 21,954 documents on 17 sites (the
    2026-11-20 analysis), then apply.
-2. Re-check dry run (`version=5`): with no fact class proven (the committed record), only copies and
-   form fail: expect about a third of the shown recipes to fail (checkpoint 4's v4 run had 7,208
-   `copied-text` failures of 21,377, 33.7 %), `failedByReason` holding only `copied-text`,
-   `unchanged`, `step-marker` and `empty-step`, and the v4 fact failures that were not copies (about
-   5,700) among the unsure, with `lost-quantity`, `wrong-amount`, `changed-range`, `changed-unit` and
-   `lost-ingredient` in `unsureByReason` beside `lost-step`. Record the totals per reason and the
-   approved count; read 40 failures, 40 passes and 20 unsure at random against their source: no pass
-   and no unsure recipe may copy its source, and at most 2 of the 40 failures may be false. Any wrong
-   verdict becomes a row of `prose-check.tsv`, masked the same way, the readable row to the staging
-   evidence.
+2. Re-check dry run (`version=6`): with no fact class proven (the committed record), only copies,
+   copy-unsure and form fail: expect about 6,100 `copied-text` and about 10,200 `copy-unsure`
+   (`copyUnsure`, `copyUnsureApproved`) of 21,377, about 3,600 unsure on facts and about 1,400 passed
+   (see "Check v6"). Record the totals per reason and the approved counts; read 40 failures, 40
+   copy-unsure, 40 passes and 40 unsure at random against their source: no pass and no unsure recipe
+   may copy its source, and at most 2 of the 40 failures may be false. Judge the copy-unsure ones too
+   (copy, doubtful or not): that is the held-out price. Any wrong verdict becomes a row of
+   `prose-check.tsv`, masked the same way, the readable row to the staging evidence.
 3. Note the time T, apply with `maxRecipes=200`, and check as an anonymous user in the app at phone
    width: the recipe is found in search, its page shows key facts and the source link and no
    description or steps, and a meal plan can pick it. Then undo from T: `restored` 200, `skipped` 0,

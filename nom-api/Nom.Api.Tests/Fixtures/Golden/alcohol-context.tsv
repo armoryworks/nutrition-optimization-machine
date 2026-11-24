@@ -220,3 +220,17 @@ ac-218	1/4 cup Grand Marnier orange liqueur	-	-	no	liqueur	-	-	ok	rule:construct
 ac-219	2 tbsp Cointreau orange liqueur	-	-	no	liqueur	-	-	ok	rule:construction	review CK9S-3: the fruit word names the liqueur's flavour; the line is pure liqueur
 ac-220	1 tablespoon kirsch cherry brandy	-	-	no	liqueur	-	-	ok	rule:construction	review CK9S-3: kirsch is a cherry brandy; the fruit word before "brandy" names the brandy, not a fruit kept in it
 ac-221	1/2 cup brandy cherries, drained	-	-	no	dish	-	174815	ok	rule:construction	P21: a drink word before a fruit with no drink word after it is the fruit kept in the drink
+ac-ck10s-01	calomel washed in spirits of wine one pound	-	-	no	not-food	-	174815	ok	rule:construction	staging checkpoint 5, Q17: calomel is a medicine; washed in a drink it is not the drink, and not food
+ac-ck10s-02	Burgundy pitch	-	-	no	dish	-	173190	ok	rule:construction	staging checkpoint 5, Q17: a place's drink name before another thing (a resin) names that thing, not the wine; read as a dish, it is never linked to the wine and the diet gate still counts it
+ac-ck10s-03	three Bordeaux pigeons (trimmed) in halves	-	-	no	dish	-	173190	ok	rule:construction	staging checkpoint 5, Q17: Bordeaux before pigeons names the birds, not the wine
+ac-ck10s-04	rum-soaked pineapple	-	-	no	dish	-	174817	ok	rule:construction	staging checkpoint 5, Q17: a drink word with "-soaked" before a fruit is the fruit kept in the drink
+ac-ck10s-05	drained cherries preserved in brandy	-	-	no	dish	-	174815	ok	rule:construction	staging checkpoint 5, Q17: fruit preserved in a drink is the fruit (P21's class with the drink after it)
+ac-ck10s-06	1 cup Burgundy wine	-	-	no	wine-red	173190	-	ok	rule:construction	staging checkpoint 5, Q17 boundary: a place word before "wine" is the wine
+ac-ck10s-07	1 bottle Champagne brut	-	-	no	wine-white	-	-	ok	rule:construction	staging checkpoint 5, Q17 boundary: a style word after the place word keeps the drink
+ac-ck10s-08	1/2 cup Marsala, divided	-	-	no	fortified	-	-	ok	rule:construction	staging checkpoint 5, Q17 boundary: a comma ends the drink's name
+ac-ck10s-09	1/4 cup Marsala divided	-	-	no	fortified	-	-	ok	rule:construction	staging checkpoint 5, Q17 boundary: a participle after the place word is no other thing
+ac-ck10s-10	1 cup Burgundy Pinot Noir	-	-	no	wine-red	-	-	ok	rule:construction	staging checkpoint 5, Q17 boundary (review CK10S-3): a grape after the place word names the wine, not another thing
+ac-ck10s-11	1/2 cup Sauternes dessert wine	-	-	no	fortified-sweet	-	-	ok	rule:construction	staging checkpoint 5, Q17 boundary (review CK10S-3): a wine noun after the place word keeps the drink (the sweet-wine sense the rules give Sauternes)
+ac-ck10s-12	1 cup Burgundy table wine	-	-	no	wine-red	-	-	ok	rule:construction	staging checkpoint 5, Q17 boundary (review CK10S-3): "table wine" after the place word is the wine
+ac-ck10s-13	2 cups Rioja Tempranillo	-	-	no	wine-red	-	-	ok	rule:construction	staging checkpoint 5, Q17 boundary (review CK10S-3): a grape after the region is the wine
+ac-ck10s-14	1 cup vodka infused with lemon peel	-	-	no	vodka	-	-	ok	rule:construction	staging checkpoint 5, Q17 boundary (review CK10S-3): a drink infused with something is still the drink; only a participle before a food makes a soaked food

@@ -432,14 +432,22 @@ namespace Nom.Orch.Services
         }
 
         /// <summary>The diet guard over the default restriction types and every stored type's pattern criteria (<see cref="RecheckDietGuard"/>).</summary>
-        private async Task<RecheckDietGuard> DietGuardAsync(CancellationToken cancellationToken)
+        private Task<RecheckDietGuard> DietGuardAsync(CancellationToken cancellationToken) => LineMoveDietGuard.RecheckGuardAsync(_db, cancellationToken);
+
+        /// <summary>The line entries whose undo the diet guard would hold (<see cref="LineMoveDietGuard"/>): what the apply's undo sweep holds, read without writing.</summary>
+        private async Task<HashSet<long>> HeldTakingBackAsync(List<AuditLogEntryEntity> entries, CancellationToken cancellationToken)
         {
-            var typeIds = await _db.Set<RestrictionCriterionEntity>().AsNoTracking()
-                .Where(c => c.IngredientPattern != null)
-                .Select(c => c.RestrictionTypeId)
-                .Distinct()
-                .ToListAsync(cancellationToken);
-            return RecheckDietGuard.For(await DietCriteriaMatcher.CriteriaAsync(_db, typeIds));
+            var held = new HashSet<long>();
+            if (entries.Count == 0) return held;
+            var guard = await LineMoveDietGuard.LoadAsync(_db, cancellationToken);
+            var trail = await RecipeOrderTrail.LoadAsync(_db, entries.Select(a => a.EntityId).Distinct());
+            foreach (var entry in entries)
+            {
+                if (LineRelinkService.ReadPlace(entry.OldValue) is not { } was || LineRelinkService.ReadPlace(entry.NewValue) is not { } now
+                    || trail.Follow(entry.EntityId, now.IngredientId, now.SortOrder, entry.Timestamp) is not { } from) continue;
+                if (await guard.HoldsAsync(_db, entry.EntityId, now.IngredientId, from, was.IngredientId)) held.Add(entry.Id);
+            }
+            return held;
         }
 
         private static void Tally(LinkRecheckResult result, List<Decided> decisions, int sampleSize)
@@ -804,7 +812,7 @@ namespace Nom.Orch.Services
                             moved++;
                             continue;
                         }
-                        var position = await RecipeLineRowWriter.MoveAsync(_db, line.RecipeId, line.FoodId, line.SortOrder, target, line.SortOrder, personId);
+                        var position = await RecipeLineRowWriter.MoveAsync(_db, LineMoveDietGuard.Decided, line.RecipeId, line.FoodId, line.SortOrder, target, line.SortOrder, personId);
                         if (position == null)
                         {
                             result.LinesSkipped++;
@@ -1164,9 +1172,12 @@ namespace Nom.Orch.Services
             result.OnRebuiltRecipes = lineEntries.Count(a => a.EntityType == LineRelinkService.RelinkEntityType && rebuilt.TryGetValue(a.EntityId, out var at) && at > a.Timestamp);
 
             var personId = _currentUser.PersonIdOrSystem;
+            var held = new HashSet<long>();
             if (!apply)
             {
-                result.LinesRestored = result.LineEntries - result.OnRebuiltRecipes;
+                held = await HeldTakingBackAsync(lineEntries.Where(a => a.ChangeType == LineChangeType && !(rebuilt.TryGetValue(a.EntityId, out var at) && at > a.Timestamp)).ToList(), cancellationToken);
+                result.HeldByDiet = held.Count;
+                result.LinesRestored = result.LineEntries - result.OnRebuiltRecipes - held.Count;
                 result.NamesRestored = lineEntries.Count(a => a.ChangeType == LineRelinkService.RetireChangeType);
             }
             else if (lineEntries.Count > 0)
@@ -1175,12 +1186,13 @@ namespace Nom.Orch.Services
                 result.LinesRestored = undone.Restored;
                 result.SkippedRebuilt = undone.SkippedRebuilt;
                 result.Skipped = undone.Skipped;
+                result.HeldByDiet = undone.HeldByDiet;
                 var left = lineEntries.Select(a => a.Id).ToList();
                 result.NamesRestored = lineEntries.Count(a => a.ChangeType == LineRelinkService.RetireChangeType) - await _db.AuditLogEntries.CountAsync(a => left.Contains(a.Id) && a.ChangeType == LineRelinkService.RetireChangeType, cancellationToken);
                 _db.ChangeTracker.Clear();
             }
 
-            var restoredLines = lineEntries.Where(a => a.ChangeType == LineChangeType && !(rebuilt.TryGetValue(a.EntityId, out var at) && at > a.Timestamp))
+            var restoredLines = lineEntries.Where(a => a.ChangeType == LineChangeType && !(rebuilt.TryGetValue(a.EntityId, out var at) && at > a.Timestamp) && !held.Contains(a.Id))
                 .Select(a => LineRelinkService.ReadPlace(a.NewValue)).Where(p => p != null).GroupBy(p => p!.Value.IngredientId).ToDictionary(g => g.Key, g => g.Count());
 
             await using (var tx = apply && _db.Database.IsRelational() ? await _db.Database.BeginTransactionAsync(cancellationToken) : null)

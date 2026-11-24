@@ -66,7 +66,37 @@ public class SourceDiscoveryRunEntityConfiguration : IEntityTypeConfiguration<So
         builder.Property(e => e.CandidatesExcluded).HasDefaultValue(0);
         builder.Property(e => e.CandidatesExcludedJson).HasColumnType("jsonb");
         builder.Property(e => e.ExcludeNote).HasMaxLength(1023);
+        builder.Property(e => e.RefusingHosts).HasDefaultValue(0);
+        builder.Property(e => e.RefusingHostsJson).HasColumnType("jsonb");
 
         builder.HasIndex(e => e.StartedUtc);
+    }
+}
+
+public class SourceRightsRecordEntityConfiguration : IEntityTypeConfiguration<SourceRightsRecordEntity>
+{
+    public void Configure(EntityTypeBuilder<SourceRightsRecordEntity> builder)
+    {
+        builder.ToTable("SourceRightsRecord", schema: "recipe");
+
+        builder.Property(e => e.Host).IsRequired().HasMaxLength(253);
+        builder.Property(e => e.RightsClass).IsRequired().HasMaxLength(24);
+        builder.Property(e => e.Quote).IsRequired().HasMaxLength(1023);
+        builder.Property(e => e.QuoteUrl).IsRequired().HasMaxLength(2047);
+        builder.HasIndex(e => e.Host);
+    }
+}
+
+public class SourceRefusingHostEntityConfiguration : IEntityTypeConfiguration<SourceRefusingHostEntity>
+{
+    public void Configure(EntityTypeBuilder<SourceRefusingHostEntity> builder)
+    {
+        builder.ToTable("SourceRefusingHost", schema: "recipe");
+
+        builder.Property(e => e.Host).IsRequired().HasMaxLength(253);
+        builder.HasIndex(e => e.Host).IsUnique();
+        builder.Property(e => e.LastUrl).HasMaxLength(2047);
+        builder.Property(e => e.LastBotChallenge).HasDefaultValue(false);
+        builder.Property(e => e.ReleasedNote).HasMaxLength(1023);
     }
 }

@@ -418,5 +418,58 @@ namespace Nom.Api.Tests.Services
 
             (await db.RecipeIngredients.AsNoTracking().SingleAsync(ri => ri.RecipeId == recipe && ri.SortOrder == 0)).Quantity.Should().Be(0m);
         }
+
+        [Theory]
+        [InlineData("reference", true)]
+        [InlineData("equipment", true)]
+        [InlineData("ingredient", true)]
+        [InlineData("note", false)]
+        public async Task The_amount_the_method_states_fills_a_line_of_a_kind_that_takes_one_and_a_note_is_held_with_its_reason(string kind, bool filled)
+        {
+            using var db = await NewContextAsync();
+            var foods = await FoodsAsync(db, "Brown Sauce", "Pigeons");
+            var recipe = await RecipeAsync(db, foods, new[] { "Make two cups of Brown Sauce and pour it over the pigeons." },
+                ("Brown Sauce", 0, 0m, Gram, "Brown Sauce", kind), ("Pigeons", 1, 4m, Piece, "4 pigeons", null));
+
+            var batch = await new ScrapedRecipeRepairService(db, new RecipeVettingService()).RepairBatchAsync(0, 500);
+
+            var line = await db.RecipeIngredients.AsNoTracking().SingleAsync(ri => ri.RecipeId == recipe && ri.SortOrder == 0);
+            (line.Quantity, line.MeasurementId, line.LineKind).Should().Be(filled ? (2m, Cup, kind) : (0m, Gram, kind));
+            (batch.GuardReplaced, batch.GuardHeld).Should().Be(filled ? (1, 0) : (0, 1));
+            var holds = await db.LineGuardHolds.AsNoTracking().ToListAsync();
+            if (filled)
+            {
+                holds.Should().BeEmpty();
+                return;
+            }
+            batch.GuardHeldByReason.Should().Equal(new Dictionary<string, int> { [LineAmountGuard.Reasons.Kind] = 1 });
+            var hold = holds.Single();
+            (hold.Origin, hold.Reason, hold.RawLine, hold.StoredKind, hold.StoredQuantity, hold.RebuiltQuantity, hold.RebuiltUnit, hold.RebuiltFromMethod)
+                .Should().Be((LineGuardHoldOrigin.StartupFill, LineAmountGuard.Reasons.Kind, "Brown Sauce", "note", 0m, 2m, "Cup", true));
+        }
+
+        [Fact]
+        public async Task A_held_line_is_stored_once_through_restarts_and_released_when_the_guard_no_longer_holds_it()
+        {
+            using var db = await NewContextAsync();
+            var foods = await FoodsAsync(db, "Brine", "Pork");
+            var recipe = await RecipeAsync(db, foods, new[] { "Make a cup of brine and pour it over the pork." },
+                ("Brine", 0, 0m, Gram, "brine", "note"), ("Pork", 1, 2m, Pound, "2 lb pork", null));
+
+            await RestartAsync(db, 3);
+
+            var hold = await db.LineGuardHolds.AsNoTracking().SingleAsync();
+            (hold.RecipeId, hold.ResolvedAt).Should().Be((recipe, (DateTime?)null));
+
+            var row = await db.RecipeIngredients.SingleAsync(ri => ri.RecipeId == recipe && ri.SortOrder == 0);
+            row.LineKind = "ingredient";
+            await db.SaveChangesAsync();
+            db.ChangeTracker.Clear();
+            await RestartAsync(db, 1);
+
+            (await db.RecipeIngredients.AsNoTracking().SingleAsync(ri => ri.RecipeId == recipe && ri.SortOrder == 0)).Quantity.Should().Be(1m);
+            var released = await db.LineGuardHolds.AsNoTracking().SingleAsync();
+            (released.ResolvedAt != null, released.Resolution).Should().Be((true, LineGuardHolds.Released));
+        }
     }
 }

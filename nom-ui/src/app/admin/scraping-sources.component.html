@@ -179,6 +179,13 @@
                           data-testid="scraping-source-rights-class">
                       {{ source.rightsClass ?? 'no rights class yet' }}
                     </span>
+                    @if (source.rightsRecord; as rec) {
+                      <span class="nom-scraping-sources__notes nom-scraping-sources__warn" data-testid="scraping-source-rights-by-hand">
+                        Recorded by hand by person {{ rec.recordedByPersonId }} on {{ rec.recordedAtUtc | date: 'mediumDate' }} (read {{ rec.readOn | date: 'mediumDate' }}); the source lane never changes it{{ rec.rightsClass === 'forbidden' || rec.rightsClass === 'permission-needed' ? ' and nothing fetches the site' : '' }}.
+                      </span>
+                    } @else if (source.rightsClass) {
+                      <span class="nom-scraping-sources__notes" data-testid="scraping-source-rights-by-lane">Derived by rule from its check.</span>
+                    }
                     @if (source.rightsQuote) {
                       <span class="nom-scraping-sources__notes" data-testid="scraping-source-rights-quote">
                         “{{ source.rightsQuote }}”
@@ -315,7 +322,7 @@
                       Pause harvesting
                     </button>
                   }
-                  @if (source.recheckSkipped || !source.rightsClass) {
+                  @if (!source.rightsRecordId && (source.recheckSkipped || !source.rightsClass)) {
                     <button mat-button (click)="termsCheck(source)" [disabled]="processing() || termsCheckWaiting(source)" data-testid="scraping-source-terms-check-btn">
                       <mat-icon>policy</mat-icon>
                       Start terms-only check
@@ -431,6 +438,81 @@
           }
         </div>
       }
+
+      <h3 class="nom-scraping-sources__heading" data-testid="scraping-sources-by-hand-heading">Classes recorded by hand</h3>
+      <p class="nom-scraping-sources__hint" data-testid="scraping-sources-by-hand-hint">
+        Record what a site's own words already say, so it is classed without a request to it: the class, the deciding words
+        quoted, the page they stand on and the day you read them. It holds every row of the host (with and without www.) and a
+        candidate or a host NOM has no row for yet. The source lane never changes it; a forbidden or permission-needed host is
+        never fetched or checked and is excluded from every discovery run. It may be as strict as the class the check gave or
+        stricter, never laxer, and clear only beside a recorded written permission. Undo it from its journal entry.
+      </p>
+      @if (rightsRecords().length === 0) {
+        <p class="nom-scraping-sources__hint" data-testid="scraping-sources-by-hand-empty">No class is recorded by hand.</p>
+      } @else {
+        <ul class="nom-scraping-sources__plain-list" data-testid="scraping-sources-by-hand-list">
+          @for (rec of rightsRecords(); track rec.id) {
+            <li data-testid="scraping-sources-by-hand-item">
+              <strong>{{ rec.host }}</strong> ({{ rec.rightsClass }}, by hand): “{{ rec.quote }}” —
+              <a [href]="rec.quoteUrl" target="_blank" rel="noopener" data-testid="scraping-sources-by-hand-link">{{ rec.quoteUrl }}</a>
+              <span class="nom-scraping-sources__item-meta">
+                read {{ rec.readOn | date: 'mediumDate' }} · recorded by person {{ rec.recordedByPersonId }} on {{ rec.recordedAtUtc | date: 'mediumDate' }}
+                · {{ rec.sources.length ? 'sources ' + rec.sources.join(', ') : 'no source row' }}{{ rec.candidate ? ' · candidate ' + rec.candidate : '' }}
+              </span>
+              @if (rec.journalEntryId) {
+                <button mat-button (click)="withdrawRecord(rec)" [disabled]="processing()" data-testid="scraping-sources-by-hand-undo-btn">
+                  <mat-icon>undo</mat-icon>
+                  Undo
+                </button>
+              }
+            </li>
+          }
+        </ul>
+      }
+      <form class="nom-scraping-sources__hand-form" [formGroup]="byHandForm" (ngSubmit)="recordByHand(false)" data-testid="scraping-sources-by-hand-form">
+        <mat-form-field appearance="outline">
+          <mat-label>Host</mat-label>
+          <input matInput formControlName="host" placeholder="www.example.com" data-testid="scraping-sources-by-hand-host" />
+        </mat-form-field>
+        <mat-form-field appearance="outline">
+          <mat-label>Class</mat-label>
+          <mat-select formControlName="rightsClass" data-testid="scraping-sources-by-hand-class">
+            @for (c of handClasses; track c) {
+              <mat-option [value]="c">{{ c }}</mat-option>
+            }
+          </mat-select>
+        </mat-form-field>
+        <mat-form-field appearance="outline">
+          <mat-label>The site's own words, quoted</mat-label>
+          <textarea matInput formControlName="quote" rows="2" data-testid="scraping-sources-by-hand-quote"></textarea>
+        </mat-form-field>
+        <mat-form-field appearance="outline">
+          <mat-label>The page they stand on (URL)</mat-label>
+          <input matInput formControlName="quoteUrl" data-testid="scraping-sources-by-hand-page" />
+        </mat-form-field>
+        <mat-form-field appearance="outline">
+          <mat-label>Read on (date)</mat-label>
+          <input matInput type="date" formControlName="readOn" data-testid="scraping-sources-by-hand-date" />
+        </mat-form-field>
+        @if (byHandError()) {
+          <p class="nom-scraping-sources__warn" data-testid="scraping-sources-by-hand-error">{{ byHandError() }}</p>
+        }
+        @if (byHandResult(); as res) {
+          @if (!res.refused) {
+            <p class="nom-scraping-sources__hint" data-testid="scraping-sources-by-hand-result">
+              {{ res.host }}: {{ res.rightsClass }} {{ res.alreadyRecorded ? 'is already recorded' : res.applied ? 'recorded' : 'would be recorded' }}
+              · {{ res.sources.length }} source(s){{ res.sources.length ? ': ' + byHandSources(res) : '' }}
+              {{ res.candidate ? '· candidate ' + res.candidate + ' (' + (res.candidateClass ?? 'not checked') + ')' : '' }}
+              · {{ res.excluded ? 'excluded from discovery, never fetched' : 'not excluded' }}
+            </p>
+          }
+        }
+        <div class="nom-scraping-sources__actions">
+          <span class="nom-scraping-sources__spacer"></span>
+          <button mat-button type="submit" [disabled]="processing()" data-testid="scraping-sources-by-hand-dry-btn">Dry run</button>
+          <button mat-flat-button type="button" (click)="recordByHand(true)" [disabled]="processing()" data-testid="scraping-sources-by-hand-submit-btn">Record by hand</button>
+        </div>
+      </form>
 
       <h3 class="nom-scraping-sources__heading" data-testid="scraping-sources-taken-heading">Recipes already taken from forbidden or permission-needed sources</h3>
       @if (taken().length === 0) {
@@ -611,11 +693,36 @@
               @if (run.seedsExcluded) {
                 · <span class="nom-scraping-sources__warn" data-testid="scraping-sources-run-seeds-excluded">seeds also held as excluded (a NOM fault): {{ run.seedsExcluded }}</span>
               }
+              @if (run.refusingHosts) {
+                · <span class="nom-scraping-sources__warn" data-testid="scraping-sources-run-refusing">{{ run.refusingHosts }} site(s) refused the run and get no further request: {{ refusingSummary(run) }}</span>
+              }
               @if (run.excludeNote) {
                 · <span class="nom-scraping-sources__warn" data-testid="scraping-sources-run-exclude-note">{{ run.excludeNote }}</span>
               }
               @if (run.error) {
                 · {{ run.error }}
+              }
+            </li>
+          }
+        </ul>
+      }
+      <h3 class="nom-scraping-sources__heading" data-testid="scraping-sources-refusing-heading">Sites that refused discovery</h3>
+      @if (refusingHosts().length === 0) {
+        <p class="nom-scraping-sources__hint" data-testid="scraping-sources-refusing-empty">No site has refused a discovery run.</p>
+      } @else {
+        <p class="nom-scraping-sources__hint">
+          {{ heldRefusing().length }} held: a held site is excluded from every discovery run (and never a seed) until you have looked at it; a new refusal holds it again.
+        </p>
+        <ul class="nom-scraping-sources__plain-list" data-testid="scraping-sources-refusing-list">
+          @for (h of refusingHosts(); track h.id) {
+            <li [class.nom-scraping-sources__warn]="h.held" data-testid="scraping-sources-refusing-item">
+              <strong>{{ h.host }}</strong> · {{ h.lastBotChallenge ? 'bot challenge' : 'HTTP ' + (h.lastHttpStatus ?? '?') }} at {{ h.lastUrl }}
+              · refused {{ h.timesRefused }}× · last {{ h.lastRefusedUtc | date: 'MMM d, HH:mm' }}
+              @if (h.held) {
+                · held
+                <button mat-button (click)="releaseRefusing(h)" [disabled]="processing()" data-testid="scraping-sources-refusing-release-btn">Looked at: release</button>
+              } @else {
+                · released {{ h.releasedAtUtc | date: 'mediumDate' }}{{ h.releasedNote ? ': ' + h.releasedNote : '' }}
               }
             </li>
           }

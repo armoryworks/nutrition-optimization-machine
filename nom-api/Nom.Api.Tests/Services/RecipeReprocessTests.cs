@@ -261,7 +261,7 @@ namespace Nom.Api.Tests.Services
         }
 
         [Fact]
-        public async Task The_line_guard_keeps_a_grounded_amount_holds_a_disputed_one_and_lets_a_grounded_one_replace_a_contradicted_one()
+        public async Task The_line_guard_holds_a_method_grounded_amount_and_a_disputed_one_and_lets_a_grounded_one_replace_a_contradicted_one()
         {
             using var db = await SeededAsync();
             var pepper = await FoodAsync(db, "red pepper");
@@ -279,11 +279,11 @@ namespace Nom.Api.Tests.Services
 
             var dry = await Service(db).RebuildAsync(For(recipe.Id), apply: false);
 
-            dry.Counts.GuardKept.Should().Be(1, "the stored eight peppers stand in the method and the rebuild reads none");
-            dry.Counts.GuardHeld.Should().Be(1, "a dozen and ten both stand in the method");
+            dry.Counts.GuardKept.Should().Be(0);
+            dry.Counts.GuardHeld.Should().Be(2, "the stored eight peppers stand only in a method sentence and the rebuild reads none, and a dozen and ten both stand in the method");
             dry.Counts.GuardReplaced.Should().Be(1, "a piece of salt contradicts the teaspoon its line states");
             var diffs = dry.Results.Single().Lines;
-            diffs.Select(d => d.Guard).Should().Equal("keep", "hold", "replace");
+            diffs.Select(d => d.Guard).Should().Equal("hold", "hold", "replace");
             diffs[1].Changes.Should().Contain(RecipeReprocessLineDiff.Held);
             (diffs[1].HeldQuantity, diffs[1].HeldMeasurementId).Should().Be((10m, Piece));
 
@@ -291,6 +291,63 @@ namespace Nom.Api.Tests.Services
 
             var lines = await LinesAsync(db, recipe.Id);
             lines.Where(l => !l.IsDeleted).Select(l => (l.Quantity, l.MeasurementId)).Should().Equal((8m, Piece), (12m, Piece), (1m, Teaspoon));
+
+            var holds = await db.LineGuardHolds.OrderBy(h => h.SortOrder).ToListAsync();
+            holds.Select(h => (h.IngredientId, h.SortOrder, h.Reason)).Should().Equal(
+                (pepper.Id, 0, LineAmountGuard.Reasons.RebuiltEmptyMethod), (onions.Id, 1, LineAmountGuard.Reasons.BothGrounded));
+            var hold = holds[1];
+            (hold.RecipeId, hold.Origin).Should().Be((recipe.Id, LineGuardHoldOrigin.Rebuild));
+            (hold.RawLine, hold.StoredQuantity, hold.StoredUnit, hold.RebuiltQuantity, hold.RebuiltUnit, hold.RebuiltFromMethod).Should().Be(("onions", 12m, "Piece", 10m, "Piece", true));
+            hold.ResolvedAt.Should().BeNull();
+        }
+
+        [Fact]
+        public async Task Undoing_a_rebuild_resolves_its_open_holds()
+        {
+            using var db = await SeededAsync();
+            var onions = await FoodAsync(db, "onions");
+            var salt = await FoodAsync(db, "salt");
+            onions.GramsPerItem = 110m;
+            await db.SaveChangesAsync();
+            var steps = new[] { "Boil ten or a dozen onions." };
+            var recipe = await RecipeAsync(db, Record("Onions", new[] { "onions", "1 teaspn. salt" }, steps),
+                new[] { new Row(onions, "onions", 12, Piece), new Row(salt, "1 teaspn. salt", 1, Piece, 1) }, steps: steps);
+
+            var rebuild = await Service(db).RebuildAsync(For(recipe.Id), apply: true);
+            (await db.LineGuardHolds.CountAsync(h => h.ResolvedAt == null)).Should().Be(1);
+
+            await Service(db).UndoAsync(null, rebuild.BatchId, apply: true);
+
+            var hold = await db.LineGuardHolds.SingleAsync();
+            (hold.Origin, hold.Resolution).Should().Be((LineGuardHoldOrigin.Rebuild, LineGuardHolds.Undone));
+            hold.ResolvedAt.Should().NotBeNull();
+            (await new LineGuardHoldService(db).CountsAsync()).Open.Should().Be(0);
+        }
+
+        [Fact]
+        public async Task An_empty_rebuilt_amount_never_replaces_a_stored_one_and_a_rebuild_with_only_held_lines_still_stores_its_holds()
+        {
+            using var db = await SeededAsync();
+            var water = await FoodAsync(db, "water");
+            var flour = await FoodAsync(db, "flour");
+            var recipe = await RecipeAsync(db, Record("Dough", new[] { "2 cups flour", "a drop of water" }),
+                new[] { new Row(flour, "2 cups flour", 2, Cup), new Row(water, "a drop of water", 1, Piece, 1) });
+
+            var dry = await Service(db).RebuildAsync(For(recipe.Id), apply: false);
+            dry.Counts.GuardHeldByReason.Should().Equal(new Dictionary<string, int> { [LineAmountGuard.Reasons.RebuiltEmpty] = 1 });
+            (await db.LineGuardHolds.CountAsync()).Should().Be(0, "a dry run stores nothing");
+
+            await Service(db).RebuildAsync(For(recipe.Id), apply: true);
+            await Service(db).RebuildAsync(For(recipe.Id), apply: true);
+
+            (await LinesAsync(db, recipe.Id)).Single(l => l.IngredientId == water.Id).Quantity.Should().Be(1m);
+            var hold = await db.LineGuardHolds.SingleAsync();
+            (hold.Reason, hold.StoredQuantity, hold.StoredUnit, hold.RebuiltQuantity, hold.RuleVersion).Should().Be((LineAmountGuard.Reasons.RebuiltEmpty, 1m, "Piece", 0m, RecipeLineBuilder.Version));
+
+            var report = await new LineGuardHoldService(db).CountsAsync();
+            report.Open.Should().Be(1);
+            report.OpenByOrigin[LineGuardHoldOrigin.Rebuild].Should().Equal(new Dictionary<string, int> { [LineAmountGuard.Reasons.RebuiltEmpty] = 1 });
+            (await new LineGuardHoldService(db).ListAsync(LineAmountGuard.Reasons.RebuiltEmpty, null, false, 0, 10)).Single().RawLine.Should().Be("a drop of water");
         }
 
         [Fact]
@@ -414,8 +471,8 @@ namespace Nom.Api.Tests.Services
             using var db = await SeededAsync();
             var water = await FoodAsync(db, "water");
             var flour = await FoodAsync(db, "flour");
-            var record = Record("Dough", new[] { "2 cups flour", "water" });
-            var recipe = await RecipeAsync(db, record, new[] { new Row(flour, "2 cups flour", 2, Cup), new Row(water, "water", 1, Cup, 1) }, CurationStatusEnum.Curated);
+            var record = Record("Dough", new[] { "2 cups flour" });
+            var recipe = await RecipeAsync(db, record, new[] { new Row(flour, "2 cups flour", 2, Cup), new Row(water, "1 cup water", 1, Cup, 1) }, CurationStatusEnum.Curated);
 
             var result = await Service(db).RebuildAsync(For(recipe.Id), apply: true);
 

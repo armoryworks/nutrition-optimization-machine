@@ -128,7 +128,7 @@ builder.Services.Configure<VulnerabilityScanSettings>(opts =>
 builder.Services.AddDbContext<ApplicationDbContext>(options =>
     options.UseNpgsql(builder.Configuration.GetConnectionString("NomConnection"),
                         b => b.MigrationsAssembly("Nom.Data"))
-        .AddInterceptors(Nom.Orch.Services.Support.DietGateCache.Shared.Invalidator));
+        .AddInterceptors(Nom.Orch.Services.Support.DietGateCache.Shared.Invalidator, Nom.Orch.Services.Support.DietRecipeStateClearer.Shared));
 
 // Use AddIdentity for more control, allowing for custom claims factory registration
 // Email confirmation is enforced at sign-in whenever this server can actually

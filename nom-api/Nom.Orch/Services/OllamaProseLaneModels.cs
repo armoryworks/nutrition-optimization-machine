@@ -90,9 +90,9 @@ namespace Nom.Orch.Services
     }
 
     /// <summary>
-    /// A model reading a rewrite against its original with the lane's step rubric on an Ollama
-    /// host: the judge (reader B of the roster) of every rewrite, and the auditor of a sample.
-    /// Temperature 0; the answer is a verdict, never text that is shown.
+    /// A model reading a rewrite against its original with the step rubric on an Ollama host: the
+    /// auditor of a sample (the roster's auditor), which reads the whole method at once and confirms
+    /// its own flag blind. Temperature 0; the answer is a verdict, never text that is shown.
     /// </summary>
     public sealed class OllamaProseJudge : IProseJudge
     {
@@ -111,7 +111,7 @@ namespace Nom.Orch.Services
         public async Task<ProseJudgeVerdict?> JudgeAsync(IReadOnlyList<string> original, IReadOnlyList<string> rewrite, CancellationToken cancellationToken)
         {
             var steps = Math.Max(original.Count, rewrite.Count);
-            var answer = await OllamaProseChat.AskAsync(_http, _baseUrl, Model, ProseLanePrompts.Judge, Pair(original, rewrite), JudgeSchema(steps), 0, null, cancellationToken);
+            var answer = await OllamaProseChat.AskAsync(_http, _baseUrl, Model, ProseLanePrompts.Audit, Pair(original, rewrite), JudgeSchema(steps), 0, null, cancellationToken);
             return ProseJudgeVerdict.Parse(answer, steps);
         }
 
@@ -136,7 +136,7 @@ namespace Nom.Orch.Services
             }
         }
 
-        private static string Pair(IReadOnlyList<string> original, IReadOnlyList<string> rewrite)
+        internal static string Pair(IReadOnlyList<string> original, IReadOnlyList<string> rewrite)
         {
             var body = new StringBuilder("ORIGINAL\n");
             for (var i = 0; i < original.Count; i++) body.Append("Step ").Append((i + 1).ToString(CultureInfo.InvariantCulture)).Append(": ").Append(original[i]).Append('\n');
@@ -175,13 +175,145 @@ namespace Nom.Orch.Services
         };
     }
 
+    /// <summary>
+    /// The judge of every rewrite (reader B of the roster) on an Ollama host. Rules decide first
+    /// (<see cref="ProseJudgeRules.Before"/>: the step count, a fact the prose check fails on, a heat
+    /// conflict), and no model is asked when they find a fault. Otherwise the model reads each step
+    /// pair in a call of its own (<see cref="ProseLanePrompts.JudgeStep"/>, temperature 0, a fixed
+    /// seed): it lists the original step's facts with the rewrite's words for each and what the
+    /// rewrite adds, with the check's weak signals for that step as a note. Each fact it does not
+    /// find as the same, and each thing it reads as added, is asked again on its own
+    /// (<see cref="ProseLanePrompts.JudgeKept"/>, <see cref="ProseLanePrompts.JudgeAdded"/>), and a
+    /// claim stands unless that answer and its quote hold by rule (<see cref="ProseJudgeRules.Kept"/>,
+    /// <see cref="ProseJudgeRules.AlreadySaid"/>). A rule turns the reading into the step's verdict
+    /// (<see cref="ProseJudgeRules.Step"/>). A step pair it cannot
+    /// read makes the whole answer unreadable, which the lane counts as a refusal.
+    /// </summary>
+    public sealed class OllamaProseStepJudge : IProseJudge
+    {
+        private readonly HttpClient _http;
+        private readonly string _baseUrl;
+
+        public OllamaProseStepJudge(HttpClient http, string baseUrl, string model)
+        {
+            _http = http;
+            _baseUrl = baseUrl.TrimEnd('/');
+            Model = model;
+        }
+
+        public string Model { get; }
+
+        public async Task<ProseJudgeVerdict?> JudgeAsync(IReadOnlyList<string> original, IReadOnlyList<string> rewrite, CancellationToken cancellationToken)
+        {
+            var finding = ProseCheck.Check(new RewriteFidelity.SourceText(string.Empty, original), new RewriteFidelity.SourceText(string.Empty, rewrite));
+            if (ProseJudgeRules.Before(original, rewrite, finding) is { } ruled) return ruled;
+
+            var steps = new List<ProseJudgeStep>();
+            for (var i = 0; i < original.Count; i++)
+            {
+                var body = new StringBuilder();
+                body.Append("ORIGINAL STEP: ").Append(original[i]).Append('\n');
+                body.Append("REWRITE STEP: ").Append(rewrite[i]).Append('\n');
+                foreach (var note in ProseJudgeRules.Notes(finding, i + 1)) body.Append("NOTE: ").Append(note).Append('\n');
+                var answer = await OllamaProseChat.AskAsync(_http, _baseUrl, Model, ProseLanePrompts.JudgeStep, body.ToString(), StepSchema, 0, ProseLanePrompts.JudgeSeed, cancellationToken, ProseLanePrompts.JudgeContext);
+                if (ProseJudgeRules.Parse(answer) is not { } reading) return null;
+                var facts = new List<ProseStepFact>();
+                foreach (var fact in reading.Facts.Concat(ProseJudgeRules.Unread(original[i], reading.Facts)))
+                {
+                    if (fact.Match == ProseJudgeRules.Same && ProseJudgeRules.Holds(rewrite[i], fact.Rewrite)) { facts.Add(fact); continue; }
+                    if (ProseJudgeRules.FoundByRule(fact, rewrite[i])) { facts.Add(ProseJudgeRules.Kept(fact, null, original[i], rewrite[i])); continue; }
+                    var check = $"ORIGINAL STEP: {original[i]}\nREWRITE STEP: {rewrite[i]}\nFACT ({fact.Kind}): {fact.Original}\n";
+                    var kept = await OllamaProseChat.AskAsync(_http, _baseUrl, Model, ProseLanePrompts.JudgeKept, check, KeptSchema, 0, ProseLanePrompts.JudgeSeed, cancellationToken, ProseLanePrompts.JudgeContext);
+                    facts.Add(ProseJudgeRules.Kept(fact, kept, original[i], rewrite[i]));
+                }
+
+                var added = new List<ProseStepFact>();
+                foreach (var fact in reading.Added)
+                {
+                    var check = $"ORIGINAL STEP: {original[i]}\nREWRITE STEP: {rewrite[i]}\nADDED ({fact.Kind}): {fact.Rewrite}\n";
+                    var answerAdded = await OllamaProseChat.AskAsync(_http, _baseUrl, Model, ProseLanePrompts.JudgeAdded, check, AddedSchema, 0, ProseLanePrompts.JudgeSeed, cancellationToken, ProseLanePrompts.JudgeContext);
+                    if (!ProseJudgeRules.AlreadySaid(answerAdded, original[i])) added.Add(fact);
+                }
+
+                steps.Add(ProseJudgeRules.Step(i + 1, original[i], rewrite[i], new ProseStepReading(facts, added)));
+            }
+
+            return new ProseJudgeVerdict(steps, original.Count);
+        }
+
+        public async Task<bool?> ConfirmAsync(IReadOnlyList<string> original, IReadOnlyList<string> rewrite, int step, CancellationToken cancellationToken)
+        {
+            var verdict = await JudgeAsync(original, rewrite, cancellationToken);
+            return verdict?.Steps.FirstOrDefault(s => s.Number == step) is { } read ? !read.Same : null;
+        }
+
+        private static readonly object KeptSchema = new
+        {
+            type = "object",
+            properties = new
+            {
+                rewrite = new { type = "string" },
+                original_result = new { type = "string" },
+                rewrite_result = new { type = "string" },
+                verdict = new { type = "string", @enum = new[] { "same_result", "other_result", "not_said" } },
+            },
+            required = new[] { "rewrite", "original_result", "rewrite_result", "verdict" },
+        };
+
+        private static readonly object AddedSchema = new
+        {
+            type = "object",
+            properties = new { original = new { type = "string" }, verdict = new { type = "string", @enum = new[] { "kept", "added" } } },
+            required = new[] { "original", "verdict" },
+        };
+
+        private static readonly object StepSchema = new
+        {
+            type = "object",
+            properties = new
+            {
+                facts = new
+                {
+                    type = "array",
+                    items = new
+                    {
+                        type = "object",
+                        properties = new
+                        {
+                            kind = new { type = "string", @enum = ProseJudgeRules.Kinds },
+                            original = new { type = "string" },
+                            rewrite = new { type = "string" },
+                            match = new { type = "string", @enum = new[] { ProseJudgeRules.Same, ProseJudgeRules.Different, ProseJudgeRules.Missing } },
+                        },
+                        required = new[] { "kind", "original", "rewrite", "match" },
+                    },
+                },
+                added = new
+                {
+                    type = "array",
+                    items = new
+                    {
+                        type = "object",
+                        properties = new
+                        {
+                            kind = new { type = "string", @enum = ProseJudgeRules.Kinds },
+                            rewrite = new { type = "string" },
+                        },
+                        required = new[] { "kind", "rewrite" },
+                    },
+                },
+            },
+            required = new[] { "facts", "added" },
+        };
+    }
+
     internal static class OllamaProseChat
     {
-        public static async Task<string?> AskAsync(HttpClient http, string baseUrl, string model, string system, string user, object schema, double temperature, int? seed, CancellationToken cancellationToken)
+        public static async Task<string?> AskAsync(HttpClient http, string baseUrl, string model, string system, string user, object schema, double temperature, int? seed, CancellationToken cancellationToken, int context = 8192)
         {
             object options = seed is { } s
-                ? new { temperature, seed = s, num_ctx = 8192, num_predict = 2048 }
-                : new { temperature, num_ctx = 8192, num_predict = 2048 };
+                ? new { temperature, seed = s, num_ctx = context, num_predict = 2048 }
+                : new { temperature, num_ctx = context, num_predict = 2048 };
             var response = await http.PostAsJsonAsync($"{baseUrl}/api/chat", new
             {
                 model,

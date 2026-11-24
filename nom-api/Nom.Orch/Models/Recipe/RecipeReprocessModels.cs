@@ -80,9 +80,14 @@ namespace Nom.Orch.Models.Recipe
         /// </summary>
         public string? Guard { get; set; }
 
+        /// <summary>Why the guard gave its verdict (<see cref="Nom.Orch.Services.Support.LineAmountGuard.Reasons"/>); a held line is stored as a hold with it on an apply.</summary>
+        public string? GuardReason { get; set; }
+
         public decimal? HeldQuantity { get; set; }
         public long? HeldMeasurementId { get; set; }
+        public string? HeldUnit { get; set; }
         public string? HeldLineKind { get; set; }
+        public bool HeldFromMethod { get; set; }
 
         /// <summary>What changed: any of amount, food, order, kind, text, added; empty when nothing did. Also prepared-food (see <see cref="PreparedFood"/>) and held (the guard kept a stored amount the line judge is to read).</summary>
         public List<string> Changes { get; set; } = new();
@@ -112,11 +117,21 @@ namespace Nom.Orch.Models.Recipe
         /// <summary>Stored amounts the line guard kept for the line judge: both read the source and differ, or the stored one contradicts it with nothing grounded in its place.</summary>
         public int GuardHeld { get; set; }
 
-        public void Add(RecipeReprocessChangeCounts other)
+        /// <summary>The held amounts by the guard's reason.</summary>
+        public Dictionary<string, int> GuardHeldByReason { get; set; } = new(StringComparer.Ordinal);
+
+        /// <summary>Adds only the line guard's counts, as for a recipe left unchanged because every line that differs is kept or held.</summary>
+        public void AddGuard(RecipeReprocessChangeCounts other)
         {
             GuardKept += other.GuardKept;
             GuardReplaced += other.GuardReplaced;
             GuardHeld += other.GuardHeld;
+            foreach (var (reason, count) in other.GuardHeldByReason) GuardHeldByReason[reason] = GuardHeldByReason.GetValueOrDefault(reason) + count;
+        }
+
+        public void Add(RecipeReprocessChangeCounts other)
+        {
+            AddGuard(other);
             LinesBefore += other.LinesBefore;
             LinesAfter += other.LinesAfter;
             AmountChanged += other.AmountChanged;

@@ -46,6 +46,10 @@ reasons.
    - **unclassed**: a candidate whose last check gave no class (a new candidate before its terms-only check, a
      lead, a check that did not finish), and a source with no class (an approved web source before its terms-only
      check, a user's pending request, a hand source).
+   - a class **recorded by hand** (`source-rights.md`): its forbidden or permission-needed host, as a source, as a
+     candidate (whose class it is, before its report's) and as a host NOM has no row for; a source it bars is held
+     with the rights gate on or off and is never a seed;
+   - a site that **refused** an earlier run (below), as permission-needed, until an admin has looked at it.
 
    A source that may be fetched is never held, and a host whose terms allow automated access (facts-only or clear,
    an approval for facts-only use or not) is not held: its homepage may be probed, as a full check may read it.
@@ -79,6 +83,17 @@ reasons.
    reports in `seedsExcluded` is a NOM fault too; both are logged as errors, shown on the run (`SeedsExcluded`,
    `ExcludeNote`) and not rotated. A host on the list that the scraper returns as found anyway (a scraper from
    before `excludeDomains`) is never kept as a candidate, and the run says the scraper did not apply the list.
+
+   **Refusing hosts.** The scraper stops asking a site that refuses a run (a bot challenge or a 429 on any page, a
+   401, 402 or 403 on its robots.txt or homepage) and reports it in `refusingHosts` (`domain`, `url`, `httpStatus`,
+   `botChallenge`). NOM stores the list on the run (`RefusingHosts`, `RefusingHostsJson`) and each site in
+   `recipe.SourceRefusingHost` (first and last refusal, how often, the last page and status). A site there is held
+   from every later run, on the exclusion list as permission-needed and never sent as a seed (an approved seed
+   that refused is held back with a note on the run), until an admin has looked at it: "Looked at: release" on
+   Admin → Scraping Sources (`POST api/ScrapingSource/refusing/{id}/release`, who and when kept, journaled as
+   `SourceRefusingRelease`, shown in the sources journal and undone there while it is the site's latest row and no
+   later refusal has held it again: the undo holds the site again). A refusal reported after that holds it again. A refusal makes no candidate, class or
+   check.
 
    A run or check still marked `running` past its budget plus 60 s and a grace of
    `StaleGraceSeconds` (300 s) had its poll cut off (nom-api restarted, or the tick failed): the

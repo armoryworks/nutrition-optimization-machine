@@ -95,6 +95,24 @@ namespace Nom.Api.Tests.Services
         }
 
         [Fact]
+        public async Task Two_dry_runs_called_together_take_turns_one_copy_at_a_time_and_each_counts_what_it_counts_alone()
+        {
+            var first = await SceneAsync(400);
+            var second = await SceneAsync(400);
+            var alone = await new LineRelinkService(first.Db, new ReprocessUndoWorld.Admin()).UndoAsync(first.Started);
+            first.Db.ChangeTracker.Clear();
+            RelinkUndoDryRun.ResetMostOpen();
+
+            var together = await Task.WhenAll(
+                Task.Run(() => new LineRelinkService(first.Db, new ReprocessUndoWorld.Admin()).UndoAsync(first.Started)),
+                Task.Run(() => new LineRelinkService(second.Db, new ReprocessUndoWorld.Admin()).UndoAsync(second.Started)));
+
+            RelinkUndoDryRun.MostOpen.Should().Be(1, "staging checkpoint 5, Q20: T1 and T7 beside it took the API to 367 % CPU; the copies now run one at a time in the process");
+            Counts(together[0]).Should().Be(Counts(alone));
+            Counts(together[1]).Should().Be(Counts(alone), "both scenes are built alike");
+        }
+
+        [Fact]
         public async Task Every_recipe_lies_whole_in_one_part_and_the_first_part_holds_every_retirement_with_the_recipes_whose_lines_name_its_food()
         {
             var scene = await SceneAsync(400);

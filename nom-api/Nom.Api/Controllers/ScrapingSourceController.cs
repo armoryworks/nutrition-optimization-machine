@@ -140,6 +140,33 @@ namespace Nom.Api.Controllers
             return Answer(await _rights.RecordPermissionAsync(id, request, _currentUser.RequiredPersonId));
         }
 
+        /// <summary>
+        /// Records a rights class by hand for a host (a source's, a candidate's, or one with no row yet) with the site's own words,
+        /// the page and the date read; a dry run unless apply=true. Journaled and undone from the journal; 409 with the reason
+        /// when the rule refuses it.
+        /// </summary>
+        [HttpPost("rights/by-hand")]
+        public async Task<ActionResult<SourceRightsByHandResultModel>> RecordRightsByHand([FromBody] SourceRightsByHandRequestModel request, [FromQuery] bool apply = false, CancellationToken cancellationToken = default)
+        {
+            var result = await _rights.RecordByHandAsync(request, apply, _currentUser.RequiredPersonId, cancellationToken);
+            return result.Refused != null ? Conflict(result) : Ok(result);
+        }
+
+        /// <summary>The classes recorded by hand that stand now.</summary>
+        [HttpGet("rights/by-hand")]
+        public async Task<ActionResult<List<SourceRightsRecordModel>>> RightsByHand(CancellationToken cancellationToken)
+        {
+            return Ok(await _rights.RecordsAsync(cancellationToken));
+        }
+
+        /// <summary>An admin has looked at a site that refused discovery and releases it; it is held again if it refuses again.</summary>
+        [HttpPost("refusing/{id:long}/release")]
+        public async Task<ActionResult<SourceRefusingHostModel>> ReleaseRefusing(long id, [FromBody] SourceReasonRequestModel? request)
+        {
+            var result = await _admission.ReleaseRefusingHostAsync(id, _currentUser.RequiredPersonId, request?.Reason);
+            return result == null ? NotFound(new { error = "No such refusing host." }) : Ok(result);
+        }
+
         /// <summary>Approves (approve=true) or withdraws facts-only use of a facts-only source; journaled.</summary>
         [HttpPost("{id:long}/facts-only-use")]
         public async Task<ActionResult<ScrapingSourceModel>> FactsOnlyUse(long id, [FromBody] SourceReasonRequestModel? request, [FromQuery] bool approve = true)

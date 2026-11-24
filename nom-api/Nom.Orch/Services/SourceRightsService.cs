@@ -86,7 +86,14 @@ namespace Nom.Orch.Services
         /// automatic check fetches it) or has no class yet (its first check is terms-only in any case).
         /// </summary>
         public static bool TermsCheckAllowed(ScrapingSourceEntity source) =>
-            RecheckBarred(source) || source.RightsClass == null;
+            source.RightsRecordId == null && (RecheckBarred(source) || source.RightsClass == null);
+
+        /// <summary>
+        /// Whether the source's class was recorded by hand and bars it (forbidden or permission-needed, no written permission): no
+        /// check, harvest, import or discovery fetches it, with the rights gate on or off.
+        /// </summary>
+        public static bool HeldByHand(ScrapingSourceEntity source) =>
+            source.RightsRecordId != null && RecheckBarred(source);
 
         /// <summary>Why a source may not be fetched, or null when it may.</summary>
         public static string? FetchRefusal(ScrapingSourceEntity source)
@@ -96,7 +103,7 @@ namespace Nom.Orch.Services
             {
                 null => $"{source.Domain} has no rights class yet (its source check has not been read); nothing is fetched from it until it has one.",
                 SourceRightsRule.FactsOnly => $"{source.Domain} is facts-only and no admin has approved facts-only use of it.",
-                _ => $"{source.Domain} is {source.RightsClass}: \"{source.RightsQuote}\" ({source.RightsQuoteUrl}); nothing is fetched from it without a recorded written permission.",
+                _ => $"{source.Domain} is {source.RightsClass}{(source.RightsRecordId != null ? " (recorded by hand)" : string.Empty)}: \"{source.RightsQuote}\" ({source.RightsQuoteUrl}); nothing is fetched from it without a recorded written permission.",
             };
         }
 
@@ -111,7 +118,9 @@ namespace Nom.Orch.Services
         /// <summary>Why the weekly re-check skips the source, or null when it does not.</summary>
         public static string? RecheckSkip(ScrapingSourceEntity source) =>
             source.Kind == ScrapingSourceEntity.WebKind && RecheckBarred(source)
-                ? $"The weekly re-check skips {source.Domain}: it is {EffectiveClass(source)}, so no automatic check fetches it. An admin may start a terms-only check (robots.txt, the homepage and the terms pages, no recipe page)."
+                ? source.RightsRecordId != null
+                    ? $"The weekly re-check skips {source.Domain}: it is {EffectiveClass(source)} by a class recorded by hand, so no check of any kind fetches it. Undo the record's journal entry to have it checked again."
+                    : $"The weekly re-check skips {source.Domain}: it is {EffectiveClass(source)}, so no automatic check fetches it. An admin may start a terms-only check (robots.txt, the homepage and the terms pages, no recipe page)."
                 : null;
 
         /// <summary>Whether a recipe's shown method is the clean-room lane's own (a live rewrite stands) and its prose is shown.</summary>
@@ -176,7 +185,7 @@ namespace Nom.Orch.Services
 
         private static SourceRightsChangeModel Describe(ScrapingSourceEntity source, SourceRightsVerdict verdict, long checkId)
         {
-            var newClass = verdict.Conclusive ? verdict.Class : source.RightsClass;
+            var newClass = verdict.Conclusive && source.RightsRecordId == null ? verdict.Class : source.RightsClass;
             return new SourceRightsChangeModel
             {
                 SourceId = source.Id,
@@ -196,7 +205,8 @@ namespace Nom.Orch.Services
             };
         }
 
-        private sealed record RightsFacts(string? Quote, string? Url, long? CheckId, string? RuleVersion);
+        private sealed record RightsFacts(string? Quote, string? Url, long? CheckId, string? RuleVersion,
+            [property: System.Text.Json.Serialization.JsonIgnore(Condition = System.Text.Json.Serialization.JsonIgnoreCondition.WhenWritingNull)] long? RecordId = null);
 
         private sealed record AiFacts(string? Quote, string? Url);
 
@@ -204,7 +214,7 @@ namespace Nom.Orch.Services
 
         internal static string RightsValue(ScrapingSourceEntity source) =>
             SourceJournal.Value(source.RightsClass ?? SourceJournal.None,
-                JsonSerializer.Serialize(new RightsFacts(Clip(source.RightsQuote, 1200), Clip(source.RightsQuoteUrl, 600), source.RightsCheckId, source.RightsRuleVersion), JsonOptions));
+                JsonSerializer.Serialize(new RightsFacts(Clip(source.RightsQuote, 1200), Clip(source.RightsQuoteUrl, 600), source.RightsCheckId, source.RightsRuleVersion, source.RightsRecordId), JsonOptions));
 
         internal static string AiValue(ScrapingSourceEntity source) =>
             SourceJournal.Value(source.AiReserved ? Reserved : SourceJournal.None,
@@ -253,6 +263,7 @@ namespace Nom.Orch.Services
                         source.RightsClass = state == SourceJournal.None ? null : state;
                         source.RightsQuote = facts.Quote;
                         source.RightsQuoteUrl = facts.Url;
+                        source.RightsRecordId = facts.RecordId;
                         source.RightsDerivedAtUtc = now;
                         return true;
                     }
@@ -311,16 +322,18 @@ namespace Nom.Orch.Services
         /// <summary>
         /// Stores a verdict on the source and journals what changed (<see cref="SourceJournal.RightsField"/>,
         /// <see cref="SourceJournal.AiReservedField"/>). An inconclusive verdict keeps the stored class and
-        /// can only raise the AI flag (<see cref="AiReservedAfter"/>). Returns whether the class or the flag changed.
+        /// can only raise the AI flag (<see cref="AiReservedAfter"/>); a class recorded by hand is never changed by a verdict.
+        /// Returns whether the class or the flag changed.
         /// </summary>
         public static bool ApplyVerdict(ApplicationDbContext db, ScrapingSourceEntity source, SourceRightsVerdict verdict, long checkId, DateTime now, long by)
         {
             var oldRights = RightsValue(source);
             var oldAi = AiValue(source);
-            var classChanged = verdict.Conclusive && verdict.Class != source.RightsClass;
+            var byHand = source.RightsRecordId != null;
+            var classChanged = verdict.Conclusive && !byHand && verdict.Class != source.RightsClass;
             var aiReserved = AiReservedAfter(source, verdict);
             var aiChanged = aiReserved != source.AiReserved;
-            if (verdict.Conclusive)
+            if (verdict.Conclusive && !byHand)
             {
                 source.RightsClass = verdict.Class;
                 source.RightsQuote = Clip(verdict.Quote, 2047);
@@ -395,6 +408,7 @@ namespace Nom.Orch.Services
                 if (effective == SourceRightsRule.FactsOnly && !recipe.ProseWithheld && !OwnMethod(recipe))
                 {
                     recipe.ProseWithheld = true;
+                    recipe.ProseCopyUnsure = false;
                     db.AuditLogEntries.Add(RecipeEntry(recipe.Id, FactsOnlyWithholdChangeType, nameof(RecipeEntity.ProseWithheld), "false", $"true | facts-only source {source.Domain}", now, by));
                     withheld++;
                     if (recipe.CurationStatusId == (long)CurationStatusEnum.Curated) withheldApproved++;
@@ -493,6 +507,8 @@ namespace Nom.Orch.Services
                     .FirstOrDefaultAsync(cancellationToken);
             if (classEntry == null || SourceJournal.State(classEntry.NewValue) != SourceRightsRule.FactsOnly)
                 return "No journal entry of the facts-only class is left to take back.";
+            if (classEntry.ChangeType == SourceJournal.RightsByHand || source.RightsRecordId != null)
+                return "This facts-only class was recorded by hand; undo the record's own journal entry to take it back with its withhold.";
 
             var oldRights = RightsValue(source);
             if (!Restore(source, SourceJournal.RightsField, classEntry.OldValue, now, personId))
@@ -533,6 +549,336 @@ namespace Nom.Orch.Services
             var latest = rows.FirstOrDefault(ProseLaneJournal.TouchesProse);
             return latest?.ChangeType == FactsOnlyWithholdChangeType;
         }
+
+        /// <summary>How strict a class is: clear, facts-only, permission-needed, forbidden.</summary>
+        internal static int Strictness(string? rightsClass) => rightsClass == null ? -1 : SourceRightsRule.Classes.ToList().IndexOf(rightsClass);
+
+        /// <summary>The classes recorded by hand that stand now, by host.</summary>
+        public static async Task<Dictionary<string, SourceRightsRecordEntity>> ActiveRecordsAsync(ApplicationDbContext db, CancellationToken cancellationToken = default) =>
+            (await db.SourceRightsRecords.AsNoTracking().Where(r => r.WithdrawnAtUtc == null).OrderBy(r => r.Id).ToListAsync(cancellationToken))
+                .GroupBy(r => r.Host, StringComparer.Ordinal)
+                .ToDictionary(g => g.Key, g => g.Last(), StringComparer.Ordinal);
+
+        /// <summary>Whether a class recorded by hand bars the host (forbidden or permission-needed).</summary>
+        public static bool Bars(SourceRightsRecordEntity? record) =>
+            record?.RightsClass is SourceRightsRule.Forbidden or SourceRightsRule.PermissionNeeded;
+
+        /// <summary>The web sources of a host (its bare and www. rows).</summary>
+        private static async Task<List<ScrapingSourceEntity>> SourcesOfHostAsync(ApplicationDbContext db, string host, CancellationToken cancellationToken)
+        {
+            var www = "www." + host;
+            return (await db.ScrapingSources.Where(s => s.Kind == ScrapingSourceEntity.WebKind && (s.Domain == host || s.Domain == www)).OrderBy(s => s.Id).ToListAsync(cancellationToken))
+                .Where(s => SourceAdmissionPolicy.NormalizeDomain(s.Domain) == host).ToList();
+        }
+
+        public async Task<SourceRightsByHandResultModel> RecordByHandAsync(SourceRightsByHandRequestModel request, bool apply, long personId, CancellationToken cancellationToken = default)
+        {
+            var now = Now();
+            var host = SourceAdmissionPolicy.NormalizeDomain(request.Host);
+            var rightsClass = request.RightsClass?.Trim().ToLowerInvariant();
+            var result = new SourceRightsByHandResultModel { Applied = false, Host = host ?? request.Host, RightsClass = rightsClass };
+            var quote = System.Text.RegularExpressions.Regex.Replace(request.Quote ?? string.Empty, @"\s+", " ").Trim();
+            var page = request.QuoteUrl?.Trim() ?? string.Empty;
+            string? Refuse(string why)
+            {
+                result.Refused = why;
+                return why;
+            }
+
+            if (host == null || SourceDiscoveryExclusion.Entry(host) == null)
+            {
+                Refuse("Name the host as a domain (example.com or www.example.com).");
+                return result;
+            }
+
+            if (rightsClass == null || !SourceRightsRule.Classes.Contains(rightsClass))
+            {
+                Refuse($"The class is one of {string.Join(", ", SourceRightsRule.Classes)}.");
+                return result;
+            }
+
+            if (quote.Length == 0 || quote.Length > 1000)
+            {
+                Refuse("Quote the site's own deciding words (at most 1,000 characters; a sentence or two).");
+                return result;
+            }
+
+            if (!Uri.TryCreate(page, UriKind.Absolute, out var pageUri) || pageUri.Scheme is not ("http" or "https"))
+            {
+                Refuse("Name the page the words stand on as an http or https address.");
+                return result;
+            }
+
+            if (request.ReadOn == null || request.ReadOn.Value.Date > now.Date.AddDays(1))
+            {
+                Refuse("Give the date the words were read on that page (not in the future).");
+                return result;
+            }
+
+            if (rightsClass == SourceRightsRule.Forbidden && !RightsSentences.Read(quote).Forbids)
+            {
+                Refuse("NOM's sentence reader does not read this quote as forbidding automated access or reuse; quote the forbidding sentence, or record permission-needed.");
+                return result;
+            }
+
+            var sources = await SourcesOfHostAsync(_db, host, cancellationToken);
+            var permitted = sources.Count > 0 && sources.All(s => s.PermissionRecordedAtUtc != null);
+            var candidate = await _db.SourceCandidates.AsNoTracking().FirstOrDefaultAsync(c => c.Domain == host, cancellationToken);
+            string? candidateClass = null;
+            if (candidate?.LastCheckId is { } checkId
+                && await _db.SourceChecks.AsNoTracking().Where(c => c.Id == checkId).Select(c => c.ReportJson).FirstOrDefaultAsync(cancellationToken) is { } json)
+            {
+                candidateClass = SourceRightsRule.Derive(Read<ScraperSourceCheckReport>(json)).Class;
+            }
+
+            result.Candidate = candidate?.Domain;
+            result.CandidateClass = candidateClass;
+
+            var active = (await ActiveRecordsAsync(_db, cancellationToken)).GetValueOrDefault(host);
+            if (active != null)
+            {
+                result.Record = await RecordModelAsync(active, sources, candidate, cancellationToken);
+                if (active.RightsClass == rightsClass && active.Quote == quote && active.QuoteUrl == page)
+                {
+                    result.AlreadyRecorded = true;
+                    result.Excluded = Bars(active) && !permitted;
+                    return result;
+                }
+
+                Refuse($"{host} already holds a class recorded by hand ({active.RightsClass}, record {active.Id}); undo its journal entry first.");
+                return result;
+            }
+
+            if (rightsClass == SourceRightsRule.Clear && !permitted)
+            {
+                Refuse("A class recorded by hand is facts-only, permission-needed or forbidden; clear needs the publisher's written permission recorded on every source of the host first (Record permission).");
+                return result;
+            }
+
+            foreach (var source in sources)
+            {
+                if (source.PermissionRecordedAtUtc == null && Strictness(rightsClass) < Strictness(source.RightsClass))
+                {
+                    Refuse($"{source.Domain} is {source.RightsClass} by its check (\"{source.RightsQuote}\"); a class recorded by hand may be as strict or stricter, never laxer, without a recorded written permission.");
+                    return result;
+                }
+            }
+
+            if (Strictness(rightsClass) < Strictness(candidateClass))
+            {
+                Refuse($"The candidate {host} is {candidateClass} by its last check; a class recorded by hand may be as strict or stricter, never laxer.");
+                return result;
+            }
+
+            foreach (var source in sources)
+            {
+                result.Sources.Add(new SourceRightsByHandSourceModel
+                {
+                    SourceId = source.Id,
+                    Domain = source.Domain,
+                    OldClass = source.RightsClass,
+                    NewClass = rightsClass,
+                    Recipes = await SourceAdmissionService.RecipesFrom(_db.Recipes.AsNoTracking(), source.Domain).CountAsync(cancellationToken),
+                });
+            }
+
+            result.Excluded = (rightsClass is SourceRightsRule.Forbidden or SourceRightsRule.PermissionNeeded) && !permitted;
+            if (!apply) return result;
+
+            var record = new SourceRightsRecordEntity
+            {
+                Host = host,
+                RightsClass = rightsClass,
+                Quote = quote,
+                QuoteUrl = Clip(page, 2047)!,
+                ReadOn = DateTime.SpecifyKind(request.ReadOn.Value.Date, DateTimeKind.Utc),
+                RecordedByPersonId = personId,
+                RecordedAtUtc = now,
+                CreatedDate = now,
+                CreatedByPersonId = personId,
+            };
+            _db.SourceRightsRecords.Add(record);
+            await _db.SaveChangesAsync(cancellationToken);
+            _db.AuditLogEntries.Add(new AuditLogEntryEntity
+            {
+                EntityType = SourceJournal.RecordEntityType,
+                EntityId = record.Id,
+                ChangeType = SourceJournal.RightsByHand,
+                PropertyName = SourceJournal.RightsField,
+                OldValue = SourceJournal.None,
+                NewValue = Clip(RecordValue(record), 4000),
+                Timestamp = now,
+                ChangedByPersonId = personId,
+            });
+            foreach (var source in sources) ApplyRecord(_db, source, record, now, personId);
+            await _db.SaveChangesAsync(cancellationToken);
+            foreach (var source in sources) await SyncRecipesAsync(_db, source, now, personId, cancellationToken);
+            result.Applied = true;
+            result.Record = await RecordModelAsync(record, sources, candidate, cancellationToken);
+            _logger.LogInformation("Rights class {Class} recorded by hand for {Host} by person {PersonId} (record {RecordId}, {Sources} sources)", rightsClass, host, personId, record.Id, sources.Count);
+            return result;
+        }
+
+        /// <summary>The record's journal value: its class, then the host, the quote, the page and the date read.</summary>
+        internal static string RecordValue(SourceRightsRecordEntity record) =>
+            SourceJournal.Value(record.RightsClass, string.Create(CultureInfo.InvariantCulture, $"{record.Host} by hand: \"{record.Quote}\" ({record.QuoteUrl}), read {record.ReadOn:yyyy-MM-dd}; record {record.Id}"));
+
+        /// <summary>Sets a source to a class recorded by hand and journals it (<see cref="SourceJournal.RightsByHand"/>, the old class kept for the undo).</summary>
+        internal static void ApplyRecord(ApplicationDbContext db, ScrapingSourceEntity source, SourceRightsRecordEntity record, DateTime now, long by)
+        {
+            var old = RightsValue(source);
+            source.RightsClass = record.RightsClass;
+            source.RightsQuote = Clip(record.Quote, 2047);
+            source.RightsQuoteUrl = Clip(record.QuoteUrl, 2047);
+            source.RightsRecordId = record.Id;
+            source.RightsDerivedAtUtc = now;
+            source.LastModifiedDate = now;
+            source.LastModifiedByPersonId = by;
+            db.AuditLogEntries.Add(SourceJournal.Entry(source.Id, SourceJournal.RightsByHand, SourceJournal.RightsField, old, RightsValue(source), now, by));
+        }
+
+        /// <summary>
+        /// Puts every class recorded by hand on the web sources of its host that do not hold it yet (a source added after the
+        /// record, or a bare and a www. row): run by the source lane before each tick and discovery run, so a new row of a
+        /// recorded host is held before anything could fetch it. Returns how many sources it set.
+        /// </summary>
+        public static async Task<int> ApplyRecordsAsync(ApplicationDbContext db, DateTime now, CancellationToken cancellationToken = default)
+        {
+            var records = await ActiveRecordsAsync(db, cancellationToken);
+            if (records.Count == 0) return 0;
+            var applied = new List<ScrapingSourceEntity>();
+            foreach (var source in await db.ScrapingSources.Where(s => s.Kind == ScrapingSourceEntity.WebKind).ToListAsync(cancellationToken))
+            {
+                var host = SourceAdmissionPolicy.NormalizeDomain(source.Domain);
+                if (host == null || !records.TryGetValue(host, out var record) || source.RightsRecordId == record.Id) continue;
+                ApplyRecord(db, source, record, now, SystemConstants.SystemPersonId);
+                applied.Add(source);
+            }
+
+            if (applied.Count == 0) return 0;
+            await db.SaveChangesAsync(cancellationToken);
+            foreach (var source in applied) await SyncRecipesAsync(db, source, now, SystemConstants.SystemPersonId, cancellationToken);
+            return applied.Count;
+        }
+
+        /// <summary>
+        /// Withdraws a class recorded by hand (the undo of its journal entry, or of a source entry it wrote): every source it set goes
+        /// back to the class it had before, from that source's own <see cref="SourceJournal.RightsByHand"/> entry, and a facts-only
+        /// withhold the record made is ended where it is still the recipe's latest prose change; each is journaled as an undo. The
+        /// record is kept, marked withdrawn. Returns why it cannot be done, or null.
+        /// </summary>
+        public static async Task<string?> WithdrawRecordAsync(ApplicationDbContext db, long recordId, long entryId, DateTime now, long personId, CancellationToken cancellationToken = default)
+        {
+            var record = await db.SourceRightsRecords.FirstOrDefaultAsync(r => r.Id == recordId, cancellationToken);
+            if (record == null) return "The record of this entry is gone.";
+            if (record.WithdrawnAtUtc != null) return "This class recorded by hand is already withdrawn.";
+            var note = $"undo of entry {entryId}";
+            var marker = $"\"recordId\":{record.Id.ToString(CultureInfo.InvariantCulture)}";
+            var sources = await db.ScrapingSources.Where(s => s.RightsRecordId == record.Id).ToListAsync(cancellationToken);
+            foreach (var source in sources)
+            {
+                var setBy = await db.AuditLogEntries.AsNoTracking()
+                    .Where(e => e.EntityType == SourceJournal.EntityType && e.EntityId == source.Id && e.PropertyName == SourceJournal.RightsField
+                        && e.ChangeType == SourceJournal.RightsByHand && e.NewValue != null && e.NewValue.Contains(marker))
+                    .OrderByDescending(e => e.Id)
+                    .FirstOrDefaultAsync(cancellationToken);
+                var oldValue = setBy?.OldValue ?? SourceJournal.Value(SourceJournal.None, JsonSerializer.Serialize(new RightsFacts(null, null, null, null), JsonOptions));
+                var wasFactsOnly = EffectiveClass(source) == SourceRightsRule.FactsOnly;
+                var before = RightsValue(source);
+                if (!Restore(source, SourceJournal.RightsField, oldValue, now, personId))
+                    return $"The entry that set {source.Domain} does not hold its old class whole, so the record cannot be withdrawn.";
+                source.RightsRecordId = null;
+                source.LastModifiedDate = now;
+                source.LastModifiedByPersonId = personId;
+                var restored = RightsValue(source);
+                db.AuditLogEntries.Add(SourceJournal.Entry(source.Id, SourceJournal.Undo, SourceJournal.RightsField, before,
+                    SourceJournal.Value(SourceJournal.State(restored), $"{SourceJournal.Detail(restored)}; {note}".TrimStart(';', ' ')), now, personId));
+                if (wasFactsOnly && EffectiveClass(source) != SourceRightsRule.FactsOnly)
+                {
+                    foreach (var recipe in await SourceAdmissionService.RecipesFrom(db.Recipes, source.Domain).Where(r => r.ProseWithheld).ToListAsync(cancellationToken))
+                    {
+                        if (!await StillHeldByFactsOnlyAsync(db, recipe.Id, cancellationToken)) continue;
+                        recipe.ProseWithheld = false;
+                        db.AuditLogEntries.Add(RecipeEntry(recipe.Id, FactsOnlyReleaseChangeType, nameof(RecipeEntity.ProseWithheld), "true", $"false | {note} of source {source.Domain}", now, personId));
+                    }
+                }
+            }
+
+            db.AuditLogEntries.Add(new AuditLogEntryEntity
+            {
+                EntityType = SourceJournal.RecordEntityType,
+                EntityId = record.Id,
+                ChangeType = SourceJournal.Undo,
+                PropertyName = SourceJournal.RightsField,
+                OldValue = Clip(RecordValue(record), 4000),
+                NewValue = SourceJournal.Value(SourceJournal.None, $"withdrawn; {sources.Count} source(s) back to their earlier class; {note}"),
+                Timestamp = now,
+                ChangedByPersonId = personId,
+            });
+            record.WithdrawnAtUtc = now;
+            record.WithdrawnByPersonId = personId;
+            record.LastModifiedDate = now;
+            record.LastModifiedByPersonId = personId;
+            await db.SaveChangesAsync(cancellationToken);
+            foreach (var source in sources) await SyncRecipesAsync(db, source, now, personId, cancellationToken);
+            return null;
+        }
+
+        /// <summary>The record a source journal entry of <see cref="SourceJournal.RightsByHand"/> names, or null.</summary>
+        public static long? RecordIdOf(AuditLogEntryEntity entry) => RecordIdIn(entry.NewValue);
+
+        /// <summary>The record a journal value of the rights field names, or null: a class it holds stands on that record.</summary>
+        public static long? RecordIdIn(string? value)
+        {
+            var match = System.Text.RegularExpressions.Regex.Match(value ?? string.Empty, "\"recordId\":(\\d+)");
+            return match.Success && long.TryParse(match.Groups[1].Value, NumberStyles.None, CultureInfo.InvariantCulture, out var id) ? id : null;
+        }
+
+        public async Task<List<SourceRightsRecordModel>> RecordsAsync(CancellationToken cancellationToken = default) =>
+            await RecordModelsAsync(_db, cancellationToken);
+
+        /// <summary>Every class recorded by hand that stands now, with the sources and candidate it holds and the entry that withdraws it.</summary>
+        public static async Task<List<SourceRightsRecordModel>> RecordModelsAsync(ApplicationDbContext db, CancellationToken cancellationToken = default)
+        {
+            var records = (await ActiveRecordsAsync(db, cancellationToken)).Values.OrderBy(r => r.Host, StringComparer.Ordinal).ToList();
+            if (records.Count == 0) return new List<SourceRightsRecordModel>();
+            var ids = records.Select(r => r.Id).ToList();
+            var entries = await db.AuditLogEntries.AsNoTracking()
+                .Where(e => e.EntityType == SourceJournal.RecordEntityType && ids.Contains(e.EntityId) && e.ChangeType == SourceJournal.RightsByHand)
+                .Select(e => new { e.Id, e.EntityId })
+                .ToListAsync(cancellationToken);
+            var sources = await db.ScrapingSources.AsNoTracking().Where(s => s.RightsRecordId != null && ids.Contains(s.RightsRecordId.Value)).Select(s => new { s.Domain, s.RightsRecordId }).ToListAsync(cancellationToken);
+            var hosts = records.Select(r => r.Host).ToList();
+            var candidates = await db.SourceCandidates.AsNoTracking().Where(c => hosts.Contains(c.Domain)).Select(c => c.Domain).ToListAsync(cancellationToken);
+            return records.Select(r => Model(r,
+                entries.Where(e => e.EntityId == r.Id).Select(e => (long?)e.Id).DefaultIfEmpty().Max(),
+                sources.Where(s => s.RightsRecordId == r.Id).Select(s => s.Domain).OrderBy(d => d, StringComparer.Ordinal).ToList(),
+                candidates.Contains(r.Host) ? r.Host : null)).ToList();
+        }
+
+        private async Task<SourceRightsRecordModel> RecordModelAsync(SourceRightsRecordEntity record, List<ScrapingSourceEntity> sources, SourceCandidateEntity? candidate, CancellationToken cancellationToken)
+        {
+            var entry = await _db.AuditLogEntries.AsNoTracking()
+                .Where(e => e.EntityType == SourceJournal.RecordEntityType && e.EntityId == record.Id && e.ChangeType == SourceJournal.RightsByHand)
+                .OrderByDescending(e => e.Id).Select(e => (long?)e.Id).FirstOrDefaultAsync(cancellationToken);
+            return Model(record, entry, sources.Select(s => s.Domain).ToList(), candidate?.Domain);
+        }
+
+        internal static SourceRightsRecordModel Model(SourceRightsRecordEntity record, long? entryId, List<string> sources, string? candidate) => new()
+        {
+            Id = record.Id,
+            Host = record.Host,
+            RightsClass = record.RightsClass,
+            Quote = record.Quote,
+            QuoteUrl = record.QuoteUrl,
+            ReadOn = record.ReadOn,
+            RecordedByPersonId = record.RecordedByPersonId,
+            RecordedAtUtc = record.RecordedAtUtc,
+            WithdrawnAtUtc = record.WithdrawnAtUtc,
+            JournalEntryId = entryId,
+            Sources = sources,
+            Candidate = candidate,
+        };
 
         public async Task<SourceActionResult> RecordPermissionAsync(long sourceId, SourcePermissionRequestModel request, long personId)
         {
@@ -1052,6 +1398,13 @@ namespace Nom.Orch.Services
                     continue;
                 }
 
+                if (await AlreadyUndoneAsync(step, row, cancellationToken))
+                {
+                    result.AlreadyUndone++;
+                    Skip(result, AlreadyUndoneReason);
+                    continue;
+                }
+
                 string? refusal = step switch
                 {
                     TitlesStep => recipe.Name == row.NewValue ? null : "the title changed since",
@@ -1111,6 +1464,34 @@ namespace Nom.Orch.Services
 
             Trim(result);
             return result;
+        }
+
+        public const string AlreadyUndoneReason = "already undone";
+
+        /// <summary>
+        /// Whether a journal row of a titles, credits or facts-only run was already undone: a later undo row of the same recipe
+        /// put back exactly what the row changed (titles and credits), or names the row (facts-only). A retention row says so
+        /// in its own refusal.
+        /// </summary>
+        private async Task<bool> AlreadyUndoneAsync(string step, AuditLogEntryEntity row, CancellationToken cancellationToken)
+        {
+            var undoType = step switch
+            {
+                TitlesStep => TitleUndoChangeType,
+                CreditsStep => CreditUndoChangeType,
+                FactsOnlyStep => FactsOnlyReleaseChangeType,
+                _ => null,
+            };
+            if (undoType == null) return false;
+            var later = _db.AuditLogEntries.AsNoTracking()
+                .Where(a => a.EntityType == ProseRecheckService.RecipeEntityType && a.EntityId == row.EntityId && a.ChangeType == undoType && a.Id > row.Id);
+            if (step == FactsOnlyStep)
+            {
+                var named = $"false | undo of {row.Id.ToString(CultureInfo.InvariantCulture)}";
+                return await later.AnyAsync(a => a.NewValue == named, cancellationToken);
+            }
+
+            return await later.AnyAsync(a => a.OldValue == row.NewValue && a.NewValue == row.OldValue, cancellationToken);
         }
 
         private async Task<string?> RetentionUndoRefusalAsync(AuditLogEntryEntity row, CancellationToken cancellationToken)

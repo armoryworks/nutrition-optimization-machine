@@ -96,6 +96,8 @@ export interface ScrapingSourceModel {
   rightsQuote?: string | null;
   rightsQuoteUrl?: string | null;
   rightsDerivedAtUtc?: string | null;
+  rightsRecordId?: number | null;
+  rightsRecord?: SourceRightsRecord | null;
   aiReserved?: boolean;
   aiReservedQuote?: string | null;
   aiReservedQuoteUrl?: string | null;
@@ -184,6 +186,7 @@ export interface SourceRecipeStep {
   examined: number;
   changed: number;
   skipped: number;
+  alreadyUndone?: number;
   refused?: string | null;
   skippedByReason: Record<string, number>;
   changes: SourceRecipeChange[];
@@ -259,6 +262,75 @@ export interface SourceDiscoveryRun {
   candidatesExcluded?: number;
   candidatesExcludedHosts?: SourceExcludedHost[];
   excludeNote?: string | null;
+  refusingHosts?: number;
+  refusingHostsList?: SourceRefusingHostReport[];
+}
+
+export interface SourceRefusingHostReport {
+  domain: string;
+  url?: string | null;
+  httpStatus?: number | null;
+  botChallenge: boolean;
+}
+
+export interface SourceRefusingHost {
+  id: number;
+  host: string;
+  firstRefusedUtc: string;
+  lastRefusedUtc: string;
+  timesRefused: number;
+  lastUrl?: string | null;
+  lastHttpStatus?: number | null;
+  lastBotChallenge: boolean;
+  lastRunId?: number | null;
+  held: boolean;
+  releasedAtUtc?: string | null;
+  releasedByPersonId?: number | null;
+  releasedNote?: string | null;
+}
+
+export interface SourceRightsRecord {
+  id: number;
+  host: string;
+  rightsClass: RightsClass;
+  quote: string;
+  quoteUrl: string;
+  readOn: string;
+  recordedByPersonId: number;
+  recordedAtUtc: string;
+  withdrawnAtUtc?: string | null;
+  journalEntryId?: number | null;
+  sources: string[];
+  candidate?: string | null;
+}
+
+export interface SourceRightsByHandRequest {
+  host: string;
+  rightsClass: RightsClass;
+  quote: string;
+  quoteUrl: string;
+  readOn: string;
+}
+
+export interface SourceRightsByHandSource {
+  sourceId: number;
+  domain: string;
+  oldClass?: RightsClass | null;
+  newClass?: RightsClass | null;
+  recipes: number;
+}
+
+export interface SourceRightsByHandResult {
+  applied: boolean;
+  host?: string | null;
+  rightsClass?: RightsClass | null;
+  refused?: string | null;
+  alreadyRecorded: boolean;
+  sources: SourceRightsByHandSource[];
+  candidate?: string | null;
+  candidateClass?: RightsClass | null;
+  excluded: boolean;
+  record?: SourceRightsRecord | null;
 }
 
 export interface SourceExcludedHost {
@@ -270,6 +342,7 @@ export interface SourceExcludedHost {
 export interface SourceJournalEntry {
   id: number;
   sourceId: number;
+  recordId?: number | null;
   domain?: string | null;
   changeType: string;
   field?: string | null;
@@ -294,6 +367,8 @@ export interface SourceReview {
   runs: SourceDiscoveryRun[];
   failedChecks: SourceCheck[];
   journal: SourceJournalEntry[];
+  rightsRecords?: SourceRightsRecord[];
+  refusingHosts?: SourceRefusingHost[];
 }
 
 export interface SourceWithholdReport {

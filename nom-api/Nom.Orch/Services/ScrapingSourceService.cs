@@ -267,6 +267,7 @@ responsibility for the legality and quality of importing recipes from this site.
             RightsQuote = source.RightsQuote,
             RightsQuoteUrl = source.RightsQuoteUrl,
             RightsDerivedAtUtc = source.RightsDerivedAtUtc,
+            RightsRecordId = source.RightsRecordId,
             AiReserved = source.AiReserved,
             AiReservedQuote = source.AiReservedQuote,
             AiReservedQuoteUrl = source.AiReservedQuoteUrl,

@@ -105,6 +105,8 @@ namespace Nom.Orch.Services
             var counts = CompoundLineSplitter.Rules
                 .Where(r => plan.Changes.Any(c => c.Plan.Rule == r))
                 .ToDictionary(r => r, r => new CompoundLineRuleCount { Rule = r });
+            var guard = await LineMoveDietGuard.LoadAsync(_db);
+            var held = new HashSet<Change>(ReferenceEqualityComparer.Instance);
 
             foreach (var recipe in plan.Changes.GroupBy(c => c.Row.RecipeId).Chunk(1000))
             {
@@ -115,6 +117,12 @@ namespace Nom.Orch.Services
                     foreach (var change in group)
                     {
                         var layout = Arrange(change, taken, plan.Units);
+                        if (layout.Rows[0].IngredientId != change.Row.IngredientId
+                            && await guard.HoldsAsync(change.Row.RecipeId, change.Row.IngredientId, change.Row.SortOrder, layout.Rows[0].IngredientId, change.Row.RawLine))
+                        {
+                            held.Add(change);
+                            continue;
+                        }
                         var count = counts[change.Plan.Rule!];
                         count.Lines++;
                         if (change.Row.Curated) count.OnCurated++;
@@ -127,8 +135,10 @@ namespace Nom.Orch.Services
                 }
             }
 
-            preview.Rules = counts.Values.ToList();
-            preview.Samples = plan.Changes
+            preview.Lines -= held.Count;
+            preview.HeldByDiet = held.Count;
+            preview.Rules = counts.Values.Where(c => c.Lines > 0).ToList();
+            preview.Samples = plan.Changes.Where(c => !held.Contains(c))
                 .GroupBy(c => (c.Plan.Rule, Wording: c.Plan.Wording.ToLowerInvariant(), c.Row.IngredientId))
                 .OrderByDescending(g => g.Count()).ThenBy(g => g.Key.Rule, StringComparer.Ordinal).ThenBy(g => g.Key.Wording, StringComparer.Ordinal)
                 .Take(Math.Clamp(sampleSize, 0, 5000))
@@ -164,6 +174,7 @@ namespace Nom.Orch.Services
             var plan = await PlanAsync(rules);
             var result = new CompoundLineResult { Remaining = plan.Changes.Count };
             var personId = _currentUser.PersonIdOrSystem;
+            var guard = await LineMoveDietGuard.LoadAsync(_db);
 
             foreach (var chunk in plan.Changes.Take(Math.Clamp(maxLines, 1, 50000)).GroupBy(c => c.Row.RecipeId).Chunk(RecipesPerTransaction))
             {
@@ -190,12 +201,17 @@ namespace Nom.Orch.Services
                         }
 
                         var layout = Arrange(change with { Row = row with { Quantity = current.Quantity, MeasurementId = current.MeasurementId } }, keys[row.RecipeId], plan.Units);
-                        if (await WriteAsync(row, current, layout, change.Plan.Kind, personId))
+                        var held = guard.Held;
+                        if (await WriteAsync(row, current, layout, change.Plan.Kind, personId, guard))
                         {
                             if (change.Plan.Kind == CompoundKind.Split) result.Split++;
                             else result.Moved++;
                             result.RowsAdded += layout.Rows.Count(r => r.Added);
                             result.Repositioned += layout.Repositioned;
+                        }
+                        else if (guard.Held > held)
+                        {
+                            result.HeldByDiet++;
                         }
                         else
                         {
@@ -212,12 +228,12 @@ namespace Nom.Orch.Services
             return result;
         }
 
-        private async Task<bool> WriteAsync(Row row, RecipeIngredientEntity current, Layout layout, CompoundKind kind, long personId)
+        private async Task<bool> WriteAsync(Row row, RecipeIngredientEntity current, Layout layout, CompoundKind kind, long personId, LineMoveDietGuard guard)
         {
             var now = DateTime.UtcNow;
             var keeper = layout.Rows[0];
             if (keeper.IngredientId != row.IngredientId
-                && await RecipeLineRowWriter.MoveAsync(_db, row.RecipeId, row.IngredientId, row.SortOrder, keeper.IngredientId, keeper.SortOrder, personId) is not { } position)
+                && await RecipeLineRowWriter.MoveAsync(_db, guard, row.RecipeId, row.IngredientId, row.SortOrder, keeper.IngredientId, keeper.SortOrder, personId, row.RawLine) is not { } position)
             {
                 return false;
             }
@@ -437,7 +453,7 @@ namespace Nom.Orch.Services
         /// original position has been taken. Rows an order-only pass moved since are followed, and the
         /// row that stays keeps the place the pass gave it.
         /// </summary>
-        internal static async Task<bool> UnsplitAsync(ApplicationDbContext db, AuditLogEntryEntity entry, long personId, RecipeOrderTrail trail)
+        internal static async Task<bool> UnsplitAsync(ApplicationDbContext db, AuditLogEntryEntity entry, long personId, RecipeOrderTrail trail, LineMoveDietGuard guard)
         {
             if (Read<JournalRow>(entry.OldValue) is not { RawLine: not null } before
                 || Read<List<JournalRow>>(entry.NewValue) is not { Count: >= 2 } after
@@ -466,7 +482,7 @@ namespace Nom.Orch.Services
             if (keeper.IngredientId != before.IngredientId || places[0] != home)
             {
                 if (lines.Any(l => l.IngredientId == before.IngredientId && l.SortOrder == home)
-                    || await RecipeLineRowWriter.MoveAsync(db, entry.EntityId, keeper.IngredientId, places[0], before.IngredientId, home, personId) != home)
+                    || await RecipeLineRowWriter.MoveAsync(db, guard, entry.EntityId, keeper.IngredientId, places[0], before.IngredientId, home, personId, before.RawLine) != home)
                 {
                     return false;
                 }
@@ -490,12 +506,12 @@ namespace Nom.Orch.Services
         /// was on, or, when an order-only pass moved it since, to that food at the place the pass gave
         /// it. False when the line is no longer where the move left it.
         /// </summary>
-        internal static async Task<bool> UnpickAsync(ApplicationDbContext db, AuditLogEntryEntity entry, long personId, RecipeOrderTrail trail)
+        internal static async Task<bool> UnpickAsync(ApplicationDbContext db, AuditLogEntryEntity entry, long personId, RecipeOrderTrail trail, LineMoveDietGuard guard)
         {
             if (LineRelinkService.ReadPlace(entry.OldValue) is not { } was || LineRelinkService.ReadPlace(entry.NewValue) is not { } now
                 || trail.Follow(entry.EntityId, now.IngredientId, now.SortOrder, entry.Timestamp) is not { } from) return false;
             var reordered = trail.Moved(entry.EntityId, entry.Timestamp);
-            if (await RecipeLineRowWriter.MoveAsync(db, entry.EntityId, now.IngredientId, from, was.IngredientId, reordered ? from : was.SortOrder, personId) is not { } position) return false;
+            if (await RecipeLineRowWriter.MoveAsync(db, guard, entry.EntityId, now.IngredientId, from, was.IngredientId, reordered ? from : was.SortOrder, personId) is not { } position) return false;
             trail.Carry(entry.EntityId, entry.Timestamp, now.IngredientId, now.SortOrder, r => RecipeOrderTrail.Repoint(r, now.IngredientId, was.IngredientId), was.SortOrder, position);
             return true;
         }

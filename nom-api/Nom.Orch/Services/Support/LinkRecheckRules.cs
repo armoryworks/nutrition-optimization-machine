@@ -38,7 +38,7 @@ namespace Nom.Orch.Services.Support
     /// </summary>
     public static class LinkRecheckRules
     {
-        public const string Version = "link-recheck/6";
+        public const string Version = "link-recheck/7";
 
         public const string Alcohol = "alcohol";
         public const string PartHerb = "part-herb";
@@ -362,8 +362,11 @@ namespace Nom.Orch.Services.Support
         /// The verdict on one wording's lines on one food, as a run decides it: the gate's holds on
         /// the pair with its lines, read as the set reads them (<see cref="ReadHolds"/>), each tier's
         /// food asked the same way, and <see cref="Decide"/> with <see cref="Refutes"/> (a line of
-        /// alternatives one of which is the food is no proof). A run and the class scorer both
-        /// decide through this, so the judged golden lines measure what a run writes.
+        /// alternatives one of which is the food is no proof). A fresh-herb hold is no proof when every
+        /// fresh cue qualifies a later item of the wording or its lines (<see cref="FreshOfLaterItem"/>),
+        /// and a group or compound hold none when only the part after a ratio phrase raises it
+        /// (<see cref="BeforeRatio"/>). A run and the class scorer both decide through this, so the
+        /// judged golden lines measure what a run writes.
         /// </summary>
         public static RecheckVerdict Judge(string set, string wording, GateFood food, IReadOnlyList<GateLine>? lines, GateCatalog catalog, IEnumerable<(string Tier, GateFood Food)> candidates)
         {
@@ -371,9 +374,78 @@ namespace Nom.Orch.Services.Support
             var alternative = new Lazy<bool>(() => LinkGate.NamesAlternative(wording, food, catalog));
             var first = new Lazy<bool>(() => LinkGate.NamesFirstAlternative(wording, food, catalog));
             var other = new Lazy<bool>(() => LinkGate.NamesOtherFood(wording, food, catalog));
+            var freshLater = new Lazy<bool>(() =>
+            {
+                var cued = new[] { wording }.Concat((lines ?? Array.Empty<GateLine>()).Select(l => l.Raw ?? string.Empty)).Where(HasFreshCue).ToList();
+                return cued.Count > 0 && cued.All(t => FreshOfLaterItem(t, food));
+            });
+            var beforeRatio = new Lazy<IReadOnlyList<GateHold>?>(() =>
+                BeforeRatio(wording) is { } cut ? LinkGate.Check(new GatePair(cut, food.Id, food, Lines: lines), catalog) : null);
+            bool Proof(GateHold h) =>
+                Refutes(h, holds, alternative.Value, AlternativeCodes.Contains(h.Code) && first.Value, h.Code != LinkGate.Compound || other.Value)
+                && !(h.Code == LinkGate.FreshHerb && freshLater.Value)
+                && !(h.Code is LinkGate.Group or LinkGate.Compound && beforeRatio.Value is { } cutHolds && cutHolds.All(c => c.Code != h.Code));
             return Decide(set, holds,
                 () => candidates.Select(c => new RecheckCandidate(c.Tier, c.Food, ReadHolds(set, wording, c.Food, LinkGate.Check(new GatePair(wording, food.Id, c.Food, Lines: lines), catalog)))),
-                set == ContainerForm, h => Refutes(h, holds, alternative.Value, AlternativeCodes.Contains(h.Code) && first.Value, h.Code != LinkGate.Compound || other.Value));
+                set == ContainerForm, Proof);
+        }
+
+        /// <summary>
+        /// The phrases that measure a food against another ("sugar per quart of juice", "sugar, 10 oz. for each pound of juice",
+        /// "to every pint", "sugar to a gallon of vinegar"): what follows names the measure, never a second food or the food's
+        /// group (staging checkpoint 5, Q15; the gate reads its part rule the same way). A bare "each" or "every" is none: "1 cup
+        /// each sugar and flour" spreads one amount over two foods.
+        /// </summary>
+        private static readonly Regex RatioPhrase = new(@"\s(?:per|(?:for|to)\s+(?:each|every)|to\s+an?\s+(?:\p{L}+\s+)?of)\s", Options);
+
+        /// <summary>The wording before its first ratio phrase (<see cref="RatioPhrase"/>), or null when it has none after a word.</summary>
+        public static string? BeforeRatio(string wording)
+        {
+            var match = RatioPhrase.Match(wording ?? string.Empty);
+            if (!match.Success) return null;
+            var cut = wording![..match.Index].TrimEnd(' ', ',', ';');
+            return LinkGate.Words(cut).Any(w => w.Any(char.IsLetter)) ? cut : null;
+        }
+
+        private static readonly Regex ItemBreak = new(@"[,;:()]|\s(?:or|and/or)\s", Options);
+
+        private static readonly HashSet<string> ItemFiller = new(StringComparer.Ordinal)
+        {
+            "of", "the", "a", "an", "and", "or", "some", "few", "about", "optional", "inch", "piece", "small", "large", "medium", "teaspoon",
+            "tablespoon", "cup", "tsp", "tbsp", "oz", "ounce", "pound", "lb", "pinch", "dash", "stick", "sprig", "leaf", "handful", "bunch", "stalk",
+        };
+
+        private static bool HasFreshCue(string text) => LinkGate.Words(text).Any(LinkGate.FreshCues.Contains);
+
+        /// <summary>
+        /// Whether every fresh cue of a text qualifies a later item, not the food named first: the cue stands in an item after
+        /// the first one that names a word of the food, and a word follows it there that the first item does not hold
+        /// ("1 cinnamon stick, 1-inch piece of fresh turmeric" on Cinnamon; "cayenne pepper, 1/2 teaspoon, or chopped sweet
+        /// pepper" on Cayenne Pepper: staging checkpoint 5, Q14). A cue after its food ("rosemary, chopped") or before the
+        /// food again ("rosemary, 2 sprigs fresh rosemary") qualifies the food.
+        /// </summary>
+        public static bool FreshOfLaterItem(string text, GateFood food)
+        {
+            var foodWords = LinkGate.Words(food.Name).Select(LinkGate.Fold).Where(w => !ItemFiller.Contains(w)).ToHashSet(StringComparer.Ordinal);
+            var items = ItemBreak.Split(text ?? string.Empty).Select(i => LinkGate.Words(i).ToList()).ToList();
+            var firstItem = items.FindIndex(i => i.Select(LinkGate.Fold).Any(foodWords.Contains));
+            if (firstItem < 0) return false;
+            static IEnumerable<string> Content(IEnumerable<string> words) =>
+                words.Where(w => w.Any(char.IsLetter) && !LinkGate.FreshCues.Contains(w)).Select(LinkGate.Fold).Where(w => !ItemFiller.Contains(w));
+            var first = Content(items[firstItem]).ToHashSet(StringComparer.Ordinal);
+            var cues = 0;
+            for (var i = 0; i < items.Count; i++)
+            {
+                for (var j = 0; j < items[i].Count; j++)
+                {
+                    if (!LinkGate.FreshCues.Contains(items[i][j])) continue;
+                    cues++;
+                    if (i <= firstItem) return false;
+                    var after = Content(items[i].Skip(j + 1)).ToList();
+                    if (after.Count == 0 || after.All(first.Contains)) return false;
+                }
+            }
+            return cues > 0;
         }
 
         /// <summary>The holds of a pair as the set reads them: the alcohol rules only where the set reads them (<see cref="ForSet"/>).</summary>
@@ -430,9 +502,21 @@ namespace Nom.Orch.Services.Support
             RestrictedWords(wording, target).Count == 0
             && LinkGate.Check(new GatePair(wording, 0, target), catalog).All(h => Unread.Contains(h.Code));
 
-        /// <summary>The default restriction patterns the wording names and the food's own name and USDA description do not: the allergen or diet words an alias would add to the food.</summary>
+        /// <summary>
+        /// The default restriction patterns the wording names and the food's own name and USDA description do not: the allergen or diet words an alias would add to the food.
+        /// A companion pattern adds nothing when every default type that holds it already reads the food by another pattern ("dry sherry" on a dessert wine: %sherry%
+        /// accompanies %wine%, which the description names).
+        /// </summary>
         public static IReadOnlyList<string> RestrictedWords(string wording, GateFood target) =>
-            RestrictionPatterns.Value.Where(p => p.IsMatch(wording) && !p.IsMatch(target.Name) && !p.IsMatch(target.Description)).Select(p => p.Pattern).ToList();
+            RestrictionPatterns.Value.Where(p => p.IsMatch(wording) && !Names(p, target) && !CompanionAddsNoFlag(p.Pattern, target)).Select(p => p.Pattern).ToList();
+
+        private static bool Names(DietPatternRule rule, GateFood target) => rule.IsMatch(target.Name) || rule.IsMatch(target.Description);
+
+        private static bool CompanionAddsNoFlag(string pattern, GateFood target) =>
+            DefaultRestrictionCriteria.Companions.Any(c => string.Equals(c.Companion, pattern, StringComparison.OrdinalIgnoreCase))
+            && DefaultRestrictionCriteria.ByName.Where(kv => kv.Value.Patterns.Contains(pattern, StringComparer.OrdinalIgnoreCase))
+                .All(kv => kv.Value.Patterns.Where(p => !string.Equals(p, pattern, StringComparison.OrdinalIgnoreCase) && !DietCriteriaMatcher.IsWordPattern(p))
+                    .Any(p => Names(DietPatternRule.For(p, kv.Key), target)));
 
         private static readonly Lazy<IReadOnlyList<DietPatternRule>> RestrictionPatterns = new(() =>
             DefaultRestrictionCriteria.ByName.Values.SelectMany(v => v.Patterns).Where(p => p.Contains('%')).Distinct(StringComparer.Ordinal).Select(p => DietPatternRule.For(p)).ToList());
@@ -556,6 +640,10 @@ namespace Nom.Orch.Services.Support
             parts.Add(CannedFood.ToString());
             parts.Add(string.Join(",", ContainerWords.OrderBy(w => w, StringComparer.Ordinal)));
             parts.Add(NovemberThird.ToString("O"));
+            parts.Add(RatioPhrase.ToString());
+            parts.Add(ItemBreak.ToString());
+            parts.Add(string.Join(",", ItemFiller.OrderBy(w => w, StringComparer.Ordinal)));
+            parts.Add(string.Join(",", LinkGate.FreshCues.OrderBy(w => w, StringComparer.Ordinal)));
             return string.Join("\n", parts);
         }
     }

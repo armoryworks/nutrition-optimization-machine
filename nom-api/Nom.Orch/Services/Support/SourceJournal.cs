@@ -11,11 +11,16 @@ namespace Nom.Orch.Services.Support
     /// <see cref="PermissionField"/>, <see cref="FactsOnlyField"/>, <see cref="FactsOnlyProseField"/>, <see cref="TermsCheckField"/>) with its
     /// old and new state, written as <c>state</c> or <c>state | detail</c>. A row of an undoable
     /// field is undone by setting the field back to its old state while it still holds the new one,
-    /// journaled as <see cref="Undo"/>; an undo is a row like any other, so it can be undone too.
+    /// journaled as <see cref="Undo"/>; an undo is a row like any other, so it can be undone too. A class
+    /// recorded by hand (<see cref="RightsByHand"/>) is undone as a whole: its record is withdrawn and every
+    /// source it set goes back to the class it had.
     /// </summary>
     public static class SourceJournal
     {
         public const string EntityType = "ScrapingSource";
+
+        /// <summary>The journal of the classes recorded by hand (EntityType <c>SourceRightsRecord</c>, EntityId the record), one row when a record is made and one when it is withdrawn.</summary>
+        public const string RecordEntityType = "SourceRightsRecord";
 
         public const string Approve = "SourceApprove";
         public const string Reject = "SourceReject";
@@ -33,6 +38,7 @@ namespace Nom.Orch.Services.Support
         public const string FactsOnlyUse = "SourceFactsOnlyUse";
         public const string TermsCheck = "SourceTermsCheck";
         public const string FactsOnlyWithhold = "SourceFactsOnlyWithhold";
+        public const string RightsByHand = "SourceRightsByHand";
 
         public const string StatusField = "Status";
         public const string HarvestField = "Harvest";

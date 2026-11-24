@@ -50,6 +50,7 @@ namespace Nom.Api.Tests.Services
             public Task<CatalogCleanupPreview> PreviewAsync(int sampleSize = 50) => throw new NotSupportedException();
             public Task<CatalogCleanupResult> ApplyAsync(int maxActions = 500) => throw new NotSupportedException();
             public Task<CatalogNormalizeResult> NormalizeAsync(bool apply) => throw new NotSupportedException();
+            public Task<bool> LowersDietAsync(long sourceId, long targetId) => Task.FromResult(false);
 
             public async Task<bool> MergeIntoAsync(long sourceId, long targetId, long? personId, bool ignoreProposals = false, long? keepProposalId = null)
             {
@@ -472,7 +473,7 @@ namespace Nom.Api.Tests.Services
         }
 
         [Fact]
-        public async Task A_persons_approval_that_gives_the_usda_food_the_wordings_own_name_is_undone_with_both_names_back()
+        public async Task A_persons_approval_that_gives_the_usda_food_the_wordings_own_name_is_undone_with_both_names_back_and_the_line_kept_by_the_diet_guard()
         {
             using var db = NewContext();
             var crackers = new IngredientEntity { Name = "Crackers", CurationStatusId = 9000 };
@@ -494,12 +495,17 @@ namespace Nom.Api.Tests.Services
             db.ChangeTracker.Clear();
             (await db.Ingredients.FindAsync(usda.Id))!.Name.Should().Be("Crackers");
 
-            var result = await new LinkApplyUndoService(db, new NoUser()).UndoAsync(start, apply: true);
+            var held = await new LinkApplyUndoService(db, new NoUser()).UndoAsync(start, apply: true);
+            db.ChangeTracker.Clear();
+            var result = await new LinkApplyUndoService(db, new NoUser()).UndoAsync(start, apply: true, leaveMovedLines: true);
             db.ChangeTracker.Clear();
 
-            result.Should().BeEquivalentTo(new { Proposals = 1, ProposalsSkipped = 0, NamesRestored = 1, FoodsRestored = 1, LinesRestored = 1 });
+            held.Should().BeEquivalentTo(new { Proposals = 0, ProposalsSkipped = 1, LinesHeldByDiet = 1 },
+                "staging checkpoint 5, Q21: on the wheat crackers' USDA entry the line reads as wheat for FODMAP; back on a food named only \"Crackers\" it would not");
+            result.Should().BeEquivalentTo(new { Proposals = 1, ProposalsSkipped = 0, NamesRestored = 1, FoodsRestored = 1, LinesRestored = 0, LinesHeldByDiet = 1 });
             (await db.Ingredients.FindAsync(usda.Id))!.Name.Should().Be("Crackers, wheat, regular");
             (await db.Ingredients.IgnoreQueryFilters().SingleAsync(i => i.Id == crackers.Id)).Should().Match<IngredientEntity>(i => !i.IsDeleted && i.Name == "Crackers");
+            (await db.RecipeIngredients.SingleAsync(ri => ri.RecipeId == recipe.Id)).IngredientId.Should().Be(usda.Id, "the guard keeps the line where its flags are read");
         }
 
         [Fact]

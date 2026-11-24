@@ -1,11 +1,11 @@
 {
-  "version": "link-recheck/6",
-  "decisionSignature": "98beb2d6472a19af",
-  "caseSet": "d51ce4a54b3604ff",
-  "rows": 992,
+  "version": "link-recheck/7",
+  "decisionSignature": "1d60e5587f2b8867",
+  "caseSet": "434634a1392507d3",
+  "rows": 998,
   "bar": 0.95,
   "minimum": 40,
-  "scoredAtUtc": "2026-11-23T17:26:08.8571777Z",
+  "scoredAtUtc": "2026-11-24T02:23:56.2504717Z",
   "classes": [
     {
       "class": "alcohol",
@@ -49,12 +49,12 @@
     },
     {
       "class": "fresh-herb",
-      "judged": 55,
-      "right": 55,
+      "judged": 56,
+      "right": 56,
       "agentJudged": 55,
       "agentRight": 55,
-      "ruleJudged": 0,
-      "ruleRight": 0,
+      "ruleJudged": 1,
+      "ruleRight": 1,
       "meetsBar": true
     },
     {

@@ -21,7 +21,10 @@ namespace Nom.Orch.Services
     /// withholds the prose of the ones that fail (<see cref="RecipeEntity.ProseWithheld"/>): the
     /// recipe stays listed and usable, its text is never served, and the rewrite lane takes it up.
     /// Each recipe withheld is journaled (<see cref="WithholdChangeType"/>) with the finding and the
-    /// check version it had, and the undo releases it again. A recipe the check is only unsure of is
+    /// check version it had, and the undo releases it again. A recipe whose copy measures sit between
+    /// the two lines of the copy rule (copy-unsure) is withheld the same way, its journal row naming the
+    /// outcome and the measures, and is marked <see cref="RecipeEntity.ProseCopyUnsure"/> so the
+    /// Pipeline page counts it apart; the undo clears the mark. A recipe the check is only unsure of on facts is
     /// never withheld: it is marked (<see cref="RecipeEntity.ProseUnsure"/>, journaled as
     /// <see cref="UnsureChangeType"/>), counted, and left for the prose judge; a later pass or failure
     /// clears the mark, as does a person's edit (journaled as not checked), and the undo puts marks
@@ -202,7 +205,7 @@ namespace Nom.Orch.Services
                             ChangeType = WithholdChangeType,
                             PropertyName = nameof(RecipeEntity.ProseWithheld),
                             OldValue = recipe.ProseCheckVersion?.ToString(CultureInfo.InvariantCulture) ?? string.Empty,
-                            NewValue = Clamp($"check {ProseCheck.Version} stock {stock.Version}: {failure.Finding}"),
+                            NewValue = Clamp($"check {ProseCheck.Version} stock {stock.Version}: {failure.Finding.Outcome}: {failure.Finding} | measures {failure.Finding.Measures}"),
                             Timestamp = now,
                             ChangedByPersonId = personId,
                         });
@@ -214,6 +217,7 @@ namespace Nom.Orch.Services
                         }
 
                         recipe.ProseWithheld = true;
+                        recipe.ProseCopyUnsure = failure.Finding.CopyUnsure;
                         recipe.ProseCheckVersion = ProseCheck.Version;
                         recipe.LastModifiedDate = now;
                         recipe.LastModifiedByPersonId = personId;
@@ -231,6 +235,7 @@ namespace Nom.Orch.Services
                     if (tx != null) await tx.CommitAsync(cancellationToken);
                     _db.ChangeTracker.Clear();
                     result.Withheld += batch.Count;
+                    result.WithheldCopyUnsure += batch.Count(f => f.Finding.CopyUnsure);
                     applied.AddRange(batch);
                 }
 
@@ -271,7 +276,7 @@ namespace Nom.Orch.Services
                     EntityId = ProseCheck.Version,
                     ChangeType = RunChangeType,
                     PropertyName = nameof(ProseRecheckResult.StockVersion),
-                    NewValue = Clamp($"check {ProseCheck.Version} stock {stock.Version}: examined {result.Examined}, passed {result.Passed}, unsure {result.Unsure}, withheld {result.Withheld}, skipped edited {result.SkippedEditedByPerson}, no source {result.SkippedNoSource}, errored {result.Errored}"),
+                    NewValue = Clamp($"check {ProseCheck.Version} stock {stock.Version}: examined {result.Examined}, passed {result.Passed}, unsure {result.Unsure}, withheld {result.Withheld} (copy-unsure {result.WithheldCopyUnsure}), skipped edited {result.SkippedEditedByPerson}, no source {result.SkippedNoSource}, errored {result.Errored}"),
                     Timestamp = DateTime.UtcNow,
                     ChangedByPersonId = _currentUser.PersonIdOrSystem,
                 });
@@ -478,6 +483,7 @@ namespace Nom.Orch.Services
                         ChangedByPersonId = personId,
                     });
                     recipe.ProseWithheld = false;
+                    recipe.ProseCopyUnsure = false;
                     recipe.ProseCheckVersion = int.TryParse(entry.OldValue, NumberStyles.Integer, CultureInfo.InvariantCulture, out var version) ? version : null;
                     recipe.LastModifiedDate = now;
                     recipe.LastModifiedByPersonId = personId;
@@ -554,6 +560,12 @@ namespace Nom.Orch.Services
             var approved = candidate.CurationStatusId == (long)CurationStatusEnum.Curated;
             result.Failed++;
             if (approved) result.FailedApproved++;
+            if (finding.CopyUnsure)
+            {
+                result.CopyUnsure++;
+                if (approved) result.CopyUnsureApproved++;
+            }
+
             foreach (var reason in finding.FailReasons)
             {
                 result.FailedByReason[reason] = result.FailedByReason.GetValueOrDefault(reason) + 1;

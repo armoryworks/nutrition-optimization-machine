@@ -158,7 +158,7 @@ namespace Nom.Orch.Services
                 switch (one.Outcome)
                 {
                     case RecipeReprocessOutcome.Rebuilt: result.Rebuilt++; result.Counts.Add(one.Counts); break;
-                    case RecipeReprocessOutcome.Unchanged: result.Unchanged++; break;
+                    case RecipeReprocessOutcome.Unchanged: result.Unchanged++; result.Counts.AddGuard(one.Counts); break;
                     case RecipeReprocessOutcome.Failed: result.Failed++; break;
                     default:
                         result.Held++;
@@ -242,8 +242,16 @@ namespace Nom.Orch.Services
                     : newIssues;
             one.Rejected = reject;
             one.Outcome = unchanged ? RecipeReprocessOutcome.Unchanged : RecipeReprocessOutcome.Rebuilt;
+            var holds = Holds(recipeId, one, units, _ => null);
             if (unchanged && !reject) one.Lines.Clear();
-            if (!apply || (unchanged && !reject)) return one;
+            if (!apply) return one;
+            if (unchanged && !reject)
+            {
+                await LineGuardHolds.RecordAsync(_db, LineGuardHoldOrigin.Rebuild, new[] { recipeId }, holds, RecipeLineBuilder.Version, DateTime.UtcNow,
+                    new Dictionary<string, string> { [LineGuardHoldOrigin.Rebuild] = LineGuardHolds.Released });
+                await _db.SaveChangesAsync();
+                return one;
+            }
 
             var by = _currentUser.PersonIdOrSystem;
             await using var tx = _db.Database.IsRelational() ? await _db.Database.BeginTransactionAsync() : null;
@@ -254,6 +262,9 @@ namespace Nom.Orch.Services
                 built = await _builder.BuildAsync(source.Record.Ingredients, _currentUser.PersonId, write: true, method, choose);
                 KeepKinds(built, pairs);
                 Guard(built, pairs, oldFoods, units, method);
+                var builtFoods = built.GroupBy(l => l.SortOrder).ToDictionary(g => g.Key, g => g.First().Food?.Id);
+                await LineGuardHolds.RecordAsync(_db, LineGuardHoldOrigin.Rebuild, new[] { recipeId }, Holds(recipeId, one, units, builtFoods.GetValueOrDefault),
+                    RecipeLineBuilder.Version, now, RebuildResolves);
                 var createdFoods = built.Where(l => l.Created && l.Food != null).Select(l => l.Food!).DistinctBy(f => f.Id).ToList();
                 var written = linesUnchanged ? rows : NewRows(built, pairs, now);
                 if (!linesUnchanged) await ReplaceRowsAsync(recipeId, written);
@@ -521,11 +532,31 @@ namespace Nom.Orch.Services
         /// holds the stored amount, the line takes the stored row's amount and kind back. The verdicts other than
         /// "same", by position, each with the amount the builder gave.
         /// </summary>
-        private static Dictionary<int, (LineAmountGuard.Verdict Verdict, decimal Quantity, long MeasurementId, string? Kind)> Guard(
+        private sealed record Guarded(LineAmountGuard.Verdict Verdict, string Reason, decimal Quantity, long MeasurementId, string? Unit, string? Kind, bool FromMethod);
+
+        /// <summary>
+        /// The lines the guard held, as holds of the rows the recipe carries after the call: a held line keeps the
+        /// stored amount and kind on the row at its built position, whose food is <paramref name="foodAt"/> of it.
+        /// </summary>
+        private static List<LineGuardHolds.Held> Holds(long recipeId, RecipeReprocessRecipeResult one, IReadOnlyDictionary<long, string> units, Func<int, long?> foodAt) =>
+            one.Lines.Where(l => l.Guard == nameof(LineAmountGuard.Verdict.Hold).ToLowerInvariant() && l.OldIngredientId != null)
+                .Select(l => new LineGuardHolds.Held(
+                    recipeId, foodAt(l.SortOrder) ?? l.OldIngredientId!.Value, l.SortOrder, l.RawLine, l.GuardReason ?? string.Empty,
+                    l.OldFood, l.OldQuantity ?? 0, l.OldMeasurementId is { } unit ? units.GetValueOrDefault(unit) : null, l.OldLineKind,
+                    l.NewIngredientId, l.NewFood, l.HeldQuantity ?? 0, l.HeldUnit, l.HeldLineKind, l.HeldFromMethod))
+                .ToList();
+
+        private static readonly Dictionary<string, string> RebuildResolves = new()
+        {
+            [LineGuardHoldOrigin.Rebuild] = LineGuardHolds.Released,
+            [LineGuardHoldOrigin.StartupFill] = LineGuardHolds.Rebuilt,
+        };
+
+        private static Dictionary<int, Guarded> Guard(
             List<RecipeLineBuilder.BuiltLine> built, Dictionary<int, LineRow> pairs, Dictionary<long, IngredientEntity> oldFoods,
             IReadOnlyDictionary<long, string> units, IReadOnlyList<string> method)
         {
-            var verdicts = new Dictionary<int, (LineAmountGuard.Verdict, decimal, long, string?)>();
+            var verdicts = new Dictionary<int, Guarded>();
             var seen = new HashSet<LineRow>(ReferenceEqualityComparer.Instance);
             foreach (var line in built)
             {
@@ -534,9 +565,10 @@ namespace Nom.Orch.Services
                 var stored = new LineAmountGuard.Amount(row.Quantity, units.GetValueOrDefault(row.MeasurementId), row.LineKind, oldFood?.Name, oldFood?.GramsPerItem);
                 var proposed = new LineAmountGuard.Amount(
                     line.Quantity, units.GetValueOrDefault(line.MeasurementId) ?? line.MeasurementName, line.LineKind, line.FoodName, line.Food?.GramsPerItem, line.FilledFromMethod);
-                var verdict = LineAmountGuard.Decide(line.RawLine, stored, proposed, method);
+                var decision = LineAmountGuard.Judge(line.RawLine, stored, proposed, method);
+                var verdict = decision.Verdict;
                 if (verdict == LineAmountGuard.Verdict.Same) continue;
-                verdicts[line.SortOrder] = (verdict, line.Quantity, line.MeasurementId, line.LineKind);
+                verdicts[line.SortOrder] = new Guarded(verdict, decision.Reason, line.Quantity, line.MeasurementId, proposed.Unit, line.LineKind, line.FilledFromMethod);
                 if (verdict is LineAmountGuard.Verdict.Replace) continue;
                 line.Quantity = row.Quantity;
                 line.MeasurementId = row.MeasurementId;
@@ -558,7 +590,7 @@ namespace Nom.Orch.Services
             }).ToList();
 
         private static void Diff(RecipeReprocessRecipeResult one, List<RecipeLineBuilder.BuiltLine> built, IReadOnlyList<int> unbuilt, Dictionary<int, LineRow> pairs, List<LineRow> live, Dictionary<long, IngredientEntity> oldFoods,
-            Dictionary<int, (LineAmountGuard.Verdict Verdict, decimal Quantity, long MeasurementId, string? Kind)> guarded)
+            Dictionary<int, Guarded> guarded)
         {
             var counts = one.Counts;
             counts.LinesBefore = live.Count;
@@ -594,14 +626,17 @@ namespace Nom.Orch.Services
                     if (guarded.TryGetValue(line.SortOrder, out var guard))
                     {
                         diff.Guard = guard.Verdict.ToString().ToLowerInvariant();
+                        diff.GuardReason = guard.Reason;
                         switch (guard.Verdict)
                         {
                             case LineAmountGuard.Verdict.Keep: counts.GuardKept++; break;
                             case LineAmountGuard.Verdict.Replace: counts.GuardReplaced++; break;
                             default:
                                 counts.GuardHeld++;
+                                counts.GuardHeldByReason[guard.Reason] = counts.GuardHeldByReason.GetValueOrDefault(guard.Reason) + 1;
                                 diff.Changes.Add(RecipeReprocessLineDiff.Held);
-                                (diff.HeldQuantity, diff.HeldMeasurementId, diff.HeldLineKind) = (guard.Quantity, guard.MeasurementId, guard.Kind);
+                                (diff.HeldQuantity, diff.HeldMeasurementId, diff.HeldUnit, diff.HeldLineKind, diff.HeldFromMethod) =
+                                    (guard.Quantity, guard.MeasurementId, guard.Unit, guard.Kind, guard.FromMethod);
                                 break;
                         }
                     }
@@ -1298,6 +1333,7 @@ namespace Nom.Orch.Services
             var foodsGone = new List<AuditLogEntryEntity>();
             var linkIds = new List<long>();
             var follows = new List<RecipeReprocessJournalEntity>();
+            var rebuildsUndone = new HashSet<long>();
 
             async Task SaveFollowsAsync()
             {
@@ -1443,6 +1479,7 @@ namespace Nom.Orch.Services
                     recipe.LastModifiedByPersonId = SystemConstants.SystemPersonId;
                 }
                 entry.UndoneAt = at;
+                if (entry.Kind == RecipeReprocessKind.Rebuild) rebuildsUndone.Add(recipe.Id);
                 foreach (var created in removable)
                 {
                     foodsGone.Add(created);
@@ -1493,6 +1530,7 @@ namespace Nom.Orch.Services
                     link.ChangeType = ReprocessUndoneChangeType;
                 }
             }
+            await LineGuardHolds.ResolveAsync(_db, LineGuardHoldOrigin.Rebuild, rebuildsUndone, LineGuardHolds.Undone, DateTime.UtcNow);
             await _db.SaveChangesAsync();
             _db.ChangeTracker.Clear();
             await RecalculateLabelsAsync(recalculate, tx);
@@ -1515,10 +1553,12 @@ namespace Nom.Orch.Services
         /// <summary>
         /// Calculates the labels of the recipes whose lines the batch put back, from their lines and their foods'
         /// current nutrients, as the row-by-row undo did after each one, inside the batch's transaction so a batch
-        /// is committed with its labels or not at all. A failure is logged and leaves those labels as they were;
-        /// the recipes are then calculated one at a time so one recipe's failure keeps no other label back.
+        /// is committed with its labels or not at all. A concurrency conflict with another label writer (the API's own,
+        /// staging checkpoint 5, Q16) is retried from fresh reads, up to <see cref="LabelAttempts"/> times; any other
+        /// failure, or a conflict that outlasts the retries, is logged and leaves those labels as they were, and the recipes
+        /// are then calculated one at a time so one recipe's failure keeps no other label back.
         /// </summary>
-        private async Task RecalculateLabelsAsync(IReadOnlyCollection<long> recipeIds, IDbContextTransaction? tx)
+        internal async Task RecalculateLabelsAsync(IReadOnlyCollection<long> recipeIds, IDbContextTransaction? tx)
         {
             if (recipeIds.Count == 0) return;
             if (await TryLabelsAsync(tx, () => _nutrition.RecalculateManyAsync(recipeIds))) return;
@@ -1527,25 +1567,39 @@ namespace Nom.Orch.Services
 
         private async Task<bool> TryLabelsAsync(IDbContextTransaction? tx, Func<Task<int>> calculate)
         {
-            if (tx != null) await tx.CreateSavepointAsync(LabelSavepoint);
-            try
+            for (var attempt = 1; ; attempt++)
             {
-                await calculate();
-                return true;
-            }
-            catch (Exception ex)
-            {
-                _logger.LogWarning(ex, "Labels were not recalculated after a reprocess undo batch");
-                if (tx != null) await tx.RollbackToSavepointAsync(LabelSavepoint);
-                return false;
-            }
-            finally
-            {
-                _db.ChangeTracker.Clear();
+                if (tx != null) await tx.CreateSavepointAsync(LabelSavepoint);
+                try
+                {
+                    await calculate();
+                    return true;
+                }
+                catch (DbUpdateConcurrencyException ex) when (attempt < LabelAttempts)
+                {
+                    _logger.LogInformation(ex, "Labels of a reprocess undo batch met another label writer; calculating again (attempt {Attempt} of {Attempts})", attempt + 1, LabelAttempts);
+                    if (tx != null) await tx.RollbackToSavepointAsync(LabelSavepoint);
+                }
+                catch (Exception ex)
+                {
+                    _logger.LogWarning(ex, "Labels were not recalculated after a reprocess undo batch");
+                    if (tx != null) await tx.RollbackToSavepointAsync(LabelSavepoint);
+                    return false;
+                }
+                finally
+                {
+                    _db.ChangeTracker.Clear();
+                }
+                await Task.Delay(LabelRetryDelay * attempt);
             }
         }
 
         private const string LabelSavepoint = "undo_labels";
+
+        /// <summary>How many times one label calculation is tried when another label writer changes the same rows.</summary>
+        internal const int LabelAttempts = 4;
+
+        private static readonly TimeSpan LabelRetryDelay = TimeSpan.FromMilliseconds(100);
 
         /// <summary>
         /// Whether a reprocess write of rows made after <paramref name="entry"/> on the same recipe still stands:

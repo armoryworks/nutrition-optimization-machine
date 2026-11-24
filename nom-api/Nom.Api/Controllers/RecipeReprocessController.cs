@@ -18,11 +18,35 @@ namespace Nom.Api.Controllers
     {
         private readonly IRecipeReprocessService _reprocess;
         private readonly IReprocessDetectorService _detector;
+        private readonly ILineGuardHoldService _holds;
 
-        public RecipeReprocessController(IRecipeReprocessService reprocess, IReprocessDetectorService detector)
+        public RecipeReprocessController(IRecipeReprocessService reprocess, IReprocessDetectorService detector, ILineGuardHoldService holds)
         {
             _reprocess = reprocess;
             _detector = detector;
+            _holds = holds;
+        }
+
+        /// <summary>
+        /// The lines the line guard held, the rebuild's on an apply and the start-up fill's on each start, counted:
+        /// open holds by reason, in all and per writer (rebuild, startup-fill), and resolved ones by resolution.
+        /// </summary>
+        [HttpGet("line-holds")]
+        public async Task<ActionResult<LineGuardHoldReport>> LineHolds(CancellationToken cancellationToken = default) =>
+            Ok(await _holds.CountsAsync(cancellationToken));
+
+        /// <summary>The held lines after afterId in id order, each with the stored row, the rebuilt row, the source line and the reason; open ones unless resolved=true, of one reason or writer when given.</summary>
+        [HttpGet("line-holds/list")]
+        public async Task<ActionResult<List<LineGuardHoldRow>>> LineHoldList(
+            [FromQuery] string? reason = null, [FromQuery] string? origin = null, [FromQuery] bool resolved = false, [FromQuery] long afterId = 0,
+            [FromQuery] int take = 100, CancellationToken cancellationToken = default)
+        {
+            if (take < 1 || take > LineGuardHoldService.MaxTake)
+            {
+                return BadRequest(new { message = $"take must be 1 to {LineGuardHoldService.MaxTake}" });
+            }
+
+            return Ok(await _holds.ListAsync(reason, origin, resolved, afterId, take, cancellationToken));
         }
 
         /// <summary>

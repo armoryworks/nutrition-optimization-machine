@@ -97,7 +97,11 @@ and "seven to eight cups of" are amounts and not proportions, a per-pound senten
 past the point of "lb.", "for thirty pounds" is a proportion, a utensil line ("tin plate") and the
 vessel a food is put into ("Put into a tumbler ... syrup") give nothing, a French cross-reference ("comme
 celui du N. 579") and a price ("twenty cents' worth") are no amount, "one-half ounce" is half an ounce and
-"cup of the soup stock" is one cup (P2, P8, P11))
+"cup of the soup stock" is one cup (P2, P8, P11);
+`line-builder/11` since the checkpoint-5 round of `cleanup2/ck10-amounts`: the line guard below as revised
+for Q12 and Q1 (an empty rebuilt row never replaces a stored amount, amounts are read in the line's own
+source text, a count of a measure and the first part of "a pound and a half" give way, a reference or
+equipment line takes the amount its source states) and every held line stored as a hold)
 is stamped on every journal row. Raise it with any
 change to a rule the builder applies: the detector reads again every recipe an older version read,
 and the lane's signature changes, so its tiers go back to shadow until they qualify under the new
@@ -106,29 +110,59 @@ rules.
 ## Line guard
 
 The rebuild can never make a line's amount worse by rule (`LineAmountGuard`, no model, since staging
-checkpoint 4, P11). Each line built from a stored row is compared with that row:
+checkpoint 4, P11; revised at checkpoint 5 for Q12 and Q1). Every amount is read against the line's
+**own source text**: the line alone when the line states an amount (the parser reads one, or it opens
+with a number), otherwise the line and the method sentences that name the line's food or its own
+wording. Each line built from a stored row is compared with that row, and the verdict carries a reason
+(`LineAmountGuard.Reasons`):
 
-- **same**: the amount is unchanged (two empty amounts are the same whatever their unit);
-- **kept**: the stored amount is grounded in the source (`ReprocessRuleAudit.GroundedIn` over the line and
-  the method sentences naming the food) and the rebuilt line has no amount or one the source does not
-  ground: the stored amount and kind stay;
-- **replaced**: the stored amount contradicts the source and the rebuilt one is grounded (an amount that
-  stands in the line, or for a method fill in a method sentence naming the food, with a unit A3 passes;
-  no amount is grounded unless the line opens with one). The stored amount contradicts the source when it
-  is not grounded (a cross-reference, a price, "a very little"), when its unit fails A3 and the rebuilt
-  line has an amount ("1 teaspn. salt" stored as a piece), when it is a smaller amount in the same measure
-  than the line itself states (the part "a pint and a half" adds to), and when it is an empty ingredient
-  line beside a grounded amount;
-- **held**: any other difference (both grounded and different, as "four or five oranges" stored as five
-  and read as four; neither grounded; a line of another kind) keeps the stored amount and kind and is
-  marked `held` in the line's `changes`, with the rebuilt amount in `heldQuantity`, `heldMeasurementId` and
-  `heldLineKind`, for the line judge.
+- **same** (`same`): the amount is unchanged (two empty amounts are the same whatever their unit);
+- **kept** (`stored-grounded`): the stored amount stands in the line's own source text
+  (`ReprocessRuleAudit.GroundedIn`) and the rebuilt row has an amount that text does not ground, or none
+  while the line itself grounds the stored amount: the stored amount and kind stay;
+- **replaced**: the rebuilt amount stands in the line's own source text with a unit A3 passes, and the
+  stored row contradicts that text: it is empty on a line of a kind that takes an amount (`fill`: an
+  ingredient, a line of no kind, a `reference` such as a sauce another recipe makes, or `equipment` such
+  as boiling water; since Q1 a reference or equipment line the method states an amount for takes it); it is
+  not grounded there (`stored-ungrounded`); its unit fails A3 ("1 teaspn. salt" stored as a piece, `unit`);
+  it is a count in pieces of a measure that text names for the food ("a large tablespoon of butter", "two
+  large spoonfuls of butter", "1 tbp chopped pickle", "one pony of maraschino" stored as pieces,
+  `count-of-measure`), the rebuilt amount being that measure as the line parser reads the phrase, and the
+  text not also stating the count as a count of the food ("Beat 2 eggs and brush with 2 tablespoons of the
+  beaten egg" holds the two eggs); or it is the first part of an amount that text states in the same measure ("a pound
+  and a half of grated bread", "two pounds and a half of butter", "1-1/4 cups", `added-part`);
+- **held**: every other difference keeps the stored amount and kind and is marked `held` in the line's
+  `changes`, with the rebuilt amount in `heldQuantity`, `heldMeasurementId`, `heldUnit`, `heldLineKind` and
+  `heldFromMethod` and the reason in `guardReason`: `rebuilt-empty` (since Q12 a rebuilt row with no amount
+  never replaces a stored row that has one, whatever the grounding says, and the stored one is not grounded),
+  `rebuilt-empty-method` (as before, the stored amount grounded only by a method sentence naming the line's
+  food or wording, whose number may be another food's: "yellow wax half a pound, Sack six spoonfuls" grounds
+  half a pound of Sack; held so the line judge sees it), `rebuilt-ungrounded` (the rebuilt amount does not stand in the line's own source text),
+  `kind` (an empty note, instruction or artefact line: headings and method text take no amount), and
+  `both-grounded` (both stand and differ, as "four or five oranges" or "two pounds or two quarts").
 
-The run counts them per recipe and in total (`guardKept`, `guardReplaced`, `guardHeld`), and each changed
-line carries its verdict in `guard`. An order-only result whose lines change only order or are held stays
-in the order tier. The start-up fill uses the same guard and lets an amount stand only where the guard
-would replace: it fills only an empty amount, and only from one grounded mention, and never empties or
-changes a grounded stored amount ("two of sugar" stays two pieces).
+The run counts them per recipe and in total, for rebuilt and for unchanged recipes alike (`guardKept`,
+`guardReplaced`, `guardHeld`, `guardHeldByReason`), and each changed line carries its verdict in `guard`
+and its reason in `guardReason`. An order-only result whose lines change only order or are held stays in the
+order tier. The start-up fill uses the same guard and lets an amount stand only where the guard would
+replace: it never empties a stored amount ("two of sugar" stays two pieces), and its done line counts
+`guardKept`, `guardReplaced` and `guardHeld` with the held ones by reason.
+
+**Holds are stored** (`recipe."LineGuardHold"`, since `line-builder/11`): each held line with the stored row
+(food, amount, unit, kind), the rebuilt row (food, amount, unit, kind, whether read from the method), the
+source line, the reason, the rule version and the writer (`rebuild` on an apply, including an apply that
+changes nothing because every difference is held; `startup-fill` on each start). There is one open hold per
+line and writer: a writer that reads the line again updates it, and resolves it (`released`) when it no longer
+holds the line; a rebuild apply resolves the start-up fill's open holds of its recipe (`rebuilt`). A hold
+writes nothing to the recipe. A dry run stores none. An undo of a rebuild resolves that recipe's open
+rebuild holds (`undone`) in the undo's transaction; the next start-up fill reads the recipe again and records
+its own. A worker that takes a hold still first checks that the row carries the stored amount. `ResolvedAt` and `Resolution` are for
+the line judge or a later rule that works the queue.
+
+```
+GET /api/RecipeReprocess/line-holds                                                   # open holds by reason, in all and per writer; resolved by resolution
+GET /api/RecipeReprocess/line-holds/list?reason=<r>&origin=<o>&afterId=0&take=100     # the holds themselves, in id order (resolved=true for worked ones)
+```
 
 Measured at the checkpoint-4 round: on the held-out half of `line-holdout.tsv` (90 scored lines, the
 amount the checkpoint build left as the stored one and the current reading as the rebuilt one) the guard
@@ -138,6 +172,20 @@ log's lines and the step sentences it quotes: of 103 lines with a stored row, 20
 replaced and 26 held; the 2 wrong amounts end as before (one held, one unchanged), 7 of the 8 emptied
 stated amounts are kept and the eighth was wrong before too; no replaced line is one the reading judged
 right before.
+
+Measured at the checkpoint-5 round (`line-builder/11`): on the held-out half of `line-holdout.tsv` the guard
+gives 78 same, 0 kept, 5 replaced and 7 held, none worse, 5 better and **0 replaced wrong**
+(`line-holdout.json`, `guard`; `/10` gave 4 kept, 6 replaced, 2 held, 6 better: one right emptying is now held
+by the Q12 rule, and the four kept against an empty rebuild are held as `rebuilt-empty-method`). Replayed on the 78 recipes the checkpoint-5 operator read (`ck5-op2-rebuild-read78`, every line with
+the method), the 49 lines whose stored and rebuilt amounts the log records: **39 replaced, 0 kept, 10 held, 0
+replaced wrong** (one doubtful, as before: "1 3 or 4 lb. chicken" at the upper end of the range), against 29
+replaced and 20 held at `/10`. The two wrong replaces of Q12 (88262 curry powder, 99026 sweetbreads) keep
+their right stored amounts, held as `rebuilt-empty-method`; the 6 held right fixes (7 lines: 39382, 44526, 83759, 88893, 127680, 138515 twice)
+are replaced, and 8 more held lines are filled or corrected right (four reference lines: currie sauce, Espagnole's
+own tablespoon, cream (or milk), Béchamel; "a scant cup of water" twice; "a small tablespoonful of sifted flour";
+"a can of tomatoes"). Three emptyings the reading judged right or doubtful (103590, 110439, 46916) are now
+held (`rebuilt-empty-method`), so the wrong stored amounts wait in the queue: an empty rebuild never replaces. The 42 kept lines of the reading carry no
+rebuilt amount in the log and are not replayed; by the rules a kept line can only stay kept or become held.
 
 ## Rebuild
 
@@ -373,8 +421,12 @@ can still change the label's values. The undo calculates the labels of a batch's
 few reads and one save (`IRecipeNutritionService.RecalculateManyAsync`, the same calculation as one
 recipe's), inside the batch's transaction before its progress row: a batch is committed with its labels
 or not at all, so a restart during a batch leaves no label calculated from the lines it replaced. A
-failure is logged and leaves the labels of that batch as they were (the recipes are then calculated one
-at a time, so one recipe's failure keeps no other label back).
+concurrency conflict with another label writer on the same rows (the API's own, staging checkpoint 5,
+Q16: one `DbUpdateConcurrencyException` on `recipe."RecipeNutrition"` during the order-only undo) is
+calculated again from fresh reads, up to four tries a little apart, logged at information level. Any other
+failure, or a conflict that outlasts the tries, is logged as a warning and leaves the labels of that batch
+as they were (the recipes are then calculated one at a time, so one recipe's failure keeps no other label
+back).
 
 **Batches, progress and stopping** (staging checkpoint 4, P20: the order-only undo applied about 80
 recipes a minute, about 20 hours for the 97,400 recipes of the pass; the client gave up after an hour and
@@ -492,7 +544,11 @@ two unrelated numbers ("cook 10 minutes, then 2 more onions") grounds nothing; s
 measure the text opens with counts one ("pinch of salt"), "fourth", "sixth" and "eighth" are fractions ("one-sixth
 pint" is a third of a cup), a sum of two numbers is also read times the text's measure ("a pint and a half" is
 3 cups), a cross-reference ("al N. 579", "du N. 579") and a price ("twenty cents' worth") ground nothing, and the
-point of a measure's abbreviation ("1/2 pt. of cream") ends no method sentence. A line that starts with
+point of a measure's abbreviation ("1/2 pt. of cream") ends no method sentence; since `reprocess-audit/7` the point
+of an initial ("J. P. Smith's Curry Powder") ends none either, a method sentence counts when it names the food or
+the line's own wording (a line "sweetbreads" on the USDA food "Veal, variety meats and by-products, thymus, raw"),
+and "a" or "an" counts one also before a can or before a size word and a measure ("a scant teaspoonful", "a large
+tablespoon", and a line opening "scant cup of"). A line that starts with
 a number or "two cups of" stored with no amount fails. A2 a line moved to another food names that food. A3 pieces only of a food with a weight
 per item and never of a liquid or of a line that states a measure; no volume of a whole bird; a
 volume of a seasoning or leavener (salt, pepper, a ground spice, baking powder or baking soda, yeast;
@@ -520,8 +576,14 @@ on more than a fifth of its sample.
 
 **Audit and bars.** The rebuild tier's auditor is the line judge (`OllamaLineJudge`, reader B of the
 roster, `mistral-nemo` by default, `Reprocess:JudgeModel` to change it): it reads up to three changed
-lines of a sampled decision with the source line and the method sentences that name the food, and
-calls the rebuilt row better, the same, worse or unclear. A recipe is flagged when a line is worse;
+lines of a sampled decision with the source line and the method sentences that name the food, one
+line to a call, the stored and rebuilt rows shown as A and B in an order that does not tell which
+is which. It reads the line (its kind and the amount the source states, copied) and names the right
+row; a choice that contradicts its own reading (a kind other than the line's, an amount where it
+reads none, a Piece count of a measure, no amount where the other row's amount stands in its
+reading) is corrected by rule, and the rebuilt row is called better only when the stored row
+contradicts the reading or the rebuilt row's amount stands in it, else unclear. The result is the
+rebuilt row better, the same, worse or unclear. A recipe is flagged when a line is worse;
 the flag counts as an error only when the rule audit confirms it (a check failing on a changed line,
 A4, A6 or O1). A model set by `Reprocess:JudgeModel` must be of reader B's family and of neither reader
 A's nor the auditor's; otherwise the API refuses to start. The combined check's own score comes from the committed `line-judge` golden record

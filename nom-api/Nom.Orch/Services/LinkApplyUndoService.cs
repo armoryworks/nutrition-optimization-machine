@@ -19,6 +19,7 @@ namespace Nom.Orch.Services
         private const long KeepHere = 0;
         private readonly ApplicationDbContext _db;
         private readonly ICurrentUserService _currentUser;
+        private LineMoveDietGuard? _guard;
 
         public LinkApplyUndoService(ApplicationDbContext db, ICurrentUserService currentUser)
         {
@@ -183,6 +184,22 @@ namespace Nom.Orch.Services
                 }
                 movedSince.Add(row.Id);
             }
+            var guard = _guard ??= await LineMoveDietGuard.LoadAsync(_db);
+            var heldByDiet = new HashSet<long>();
+            foreach (var (rowId, place) in places)
+            {
+                if (await guard.HoldsAsync(_db, place.From.RecipeId, place.From.IngredientId, place.From.SortOrder, place.To.IngredientId)) heldByDiet.Add(rowId);
+            }
+            result.LinesHeldByDiet += heldByDiet.Count;
+            if (heldByDiet.Count > 0 && !run.LeaveMovedLines)
+            {
+                sample.LinesSkipped = heldByDiet.Count;
+                sample.Skipped = string.Create(CultureInfo.InvariantCulture,
+                    $"{heldByDiet.Count} of {lineRows.Count} lines would lower a recipe's diet flags back on the wording's food; pass leaveMovedLines=true to leave them on the linked food");
+                return sample;
+            }
+            foreach (var rowId in heldByDiet) places.Remove(rowId);
+            movedSince.UnionWith(heldByDiet);
             if (rebuiltSince.Count > 0 && !run.LeaveMovedLines)
             {
                 sample.LinesSkipped = movedSince.Count + rebuiltSince.Count;

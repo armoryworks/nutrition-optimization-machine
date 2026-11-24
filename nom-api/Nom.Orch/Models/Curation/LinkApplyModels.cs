@@ -30,6 +30,8 @@ namespace Nom.Orch.Models.Curation
         public int LinesSkipped { get; set; }
         /// <summary>Lines of a recipe whose lines a rebuild rewrote since the link. The link is left as it is until the rebuild is undone; with leaveMovedLines the lines stay where the rebuild put them, their journal row is kept, and the rest of the link is taken back.</summary>
         public int SkippedRebuilt { get; set; }
+        /// <summary>Lines left on the linked food because moving them back to the wording's food would lower a recipe's diet flags (<see cref="Nom.Orch.Services.Support.LineMoveDietGuard"/>); counted in LinesSkipped too, so the link is left as it is unless leaveMovedLines.</summary>
+        public int LinesHeldByDiet { get; set; }
         /// <summary>Wording foods the link had merged away that come back.</summary>
         public int FoodsRestored { get; set; }
         public int AliasesRemoved { get; set; }

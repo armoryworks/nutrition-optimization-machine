@@ -40,15 +40,16 @@ namespace Nom.Orch.Services
         /// Other repairs of a recipe's lines that journal under their own change type and are put
         /// back by the same undo sweep: how one entry is taken back, and where a success is counted.
         /// </summary>
-        private static readonly Dictionary<string, (Func<ApplicationDbContext, AuditLogEntryEntity, long, RecipeOrderTrail, Task<bool>> PutBack, Action<LineRelinkUndoResult> Count)> LineRepairs = new()
+        private static readonly Dictionary<string, (Func<ApplicationDbContext, AuditLogEntryEntity, long, RecipeOrderTrail, LineMoveDietGuard, Task<bool>> PutBack, Action<LineRelinkUndoResult> Count)> LineRepairs = new()
         {
-            [LineUnfoldService.UnfoldChangeType] = (LineUnfoldService.RefoldAsync, result => result.Refolded++),
+            [LineUnfoldService.UnfoldChangeType] = ((db, entry, personId, trail, _) => LineUnfoldService.RefoldAsync(db, entry, personId, trail), result => result.Refolded++),
             [CompoundLineService.SplitChangeType] = (CompoundLineService.UnsplitAsync, result => result.Unsplit++),
             [CompoundLineService.AlternativeChangeType] = (CompoundLineService.UnpickAsync, result => result.AlternativesPutBack++),
         };
 
         private readonly ApplicationDbContext _db;
         private readonly ICurrentUserService _currentUser;
+        private LineMoveDietGuard? _guard;
 
         public LineRelinkService(ApplicationDbContext db, ICurrentUserService currentUser)
         {
@@ -56,10 +57,32 @@ namespace Nom.Orch.Services
             _currentUser = currentUser;
         }
 
+        private LineRelinkService(ApplicationDbContext db, ICurrentUserService currentUser, LineMoveDietGuard guard)
+            : this(db, currentUser)
+        {
+            _guard = guard;
+        }
+
+        /// <summary>The diet guard every line move of this service passes (<see cref="LineMoveDietGuard"/>), loaded on first use.</summary>
+        private async Task<LineMoveDietGuard> GuardAsync() => _guard ??= await LineMoveDietGuard.LoadAsync(_db);
+
+        /// <summary>The planned moves the diet guard lets through, and how many it holds.</summary>
+        private async Task<(List<Move> Kept, int Held)> UnheldAsync(List<Move> moves)
+        {
+            var guard = await GuardAsync();
+            var before = guard.Held;
+            var kept = new List<Move>(moves.Count);
+            foreach (var move in moves)
+            {
+                if (!await guard.HoldsAsync(move.Line.RecipeId, move.Line.IngredientId, move.Line.SortOrder, move.TargetId, move.Line.RawLine)) kept.Add(move);
+            }
+            return (kept, guard.Held - before);
+        }
+
         private sealed record Line(long RecipeId, long IngredientId, int SortOrder, string RawLine);
         private sealed record Move(Line Line, string Wording, long TargetId);
 
-        private async Task<(int Examined, List<Move> Moves, Dictionary<long, string> Names)> PlanAsync()
+        private async Task<(int Examined, List<Move> Moves, Dictionary<long, string> Names, int Held)> PlanAsync()
         {
             var curated = await _db.Ingredients.AsNoTracking()
                 .Where(i => !i.IsDeleted && i.CurationStatusId == (long)CurationStatusEnum.Curated)
@@ -88,7 +111,8 @@ namespace Nom.Orch.Services
                 if (decision.TargetId is { } targetId) moves.Add(new Move(line, decision.Wording, targetId));
             }
 
-            return (lines.Count, moves, names);
+            var (kept, held) = await UnheldAsync(moves);
+            return (lines.Count, kept, names, held);
         }
 
         private IQueryable<RecipeIngredientEntity> ScrapedLines() =>
@@ -145,11 +169,12 @@ namespace Nom.Orch.Services
 
         public async Task<LineRelinkPreview> PreviewAsync(int sampleSize = 50)
         {
-            var (examined, moves, names) = await PlanAsync();
+            var (examined, moves, names, held) = await PlanAsync();
             return new LineRelinkPreview
             {
                 LinesExamined = examined,
                 MoveCount = moves.Count,
+                HeldByDiet = held,
                 Samples = moves
                     .GroupBy(m => (m.Line.IngredientId, Wording: m.Wording.ToLowerInvariant(), m.TargetId))
                     .Select(g => new LineRelinkMove
@@ -169,14 +194,15 @@ namespace Nom.Orch.Services
 
         public async Task<LineRelinkResult> ApplyAsync(int maxLines = 5000)
         {
-            var (_, moves, _) = await PlanAsync();
-            return await MoveAsync(moves, Math.Clamp(maxLines, 1, 50000));
+            var (_, moves, _, held) = await PlanAsync();
+            return await MoveAsync(moves, Math.Clamp(maxLines, 1, 50000), held);
         }
 
-        private async Task<LineRelinkResult> MoveAsync(List<Move> moves, int maxLines)
+        private async Task<LineRelinkResult> MoveAsync(List<Move> moves, int maxLines, int held)
         {
-            var result = new LineRelinkResult { Remaining = moves.Count };
+            var result = new LineRelinkResult { Remaining = moves.Count, HeldByDiet = held };
             var personId = _currentUser.PersonIdOrSystem;
+            var guard = await GuardAsync();
 
             foreach (var chunk in moves.Take(maxLines).Chunk(500))
             {
@@ -184,10 +210,12 @@ namespace Nom.Orch.Services
                 foreach (var move in chunk)
                 {
                     var line = move.Line;
+                    var heldBefore = guard.Held;
                     var position = await MoveAsync(line.RecipeId, line.IngredientId, line.SortOrder, move.TargetId, line.SortOrder, personId);
                     if (position == null)
                     {
-                        result.Skipped++;
+                        if (guard.Held > heldBefore) result.HeldByDiet++;
+                        else result.Skipped++;
                         continue;
                     }
 
@@ -211,6 +239,7 @@ namespace Nom.Orch.Services
                 result.Remaining -= chunk.Length;
             }
 
+            result.DietHolds = guard.Holds.ToList();
             return result;
         }
 
@@ -230,10 +259,9 @@ namespace Nom.Orch.Services
                 .Select(ri => new Line(ri.RecipeId, ri.IngredientId, ri.SortOrder, ri.RawLine))
                 .ToListAsync();
             var keep = Words(keepWords ?? string.Empty);
-            return await MoveAsync(
-                lines.Where(line => keep.Count == 0 || !Words(line.RawLine).Overlaps(keep))
-                    .Select(line => new Move(line, string.Empty, toIngredientId)).ToList(),
-                int.MaxValue);
+            var (kept, held) = await UnheldAsync(lines.Where(line => keep.Count == 0 || !Words(line.RawLine).Overlaps(keep))
+                .Select(line => new Move(line, string.Empty, toIngredientId)).ToList());
+            return await MoveAsync(kept, int.MaxValue, held);
         }
 
         public async Task<LineRelinkResult> MoveWordingsAsync(IReadOnlyCollection<LineRelinkWordingMove> moves, bool apply = false)
@@ -278,10 +306,13 @@ namespace Nom.Orch.Services
                     planned.Add(new Move(line, wording, targetId));
             }
 
-            var result = apply ? await MoveAsync(planned, int.MaxValue) : new LineRelinkResult { Remaining = planned.Count };
+            var (kept, held) = await UnheldAsync(planned);
+            planned = kept;
+            var result = apply ? await MoveAsync(planned, int.MaxValue, held) : new LineRelinkResult { Remaining = planned.Count, HeldByDiet = held };
             result.Rejected = rejected.Count;
             if (!apply)
             {
+                result.DietHolds = (await GuardAsync()).Holds.ToList();
                 result.Planned = Grouped(planned, id => foods[id].Name);
                 result.RejectedMoves = rejected;
             }
@@ -508,10 +539,11 @@ namespace Nom.Orch.Services
             }
 
             var result = new LineRelinkUndoResult();
+            var guard = await GuardAsync();
             foreach (var part in RelinkUndoDryRun.Parts(entries))
             {
-                await using var dryRun = RelinkUndoDryRun.Create(_db);
-                var counted = await new LineRelinkService(dryRun.Copy, _currentUser).UndoEntriesAsync(part, cancellationToken, dryRun.LoadAsync);
+                await using var dryRun = await RelinkUndoDryRun.StartAsync(_db, cancellationToken);
+                var counted = await new LineRelinkService(dryRun.Copy, _currentUser, guard).UndoEntriesAsync(part, cancellationToken, dryRun.LoadAsync);
                 result.Restored += counted.Restored;
                 result.FoodsRestored += counted.FoodsRestored;
                 result.Refolded += counted.Refolded;
@@ -521,7 +553,9 @@ namespace Nom.Orch.Services
                 result.ProposalsRestored += counted.ProposalsRestored;
                 result.Skipped += counted.Skipped;
                 result.SkippedRebuilt += counted.SkippedRebuilt;
+                result.HeldByDiet += counted.HeldByDiet;
             }
+            result.DietHolds = guard.Holds.ToList();
             return result;
         }
 
@@ -564,6 +598,7 @@ namespace Nom.Orch.Services
             foreach (var entry in entries) _db.Entry(entry).State = EntityState.Detached;
             var result = new LineRelinkUndoResult();
             var personId = _currentUser.PersonIdOrSystem;
+            var guard = await GuardAsync();
             var chunks = entries.Chunk(500).ToList();
 
             for (var index = 0; index < chunks.Count; index++)
@@ -644,10 +679,15 @@ namespace Nom.Orch.Services
 
                     if (LineRepairs.TryGetValue(entry.ChangeType, out var repair))
                     {
-                        if (await repair.PutBack(_db, entry, personId, trail))
+                        var heldBefore = guard.Held;
+                        if (await repair.PutBack(_db, entry, personId, trail, guard))
                         {
                             _db.AuditLogEntries.Remove(entry);
                             repair.Count(result);
+                        }
+                        else if (guard.Held > heldBefore)
+                        {
+                            result.HeldByDiet++;
                         }
                         else
                         {
@@ -667,9 +707,11 @@ namespace Nom.Orch.Services
                     }
 
                     var reordered = trail.Moved(entry.EntityId, entry.Timestamp);
+                    var held = guard.Held;
                     if (await MoveAsync(entry.EntityId, now.IngredientId, from, was.IngredientId, reordered ? from : was.SortOrder, personId) is not { } position)
                     {
-                        result.Skipped++;
+                        if (guard.Held > held) result.HeldByDiet++;
+                        else result.Skipped++;
                         continue;
                     }
 
@@ -684,6 +726,7 @@ namespace Nom.Orch.Services
                 if (tx != null) await tx.CommitAsync();
             }
 
+            result.DietHolds = guard.Holds.ToList();
             return result;
         }
 
@@ -759,9 +802,10 @@ namespace Nom.Orch.Services
         /// Re-points one line and returns the position it ended at, or null when the line is no
         /// longer where the caller found it. A recipe that already has the target food at the
         /// wanted position (most scraped recipes keep every line at position 0) gets the line at
-        /// the next free position, so both lines keep their own quantity.
+        /// the next free position, so both lines keep their own quantity. A move the diet guard holds
+        /// (<see cref="LineMoveDietGuard"/>) gives null too and is counted by the guard.
         /// </summary>
-        private Task<int?> MoveAsync(long recipeId, long fromId, int fromSortOrder, long toId, int wantedSortOrder, long personId) =>
-            RecipeLineRowWriter.MoveAsync(_db, recipeId, fromId, fromSortOrder, toId, wantedSortOrder, personId);
+        private async Task<int?> MoveAsync(long recipeId, long fromId, int fromSortOrder, long toId, int wantedSortOrder, long personId) =>
+            await RecipeLineRowWriter.MoveAsync(_db, await GuardAsync(), recipeId, fromId, fromSortOrder, toId, wantedSortOrder, personId);
     }
 }

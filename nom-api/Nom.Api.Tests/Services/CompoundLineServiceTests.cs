@@ -184,6 +184,32 @@ namespace Nom.Api.Tests.Services
         }
 
         [Fact]
+        public async Task A_picked_alternative_the_diet_guard_holds_is_counted_apart_by_the_preview_as_the_apply_counts_it()
+        {
+            var kitchen = await NewKitchenAsync();
+            var blend = new IngredientEntity { Name = "tomato konjac blend", CurationStatusId = Uncurated };
+            var strands = new IngredientEntity
+            {
+                Name = "Konjac Strands", CurationStatusId = Curated, IngredientNutrients = new List<IngredientNutrientEntity> { new() { NutrientId = 1, Amount = 1 } },
+            };
+            kitchen.Db.Ingredients.AddRange(blend, strands);
+            await kitchen.Db.SaveChangesAsync();
+            kitchen.Foods[blend.Name] = blend.Id;
+            var recipe = await RecipeAsync(kitchen, approved: false, ("tomato konjac blend", 0, 1m, Cup, "1 cup konjac strands or rice noodles"));
+            var before = await LinesAsync(kitchen, recipe);
+            var service = new CompoundLineService(kitchen.Db, new NoUser());
+
+            var preview = await service.PreviewAsync();
+            var applied = await service.ApplyAsync(CompoundLineSplitter.Rules.ToList());
+
+            applied.Should().BeEquivalentTo(new { Moved = 0, Split = 0, HeldByDiet = 1 }, "moving the line to Konjac Strands would lower Nightshade Sensitivity, and the apply passes the diet guard");
+            (preview.Lines, preview.HeldByDiet).Should().Be((0, 1), "review CK10S-6: the preview counted the held line as a move, so it differed from the apply");
+            preview.Samples.Should().BeEmpty();
+            (await LinesAsync(kitchen, recipe)).Should().Equal(before);
+            (await kitchen.Db.AuditLogEntries.CountAsync()).Should().Be(0);
+        }
+
+        [Fact]
         public async Task The_relink_undo_puts_every_split_and_move_back()
         {
             var (kitchen, plain, collides, alternative, curatedRows) = await SeedAsync();

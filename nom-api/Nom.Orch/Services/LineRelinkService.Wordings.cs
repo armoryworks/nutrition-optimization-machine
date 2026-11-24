@@ -36,7 +36,7 @@ namespace Nom.Orch.Services
                 TargetsUnusable = verified.Count - usable.Count,
             };
 
-            var (returning, removed) = await ReturnLandingsAsync(usable, apply, result);
+            var (returning, heldReturns, removed) = await ReturnLandingsAsync(usable, apply, result);
             var keys = usable.Keys.ToList();
             var sources = (await _db.Ingredients.AsNoTracking()
                     .Where(i => !i.IsDeleted && i.FdcId == null && i.CurationStatusId != (long)CurationStatusEnum.Curated
@@ -56,9 +56,10 @@ namespace Nom.Orch.Services
                 .OrderBy(ri => ri.RecipeId).ThenBy(ri => ri.SortOrder).ThenBy(ri => ri.IngredientId)
                 .Select(ri => new Line(ri.RecipeId, ri.IngredientId, ri.SortOrder, ri.RawLine))
                 .ToListAsync();
-            lines = lines.Where(l => !returning.Contains((l.RecipeId, l.IngredientId, l.SortOrder))).ToList();
+            lines = lines.Where(l => !returning.Contains((l.RecipeId, l.IngredientId, l.SortOrder)) && !heldReturns.Contains((l.RecipeId, l.IngredientId, l.SortOrder))).ToList();
             var all = lines.Select(line => new Move(line, sources[line.IngredientId].Wording, usable[sources[line.IngredientId].Wording])).ToList();
-            var moves = all.Where(m => NamesWording(m.Line.RawLine, m.Wording)).ToList();
+            var (moves, held) = await UnheldAsync(all.Where(m => NamesWording(m.Line.RawLine, m.Wording)).ToList());
+            result.HeldByDiet += held;
             var behind = all.Where(m => !NamesWording(m.Line.RawLine, m.Wording)).ToList();
             result.LeftBehind = behind.Count;
             var leftStep = Math.Max(1, behind.Count / Math.Max(1, Math.Clamp(sampleSize, 0, 5000)));
@@ -73,10 +74,11 @@ namespace Nom.Orch.Services
             var limit = Math.Clamp(maxLines, 1, 50000);
             if (apply)
             {
-                var moved = await MoveAsync(moves, limit);
+                var moved = await MoveAsync(moves, limit, 0);
                 result.Moved = moved.Moved;
                 result.Repositioned = moved.Repositioned;
                 result.Skipped = moved.Skipped;
+                result.HeldByDiet += moved.HeldByDiet;
                 result.Remaining = moved.Remaining;
             }
             else
@@ -292,12 +294,56 @@ namespace Nom.Orch.Services
             var lineEntries = undo.Where(a => a.EntityType == RelinkEntityType).Concat(landings.Select(l => l.Entry)).ToList();
             var rebuilt = await RecipeReprocessService.RebuiltAtAsync(_db, lineEntries.Select(a => a.EntityId).ToList());
             result.OnRebuiltRecipes = lineEntries.Count(a => rebuilt.TryGetValue(a.EntityId, out var at) && at > a.Timestamp);
-            if (!apply) return result;
+            if (!apply)
+            {
+                result.HeldByDiet = await HeldTakingBackAsync(undo.Where(a => a.ChangeType == RelinkChangeType).ToList(), landings, rebuilt);
+                return result;
+            }
 
             result.Undone = await UndoEntriesAsync(undo);
             await PutBackLandingsAsync(landings, rebuilt, result);
+            result.HeldByDiet += result.Undone.HeldByDiet;
             return result;
         }
+
+        /// <summary>
+        /// The line moves and import landings a retract or an unload would leave where they are because the diet guard holds
+        /// moving them back (<see cref="LineMoveDietGuard"/>): what its apply counts, read without writing.
+        /// </summary>
+        private async Task<int> HeldTakingBackAsync(List<AuditLogEntryEntity> moves, List<Landing> landings, IReadOnlyDictionary<long, DateTime> rebuilt)
+        {
+            var guard = await GuardAsync();
+            var before = guard.Held;
+            bool Rebuilt(AuditLogEntryEntity entry) => rebuilt.TryGetValue(entry.EntityId, out var at) && at > entry.Timestamp;
+            var trail = await RecipeOrderTrail.LoadAsync(_db, moves.Concat(landings.Select(l => l.Entry)).Select(a => a.EntityId).Distinct());
+            foreach (var entry in moves.Where(e => !Rebuilt(e)))
+            {
+                if (ReadPlace(entry.OldValue) is not { } was || ReadPlace(entry.NewValue) is not { } now
+                    || trail.Follow(entry.EntityId, now.IngredientId, now.SortOrder, entry.Timestamp) is not { } from) continue;
+                await guard.HoldsAsync(_db, entry.EntityId, now.IngredientId, from, was.IngredientId);
+            }
+
+            var builder = new RecipeLineBuilder(_db, Microsoft.Extensions.Logging.Abstractions.NullLogger.Instance, resolveVerifiedWordings: false);
+            var homes = new Dictionary<string, long?>(StringComparer.Ordinal);
+            foreach (var landing in landings.Where(l => !Rebuilt(l.Entry)))
+            {
+                var entry = landing.Entry;
+                if (ReadPlace(entry.NewValue) is not { } landed
+                    || trail.Follow(entry.EntityId, landed.IngredientId, landed.SortOrder, entry.Timestamp) is not { } at) continue;
+                if (!homes.TryGetValue(landing.Wording, out var home))
+                    homes[landing.Wording] = home = (await builder.FindWithoutWordingAsync(landing.Wording))?.Food.Id;
+                if (home == landing.TargetId) continue;
+                if (home is { } found) await guard.HoldsAsync(_db, entry.EntityId, landed.IngredientId, at, found);
+                else if (await RawLineAsync(entry.EntityId, landed.IngredientId, at) is { } raw) await guard.HoldsToNameAsync(entry.EntityId, landed.IngredientId, at, landing.Wording, raw);
+            }
+            return guard.Held - before;
+        }
+
+        private Task<string?> RawLineAsync(long recipeId, long ingredientId, int sortOrder) =>
+            _db.RecipeIngredients.IgnoreQueryFilters().AsNoTracking()
+                .Where(ri => ri.RecipeId == recipeId && ri.IngredientId == ingredientId && ri.SortOrder == sortOrder && !ri.IsDeleted)
+                .Select(ri => (string?)ri.RawLine)
+                .FirstOrDefaultAsync();
 
         /// <summary>
         /// The withdrawn picks and proposals a retract or an unload leaves withdrawn: those whose proposed food may never be
@@ -346,12 +392,15 @@ namespace Nom.Orch.Services
         /// (<see cref="WordingResolveChangeType"/>); an ingredient the retract created for such
         /// landings that holds nothing once they are back is deleted. A line no longer where the
         /// retract put it, or on a recipe rebuilt since, stays with its entry. Returns the lines a dry
-        /// run would move and the ingredients that are, or would be, deleted.
+        /// run would move, the lines the diet guard holds where they are (counted here, so the relink
+        /// that follows leaves them out rather than holding and counting them again), and the
+        /// ingredients that are, or would be, deleted.
         /// </summary>
-        private async Task<(HashSet<(long RecipeId, long IngredientId, int SortOrder)> Returning, HashSet<long> Removed)> ReturnLandingsAsync(
+        private async Task<(HashSet<(long RecipeId, long IngredientId, int SortOrder)> Returning, HashSet<(long RecipeId, long IngredientId, int SortOrder)> Held, HashSet<long> Removed)> ReturnLandingsAsync(
             Dictionary<string, long> usable, bool apply, VerifiedWordingLinkResult result)
         {
             var returning = new HashSet<(long RecipeId, long IngredientId, int SortOrder)>();
+            var held = new HashSet<(long RecipeId, long IngredientId, int SortOrder)>();
             var removed = new HashSet<long>();
             var entries = (await _db.AuditLogEntries
                     .Where(a => a.EntityType == RelinkEntityType && a.ChangeType == WordingRetractChangeType)
@@ -363,7 +412,7 @@ namespace Nom.Orch.Services
                     .ToListAsync())
                 .Where(a => usable.ContainsKey(a.NewValue!))
                 .ToList();
-            if (entries.Count == 0) return (returning, removed);
+            if (entries.Count == 0) return (returning, held, removed);
 
             var builder = new RecipeLineBuilder(_db, Microsoft.Extensions.Logging.Abstractions.NullLogger.Instance, resolveVerifiedWordings: false);
             var plan = new List<Landing>();
@@ -381,12 +430,19 @@ namespace Nom.Orch.Services
             plan = plan.Except(skipped).ToList();
             var trail = await RecipeOrderTrail.LoadAsync(_db, plan.Select(l => l.Entry.EntityId));
             var standing = new Dictionary<long, int>();
+            var guard = await GuardAsync();
             foreach (var landing in plan)
             {
                 var now = ReadPlace(landing.Entry.NewValue)!.Value;
                 if (trail.Follow(landing.Entry.EntityId, now.IngredientId, now.SortOrder, landing.Entry.Timestamp) is not { } at) continue;
                 if (await _db.RecipeIngredients.AnyAsync(ri => ri.RecipeId == landing.Entry.EntityId && ri.IngredientId == now.IngredientId && ri.SortOrder == at && !ri.IsDeleted))
                 {
+                    if (await guard.HoldsAsync(_db, landing.Entry.EntityId, now.IngredientId, at, landing.TargetId))
+                    {
+                        result.HeldByDiet++;
+                        held.Add((landing.Entry.EntityId, now.IngredientId, at));
+                        continue;
+                    }
                     returning.Add((landing.Entry.EntityId, now.IngredientId, at));
                     standing[landing.Entry.Id] = at;
                 }
@@ -410,7 +466,7 @@ namespace Nom.Orch.Services
 
             result.LandingsReturned = returning.Count;
             result.IngredientsRemoved = removed.Count;
-            if (!apply) return (returning, removed);
+            if (!apply) return (returning, held, removed);
 
             var personId = _currentUser.PersonIdOrSystem;
             result.LandingsReturned = 0;
@@ -448,7 +504,7 @@ namespace Nom.Orch.Services
             await _db.SaveChangesAsync();
             if (tx != null) await tx.CommitAsync();
             result.IngredientsRemoved = gone.Count;
-            return (new HashSet<(long RecipeId, long IngredientId, int SortOrder)>(), gone);
+            return (new HashSet<(long RecipeId, long IngredientId, int SortOrder)>(), held, gone);
         }
 
         /// <summary>
@@ -462,6 +518,7 @@ namespace Nom.Orch.Services
             var builder = new RecipeLineBuilder(_db, Microsoft.Extensions.Logging.Abstractions.NullLogger.Instance, resolveVerifiedWordings: false);
             var homes = new Dictionary<string, (IngredientEntity Food, RecipeLineBuilder.FollowedLink? Link, bool Created)>(StringComparer.Ordinal);
             var personId = _currentUser.PersonIdOrSystem;
+            var guard = await GuardAsync();
 
             foreach (var chunk in landings.OrderByDescending(l => l.Entry.Id).Chunk(500))
             {
@@ -485,6 +542,13 @@ namespace Nom.Orch.Services
                         continue;
                     }
 
+                    if (!homes.ContainsKey(landing.Wording) && await builder.FindWithoutWordingAsync(landing.Wording) == null
+                        && await guard.HoldsToNameAsync(entry.EntityId, landed.IngredientId, at, landing.Wording, await RawLineAsync(entry.EntityId, landed.IngredientId, at)))
+                    {
+                        result.HeldByDiet++;
+                        continue;
+                    }
+
                     if (!homes.TryGetValue(landing.Wording, out var home))
                     {
                         homes[landing.Wording] = home = await builder.FoodWithoutWordingAsync(landing.Wording, personId);
@@ -498,10 +562,12 @@ namespace Nom.Orch.Services
                         continue;
                     }
 
+                    var held = guard.Held;
                     var position = await MoveAsync(entry.EntityId, landed.IngredientId, at, home.Food.Id, at, personId);
                     if (position == null)
                     {
-                        result.LandingsSkipped++;
+                        if (guard.Held > held) result.HeldByDiet++;
+                        else result.LandingsSkipped++;
                         continue;
                     }
 

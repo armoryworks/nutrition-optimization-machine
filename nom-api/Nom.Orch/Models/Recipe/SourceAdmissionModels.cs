@@ -121,12 +121,100 @@ namespace Nom.Orch.Models.Recipe
         public int CandidatesExcluded { get; set; }
         public List<ScraperExcludedDomain> CandidatesExcludedHosts { get; set; } = new();
         public string? ExcludeNote { get; set; }
+        public int RefusingHosts { get; set; }
+        public List<ScraperRefusingHost> RefusingHostsList { get; set; } = new();
+    }
+
+    /// <summary>A rights class an admin recorded by hand for a host, with the deciding words, their page, the date read and who recorded it.</summary>
+    public class SourceRightsRecordModel
+    {
+        public long Id { get; set; }
+        public string Host { get; set; } = string.Empty;
+        public string RightsClass { get; set; } = string.Empty;
+        public string Quote { get; set; } = string.Empty;
+        public string QuoteUrl { get; set; } = string.Empty;
+        public DateTime ReadOn { get; set; }
+        public long RecordedByPersonId { get; set; }
+        public DateTime RecordedAtUtc { get; set; }
+        public DateTime? WithdrawnAtUtc { get; set; }
+
+        /// <summary>The journal entry whose undo withdraws the record.</summary>
+        public long? JournalEntryId { get; set; }
+
+        /// <summary>The web sources the record holds (bare and www. rows of the host).</summary>
+        public List<string> Sources { get; set; } = new();
+
+        /// <summary>The candidate of the host, when there is one.</summary>
+        public string? Candidate { get; set; }
+    }
+
+    /// <summary>A rights class to record by hand for a host: the class, the site's own words, the page they stand on and the date they were read.</summary>
+    public class SourceRightsByHandRequestModel
+    {
+        public string Host { get; set; } = string.Empty;
+        public string RightsClass { get; set; } = string.Empty;
+        public string Quote { get; set; } = string.Empty;
+        public string QuoteUrl { get; set; } = string.Empty;
+        public DateTime? ReadOn { get; set; }
+    }
+
+    /// <summary>One source a hand-recorded class changes, or would change.</summary>
+    public class SourceRightsByHandSourceModel
+    {
+        public long SourceId { get; set; }
+        public string Domain { get; set; } = string.Empty;
+        public string? OldClass { get; set; }
+        public string? NewClass { get; set; }
+        public int Recipes { get; set; }
+    }
+
+    /// <summary>Recording a class by hand: a dry run unless applied; refused with the reason when the rule does not allow it.</summary>
+    public class SourceRightsByHandResultModel
+    {
+        public bool Applied { get; set; }
+        public string? Host { get; set; }
+        public string? RightsClass { get; set; }
+        public string? Refused { get; set; }
+
+        /// <summary>The same class, quote and page already stand for the host (nothing to do).</summary>
+        public bool AlreadyRecorded { get; set; }
+
+        public List<SourceRightsByHandSourceModel> Sources { get; set; } = new();
+        public string? Candidate { get; set; }
+        public string? CandidateClass { get; set; }
+
+        /// <summary>Whether discovery jobs exclude the host while the record stands.</summary>
+        public bool Excluded { get; set; }
+
+        public SourceRightsRecordModel? Record { get; set; }
+    }
+
+    /// <summary>A site that refused a discovery run, held from later runs until an admin looks.</summary>
+    public class SourceRefusingHostModel
+    {
+        public long Id { get; set; }
+        public string Host { get; set; } = string.Empty;
+        public DateTime FirstRefusedUtc { get; set; }
+        public DateTime LastRefusedUtc { get; set; }
+        public int TimesRefused { get; set; }
+        public string? LastUrl { get; set; }
+        public int? LastHttpStatus { get; set; }
+        public bool LastBotChallenge { get; set; }
+        public long? LastRunId { get; set; }
+        public bool Held { get; set; }
+        public DateTime? ReleasedAtUtc { get; set; }
+        public long? ReleasedByPersonId { get; set; }
+        public string? ReleasedNote { get; set; }
     }
 
     public class SourceJournalEntryModel
     {
         public long Id { get; set; }
         public long SourceId { get; set; }
+
+        /// <summary>The class recorded by hand the entry belongs to; its undo withdraws the record.</summary>
+        public long? RecordId { get; set; }
+
         public string? Domain { get; set; }
         public string ChangeType { get; set; } = string.Empty;
         public string? Field { get; set; }
@@ -167,6 +255,12 @@ namespace Nom.Orch.Models.Recipe
         public List<SourceCheckModel> FailedChecks { get; set; } = new();
 
         public List<SourceJournalEntryModel> Journal { get; set; } = new();
+
+        /// <summary>The classes recorded by hand that stand now.</summary>
+        public List<SourceRightsRecordModel> RightsRecords { get; set; } = new();
+
+        /// <summary>Sites that refused a discovery run, held ones first.</summary>
+        public List<SourceRefusingHostModel> RefusingHosts { get; set; } = new();
     }
 
     /// <summary>The sources block of the Pipeline page.</summary>

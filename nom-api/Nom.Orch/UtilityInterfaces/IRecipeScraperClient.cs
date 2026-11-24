@@ -152,6 +152,15 @@ namespace Nom.Orch.UtilityInterfaces
         public List<string> SeedsExcluded { get; set; } = new();
         public List<ScraperExcludedDomain> CandidatesExcluded { get; set; } = new();
         public int PagesFetched { get; set; }
+        public List<ScraperRefusingHost> RefusingHosts { get; set; } = new();
+    }
+
+    public class ScraperRefusingHost
+    {
+        public string Domain { get; set; } = string.Empty;
+        public string? Url { get; set; }
+        public int? HttpStatus { get; set; }
+        public bool BotChallenge { get; set; }
     }
 
     public class ScraperExcludedDomain

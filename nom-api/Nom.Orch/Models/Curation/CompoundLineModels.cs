@@ -48,6 +48,8 @@ namespace Nom.Orch.Models.Curation
         public int Lines { get; set; }
         /// <summary>Joined "a + b" lines that a rule would act on once they are unfolded.</summary>
         public int FoldedDeferred { get; set; }
+        /// <summary>Lines an apply would leave on their food because the move would lower a recipe's diet flags (<see cref="Nom.Orch.Services.Support.LineMoveDietGuard"/>); not counted in <see cref="Lines"/>.</summary>
+        public int HeldByDiet { get; set; }
         public List<CompoundLineRuleCount> Rules { get; set; } = new();
         /// <summary>Compound lines left as they are, by reason.</summary>
         public Dictionary<string, int> LeftAlone { get; set; } = new();
@@ -66,6 +68,8 @@ namespace Nom.Orch.Models.Curation
         public int Repositioned { get; set; }
         /// <summary>Lines that were no longer as the plan found them.</summary>
         public int Skipped { get; set; }
+        /// <summary>Lines left on their food because the move would lower a recipe's diet flags (<see cref="Nom.Orch.Services.Support.LineMoveDietGuard"/>).</summary>
+        public int HeldByDiet { get; set; }
         /// <summary>Lines the chosen rules still act on after this call.</summary>
         public int Remaining { get; set; }
     }

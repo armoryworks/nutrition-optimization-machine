@@ -340,6 +340,25 @@ namespace Nom.Api.Tests.Services.Recipe
         }
 
         [Fact]
+        public async Task A_method_a_person_writes_for_a_copy_unsure_recipe_ends_its_withhold_and_its_copy_unsure_mark()
+        {
+            await using var db = await SeedAsync();
+            (await db.Recipes.SingleAsync(r => r.Id == Withheld)).ProseCopyUnsure = true;
+            await db.SaveChangesAsync();
+            db.ChangeTracker.Clear();
+            var curator = Mock.Of<ICurrentUserService>(u => u.PersonId == Author && u.PersonIdOrSystem == Author);
+
+            await Recipes(db, curator).UpdateRecipeAsync(Withheld, new UpdateRecipeRequest
+            {
+                Id = Withheld, Name = "Withheld pie", Description = "Our own pie.",
+                Steps = new List<RecipeStepModel> { new() { Order = 1, Description = "Bake it our way." } },
+            });
+            db.ChangeTracker.Clear();
+
+            (await db.Recipes.AsNoTracking().SingleAsync(r => r.Id == Withheld)).Should().Match<RecipeEntity>(r => !r.ProseWithheld && !r.ProseCopyUnsure);
+        }
+
+        [Fact]
         public async Task A_method_a_person_writes_for_a_withheld_recipe_is_never_withheld_again_by_the_recheck()
         {
             await using var db = await SeedAsync();

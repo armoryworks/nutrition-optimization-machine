@@ -340,7 +340,7 @@ namespace Nom.Orch.Services.Support
         private static readonly string[] UnsweetenedFoodPhrases = { "unsweetened", "sugar free", "no sugar added", "not sweetened" };
         private static readonly string[] SweetenedPhrases = { "sweetened" };
 
-        private static readonly HashSet<string> FreshCues = new(StringComparer.Ordinal)
+        internal static readonly HashSet<string> FreshCues = new(StringComparer.Ordinal)
         {
             "fresh", "freshly", "sprig", "sprigs", "handful", "handfuls", "bunch", "bunches", "stalk", "stalks", "leaves", "chopped", "minced",
         };

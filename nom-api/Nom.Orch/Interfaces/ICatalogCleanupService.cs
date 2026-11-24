@@ -18,9 +18,17 @@ namespace Nom.Orch.Interfaces
         /// Moves every recipe link from <paramref name="sourceId"/> to <paramref name="targetId"/>
         /// (a link at a position the target already has a line at takes the recipe's next free
         /// position, so both lines keep their own text and amount) and soft-deletes the source.
-        /// Refuses and returns false when anything other than recipes references the source.
+        /// Refuses and returns false when anything other than recipes references the source, or when
+        /// moving any of its lines would lower a recipe's diet flags (<see cref="Nom.Orch.Services.Support.LineMoveDietGuard"/>).
         /// </summary>
         Task<bool> MergeIntoAsync(long sourceId, long targetId, long? personId, bool ignoreProposals = false, long? keepProposalId = null);
+
+        /// <summary>
+        /// Whether moving any recipe line of <paramref name="sourceId"/> to <paramref name="targetId"/> would lower its
+        /// recipe's diet flags (<see cref="Nom.Orch.Services.Support.LineMoveDietGuard"/>): the target lacks what the
+        /// source's lines name, so it is not the same food.
+        /// </summary>
+        Task<bool> LowersDietAsync(long sourceId, long targetId);
 
         Task<CatalogNormalizeResult> NormalizeAsync(bool apply);
     }

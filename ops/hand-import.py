@@ -32,8 +32,10 @@ RULES
    pages mode (NCI) a call that times out is not asked again in the run: one long timeout drops
    that page, counted as "model call timed out", and the run goes on. A VA card's name is the
    title the card prints (books.csv's listed title only when it prints none), each named time of
-   its header is read (a Chill or Inactive time is not kept on its own), and a wrapped ingredient
-   line is joined back; a returned name in letter-spaced type is closed up by rule. Every readable answer is kept in records/<doc>.answers.jsonl as it arrives, so a second
+   its header is read (a Chill or Inactive time is not kept on its own), a wrapped ingredient
+   line is joined back, a notes heading is only a line that is the heading alone, and a card that
+   keeps fewer than half the amount-led lines of its ingredient list, or leaves a line apart inside an
+   ingredient block, is dropped by the reader's own check; a returned name in letter-spaced type is closed up by rule. Every readable answer is kept in records/<doc>.answers.jsonl as it arrives, so a second
    run with the same --model asks only the chunks still missing or unreadable and no finished record is lost. A record keeps the document's URL with its page
    (PDF "#page=N", a Library of Congress page "?sp=N") as its source URL, so the staged import
    stores it as its source document and the recipe links to the page it came from. Images and
@@ -790,7 +792,7 @@ def text_document(book: Book, store: Store, runner: Runner = run, ocr=None) -> d
 AMOUNT_START = re.compile(r"^\s*(?:[\d½¼¾⅓⅔⅛⅜⅝⅞]|(?:a|an|one|two|three|four|five|six|half|pinch|dash)\b)", re.I)
 STEP_NUMBER = re.compile(r"^\s*(\d{1,2})[.)]\s+")
 CARD_SECTIONS = {"ingredients": "ingredients", "directions": "steps", "instructions": "steps", "method": "steps", "preparation": "steps"}
-DANGLING = re.compile(r"(?:\b(?:into|or|and|to|about|of|with|for|plus|from|if|when|until|than)|[-–(])\s*$", re.I)
+DANGLING = re.compile(r"(?:\b(?:into|or|and|to|about|of|with|for|plus|from|if|when|until|than|de|del|di|du|des|della)|[-–(])\s*$", re.I)
 ADJECTIVE_END = re.compile(r"(?P<comma>,\s*)?\b(?:plain|grated|shredded|low-?fat|non-?fat|fat-free|reduced-fat|low-sodium|reduced-sodium|unsalted|"
                            r"unsweetened|extra-virgin|whole-wheat|whole-grain|part-skim)\s*$", re.I)
 BRACKET_ONLY = re.compile(r"^\([^()]*\)[.,;]?$")
@@ -798,7 +800,7 @@ CARD_HEADER = re.compile(r"^(?:Prep(?:aration)?|Cook|Chill|Inactive|Total)(?: ti
 CARD_TIME = re.compile(r"\b(Prep(?:aration)?|Cook|Chill|Inactive|Total)(?: time)?:\s*([^|\n]*)", re.I)
 CARD_TIME_FIELDS = {"prep": "prep", "preparation": "prep", "cook": "cook", "total": "total"}
 TITLE_PLACEHOLDER = re.compile(r"^recipe title$", re.I)
-CARD_END = re.compile(r"^(recipe notes|notes|tips?|nutrition facts|nutrition information|nutritional facts|for more recipes|serving suggestions?)\b", re.I)
+CARD_END = re.compile(r"^(?:(?:recipe notes|notes|tips?|for more recipes|serving suggestions?)\s*:?\s*$|(?:nutrition facts|nutrition information|nutritional facts)\b(?!\s*\)))", re.I)
 
 
 def minutes(text: str | None) -> int | None:
@@ -816,7 +818,7 @@ def servings(text: str | None) -> float | None:
     return float(found.group(1)) if found else None
 
 
-def _join_ingredients(lines: list[str]) -> list[str]:
+def _join_ingredients(lines: list[str], loose: list[str] | None = None) -> list[str]:
     """Ingredient lines with their wrapped parts joined: a text block (blank lines between blocks) starts a line; inside a
     block a line continues the one before when it starts in lower case or with a bracket or comma, or the one before
     ends with a comma, "or", "and" or "-", unless it starts with an amount; a line after an unclosed bracket always
@@ -826,7 +828,9 @@ def _join_ingredients(lines: list[str]) -> list[str]:
     vegetables", "to" / "taste" (staging checkpoint 3, N29). A line after one that ends with "if", "when", "until" or
     "than", or with a word that names no food alone ("or plain" / "Greek yogurt"; after a list comma only on a line with no
     amount, "Optional toppings: Chopped basil, grated" / "Parmesan cheese"), continues it unless it starts with an amount,
-    and a line that is only a bracket ("(optional)") always continues the one before (staging checkpoint 4, P26)."""
+    and a line that is only a bracket ("(optional)") always continues the one before (staging checkpoint 4, P26). A line
+    after "de", "del", "di", "du", "des" or "della" continues it too ("Pico de" / "Gallo"). A line that starts a new
+    ingredient inside a block without an amount is added to loose, when given (staging checkpoint 5, Q23 review)."""
     out: list[str] = []
     gap = True
     for line in lines:
@@ -843,6 +847,8 @@ def _join_ingredients(lines: list[str]) -> list[str]:
         if unclosed or dangling or bracket or ((continues or modifies) and not AMOUNT_START.match(text)):
             out[-1] = f"{out[-1]} {text}"
         else:
+            if loose is not None and out and not gap and not AMOUNT_START.match(text):
+                loose.append(text)
             out.append(text)
         gap = False
     return out
@@ -887,11 +893,28 @@ def card_title(filled: list[str]) -> str | None:
     return re.sub(r"\s+", " ", " ".join(words)).strip() or None
 
 
+def listed_ingredients(lines: list[str]) -> int:
+    """The lines of a card's ingredient list that start with an amount: from the Ingredients heading to the next section
+    heading, whatever stands between (the count the reader's kept lines are checked against)."""
+    count, inside = 0, False
+    for line in lines:
+        head = re.sub(r"[:\s]+$", "", line).lower()
+        if head in CARD_SECTIONS:
+            inside = CARD_SECTIONS[head] == "ingredients"
+            continue
+        if inside and AMOUNT_START.match(line):
+            count += 1
+    return count
+
+
 def parse_card(title: str | None, text: str) -> tuple[dict | None, str | None]:
     """A VA recipe card read by rule: the title as the card prints it (the listed title when the card prints none),
     each named time of the header ("Prep | Cook | Total"; a "Chill" or "Inactive" time is part of the total and is not
     kept on its own), "Yield", the Ingredients and Directions sections (wrapped lines joined), up to the notes and the
-    nutrition line, which are not taken (staging checkpoint 4, P27 and P28)."""
+    nutrition line, which are not taken (staging checkpoint 4, P27 and P28). A notes heading is only a line that is the
+    heading alone ("Recipe Notes"), never a wrapped "Notes)" of an ingredient, and a card whose kept ingredients are
+    fewer than half the lines of its list that start with an amount fails the reader's own check (staging checkpoint 5,
+    Q23: the arepas card kept 1 of 12)."""
     lines = [line.strip() for line in text.split("\n")]
     filled = [line for line in lines if line]
     if not filled:
@@ -924,12 +947,18 @@ def parse_card(title: str | None, text: str) -> tuple[dict | None, str | None]:
             continue
         if current:
             sections[current].append(line)
-    ingredients = _join_ingredients(sections["ingredients"])
+    loose: list[str] = []
+    ingredients = _join_ingredients(sections["ingredients"], loose)
     steps = _join_steps(sections["steps"])
     if not ingredients:
         return None, "layout not recognized: no Ingredients section"
     if not steps:
         return None, "layout not recognized: no Directions section"
+    listed = listed_ingredients(lines)
+    if len(ingredients) * 2 < listed:
+        return None, f"reader check: kept {len(ingredients)} of the {listed} ingredient lines its list starts with an amount"
+    if loose:
+        return None, f"reader check: a line inside an ingredient block starts no amount and was not joined: {loose[0]!r}"
     record["ingredients"] = [{"rawLine": line} for line in ingredients]
     record["steps"] = [{"order": i + 1, "instruction": step} for i, step in enumerate(steps)]
     return record, None

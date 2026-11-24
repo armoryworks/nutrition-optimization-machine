@@ -87,12 +87,13 @@ namespace Nom.Orch.Services.Support
 
         /// <summary>
         /// Whether the source may be fetched: under the rights gate only one that <see cref="SourceRightsService.MayFetch"/>
-        /// allows; without it every approved web source, as every one seeds and is harvested then.
+        /// allows; without it every approved web source, as every one seeds and is harvested then, except one a class recorded by
+        /// hand bars (<see cref="SourceRightsService.HeldByHand"/>), which is never fetched.
         /// </summary>
         public static bool MayFetch(ScrapingSourceEntity source, bool enforce) =>
             enforce
                 ? SourceRightsService.MayFetch(source)
-                : source.Status == ScrapingSourceStatusEnum.Approved && source.Kind == ScrapingSourceEntity.WebKind;
+                : source.Status == ScrapingSourceStatusEnum.Approved && source.Kind == ScrapingSourceEntity.WebKind && !SourceRightsService.HeldByHand(source);
 
         /// <summary>
         /// Whether a candidate's hold yields to an approved source that may be fetched: the candidate is unclassed or rejected

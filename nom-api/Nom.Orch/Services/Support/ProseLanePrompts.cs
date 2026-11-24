@@ -13,8 +13,9 @@ namespace Nom.Orch.Services.Support
     /// The prompts of the clean-room prose lane and the hashes that name them. The writer
     /// (<see cref="WriterSignature"/>) is the extractor and the two writing styles with the masking,
     /// fact-sheet, description and check rules they run with; the judge
-    /// (<see cref="JudgeSignature"/>) is the step rubric; the audit (<see cref="AuditSignature"/>)
-    /// is the rubric read by the auditor and its own blind confirmation of a flag. None includes a
+    /// (<see cref="JudgeSignature"/>) is the step-fact reading with the rules around it
+    /// (<see cref="ProseJudgeRules"/>) and its decoding options; the audit (<see cref="AuditSignature"/>)
+    /// is the step rubric read by the auditor and its own blind confirmation of a flag. None includes a
     /// model name, so a golden score record names its model separately, and any change to a prompt
     /// or rule shows as a new signature that needs a new record.
     /// </summary>
@@ -48,7 +49,7 @@ namespace Nom.Orch.Services.Support
             "Never write a digit, a number word or an amount of your own: amounts exist only as ⟦Q⟧ tokens. Add nothing the sheets do not state, and leave nothing out. " +
             "Reply with STRICT JSON only: {\"steps\":[\"...\"]}.";
 
-        public const string Judge =
+        public const string Audit =
             "You compare a recipe method (ORIGINAL) with a rewrite of it (REWRITE), step by step: step n of the rewrite must say what step n of the original says. " +
             "For each step n answer:\n" +
             "  actions - true when the rewrite's step does the same cooking actions on the same ingredients, in a way that gives the same result;\n" +
@@ -58,6 +59,50 @@ namespace Nom.Orch.Services.Support
             "  note - at most 12 words on what differs, or an empty string.\n" +
             "Wording may differ freely; only meaning counts. " +
             "Reply with STRICT JSON only: {\"steps\":[{\"n\":1,\"actions\":true,\"amounts\":true,\"missing\":false,\"added\":false,\"note\":\"\"}]} with one entry per step.";
+
+        public const string JudgeStep =
+            "You check one step of a recipe rewrite against the same step of the original recipe (ORIGINAL STEP and REWRITE STEP). " +
+            "The rewrite may use other words, other sentence shapes and another order inside the step; it must keep every fact of the original step and add none.\n" +
+            "First list every fact of the ORIGINAL STEP, one entry each, with its kind:\n" +
+            "  action - a cooking action with what it acts on (\"knead the dough\", \"line the tray\"); every action is its own fact;\n" +
+            "  ingredient - a food the step names;\n" +
+            "  heat - a heat level or oven heat (\"low heat\", \"a very hot oven\");\n" +
+            "  amount - an amount, time, temperature or size, with its unit;\n" +
+            "  cue - how to tell it is done or how it should look, smell or feel (\"until crisp\", \"until set\");\n" +
+            "  serve - how or when it is served (\"serve cold\");\n" +
+            "  warning - something the cook must not do.\n" +
+            "For each fact give original (the original's words) and rewrite (the words of the REWRITE STEP that say the same fact, copied exactly, or \"\" when no words of it do), " +
+            "and match: same when the rewrite's words mean the same thing, different when they name another action, food, level, amount or cue, missing when the rewrite step does not say it. " +
+            "A synonym is the same (\"dice\" and \"cut into small cubes\", \"sauté\" and \"cook in a little fat\", \"until crisp\" and \"until crunchy\"); another action, food, heat, time or sign of doneness is different (\"roast\" and \"steam\", \"low\" and \"high\", \"until crisp\" and \"until soft\", \"chill\" and \"warm\"). " +
+            "Then list in added every action, ingredient, cue or other fact the REWRITE STEP states that the ORIGINAL STEP does not, with the rewrite's words; an empty list when there is none. " +
+            "A NOTE from a rule check, when given, points to something to look at; it may be wrong.\n" +
+            "Example. ORIGINAL STEP: Sauté the leeks in the oil over low heat until soft, about 6 minutes. REWRITE STEP: Cook the leeks in the oil on high for 6 minutes until charred.\n" +
+            "{\"facts\":[{\"kind\":\"action\",\"original\":\"Sauté the leeks\",\"rewrite\":\"Cook the leeks\",\"match\":\"same\"},{\"kind\":\"ingredient\",\"original\":\"the oil\",\"rewrite\":\"in the oil\",\"match\":\"same\"},{\"kind\":\"heat\",\"original\":\"over low heat\",\"rewrite\":\"on high\",\"match\":\"different\"},{\"kind\":\"cue\",\"original\":\"until soft\",\"rewrite\":\"until charred\",\"match\":\"different\"},{\"kind\":\"amount\",\"original\":\"about 6 minutes\",\"rewrite\":\"for 6 minutes\",\"match\":\"same\"}],\"added\":[]}\n" +
+            "Example. ORIGINAL STEP: Stir the cocoa into the warm milk until it dissolves, then add the honey. REWRITE STEP: Mix the cocoa through the warm milk until dissolved. Dust some cinnamon on top.\n" +
+            "{\"facts\":[{\"kind\":\"action\",\"original\":\"Stir the cocoa into the warm milk\",\"rewrite\":\"Mix the cocoa through the warm milk\",\"match\":\"same\"},{\"kind\":\"cue\",\"original\":\"until it dissolves\",\"rewrite\":\"until dissolved\",\"match\":\"same\"},{\"kind\":\"action\",\"original\":\"add the honey\",\"rewrite\":\"\",\"match\":\"missing\"}],\"added\":[{\"kind\":\"ingredient\",\"rewrite\":\"Dust some cinnamon on top\"}]}\n" +
+            "Reply with STRICT JSON only, in this form.";
+
+        public const string JudgeKept =
+            "A reviewer compared one step of a recipe (ORIGINAL STEP) with a rewrite of it (REWRITE STEP) and says the rewrite changes or leaves out one fact of the original (FACT). Check that claim. " +
+            "Read the whole REWRITE STEP: the fact may be said anywhere in it, in other words, in another sentence or in another order. " +
+            "Give rewrite: the words of the REWRITE STEP that say the fact, copied exactly and as few as say it, or \"\" when none do. " +
+            "Give original_result: in at most 8 words, what the food is like or where it is after the cook does what FACT says; and rewrite_result: the same after the cook does what those rewrite words say. " +
+            "Then answer verdict: same_result when the two results are the same: the same food, in the same place, at the same heat, for the same amount and time, at the same sign of doneness " +
+            "(other wording, a synonym, a plain word for an old one, another order, or a more exact verb for what the original does give the same result); " +
+            "other_result when the food, the heat, the amount, the time, the sign of doneness or the state of the food differs (\"roasted\" and \"boiled\", \"crisp\" and \"soft\", \"cold\" and \"warm\", \"just cooked\" and \"falling apart\"); " +
+            "not_said when the rewrite step does not say it at all. " +
+            "Reply with STRICT JSON only: {\"rewrite\":\"...\",\"original_result\":\"...\",\"rewrite_result\":\"...\",\"verdict\":\"same_result\"}.";
+
+        public const string JudgeAdded =
+            "A reviewer compared one step of a recipe (ORIGINAL STEP) with a rewrite of it (REWRITE STEP) and says the rewrite adds something the original step does not say (ADDED). Check that claim. " +
+            "Give original: the words of the ORIGINAL STEP that say the same thing, copied exactly, or \"\" when none do. " +
+            "Then answer verdict: kept when the original step says it too, in any words (a synonym, an everyday word for the same thing, or a thing the original plainly implies such as the pan it names or the dish it serves), " +
+            "added when the original step does not say it: a new action, food, cue, warning or serving. " +
+            "Reply with STRICT JSON only: {\"original\":\"...\",\"verdict\":\"added\"}.";
+
+        /// <summary>The seed and context of every judge call; part of <see cref="JudgeSignature"/>.</summary>
+        public const int JudgeSeed = 17;
+        public const int JudgeContext = 8192;
 
         public const string Confirm =
             "You check one step of a recipe rewrite against the original method. A reviewer flagged step {0} of the rewrite. " +
@@ -78,9 +123,9 @@ namespace Nom.Orch.Services.Support
             string.Join(";", Attempts.Select(a => $"{a.Style}/{a.Temperature.ToString(CultureInfo.InvariantCulture)}/{a.Seed}")), RuleAttempt,
             ProseMasking.Version, ProseFactSheet.Version, ProseDescription.Version, "check " + ProseCheck.Version.ToString(CultureInfo.InvariantCulture)));
 
-        public static string JudgeSignature { get; } = Hash("judge\n" + Judge);
+        public static string JudgeSignature { get; } = Hash("judge\n" + JudgeStep + "\n␞\n" + JudgeKept + "\n␞\n" + JudgeAdded + "\n␞\n" + ProseJudgeRules.Version + $"\n␞\nseed {JudgeSeed} ctx {JudgeContext} check {ProseCheck.Version}");
 
-        public static string AuditSignature { get; } = Hash("audit, confirmed by the auditor\n" + Judge + "\n␞\n" + Confirm);
+        public static string AuditSignature { get; } = Hash("audit, confirmed by the auditor\n" + Audit + "\n␞\n" + Confirm);
 
         /// <summary>
         /// The lane version stamped on each recipe the lane tries (<c>Recipe.ProseLaneVersion</c>) and

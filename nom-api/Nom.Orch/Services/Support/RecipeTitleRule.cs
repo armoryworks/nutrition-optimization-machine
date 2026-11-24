@@ -154,11 +154,17 @@ namespace Nom.Orch.Services.Support
     /// or "and" starts a new name ("Ottolenghi Simple by Yotam Ottolenghi" stays whole). A possessive ending ("America's
     /// Test Kitchen's") is dropped, a word the length limit cut is left out, and a name made only of
     /// places, nationalities or languages ("Recipe from South America", "Recipe from French cooks") is no
-    /// credit (staging checkpoint 3, N26).
+    /// credit (staging checkpoint 3, N26). A person's name after "by" ends where the next sentence's first
+    /// word runs into it (staging checkpoint 5, Q24): a capitalised word after two name words that the text
+    /// goes on from in lower case ("by Cal Peternell Red chile flakes", "by Fabrizia Lanza As mentioned"),
+    /// and a capital glued to the second name word before lower-case text ("by Rebecca LefflerLentils
+    /// double", "by Danielle OronI tend"); a word such as "with", "and" or "writes" after the name ends
+    /// nothing. A publisher in brackets before "by" ("Burma: Rivers of Flavor (Artisan), by Naomi Duguid")
+    /// is left out, so the author is kept.
     /// </summary>
     public static class CreditLines
     {
-        public const string Version = "credit-lines/3";
+        public const string Version = "credit-lines/4";
 
         private const int MaxName = 160;
 
@@ -228,12 +234,42 @@ namespace Nom.Orch.Services.Support
             return null;
         }
 
-        private static string Name(string who)
+        private static readonly HashSet<string> Continuers = new(StringComparer.Ordinal)
+        {
+            "with", "and", "or", "for", "in", "at", "on", "of", "from", "to", "who", "whose", "which", "that", "as", "is", "was", "has", "had",
+            "says", "said", "writes", "wrote", "adapted", "published", "but", "so", "the", "a", "an", "&",
+            "copyright", "courtesy", "photography", "photographs", "photograph", "photos", "photo", "via", "excerpted", "reprinted",
+            "reproduced", "used", "illustrated", "illustrations", "edited", "translated", "text", "recipe", "recipes", "foreword",
+            "introduction", "permission", "all", "reserved",
+        };
+
+        private static bool StartsClause(string? next) =>
+            next is { Length: > 0 } && char.IsLower(next[0]) && !Joiners.Contains(next) && !Continuers.Contains(next);
+
+        /// <summary>
+        /// Where a person's name word runs into the next sentence's first word with no space ("LefflerLentils double", "OronI tend"):
+        /// a capital after at least four lower-case letters, the rest a plain word, and the text going on in lower case.
+        /// </summary>
+        private static int? GluedBeforeClause(string word, string? next)
+        {
+            if (!StartsClause(next) || !word.All(char.IsLetter)) return null;
+            for (var i = 4; i < word.Length; i++)
+            {
+                if (char.IsLower(word[i - 1]) && char.IsUpper(word[i]) && word[(i + 1)..].All(char.IsLower)) return i;
+            }
+
+            return null;
+        }
+
+        private static string Name(string who, bool person = false)
         {
             var kept = new List<string>();
             var seen = new HashSet<string>(StringComparer.Ordinal);
-            foreach (var word in who.Split(' ', StringSplitOptions.RemoveEmptyEntries))
+            var words = who.Split(' ', StringSplitOptions.RemoveEmptyEntries);
+            var byNamed = person ? 0 : -1;
+            for (var i = 0; i < words.Length; i++)
             {
+                var word = words[i];
                 var bare = Bare(word);
                 if (bare.Length == 0) break;
                 var named = char.IsUpper(bare[0]) || char.IsDigit(bare[0]);
@@ -244,7 +280,22 @@ namespace Nom.Orch.Services.Support
                     kept.Add(bare[..glued]);
                     break;
                 }
+
+                var next = i + 1 < words.Length ? Bare(words[i + 1]) : null;
+                if (named && byNamed >= 1 && word == bare)
+                {
+                    if (GluedBeforeClause(bare, next) is { } at)
+                    {
+                        kept.Add(bare[..at]);
+                        break;
+                    }
+
+                    if (byNamed >= 2 && StartsClause(next)) break;
+                }
+
                 kept.Add(word);
+                if (bare == "by") byNamed = 0;
+                else if (byNamed >= 0 && named) byNamed++;
                 if (bare is "by" or "and" or "&") seen.Clear();
                 else seen.Add(bare);
                 if (word.EndsWith(',') || word.EndsWith(':')) break;
@@ -269,7 +320,7 @@ namespace Nom.Orch.Services.Support
             if (by.Success && by.Index > 0)
             {
                 var title = who[..by.Index].TrimEnd(' ', ',', ':');
-                var person = Name(who[(by.Index + by.Length)..]);
+                var person = Name(who[(by.Index + by.Length)..], person: true);
                 if (person.Length == 0 || !Title(who[..by.Index].TrimEnd(' '))) return null;
                 return title + " by " + person;
             }
@@ -317,6 +368,8 @@ namespace Nom.Orch.Services.Support
             return true;
         }
 
+        private static readonly Regex PublisherBracket = new(@"\s*\([^()]{1,60}\)(?=,?\s+by\s+\p{Lu})", RegexOptions.Compiled | RegexOptions.CultureInvariant);
+
         private static string Decode(string text)
         {
             var once = System.Net.WebUtility.HtmlDecode(text);
@@ -328,7 +381,7 @@ namespace Nom.Orch.Services.Support
             var found = new List<string>();
             foreach (var raw in texts.Where(t => !string.IsNullOrWhiteSpace(t)))
             {
-                var text = Decode(raw!);
+                var text = PublisherBracket.Replace(Decode(raw!), string.Empty);
                 foreach (Match match in Credit.Matches(text))
                 {
                     var who = match.Groups["who"].Value;

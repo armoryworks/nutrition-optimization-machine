@@ -22,6 +22,16 @@ namespace Nom.Orch.Interfaces
         /// <summary>Records the publisher's written permission (who, when, the text); journaled, it lifts permission-needed or forbidden for the source.</summary>
         Task<SourceActionResult> RecordPermissionAsync(long sourceId, SourcePermissionRequestModel request, long personId);
 
+        /// <summary>
+        /// Records a rights class by hand for a host (a source's, a candidate's, or one NOM has no row for) with the site's own
+        /// deciding words, their page and the date read; a dry run unless apply. Journaled and undone from the journal; the
+        /// source lane never overwrites it, and a forbidden or permission-needed host is never fetched or checked.
+        /// </summary>
+        Task<SourceRightsByHandResultModel> RecordByHandAsync(SourceRightsByHandRequestModel request, bool apply, long personId, CancellationToken cancellationToken = default);
+
+        /// <summary>The classes recorded by hand that stand now.</summary>
+        Task<List<SourceRightsRecordModel>> RecordsAsync(CancellationToken cancellationToken = default);
+
         /// <summary>Approves (or withdraws) facts-only use of a facts-only source, so it may be fetched for facts and a link; journaled.</summary>
         Task<SourceActionResult> SetFactsOnlyUseAsync(long sourceId, bool approve, long personId, string? reason);
 

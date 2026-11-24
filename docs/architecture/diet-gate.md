@@ -104,7 +104,7 @@ food names: `%ham%` in "graham", `%egg%` in "eggplant", `%corn%` in "peppercorn"
 "licorice", `%oat%` in "goat", `%cola%` in "chocolate", `%icing%` in "slicing", `%wine%` in "kitchen
 twine", `%lard%` in "collard greens", `%butter%` in "peanut butter", `%milk%` in "coconut milk". Since
 `cleanup2/ck5-diet-patterns` a name pattern is read by words, the same way in a food's name, an alias,
-a recipe line and a prepared meal's statement (`DietPatternRule`, `diet-patterns/4` since `cleanup2/ck9-diet-terms`, see below; `/3` from `cleanup2/ck6-prepared-diet`, which added exceptions scoped to types; `/2` from the ck5 review):
+a recipe line and a prepared meal's statement (`DietPatternRule`, `diet-patterns/5` since `cleanup2/ck10-diet-coverage` and `/4` from `cleanup2/ck9-diet-terms`, see below; `/3` from `cleanup2/ck6-prepared-diet`, which added exceptions scoped to types; `/2` from the ck5 review):
 
 - the term counts where it begins a word, whatever follows: plurals, stems and compounds ("eggs",
   "anchovies", "buttermilk", "cornstarch", "eggnog");
@@ -186,9 +186,9 @@ dairy types hold `%goldfish%`; Celiac Disease, Gluten Sensitivity, Gluten-Free a
 `%licorice%` and `%liquorice%`; Fish Allergy holds `%worcestershire%` and `%imitation crab%`; the peanut
 types `%satay%` and `%groundnut%` (the "groundnuts" gap ck5 named). The companions of the defaults are part
 of `ByName` (`CompositeCompanions`); `EnsureAsync` gives every type them on start, seeded, edited and
-admin-named types alike, from the type's own patterns, with the note `composite food, by %x% (label-terms/2)` (`/1` before `cleanup2/ck9-diet-terms`),
+admin-named types alike, from the type's own patterns, with the note `composite food, by %x% (label-terms/3)` (`/2` before `cleanup2/ck10-diet-coverage`, `/1` before `cleanup2/ck9-diet-terms`),
 and respects an admin's deleted row. A composite whose name another food begins with is left out ("edam"
-would name edamame, "romano" romano beans, "flan" flank steak, "cake" rice cakes); "ranch" alone is not a
+would name edamame, "romano" romano beans; since `label-terms/3` "flan" and the wheat term "cake" are read with "flank" and "rice cake" as named exceptions); "ranch" alone is not a
 composite name, only "ranch dressing". Some readings are wider than a person would choose and lie on the
 safe side: a type holding `%bean%` (Carnivore, the FODMAP types) holds soy sauce, tamari and miso through
 "soybean".
@@ -280,6 +280,74 @@ over-flags (P3, P4, P12, P17, P18, P19). `diet-patterns/4` and `label-terms/2`:
 - **Over-flags left on the safe side.** `%spaghetti%` and `%pasta%` still hold "spaghetti sauce" and "pasta
   sauce"; granola is held for Celiac Disease (oats).
 
+## Staging checkpoint 5: a derived and measured vocabulary (cleanup2/ck10-diet-coverage)
+
+Five checkpoints extended the severe types' patterns by example and each fresh sample found new misses
+(checkpoint 5: Celiac Disease showed 16 of 32 wheat recipes drawn by word, Q5; Egg Allergy missed Allemande
+sauce and Sulfite Sensitivity maraschino cherries, Q19; the sulfite types offered prepared meals whose statements
+name sodium bisulfite, Q7). `diet-vocabulary/1`, `diet-patterns/5` and `label-terms/3` stop adding terms one by
+one:
+
+- **Derived from the catalog by category (`DietVocabulary.Derive`).** For each class (wheat, milk, egg, soy,
+  peanut, tree nut, fish, shellfish, sesame, sulfite) the rule takes the head term of every food of the frozen
+  USDA catalog (`gate-catalog.tsv`) in the categories that carry it: Baked Products and Cereal Grains and Pasta
+  for wheat; the dairy entries of Dairy and Egg Products for milk; the `Fish,` entries of Finfish and Shellfish
+  Products for fish and its `Crustaceans,` and `Mollusks,` entries for shellfish; the `Nuts,` entries of Nut and
+  Seed Products for tree nuts; the soy, peanut and sesame foods of their categories. The head is the first part
+  of the description after the class's lead part and any brand written in capitals, its last word singular.
+  Coating and treatment words give a term of their own: `batter` (breaded and battered foods), `meatless` (the
+  meat analogues of the legume category, soy protein), `dried <fruit>` (sulfured fruit). The committed file
+  `Nom.Orch/Contents/diet-vocabulary.tsv` keeps every derived term with the categories and the number of foods
+  that gave it; `DietVocabularyTests` checks the file against the catalog row for row.
+- **Decided, never guessed.** Each term is `in` (its pattern joins the class's defaults), `covered` (another
+  pattern of the class already reads it) or `out` (free of what the class restricts, with a cited reason:
+  sorghum, millet, teff, quinoa and the other gluten-free grains, corn tortillas and taco shells, leavening
+  agents, coconut, a maker's name). The test reads each decision against the class's reference type: an `in`
+  term is read by its own pattern and no other, a `covered` one by another, an `out` one by none, so the named
+  exception that takes it out (`sorghum flour`, `rice noodle`, `corn tortilla`) is in force.
+- **Label names from an authority (`basis` `label`).** The names a label uses for each class: the sulfiting
+  agents of 21 CFR 182 (sulfite, bisulfite, metabisulfite, sulfur dioxide, sulfured), FDA's other names of
+  sesame (benne, gingelly, til, sesamol, tehina), and FARE's names for egg (albumin, ovalbumin, lysozyme, yolk
+  ...), milk (curd, lactose, lactalbumin, half-and-half, creme fraiche, pudding), soy (TVP, okara, yuba, bean
+  curd), peanut and tree nuts (arachis, goober, a nut a line does not name, nutmeat, pignoli, filbert ...),
+  shellfish (escargot, cockle, langouste ...); the pasta shapes of 21 CFR 139.110 and the breads of 21 CFR
+  136.110 for wheat; "cereal" for the gluten types only (a ready-to-eat cereal is made with wheat, barley malt
+  or oats). The prepared-meal gate reads a statement's named ingredient by the same patterns, so a statement
+  naming sodium bisulfite is held for the sulfite types.
+- **Classic composites (`label-terms.tsv`).** Sauces and pastries whose name hides what they are made of, cited
+  from public-domain references: Allemande, velouté, espagnole, Mornay, suprême and mousseline sauces, crème
+  anglaise, pastry cream, sponge cake, ladyfingers, angel food and pound cake, madeleines, choux pastry,
+  popovers, panettone and pandoro (Italian decree of 22 July 2005), biscotti, scones, graham, Bisquick, pizza
+  rolls, stuffing, egg rolls, French toast, spaetzle, pierogi, empanadas, samosas, calzones, flan, crème
+  brûlée, tartar and rémoulade sauce, bouillabaisse, maraschino cherries, and the peanut candy bars.
+- **Fortified wines (Q13).** Sherry, port, Madeira, Marsala, vermouth, claret, champagne, Shaoxing and the other
+  semi-generic wine names of 27 CFR 4.24(b)(2), and hard cider, are companions of `%wine%` for the sulfite types
+  and Histamine Intolerance, so the re-check guard reads a take-back of a sherry line off a wine vinegar by the
+  line's own words. A companion an alias would add to a food whose name already holds its pattern adds no
+  restricted word (`LinkRecheckRules.RestrictedWords`): "dry sherry" may still become an alias of a dessert wine.
+- **The over-flags of Q19.** A USDA description is read in each order of speech, each later part before the
+  first (`DietPatternRule.SpokenOrders`: "Tortillas, ready-to-bake or -fry, corn" is corn tortillas, "Squash,
+  winter, spaghetti, raw" spaghetti squash), and cleared when a named exception blanks the term out of any of
+  them; the count script reads the same orders. Sorghum flour, broccoli flower clusters, fruit butters, flax and
+  chia eggs and meatless bacon (for the meat and pork types) are named exceptions. A statement that lists the
+  parts of an ingredient is decided by them (Q8): "vegetable oil (soybean and/or canola oil)" names its oils, so
+  what a bare vegetable oil may be is not read (`PreparedContentsGate.UncertainNames`), but only a part that names a
+  source decides and only for its own occurrence (`prepared-contents.md`).
+- **Review of the derived terms.** A short term read where a word begins also reads the words that begin with it,
+  and a compound reading reads it inside a longer word, so each such word is a named exception: "piece" (`%pie%`),
+  "unpeeled" (`%eel%`), "Tillamook" and "till" (`% til%`), "for stuffing" (the stuffing composite). An exception
+  of a fish term whose phrase is no animal at all (linguine, lingonberry, pikelet, the moringa drumstick, San
+  Francisco, shadow) holds for every type the fish patterns feed, the vegetarian and vegan types too; only a
+  phrase that is meat (linguica, carpaccio, poutine, spotted dick) stays scoped to Fish Allergy. A bird's
+  drumstick is read by its bird where the line names one, as before the fish vocabulary (review CK10C-3 to
+  CK10C-7).
+- **Measured (`diet-coverage.tsv`, `GoldenDietCoverageTests`).** Per severe type at least 150 foods of the frozen
+  catalog, seven a category and 25 from the categories that carry the class, read by name and USDA
+  description, and constructed lines: no row that names what the type restricts is missed, and under 5 % of
+  each type's clear rows are flagged. Prepared foods are kept as unasserted rows (their ingredient statement
+  decides), and so are foods whose contents their name does not say (a branded cereal's grains, a candy bar's
+  soy lecithin): name reading cannot know them, and the report counts them.
+
 ## Cost and cache
 
 The whole-catalog answer of each type (its foods, its alias-only foods and the recipes their lines
@@ -305,6 +373,10 @@ The paragraph above is how the in-line matcher still works (tests on an in-memor
 probes). Since `cleanup2/ck9-diet-speed` the API never computes a probe for a household set; see the next section.
 
 ## The line index: no request probes the catalog (staging checkpoint 4, P1, P5, P23)
+
+Since `cleanup2/ck10-diet-store` no request reads the line index or the kept probes: the gate's results are stored in
+the database (next section). The build job still reads lines and their rules with the index's matcher, and the
+index itself stays as the oracle the tests compare against.
 
 On the production-sized copy (843,636 live lines) the joined line probe (`LineRecipeSql`) of a type with a large
 severe set ran past Npgsql's 30 s command timeout: the warm never finished, and search, plans and the prepared check
@@ -335,7 +407,7 @@ is now split so that no user request runs a probe:
   again when `DietGateCache.Generation` moved (a write to a food, alias, nutrient, line, a recipe's servings or a
   measurement), when a reader met a rule the index has not read (a criterion an admin added or edited), or after
   `MaxAge` (15 min, for writes from another process), never sooner than `DietGate:MinIntervalSeconds` (60) after the
-  last run. `DietGate:Warm=false` turns it off (every pattern restriction then holds every recipe).
+  last run. `DietGate:Warm=false` turned it off. Since `cleanup2/ck10-diet-store` the setting is `DietGate:Build`.
 
 **The safe side while something is not read.** `HouseholdRestrictionResolver` (on a relational database, with
 `DietGateCache.Shared` and `DietLineIndex.Shared`) reads only what is kept. A type whose food probe is not kept yet
@@ -382,6 +454,181 @@ blanks measures in an alias as the gate does, and it still takes about 40 minute
 (nothing else on that database) and only for a release that changes the rule itself. It cannot read the gate's
 stored results: they live in the API's memory, not in the database.
 
+## The stored results: the gate in the database (staging checkpoint 5, Q2, Q3, Q4, Q6, P23)
+
+Checkpoint 5 showed the in-memory gate failing a second time:
+
+- The warm took 948 to 972 s, almost all of it food probes, and it could not be timed per type (Q3).
+- After the warm, refreshes of stale probes ran with no bound. Under ordinary load (an import, the API's own
+  nutrition rewrite, `gate-counts` itself) they passed Npgsql's 30 s command timeout.
+- A failed refresh dropped the value, so large restricted households got no recipes, plans or prepared meals for
+  minutes at a time (Q2).
+- Search took 1.0 to 1.6 s with no restriction and up to 11.3 s with one (Q4).
+
+Since `cleanup2/ck10-diet-store` the results live in the database, in six tables of the `plan` schema:
+
+- **`DietGateBuild`**: one build per rule version. The version (`DietGateStore.Version`) joins the store's own
+  `diet-store/1` with the pattern, label-term, measure-word, alcohol-context and statement-reader versions. A build
+  is `building`, `active` (the one requests read) or `retired`, and it records its timings and its last cycle.
+- **`DietGateSet`**: one restriction set per type and reading:
+  - `all`: the type's nutrient, word and name-pattern criteria, which a household's plans read;
+  - `severe`: those of severity 4 and 5, which a person's search reads, stored only when that list differs.
+
+  A request finds a set by `CriteriaKey`, the SHA-256 of its criteria as the gate reads them (ids, severities,
+  patterns, nutrient, cap and the type an exception is scoped to). `Severe` says whether a criterion is of severity 4
+  or 5. The row records the set's food and recipe times and counts from when it was built. `State` is `building`,
+  `complete` or `superseded`: when a type's criteria change (a deploy's `DefaultRestrictionCriteria.EnsureAsync`, or
+  an admin), the active build keeps the type's old set, marked `superseded`, until the set of the new criteria is
+  complete, and removes it at the end of that cycle (review CK10S-2).
+- **`DietFoodFact`** (`SetId`, `IngredientId`): a food the set counts (`Verdict` 1) with:
+  - the criterion that decided it (the highest severity, the lowest id among equals);
+  - every criterion that counts it;
+  - how it was counted: `name`, `alias`, `category`, `contents`, `nutrient` or `drink-name`.
+
+  A food a pattern matches only through an alias that does not count has `Verdict` 3. A decided food with no row is
+  free.
+- **`DietFoodState`** (`BuildId`, `IngredientId`): that the build decided the food, with the fingerprint of what the
+  decision read. That is the name, liveness, USDA category, data type, weights, aliases with their sources, the
+  criteria's nutrient rows, and the latest FDC statement's id, outcome, reader version and change time.
+- **`DietRecipeFlag`** (`SetId`, `RecipeId`): a recipe the set flags, with the food and criterion that decided it.
+  `Verdict` 1 (contains) gives its `Reason`:
+  - 1: a line's food;
+  - 2: a line's own text names a pattern read in every line;
+  - 3: a line on an alias-only food, beside a line that names a pattern;
+  - 4: a drink line on a food not counted;
+  - 5: retained alcohol over the cap.
+
+  `Verdict` 2 (unknown) gives 6 (no live ingredient line) or 7 (a line on a food the build has not decided). A
+  decided recipe with no row is free.
+- **`DietRecipeState`** (`BuildId`, `RecipeId`): that the build decided the recipe, with the fingerprint of its live
+  lines (food, order, text, amount, unit, kind, retention) and its servings.
+
+**The build job.** `DietGateStoreBuilder`, run by `DietGateHostedService`, brings the current version up to date in
+one cycle:
+
+1. It reads the food catalog once: foods, aliases, the criteria's nutrient rows and the latest statements. It loads a
+   statement's text only for a food it decides.
+2. It decides every food whose fingerprint changed, and every food for a set not yet built, with `DietFoodReader`.
+   The reader reads as the matcher's food probe (`DietCriteriaMatcher.ProbeAsync`) does, in memory:
+   - a name by `DietPatternRule.IsMatch`;
+   - an alias by `IsAliasMatch`, with its measures blanked;
+   - the USDA category;
+   - the statement by `PreparedContentsGate.RestrictedNames`;
+   - a nutrient above 0.5 g per 100 g, and a drink name.
+
+   Each food is decided from its own data only, so a batch of changed foods is decided as the whole catalog would
+   decide them.
+3. It reads every live line in windows of 2,000 recipe ids. Each changed recipe's lines are read with the line
+   index's matcher (`DietLineIndex.Rules`, the seeded first-word check).
+4. Per set, it decides every recipe whose lines or servings changed, every recipe on a changed food, and every recipe
+   for a set not yet built. It counts retained alcohol for those recipes only (`RecipeAlcoholAsync` with a scope).
+   It writes 5,000 recipes per transaction, so a recipe's flags and state are replaced together, with `COPY` on
+   Postgres. A recipe is changed when its stored state is missing or its fingerprint differs from the stored one, read
+   from `DietRecipeState` window by window, so a state another process removed is decided again.
+   The fingerprints of the foods decided in the cycle are stored only after their recipes are (review CK10S-1). A
+   cycle that fails between the two keeps the old fingerprints, so the next cycle, in this process or after a
+   restart, sees those foods as changed again and decides their recipes.
+5. A new rule version creates a new build beside the active one. Requests keep reading the active build until the new
+   one is complete. The old build is then retired, and its rows are removed set by set.
+
+The job keeps what it decided in memory between cycles. After a restart it reloads that from the stored rows, re-reads
+the catalog and the lines, and decides nothing that did not change.
+
+When the job runs:
+
+- at start;
+- within `DietGate:PollSeconds` (15) of a write this API made to a food, alias, nutrient, statement, line, recipe
+  servings or measurement (the existing `DietGateCacheInvalidator` generation);
+- every `DietGate:SweepSeconds` (300) in any case, for writes of another process (`Nom.Import`, SQL);
+- never sooner than `DietGate:MinIntervalSeconds` (20) after the last cycle.
+
+On Postgres one API process builds at a time (`pg_try_advisory_lock`). A failed cycle is logged and noted on the
+build (`Note`), and the job reloads its memory from the stored rows; nothing stored is lost. Each cycle logs one line:
+`Diet gate build B (version) state: S sets; foods F of N decided in x s; recipes R of M decided in y s; cycle z s`.
+Each set built logs its own line with its food and recipe times. `DietGate:Build=false` turns the job off, and
+requests then read what is stored.
+
+**What a request reads.** No request runs a pattern, a probe or a build, waits on one, or loses a value because a
+cycle failed:
+
+- `HouseholdRestrictionResolver` reads the active build's id and the set ids of the household's types
+  (`DietGateStore.SetsAsync`, two small indexed queries). Its `IngredientIds` and `RecipeIds` hold only the foods the
+  restrictions name directly.
+- Search, "Surprise me", plan generation and shuffle filter recipes with `DietGateStore.WithoutHeld`: one
+  `NOT EXISTS` on `DietRecipeFlag` by (`SetId`, `RecipeId`), plus `EXISTS` on `DietRecipeState`: a recipe the active
+  build has not decided is held by every set (review CK10S-3).
+- A save that writes a recipe's line or servings removes that recipe's `DietRecipeState` rows in the same save
+  (`DietRecipeStateClearer`, an EF save interceptor registered in the API and in `Nom.Import`). The edited recipe is
+  then held by every set until the build has decided it again, instead of being read with the decision made on its
+  old lines. A write that does not go through the EF change tracker (`ExecuteUpdate`, raw SQL, another tool) is
+  picked up by the next sweep.
+- The food-group top-up and the prepared pool filter foods the same way on `DietFoodFact` and `DietFoodState`.
+- The prepared check and the verification lane load the facts of the meals and of their statements' foods
+  (`RestrictedIngredientSet.LoadFoodsAsync`).
+- The recipe page reads the facts of the recipe's own foods (`DietGateStore.PageAsync`).
+- `gate-counts` groups the stored rows.
+
+**Unknown is held for a severe set, and counted (Q6).** These are unknown:
+
+- a recipe with no live ingredient line;
+- a recipe the build has not decided yet (made since the last cycle, or its lines written since), which every set
+  holds, severe or not;
+- a recipe with a line on a food the build has not decided;
+- a prepared meal the build has not decided.
+
+A set holds unknowns when one of its criteria is of severity 4 or 5, or when a household member holds the type at
+severity 4 or 5. Such a set keeps them out of search, plans and prepared meals (`diet_gate_pending`), and the recipe
+page names them "Ingredients not known". A diet of severity 3 holds what contains its foods and shows what it cannot
+read. A type whose criteria changed reads its previous set until the new one is built, so a deploy or an admin edit
+never empties the gate. A type with no set at all (no build yet, or a type the build has never decided) holds every
+recipe, and the recipe page names it "Not checked yet". `gate-counts` gives, per set, `recipesUnknown` and the flags
+among decided recipes, `recipesNotDecided` (held by every set) and `recipesHeldOnlyForUnknown`: the price of the safe
+side.
+
+These are not unknown:
+
+- a line on an uncurated wording food, which is a decided food like any other (the line's own text is read for it as
+  before);
+- a recipe whose lines leave out the restricted food (Macaroni and Cheese with no pasta line), which is decided by its
+  lines. The title is not read.
+
+**Budgets.** `DietGateStorePostgresTests` runs against a throwaway `postgres:16` made from `db/schema.sql` and
+`db/seed.sql`, with `NOM_DIET_STORE_PG` set; otherwise it is reported skipped. Its data is generated: 88,000 foods
+(44,000 aliases, 2,000 read statements), 122,000 recipes (26 with no line), 850,000 lines and 94 restriction types (102
+sets, more than production's 79).
+
+| Measure (desktop, `postgres:16` with `shared_buffers=1GB`) | Budget | Measured |
+|---|---|---|
+| First build (all foods and recipes, 102 sets) | 20 min | 46 to 55 s (foods 18 to 22 s, recipes 28 to 34 s) |
+| Slowest set to build (Halal, `all`) | per-type time logged | foods 2.5 to 3.0 s, recipes 0.1 s |
+| Rows stored | — | 822,451 food facts, 4,030,767 recipe flags (flags table with indexes 422 MB) |
+| Cycle after a restart, nothing changed | — | 6.6 to 8.8 s, nothing decided |
+| Cycle after one food changed | within a minute (with the 15 s poll) | 1.8 to 3.0 s, 1 food and its 10 recipes decided |
+| `gate-counts` | seconds | 0.7 to 0.8 s |
+| `ops/diet-gate-count.sql` (default) | seconds | 1.8 s |
+| Search, any one restriction ("chicken" or empty query, 94 types) | under 1 s | slowest 468 ms |
+| Search without a restriction | — | "chicken" 163 ms, empty query 342 ms |
+| Search with a restriction, median over types | no slower than without | "chicken" 163 ms, empty 386 ms (worst type 115 ms above the unrestricted empty query) |
+| Gate's part of a shuffle (household set, 30-recipe draw, top-up foods), 94 types | under 1 s | slowest 109 ms |
+
+The search figures include a fix outside the gate. Search used to page with split-query includes, and each split
+query ran the ranked, paged subquery over every recipe again (about 290 ms each on this data, about 2 s for an empty
+query). That is why checkpoint 5 measured search at 1.0 to 1.6 s with no restriction at all (Q4). Search now picks
+the page's ids in one query and loads the includes for those ids only.
+
+**The results equal the in-line matcher's on every golden diet row.** `GoldenDietGateTests` and
+`GoldenDietPatternTests` build the store on each row's database. They compare the recipes and foods the store lets
+through with the matcher's, for the household and for the severe person (`DietGateStoreTests.AssertStoreAgreesAsync`).
+The recipe page and the severe conflicts of `diet-gate.tsv` are then read from the store. `DietGateStoreTests` also
+checks `DietFoodReader` against `ProbeAsync` for every default type in both readings. It uses a generated catalog of
+names, USDA descriptions, trusted and untrusted aliases, alcohol figures, categories and statements.
+
+**The count (P23).** `GET /api/DietAdmin/gate-counts` reads the stored rows. Per set it gives the foods, the recipes
+by food, by text, unknown, not decided, held and held only for unknowns, and the live recipe total. `GET
+/api/DietAdmin/gate-build` gives the builds with their timings and every set's food and recipe seconds (Q3).
+`ops/diet-gate-count.sql` reads the same rows by default, in seconds. The crude-versus-word-rule audit it ran before
+still runs with `-v audit=1` (about 40 minutes, alone, and only for a release that changes the rule).
+
 ## Golden set
 
 `diet-gate.tsv` (see `golden-sets.md`): one food with its aliases and sources and one recipe line on
@@ -403,7 +650,13 @@ CK9S-3) keeps a food whose trusted alias is "Wine Cup", a punch, under Sulfite S
 (checkpoint 4, P18) put almond, buckwheat and coconut flour with their reversed USDA descriptions and Cream
 Of Tartar with its "cream tartars" alias on the gluten and dairy types (offered), and keep all-purpose flour
 by its description and a "coconut flour or flour" line out. Row dg-71 (review CK9T-5) keeps an oats
-description out of Celiac Disease, as `% oat%` reads it as written.
+description out of Celiac Disease, as `% oat%` reads it as written. Rows dg-cov-01 to dg-cov-10 (checkpoint 5,
+Q19) put corn tortillas, apple butter, broccoli florets, sorghum flour, meatless bacon and spaghetti squash with
+their USDA descriptions on the types that over-flagged them (offered), and keep flour tortillas, meatless bacon
+for Soy Allergy, pizza rolls and maraschino cherries out.
+
+`diet-coverage.tsv` (`GoldenDietCoverageTests`): the severe types measured on a judged sample, see the
+checkpoint 5 section above.
 
 `diet-patterns.tsv` (`GoldenDietPatternTests`): one recipe line under one default restriction type, on
 a food no pattern names, `hit` or `clear`; a food named by the same text must be counted the same way.
@@ -507,3 +760,43 @@ No schema change. After the deploy, on staging first:
 5. `ops/diet-gate-count.sql` remains the crude-versus-rule audit for a release that changes the rule itself. Run it
    alone, with nothing else running on that database (about 40 minutes on the production-sized copy); a checkpoint
    that does not change the rule reads step 3's figures instead.
+
+### The stored results (since `cleanup2/ck10-diet-store`)
+
+Schema: six new tables in `plan` (`DietGateBuild`, `DietGateSet`, `DietFoodFact`, `DietFoodState`, `DietRecipeFlag`,
+`DietRecipeState`), additive. On staging first:
+
+1. `./db/apply.sh --dry-run` shows exactly those six tables with their primary keys, the two identity sequences and
+   the indexes `IX_DietFoodFact_IngredientId`, `IX_DietGateBuild_State_Id`, `IX_DietGateSet_BuildId_CriteriaKey`
+   (unique) and `IX_DietRecipeFlag_RecipeId`. Then apply.
+2. Deploy. The setting `DietGate:Warm` is gone. `DietGate:Build` (default on), `PollSeconds` (15), `SweepSeconds` (300)
+   and `MinIntervalSeconds` (20) replace it.
+3. Read the API log after the start. Expect one line per set built (`Diet gate build 1: set S (type T, all) built: ...`)
+   and one cycle line: `Diet gate build 1 (diet-store/1;...) active (switched): N sets; foods ...; recipes ...; cycle
+   W s`. The budget is W under 20 minutes; the generated production-sized test takes about a minute. Until that line
+   appears, every pattern restriction holds every recipe (no build is active).
+4. `GET /api/DietAdmin/gate-build`: the build `active`, its `totalSeconds`, and every set's `foodSeconds` and
+   `recipeSeconds` (Q3).
+5. `GET /api/DietAdmin/gate-counts`, or `psql -f ops/diet-gate-count.sql` (seconds): per set the foods, recipes by food
+   and by text, `recipesUnknown`, `recipesNotDecided` and `recipesHeldOnlyForUnknown`. Expect about 26 unknown recipes
+   (the live recipes with no line) held for each severe set and none held for unknowns by a diet. Compare the other
+   figures with the checkpoint 5 figures of the in-memory gate (the same matcher, so equal within the lines changed
+   since). Calling either now starts nothing.
+6. With a temporary restriction on the API person, repeat checkpoint 5's per-type pass (79 type ids: search
+   "chicken", shuffle, prepared check). Every call should answer under 1 s, with no type `diet_gate_pending` and no
+   shuffle that creates 0 meals for lack of a value. Check that 141871 (Maple Pecan Sticky Buns) and 141878 are hidden
+   from a Celiac search and shown to a Vegetarian one. Load the API at the same time (an admission import, the
+   nutrition rewrite after a start): the answers do not change.
+7. Edit one food's name to one a restriction reads (for example append "wheat") and one recipe line. The edited
+   recipe leaves every restricted search at once (it is not decided until the next cycle). Within about 15 s the next
+   cycle line reads `foods 1 of ...` and `recipes K of ...`, and a search reflects both.
+8. Restart the API: the cycle line reads `foods 0 of ...; recipes 0 of ...` within seconds of the catalog read, and
+   requests answer throughout the restart (they read the stored rows).
+9. A release that raises a rule version builds a second build. `gate-build` shows it `building` beside the `active`
+   one, requests keep answering from the active one, and after the switch the old build is `retired` and its rows are
+   gone. A release that changes only default criteria (for example the coverage branch's pattern lists) builds the new
+   sets in the active build: `gate-build` shows the changed types' old sets `superseded` and their new sets `building`,
+   no restricted search, plan or prepared check returns `diet_gate_pending` meanwhile, and at the end of the cycle the
+   superseded sets are gone.
+10. `ops/diet-gate-count.sql -v audit=1` is the crude-versus-rule audit of a rule change, as before (about 40 minutes,
+   alone).
