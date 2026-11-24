@@ -1,6 +1,7 @@
 using System;
 using System.IO;
 using System.Linq;
+using System.Reflection;
 using System.Runtime.CompilerServices;
 using System.Text;
 using System.Text.RegularExpressions;
@@ -20,8 +21,17 @@ namespace Nom.Api.Tests.Services.MealPlan
     /// rule, the term readings, the exceptions, the maker blanking or the vocabulary shows there as a diff a person reviews
     /// before any entry changes its verdict unseen (staging checkpoint 6, R6 and R7).
     /// </summary>
+    [Collection(RunsAlone)]
     public class DietReadingRegisterTests
     {
+        /// <summary>
+        /// The collection of the test classes that hold a core for minutes (this register and the production-sized line
+        /// reading of <see cref="DietLineRulesTests"/>): beside the rest on a four-core runner they slowed the other tests
+        /// and the production-sized reading fell past its own time bar (5 m 31 s in the v0.3.131 main run), so they run
+        /// alone after the parallel collections.
+        /// </summary>
+        public const string RunsAlone = "Minutes of reading, run alone";
+
         private readonly ITestOutputHelper _output;
 
         public DietReadingRegisterTests(ITestOutputHelper output) => _output = output;
@@ -62,6 +72,19 @@ namespace Nom.Api.Tests.Services.MealPlan
 
         internal static Task<string> RegisterTableAsync() => Task.Run(RegisterTable);
 
+        [Theory]
+        [InlineData(typeof(DietReadingRegisterTests))]
+        [InlineData(typeof(DietLineRulesTests))]
+        public void A_test_class_that_reads_for_minutes_runs_alone(Type type)
+        {
+            var collection = type.GetCustomAttributesData().SingleOrDefault(a => a.AttributeType == typeof(CollectionAttribute));
+            collection.Should().NotBeNull($"{type.Name} holds a core for minutes");
+            collection!.ConstructorArguments.Single().Value.Should().Be(RunsAlone);
+            var definition = typeof(RunsAloneCollection).GetCustomAttribute<CollectionDefinitionAttribute>();
+            definition.Should().NotBeNull();
+            definition!.DisableParallelization.Should().BeTrue("the collection runs after the parallel ones, alone");
+        }
+
         [Fact]
         public async Task Every_catalog_text_the_word_rule_reads_otherwise_than_ilike_is_in_the_reviewed_register()
         {
@@ -72,5 +95,11 @@ namespace Nom.Api.Tests.Services.MealPlan
             if (actual != expected) _output.WriteLine(actual);
             actual.Should().Be(expected, "a change to the reading shows here as a diff a person reviews (the new register is in the test output)");
         }
+    }
+
+    /// <summary>The definition of <see cref="DietReadingRegisterTests.RunsAlone"/>: its test classes run after the parallel collections, one at a time.</summary>
+    [CollectionDefinition(DietReadingRegisterTests.RunsAlone, DisableParallelization = true)]
+    public sealed class RunsAloneCollection
+    {
     }
 }

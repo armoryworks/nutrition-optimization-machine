@@ -25,6 +25,7 @@ namespace Nom.Api.Tests.Services.MealPlan
     /// line within minutes, and the reading is the matcher's own, line by line; a measure named after a drink is read as
     /// a measure.
     /// </summary>
+    [Collection(DietReadingRegisterTests.RunsAlone)]
     public class DietLineRulesTests
     {
         private const long HouseholdId = 7, PersonId = 70, SulfiteRef = 60801;
