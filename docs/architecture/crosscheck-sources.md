@@ -138,15 +138,53 @@ of one source sharing one spacing (`www.loc.gov` and `tile.loc.gov` together sta
 hosts are cleared for that script only, not for the label cross-checker; nom-api refuses a user URL
 import or bulk scrape on a hand source's host, so the scraper never fetches them. `robots.txt` was read
 directly on each host on 2026-11-20; licence facts are those of the 2026-11-20 source research.
-Images are never taken from any of them.
+Images are never taken from any of them, with one exception: the Library's page images on
+`tile.loc.gov`, read for their text only, under the determination below.
 
 | Host | robots.txt for `*` | Delay | Licence facts | Credit line |
 |---|---|---|---|---|
 | `www.nutrition.va.gov` | answers 404: no rules, no crawl-delay | 5 s | A U.S. Department of Veterans Affairs work (17 U.S.C. 105). No public-domain line on the site; VA web policy (digital.va.gov web policies): "VA websites will only use original, VA-authored or co-authored articles". No partner credit in the sample; no terms on automated access. | none required; NOM credits "U.S. Department of Veterans Affairs, Nutrition and Food Services" |
 | `www.nhlbi.nih.gov` | disallows admin, search, `/node/` and some query paths; the recipe pages under `/health/heart-healthy-living/healthy-foods/healthy-eating-recipes/` are allowed; no crawl-delay | 5 s | "information posted on the NHLBI website within the nhlbi.nih.gov domain is in the public domain" (trademark, branding and logo page). It asks that NHLBI's formatted products not be changed; NOM takes recipe facts and the import rules rewrite nothing it shows as NHLBI's. Some images are licensed from third parties. | none required; NOM credits "National Heart, Lung, and Blood Institute (NIH)" |
 | `www.loc.gov` | disallows admin-type paths only, not `/item/` or `/resource/`; `Crawl-Delay: 5` | 6 s | Selected Digitized Books: each item's rights field reads "The books in this collection are in the public domain and are free to use and reuse." loc.gov/legal: the Library generally does not own the rights, so each item is taken only when its own rights field carries that statement and it was published in 1930 or earlier (the script checks both on the item's JSON record). loc.gov/legal also asks for no more than 10 requests a minute, hence 6 s. | "Library of Congress" with the book's title and year |
-| `tile.loc.gov` | answers 404: no rules | 6 s | The Library's storage host for the OCR text (`fulltext_derivative`) of an item fetched from `www.loc.gov`; same item, same statement. Only the text file an approved item's record names is fetched. | as above |
+| `tile.loc.gov` | answers 404: no rules | 6 s | The Library's storage host for the OCR text (`fulltext_derivative`) and the page images (`resources[0].files`) of an item fetched from `www.loc.gov`; same item, same statement. The text file an approved item's record names is fetched; a page image only within the page-image determination of 2026-11-25 below. | as above |
 | `www.cancer.gov` | `User-agent: *` with no disallow; no crawl-delay | 5 s | "all text within National Cancer Institute (NCI) products is free of copyright" and "may be reused without our permission" (copyright and reuse policy). Only graphics credited to NCI are free; no NCI logo. One document: "Down Home Healthy Cooking", NIH Publication No. 06-3408. | "Credit the National Cancer Institute as the source"; adapted text says so: "Adapted from National Cancer Institute, Down Home Healthy Cooking (NIH Publication No. 06-3408)" |
+
+#### `tile.loc.gov` page images — determination of 2026-11-25
+
+The owner approved the Library of Congress's public-domain cookbooks as a hand source (2026-11-21). The
+Library's own OCR garbles the ingredient tables those books set with dot leaders (staging checkpoint 7,
+S22: 13 of the 14 recipes read from Lizzie's cook book were lost and the one kept was garbage), so the
+recipes on such pages can only be read from the page image. The lead extends the `tile.loc.gov`
+determination to those page images, and only within these limits, which `ops/hand-import.py images`
+enforces (each refusal is named in its report, and `ops/tests/test_hand_import_images.py` holds a test
+for each):
+
+- **Only items already taken under the Library rule.** The item's JSON record and its OCR text must have
+  been fetched and verified, and the record is read again before any image: its rights field states the
+  public domain ("The books in this collection are in the public domain and are free to use and
+  reuse."), it is dated 1930 or earlier, and it is in English.
+- **Only pages whose Library text fails the readability test**, tested again on the Library's own text
+  with the word list (SCOWL's `american-english`) when the images step runs; without a word list no
+  image is fetched. A page whose image was already read is never fetched again.
+- **Only from `tile.loc.gov`**, the one host in the `loc` source's `image_hosts` (`ops/hand-import/sources.csv`);
+  the image URL is the one the item's own record lists for that page, and a redirect is followed only
+  to `tile.loc.gov`.
+- **At the recorded pacing**, 6 s between requests, shared with `www.loc.gov` (the two hosts are paced as
+  one, within the Library's 10 requests a minute), or the larger `crawl-delay`; **under `robots.txt` as
+  read on the day**: the step reads it at the start of each run (it answered 404, no rules, on
+  2026-11-20), honours any rule it then holds, and fetches nothing from the host when it cannot be read.
+- **Read for its text, then deleted; never served or kept.** The image is read with tesseract inside the
+  `nom-hand-import` image; once the text step has stored the page's reading (`imageText` in the page's
+  text file), it deletes the image and records the deletion in `manifest.jsonl`; the stored reading stays
+  on the page whatever later runs read. Part of an image is never kept: a failed download deletes it, and
+  one left by a stopped run is deleted at the start of the next run. An image is never a
+  recipe's image, never staged, never sent to the NOM API and never published.
+
+Reasons: the images are scans of the same public-domain items, under the same rights statement as their
+text, which is already taken; they are read for facts (amounts, foods, the method) that the text file
+holds in garbled form; nothing of the scan is kept or shown; and the alternative is losing every recipe
+whose table the Library's OCR garbled. Before any larger run, a one-book proof on staging
+(`docs/architecture/hand-import.md`, "Page images") reads its records against the page images.
 
 ## Recommended configuration
 

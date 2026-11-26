@@ -9,13 +9,17 @@ namespace Nom.Orch.Models.Curation
         public string? Row { get; set; }
         /// <summary>The wording in key form: normalised and lower-cased.</summary>
         public string Wording { get; set; } = string.Empty;
-        /// <summary>food, none or unclear.</summary>
+        /// <summary>food, category, none or unclear.</summary>
         public string Verdict { get; set; } = string.Empty;
         public long? FoodId { get; set; }
         /// <summary>Resolves the food when given, since ids differ between staging and production.</summary>
         public string? FoodFdcId { get; set; }
         /// <summary>Must equal the food's name when the food is found by id.</summary>
         public string? FoodName { get; set; }
+        /// <summary>For a category verdict: the USDA food category the wording's foods are of.</summary>
+        public int? CategoryId { get; set; }
+        /// <summary>For a category verdict: the leading part of the USDA description that narrows the category, if any.</summary>
+        public string? CategoryHead { get; set; }
         public string? Note { get; set; }
         /// <summary>The evidence the verdict was given on; a retracted pair is written again only on other evidence.</summary>
         public string? EvidenceKey { get; set; }

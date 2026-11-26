@@ -33,15 +33,18 @@ namespace Nom.Orch.Services
         public const string PurgeChangeType = "RecipePurge";
         public const string ItemNameChangeType = "RecipeRetireItemName";
         public const string ItemEntityType = "ShoppingListItem";
+        public const string FoodRetireChangeType = "RecipeRetireFood";
+        public const string FoodEntityType = LineRelinkService.RetireEntityType;
         public const string RemovedNote = "This recipe is no longer available here.";
         public const string PurgedValuePrefix = "(purged with the recipe, sha256:";
         public const string PurgeWarning = "A purge deletes the source's wording and copies for good: it cannot be undone. Take a database backup first.";
         public const int BatchSize = 200;
+        public const string TombstoneMark = " (deleted #";
 
         private static readonly SemaphoreSlim Gate = new(1, 1);
         private static readonly JsonSerializerOptions JsonOptions = new(JsonSerializerDefaults.Web);
         private static readonly string[] RecipeAuditTypes = { ProseRecheckService.RecipeEntityType, "RecipeStep", "RecipeIngredient" };
-        private static readonly string[] OwnChangeTypes = { RetireChangeType, RetireUndoChangeType, PurgeChangeType };
+        private static readonly string[] OwnChangeTypes = { RetireChangeType, RetireUndoChangeType, PurgeChangeType, FoodRetireChangeType };
 
         /// <summary>The recipe columns a purge clears; the title (<c>Name</c>), the address and the site stay.</summary>
         public static readonly string[] PurgedRecipeColumns =
@@ -147,6 +150,7 @@ namespace Nom.Orch.Services
 
                 report.RunId = run.Id;
                 var done = new HashSet<long>();
+                var foodsRetired = 0;
                 while (true)
                 {
                     var hosts = await HostsAsync(sourceId, cancellationToken);
@@ -155,12 +159,15 @@ namespace Nom.Orch.Services
                     if (batch.Count == 0 || batch.Any(b => done.Contains(b.Recipe.Id))) break;
                     await InBatchAsync(async () =>
                     {
+                        var orphans = await OrphanFoodsAsync(batch.Select(b => b.Recipe.Id).ToList(), cancellationToken);
                         foreach (var (recipe, host) in batch)
                         {
                             await RetireOneAsync(recipe, host, run, personId, cancellationToken);
                             done.Add(recipe.Id);
                         }
 
+                        await RetireFoodsAsync(orphans, run, personId, cancellationToken);
+                        foodsRetired += orphans.Count;
                         run.Done += batch.Count;
                         await _db.SaveKeepingModifiedAsync(cancellationToken);
                     }, cancellationToken);
@@ -171,6 +178,7 @@ namespace Nom.Orch.Services
                 run.FinishedAtUtc = Now();
                 await _db.SaveChangesAsync(cancellationToken);
                 report.Recipes = done.Count;
+                report.Foods = foodsRetired;
                 _logger.LogInformation("Recipe removal run {RunId} ({Stamp:O}): {Done} recipes retired from forbidden sources", run.Id, run.Stamp, run.Done);
                 return report;
             }
@@ -241,9 +249,7 @@ namespace Nom.Orch.Services
                 {
                     var food = item.IngredientId is { } id ? foods.GetValueOrDefault(id) : null;
                     var line = lines.FirstOrDefault(l => l.IngredientId == item.IngredientId);
-                    var name = ProseWithholding.CatalogFood(food)
-                        ? food!.Name
-                        : ProseWithholding.FoodName(SourceRightsRule.FactsOnly, line?.RawLine, food?.Name, false) ?? ProseWithholding.UnnamedFood;
+                    var name = ItemName(food, line?.RawLine);
                     if (string.Equals(name, item.Name, StringComparison.Ordinal)) continue;
                     _db.AuditLogEntries.Add(Entry(ItemEntityType, item.Id, ItemNameChangeType, nameof(item.Name), item.Name, name, stamp, personId));
                     item.Name = name;
@@ -294,6 +300,7 @@ namespace Nom.Orch.Services
             }
 
             report.Recipes = ids.Count;
+            report.Foods = (await OrphanFoodsAsync(ids, cancellationToken)).Count;
             report.AlreadyDone = await _db.RecipeRemovals.AsNoTracking().CountAsync(r => r.UndoneAtUtc == null
                 && (sourceId == null || hosts.Hosts.Select(h => h.Host).Contains(r.Host)), cancellationToken);
             report.RecipeIds = ids.OrderBy(id => id).Take(500).ToList();
@@ -333,7 +340,11 @@ namespace Nom.Orch.Services
                     report.Sources.Add(new RecipeRemovalSourceModel { SourceId = group.Key, Domain = group.First().Host, RightsClass = group.First().RightsClass, Recipes = group.Count() });
                 if (run.FinishedAtUtc == null)
                     report.Warning = $"The retire run {run.Id.ToString(CultureInfo.InvariantCulture)} was cut off; {(apply ? "the undo closed it" : "the undo closes it")}, so it is not resumed.";
-                if (!apply) return report;
+                if (!apply)
+                {
+                    report.Foods = (await RetiredFoodsAsync(undoable.Select(r => r.RecipeId).ToList(), run.Stamp, cancellationToken)).Count;
+                    return report;
+                }
 
                 if (run.FinishedAtUtc == null)
                 {
@@ -353,7 +364,16 @@ namespace Nom.Orch.Services
                 {
                     await InBatchAsync(async () =>
                     {
+                        var foods = await RetiredFoodsAsync(chunk.Select(r => r.RecipeId).ToList(), run.Stamp, cancellationToken);
                         foreach (var row in chunk) await UndoOneAsync(row.Id, run.Stamp, now, personId, cancellationToken);
+                        foreach (var food in await _db.Ingredients.IgnoreQueryFilters().Where(i => foods.Contains(i.Id)).ToListAsync(cancellationToken))
+                        {
+                            Restore(food);
+                            _db.AuditLogEntries.Add(Entry(FoodEntityType, food.Id, FoodRetireChangeType, nameof(BaseEntity.IsDeleted), "true",
+                                $"false | undo of retire run {run.Id.ToString(CultureInfo.InvariantCulture)}", now, personId));
+                        }
+
+                        report.Foods += foods.Count;
                         var tracked = await _db.RecipeRemovalRuns.FirstAsync(r => r.Id == undoRun.Id, cancellationToken);
                         tracked.Done += chunk.Length;
                         await _db.SaveKeepingModifiedAsync(cancellationToken);
@@ -435,7 +455,7 @@ namespace Nom.Orch.Services
                 report.AlreadyDone = await _db.RecipeRemovals.AsNoTracking().CountAsync(r => r.UndoneAtUtc == null && r.PurgedAtUtc != null && (host == null || r.Host == host), cancellationToken);
                 report.RecipeIds = due.Select(r => r.RecipeId).OrderBy(id => id).Take(500).ToList();
                 foreach (var group in due.GroupBy(r => r.ScrapingSourceId))
-                    report.Sources.Add(new RecipeRemovalSourceModel { SourceId = group.Key, Domain = group.First().Host, RightsClass = group.First().RightsClass, Recipes = group.Count() });
+                    report.Sources.Add(await PurgeSourceAsync(group.ToList(), cancellationToken));
                 report.Targets = await PurgeTargetsAsync(due.Select(r => r.RecipeId).ToList(), cancellationToken);
                 if (!apply) return report;
 
@@ -453,7 +473,9 @@ namespace Nom.Orch.Services
                 {
                     await InBatchAsync(async () =>
                     {
+                        var plan = await WordingPlanAsync(chunk.Select(r => r.RecipeId).ToList(), cancellationToken);
                         foreach (var removal in chunk) await PurgeOneAsync(removal.Id, runId, stamp, personId, cancellationToken);
+                        await PurgeWordingsAsync(plan, stamp, personId, cancellationToken);
                         var tracked = await _db.RecipeRemovalRuns.FirstAsync(r => r.Id == runId, cancellationToken);
                         tracked.Done += chunk.Length;
                         await _db.SaveHardDeletesAsync(cancellationToken);
@@ -515,6 +537,22 @@ namespace Nom.Orch.Services
             });
             await Count("shopping.ShoppingListItem", "Name: served by its catalog food or its own food words (rows stay with the household)", "renamed where it differs",
                 c => _db.ShoppingListItems.IgnoreQueryFilters().CountAsync(i => i.RecipeId != null && c.Contains(i.RecipeId.Value), cancellationToken));
+
+            var plan = await WordingPlanAsync(ids, cancellationToken);
+            void Add(string table, string columns, string action, int rows) => targets.Add(new RecipeRemovalTargetModel { Table = table, Columns = columns, Action = action, Rows = rows });
+            Add("recipe.Ingredient", "Name, NameNormalized, PluralName, PluralNameNormalized, Description of the foods named from the purged lines that no other recipe uses",
+                "renamed by their food words where a household or another food holds them, otherwise cleared and the food retired", plan.Foods.Count);
+            Add("recipe.IngredientAlias", "AliasName of those foods, and the aliases a relink gave another food under the name of one of them (whole rows)", "deleted",
+                await _db.IngredientAliases.IgnoreQueryFilters().CountAsync(a => plan.Foods.Contains(a.IngredientId) || (a.SourceContext != null && plan.RetiredContexts.Contains(a.SourceContext)), cancellationToken));
+            Add("recipe.IngredientWording, recipe.IngredientWordingRejection", "Wording of deleted rows and rejections on those foods (whole rows)", "deleted",
+                await _db.IngredientWordings.IgnoreQueryFilters().CountAsync(w => w.IsDeleted && w.IngredientId != null && plan.Foods.Contains(w.IngredientId.Value), cancellationToken)
+                + await _db.IngredientWordingRejections.IgnoreQueryFilters().CountAsync(w => w.IngredientId != null && plan.Foods.Contains(w.IngredientId.Value), cancellationToken));
+            Add("curation.FoodCatalogProposal", "CurrentValue, ProposedValue, Reason of proposals on those foods or keyed by a purged line's wording that no other recipe uses",
+                "replaced by " + PurgedValuePrefix + "...)", plan.Proposals.Count);
+            Add("audit.AuditLogEntry (foods, proposals)", "OldValue, NewValue of those foods' and proposals' journal rows", "replaced by " + PurgedValuePrefix + "...)",
+                await FoodAuditRows(plan).CountAsync(cancellationToken));
+            Add("curation.LaneDecision (wordings)", "Subject, SignalsJson, VerdictsJson, AuditJson of decisions about those wordings", "cleared (the subject replaced by " + PurgedValuePrefix + "...))",
+                await _db.LaneDecisions.IgnoreQueryFilters().CountAsync(d => plan.Subjects.Contains(d.Subject), cancellationToken));
             return targets;
         }
 
@@ -561,9 +599,7 @@ namespace Nom.Orch.Services
             {
                 var food = item.IngredientId is { } foodId ? await _db.Ingredients.IgnoreQueryFilters().AsNoTracking().FirstOrDefaultAsync(i => i.Id == foodId, cancellationToken) : null;
                 var line = lines.FirstOrDefault(l => l.IngredientId == item.IngredientId);
-                var name = ProseWithholding.CatalogFood(food)
-                    ? food!.Name
-                    : ProseWithholding.FoodName(SourceRightsRule.FactsOnly, line?.RawLine, food?.Name, false) ?? ProseWithholding.UnnamedFood;
+                var name = ItemName(food, line?.RawLine);
                 if (string.Equals(name, item.Name, StringComparison.Ordinal)) continue;
                 item.Name = name;
                 Count("shopping.ShoppingListItem names", 1);
@@ -788,6 +824,329 @@ namespace Nom.Orch.Services
             _db.DietRecipeFlags.RemoveRange(flags);
             _db.DietRecipeStates.RemoveRange(states);
             return (flags.Count, states.Count);
+        }
+
+        /// <summary>
+        /// A shopping item's name once its recipe is removed: its catalog food's name, else the food words of the source's line or
+        /// of the food's name (<see cref="ProseWithholding.FoodWords"/>, then the looser <see cref="ProseWithholding.PlainFoodWords"/>),
+        /// and the bare <see cref="ProseWithholding.UnnamedFood"/> only when neither has any (staging checkpoint 7, S18).
+        /// </summary>
+        internal static string ItemName(IngredientEntity? food, string? rawLine) =>
+            ProseWithholding.CatalogFood(food)
+                ? food!.Name
+                : ProseWithholding.FoodName(SourceRightsRule.FactsOnly, rawLine, food?.Name, false)
+                  ?? ProseWithholding.PlainFoodWords(rawLine) ?? ProseWithholding.PlainFoodWords(food?.Name) ?? ProseWithholding.UnnamedFood;
+
+        /// <summary>
+        /// The foods the retire of <paramref name="recipeIds"/> leaves without a recipe: foods named from the source's lines (no FDC
+        /// id, not curated, live) that a live line of these recipes names, that no live line of another recipe names, and that
+        /// nothing a household or another food relies on holds (<see cref="HeldAsync"/>).
+        /// </summary>
+        private async Task<List<long>> OrphanFoodsAsync(List<long> recipeIds, CancellationToken cancellationToken)
+        {
+            var named = new HashSet<long>();
+            foreach (var chunk in recipeIds.Chunk(5000))
+                named.UnionWith(await _db.RecipeIngredients.IgnoreQueryFilters().Where(l => chunk.Contains(l.RecipeId) && !l.IsDeleted).Select(l => l.IngredientId).Distinct().ToListAsync(cancellationToken));
+            var foods = new List<long>();
+            foreach (var chunk in named.Chunk(1000))
+                foods.AddRange(await _db.Ingredients.IgnoreQueryFilters()
+                    .Where(i => chunk.Contains(i.Id) && !i.IsDeleted && (i.FdcId == null || i.FdcId == "") && i.CurationStatusId != (long)CurationStatusEnum.Curated)
+                    .Select(i => i.Id).ToListAsync(cancellationToken));
+            var used = new HashSet<long>();
+            foreach (var chunk in foods.Chunk(1000))
+                used.UnionWith(await _db.RecipeIngredients.IgnoreQueryFilters()
+                    .Where(l => chunk.Contains(l.IngredientId) && !l.IsDeleted && !recipeIds.Contains(l.RecipeId))
+                    .Select(l => l.IngredientId).Distinct().ToListAsync(cancellationToken));
+            var left = foods.Where(id => !used.Contains(id)).ToList();
+            var held = await HeldAsync(left, cancellationToken);
+            return left.Where(id => !held.Contains(id)).OrderBy(id => id).ToList();
+        }
+
+        /// <summary>
+        /// The foods among <paramref name="foodIds"/> that something besides a recipe line relies on: a pantry, shopping list,
+        /// household shopping item, meal plan, household food, goal, restriction, substitution, variation, component, message
+        /// thread or a live verified wording (the same uses <see cref="LineRelinkService.IsUsedOutsideRecipeLinesAsync"/> reads).
+        /// </summary>
+        private async Task<HashSet<long>> HeldAsync(List<long> foodIds, CancellationToken cancellationToken)
+        {
+            var held = new HashSet<long>();
+            foreach (var part in foodIds.Chunk(1000))
+            {
+                var c = part.ToList();
+                held.UnionWith(await _db.ShoppingListItems.Where(x => x.IngredientId != null && c.Contains(x.IngredientId.Value)).Select(x => x.IngredientId!.Value).ToListAsync(cancellationToken));
+                held.UnionWith(await _db.HouseholdShoppingItems.Where(x => x.IngredientId != null && c.Contains(x.IngredientId.Value)).Select(x => x.IngredientId!.Value).ToListAsync(cancellationToken));
+                held.UnionWith(await _db.PantryItems.Where(x => c.Contains(x.IngredientId)).Select(x => x.IngredientId).ToListAsync(cancellationToken));
+                held.UnionWith(await _db.MealPlans.Where(x => x.IngredientId != null && c.Contains(x.IngredientId.Value)).Select(x => x.IngredientId!.Value).ToListAsync(cancellationToken));
+                held.UnionWith(await _db.HouseholdIngredients.Where(x => c.Contains(x.IngredientId)).Select(x => x.IngredientId).ToListAsync(cancellationToken));
+                held.UnionWith(await _db.GoalItems.Where(x => x.IngredientId != null && c.Contains(x.IngredientId.Value)).Select(x => x.IngredientId!.Value).ToListAsync(cancellationToken));
+                held.UnionWith(await _db.Restrictions.Where(x => x.IngredientId != null && c.Contains(x.IngredientId.Value)).Select(x => x.IngredientId!.Value).ToListAsync(cancellationToken));
+                held.UnionWith(await _db.Set<Nom.Data.Plan.RestrictionCriterionEntity>().Where(x => x.IngredientId != null && c.Contains(x.IngredientId.Value)).Select(x => x.IngredientId!.Value).ToListAsync(cancellationToken));
+                held.UnionWith(await _db.MessageThreads.Where(x => x.IngredientId != null && c.Contains(x.IngredientId.Value)).Select(x => x.IngredientId!.Value).ToListAsync(cancellationToken));
+                held.UnionWith(await _db.IngredientWordings.Where(x => x.IngredientId != null && c.Contains(x.IngredientId.Value)).Select(x => x.IngredientId!.Value).ToListAsync(cancellationToken));
+                held.UnionWith(await _db.RecipeAugmentations.Where(x => c.Contains(x.IngredientId)).Select(x => x.IngredientId).ToListAsync(cancellationToken));
+                held.UnionWith(await _db.RecipeSubstitutions.Where(x => c.Contains(x.IngredientId)).Select(x => x.IngredientId).ToListAsync(cancellationToken));
+                held.UnionWith(await _db.RecipeSubstitutions.Where(x => c.Contains(x.SubstituteIngredientId)).Select(x => x.SubstituteIngredientId).ToListAsync(cancellationToken));
+                held.UnionWith(await _db.Set<RecipeVariationItemEntity>().Where(x => c.Contains(x.IngredientId)).Select(x => x.IngredientId).ToListAsync(cancellationToken));
+                held.UnionWith(await _db.Set<RecipeVariationItemEntity>().Where(x => c.Contains(x.SubstituteIngredientId)).Select(x => x.SubstituteIngredientId).ToListAsync(cancellationToken));
+                held.UnionWith(await _db.Set<IngredientSubstitutionEntity>().Where(x => c.Contains(x.IngredientId)).Select(x => x.IngredientId).ToListAsync(cancellationToken));
+                held.UnionWith(await _db.Set<IngredientSubstitutionEntity>().Where(x => c.Contains(x.SubstituteIngredientId)).Select(x => x.SubstituteIngredientId).ToListAsync(cancellationToken));
+                held.UnionWith(await _db.Set<IngredientComponentEntity>().Where(x => c.Contains(x.IngredientId)).Select(x => x.IngredientId).ToListAsync(cancellationToken));
+                held.UnionWith(await _db.Set<IngredientComponentEntity>().Where(x => c.Contains(x.ComponentIngredientId)).Select(x => x.ComponentIngredientId).ToListAsync(cancellationToken));
+            }
+
+            held.IntersectWith(foodIds);
+            return held;
+        }
+
+        /// <summary>Retires the foods <see cref="OrphanFoodsAsync"/> found, under the run's stamp, one journal row each, so the undo by that stamp puts them back.</summary>
+        private async Task RetireFoodsAsync(List<long> foodIds, RecipeRemovalRunEntity run, long personId, CancellationToken cancellationToken)
+        {
+            foreach (var chunk in foodIds.Chunk(1000))
+            {
+                foreach (var food in await _db.Ingredients.IgnoreQueryFilters().Where(i => chunk.Contains(i.Id) && !i.IsDeleted).ToListAsync(cancellationToken))
+                {
+                    SoftDelete(food, run.Stamp, personId);
+                    _db.AuditLogEntries.Add(Entry(FoodEntityType, food.Id, FoodRetireChangeType, nameof(BaseEntity.IsDeleted), "false",
+                        $"true | retired with the recipes of retire run {run.Id.ToString(CultureInfo.InvariantCulture)}: no other recipe uses it", run.Stamp, personId));
+                }
+            }
+        }
+
+        /// <summary>
+        /// The foods a line of <paramref name="recipeIds"/> retired at <paramref name="stamp"/> names that a retire retired and still
+        /// holds retired, under that stamp or a later run's (a food another recipe shared goes with the run that retired its last
+        /// live line, so an earlier run's undo must bring it back with its lines).
+        /// </summary>
+        private async Task<List<long>> RetiredFoodsAsync(List<long> recipeIds, DateTime stamp, CancellationToken cancellationToken)
+        {
+            var named = new HashSet<long>();
+            foreach (var chunk in recipeIds.Chunk(5000))
+                named.UnionWith(await _db.RecipeIngredients.IgnoreQueryFilters().Where(l => chunk.Contains(l.RecipeId) && l.IsDeleted && l.DeletedAt == stamp).Select(l => l.IngredientId).Distinct().ToListAsync(cancellationToken));
+            var foods = new List<long>();
+            foreach (var chunk in named.Chunk(1000))
+                foods.AddRange(await RetiredFoodsOf(_db, chunk).ToListAsync(cancellationToken));
+            return foods.OrderBy(id => id).ToList();
+        }
+
+        /// <summary>The foods among <paramref name="foodIds"/> a retire retired and journaled, still retired under that retire's stamp.</summary>
+        internal static IQueryable<long> RetiredFoodsOf(ApplicationDbContext db, IReadOnlyCollection<long> foodIds) =>
+            db.Ingredients.IgnoreQueryFilters()
+                .Where(i => foodIds.Contains(i.Id) && i.IsDeleted && i.DeletedAt != null
+                    && db.AuditLogEntries.Any(a => a.EntityType == FoodEntityType && a.ChangeType == FoodRetireChangeType && a.EntityId == i.Id
+                        && a.OldValue == "false" && a.Timestamp == i.DeletedAt))
+                .Select(i => i.Id);
+
+        /// <summary>The texts among <paramref name="texts"/> (trimmed, lower case) that a line of a recipe outside <paramref name="recipeIds"/> holds.</summary>
+        internal static IQueryable<string> TextsInUseOf(ApplicationDbContext db, IReadOnlyCollection<long> recipeIds, IReadOnlyCollection<string> texts) =>
+            db.RecipeIngredients.IgnoreQueryFilters()
+                .Where(l => !recipeIds.Contains(l.RecipeId) && texts.Contains(l.RawLine.ToLower().Trim()))
+                .Select(l => l.RawLine.ToLower().Trim())
+                .Distinct();
+
+        /// <summary>The link proposals whose current value is one of <paramref name="texts"/> (trimmed, lower case).</summary>
+        internal static IQueryable<long> ProposalsWordedOf(ApplicationDbContext db, IReadOnlyCollection<string> texts) =>
+            db.FoodCatalogProposals.IgnoreQueryFilters().Where(p => p.CurrentValue != null && texts.Contains(p.CurrentValue.ToLower().Trim())).Select(p => p.Id);
+
+        /// <summary>What a purge of <paramref name="recipeIds"/> clears beyond the recipes' own rows (staging checkpoint 7, S20).</summary>
+        private sealed record WordingPlan(HashSet<long> Foods, HashSet<long> Held, HashSet<long> Proposals, HashSet<string> Texts, List<string> Subjects, List<string> RetiredContexts);
+
+        /// <summary>
+        /// The source's line wordings of <paramref name="recipeIds"/> that the purge follows out of the recipes' own rows: the foods
+        /// named from those lines (no FDC id, not curated: a line's food, or a retired food merged away from a line, named by such a
+        /// text below, under that name or its tombstoned "X (deleted #id)" name) that no line of any other recipe names, live or
+        /// retired; the line texts no line of any other recipe holds and no other live food is named by; the link proposals on
+        /// those foods or whose current value is such a text; and the wording lanes' decisions about such a text's key when the key
+        /// is free too and no live verified wording has it. Read before the recipes' lines are deleted, so a food two purged
+        /// batches share goes with the later one.
+        /// </summary>
+        private async Task<WordingPlan> WordingPlanAsync(List<long> recipeIds, CancellationToken cancellationToken)
+        {
+            var lines = new List<(long Food, string Raw)>();
+            foreach (var chunk in recipeIds.Chunk(5000))
+                lines.AddRange((await _db.RecipeIngredients.IgnoreQueryFilters().Where(l => chunk.Contains(l.RecipeId)).Select(l => new { l.IngredientId, l.RawLine }).ToListAsync(cancellationToken))
+                    .Select(l => (l.IngredientId, l.RawLine ?? string.Empty)));
+            var lineFoods = new List<(long Id, string Name)>();
+            foreach (var chunk in lines.Select(l => l.Food).Distinct().Chunk(1000))
+                lineFoods.AddRange((await _db.Ingredients.IgnoreQueryFilters().AsNoTracking()
+                        .Where(i => chunk.Contains(i.Id) && (i.FdcId == null || i.FdcId == "") && i.CurationStatusId != (long)CurationStatusEnum.Curated)
+                        .Select(i => new { i.Id, i.Name }).ToListAsync(cancellationToken))
+                    .Select(i => (i.Id, i.Name)));
+
+            var texts = new HashSet<string>(StringComparer.Ordinal);
+            foreach (var (_, raw) in lines)
+            {
+                if (Text(raw) is { } plain) texts.Add(plain);
+                if (Text(IngredientNameNormalizer.Normalize(raw)) is { } normalized) texts.Add(normalized);
+            }
+            foreach (var (_, name) in lineFoods)
+                if (Text(name) is { } named) texts.Add(named);
+
+            var foods = await NotUsedElsewhereAsync(recipeIds, lineFoods.Select(f => f.Id).ToHashSet(), cancellationToken);
+            var foodList = foods.ToList();
+            var free = await FreeOfAsync(recipeIds, texts, foodList, cancellationToken);
+            var freeList = free.ToList();
+
+            var mergedAway = new HashSet<long>();
+            foreach (var chunk in freeList.Chunk(1000))
+                mergedAway.UnionWith(await MergedAwayFoodsOf(_db, chunk).ToListAsync(cancellationToken));
+            mergedAway.ExceptWith(foods);
+            foods.UnionWith(await NotUsedElsewhereAsync(recipeIds, mergedAway, cancellationToken));
+            foodList = foods.ToList();
+
+            var proposals = new HashSet<long>();
+            foreach (var chunk in foodList.Chunk(1000))
+                proposals.UnionWith(await _db.FoodCatalogProposals.IgnoreQueryFilters().Where(p => p.IngredientId != null && chunk.Contains(p.IngredientId.Value)).Select(p => p.Id).ToListAsync(cancellationToken));
+            foreach (var chunk in freeList.Chunk(1000))
+                proposals.UnionWith(await ProposalsWordedOf(_db, chunk).ToListAsync(cancellationToken));
+
+            var keys = free.Select(IngredientNameNormalizer.WordingKey).Select(Text).OfType<string>().ToHashSet(StringComparer.Ordinal);
+            var freeKeys = await FreeOfAsync(recipeIds, keys, foodList, cancellationToken);
+            foreach (var chunk in freeKeys.ToList().Chunk(1000))
+                freeKeys.ExceptWith(await _db.IngredientWordings.Where(w => chunk.Contains(w.Wording)).Select(w => w.Wording).ToListAsync(cancellationToken));
+            var subjects = freeKeys.Select(WordingTierLaneService.Subject).OrderBy(s => s, StringComparer.Ordinal).ToList();
+            return new WordingPlan(foods, await HeldAsync(foodList, cancellationToken), proposals, free, subjects, foodList.Select(RetiredAliasContext).ToList());
+
+            static string? Text(string? value) => string.IsNullOrWhiteSpace(value) ? null : value.Trim().ToLowerInvariant();
+        }
+
+        /// <summary>The foods among <paramref name="candidates"/> that no line of a recipe outside <paramref name="recipeIds"/> names, live or retired.</summary>
+        private async Task<HashSet<long>> NotUsedElsewhereAsync(List<long> recipeIds, HashSet<long> candidates, CancellationToken cancellationToken)
+        {
+            var usedElsewhere = new HashSet<long>();
+            foreach (var chunk in candidates.Chunk(1000))
+                usedElsewhere.UnionWith(await _db.RecipeIngredients.IgnoreQueryFilters()
+                    .Where(l => chunk.Contains(l.IngredientId) && !recipeIds.Contains(l.RecipeId)).Select(l => l.IngredientId).Distinct().ToListAsync(cancellationToken));
+            return candidates.Where(id => !usedElsewhere.Contains(id)).ToHashSet();
+        }
+
+        /// <summary>The texts among <paramref name="texts"/> that no line of a recipe outside <paramref name="recipeIds"/> holds and no live food outside <paramref name="foods"/> is named by.</summary>
+        private async Task<HashSet<string>> FreeOfAsync(List<long> recipeIds, HashSet<string> texts, List<long> foods, CancellationToken cancellationToken)
+        {
+            var inUse = new HashSet<string>(StringComparer.Ordinal);
+            foreach (var chunk in texts.ToList().Chunk(1000))
+            {
+                inUse.UnionWith(await TextsInUseOf(_db, recipeIds, chunk).ToListAsync(cancellationToken));
+                inUse.UnionWith(await _db.Ingredients
+                    .Where(i => !foods.Contains(i.Id) && chunk.Contains(i.Name.ToLower().Trim())).Select(i => i.Name.ToLower().Trim()).Distinct().ToListAsync(cancellationToken));
+            }
+            return texts.Where(t => !inUse.Contains(t)).ToHashSet(StringComparer.Ordinal);
+        }
+
+        /// <summary>
+        /// The retired foods (no FDC id, not curated) named by one of <paramref name="texts"/> (trimmed, lower case), under that
+        /// name or under the "X (deleted #id)" name a merge or a freed name gives a retired food.
+        /// </summary>
+        internal static IQueryable<long> MergedAwayFoodsOf(ApplicationDbContext db, IReadOnlyCollection<string> texts) =>
+            db.Ingredients.IgnoreQueryFilters()
+                .Where(i => i.IsDeleted && (i.FdcId == null || i.FdcId == "") && i.CurationStatusId != (long)CurationStatusEnum.Curated
+                    && (texts.Contains(i.Name.ToLower().Trim())
+                        || (i.Name.Contains(TombstoneMark) && texts.Contains(i.Name.Substring(0, i.Name.IndexOf(TombstoneMark)).ToLower().Trim()))))
+                .Select(i => i.Id);
+
+        /// <summary>The aliases a relink gave the food that took a retired food's lines, under the retired food's name.</summary>
+        internal static IQueryable<IngredientAliasEntity> RetiredAliasesOf(ApplicationDbContext db, IReadOnlyCollection<string> contexts) =>
+            db.IngredientAliases.IgnoreQueryFilters().Where(a => a.SourceContext != null && contexts.Contains(a.SourceContext));
+
+        private static string RetiredAliasContext(long foodId) => LineRelinkService.RetiredContextPrefix + foodId.ToString(CultureInfo.InvariantCulture);
+
+        private IQueryable<AuditLogEntryEntity> FoodAuditRows(WordingPlan plan)
+        {
+            var foods = plan.Foods.ToList();
+            var proposals = plan.Proposals.ToList();
+            return _db.AuditLogEntries.Where(a => !OwnChangeTypes.Contains(a.ChangeType)
+                && ((a.EntityType == FoodEntityType && foods.Contains(a.EntityId))
+                    || (a.EntityType == LineRelinkService.PickWithdrawEntityType && proposals.Contains(a.EntityId))));
+        }
+
+        /// <summary>
+        /// Clears what <see cref="WordingPlanAsync"/> found: a food a household or another food holds is renamed by its food words
+        /// (made unique by its id when another food has that name); any other is given a purged placeholder name and retired; their
+        /// aliases, deleted wording rows and wording rejections are deleted; the proposals' text and the journal rows of those
+        /// foods and proposals are replaced by a hash; the wording lanes' decisions about the texts are cleared and their subject
+        /// replaced by a hash.
+        /// </summary>
+        private async Task PurgeWordingsAsync(WordingPlan plan, DateTime stamp, long personId, CancellationToken cancellationToken)
+        {
+            var foodList = plan.Foods.ToList();
+            foreach (var chunk in foodList.Chunk(1000))
+            {
+                foreach (var food in await _db.Ingredients.IgnoreQueryFilters().Where(i => chunk.Contains(i.Id)).ToListAsync(cancellationToken))
+                {
+                    if (food.Name.StartsWith(PurgedValuePrefix, StringComparison.Ordinal)) continue;
+                    if (plan.Held.Contains(food.Id))
+                    {
+                        var plain = ProseWithholding.PlainFoodWords(food.Name) ?? ProseWithholding.UnnamedFood;
+                        var taken = await _db.Ingredients.IgnoreQueryFilters().AnyAsync(i => i.Id != food.Id && i.Name == plain, cancellationToken);
+                        food.Name = taken ? $"{plain} ({food.Id.ToString(CultureInfo.InvariantCulture)})" : plain;
+                        food.NameNormalized = food.Name.ToLowerInvariant();
+                    }
+                    else
+                    {
+                        food.Name = PurgedValue(food.Name);
+                        food.NameNormalized = null;
+                        if (!food.IsDeleted) SoftDelete(food, stamp, personId);
+                    }
+
+                    food.PluralName = null;
+                    food.PluralNameNormalized = null;
+                    food.Description = null;
+                }
+
+                _db.IngredientAliases.RemoveRange(await _db.IngredientAliases.IgnoreQueryFilters().Where(a => chunk.Contains(a.IngredientId)).ToListAsync(cancellationToken));
+                _db.IngredientWordings.RemoveRange(await _db.IngredientWordings.IgnoreQueryFilters().Where(w => w.IsDeleted && w.IngredientId != null && chunk.Contains(w.IngredientId.Value)).ToListAsync(cancellationToken));
+                _db.IngredientWordingRejections.RemoveRange(await _db.IngredientWordingRejections.IgnoreQueryFilters().Where(w => w.IngredientId != null && chunk.Contains(w.IngredientId.Value)).ToListAsync(cancellationToken));
+            }
+
+            foreach (var chunk in plan.RetiredContexts.Chunk(1000))
+                _db.IngredientAliases.RemoveRange(await RetiredAliasesOf(_db, chunk).Where(a => !foodList.Contains(a.IngredientId)).ToListAsync(cancellationToken));
+
+            var proposalList = plan.Proposals.ToList();
+            foreach (var chunk in proposalList.Chunk(1000))
+            {
+                foreach (var proposal in await _db.FoodCatalogProposals.IgnoreQueryFilters().Where(p => chunk.Contains(p.Id)).ToListAsync(cancellationToken))
+                {
+                    proposal.CurrentValue = Purged(proposal.CurrentValue);
+                    if (proposal.ProposedValue != null && !long.TryParse(proposal.ProposedValue, NumberStyles.Integer, CultureInfo.InvariantCulture, out _)
+                        && !decimal.TryParse(proposal.ProposedValue, NumberStyles.Number, CultureInfo.InvariantCulture, out _))
+                        proposal.ProposedValue = Purged(proposal.ProposedValue);
+                    if (proposal.Reason != null && plan.Texts.Any(t => proposal.Reason.Contains(t, StringComparison.OrdinalIgnoreCase)))
+                        proposal.Reason = Purged(proposal.Reason);
+                }
+            }
+
+            foreach (var row in await FoodAuditRows(plan).ToListAsync(cancellationToken))
+            {
+                row.OldValue = Purged(row.OldValue);
+                row.NewValue = Purged(row.NewValue);
+            }
+
+            foreach (var chunk in plan.Subjects.Chunk(1000))
+            {
+                foreach (var decision in await _db.LaneDecisions.IgnoreQueryFilters().Where(d => chunk.Contains(d.Subject)).ToListAsync(cancellationToken))
+                {
+                    decision.Subject = WordingTierLaneService.Subject(PurgedValue(decision.Subject));
+                    decision.SignalsJson = null;
+                    decision.VerdictsJson = null;
+                    decision.AuditJson = null;
+                }
+            }
+
+            static string? Purged(string? value) => value == null || value.StartsWith(PurgedValuePrefix, StringComparison.Ordinal) ? value : PurgedValue(value);
+        }
+
+        /// <summary>One source's share of a purge, with what households and people hold of its retired recipes, counted as the retire counts them (staging checkpoint 7, S19).</summary>
+        private async Task<RecipeRemovalSourceModel> PurgeSourceAsync(List<RecipeRemovalEntity> removals, CancellationToken cancellationToken)
+        {
+            var first = removals[0];
+            var model = new RecipeRemovalSourceModel { SourceId = first.ScrapingSourceId, Domain = first.Host, RightsClass = first.RightsClass, Recipes = removals.Count };
+            var ids = removals.Select(r => r.RecipeId).ToList();
+            model.AlreadyDeleted = removals.Count(r => r.WasDeleted);
+            var curated = new List<long>();
+            foreach (var chunk in ids.Chunk(5000))
+                curated.AddRange(await _db.Recipes.IgnoreQueryFilters().Where(r => chunk.Contains(r.Id) && r.CurationStatusId == (long)CurationStatusEnum.Curated).Select(r => r.Id).ToListAsync(cancellationToken));
+            model.Approved = curated.Count;
+            await HoldingsAsync(model, ids, curated, cancellationToken);
+            return model;
         }
 
         private static RecipeRemovalSourceModel Model(HostSource host) => new()

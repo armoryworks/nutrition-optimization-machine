@@ -29,8 +29,12 @@ namespace Nom.Api.Tests.Golden
     /// food the prepared set takes lines off, or a drink line on a food the alcohol set takes it off, run through
     /// <see cref="LinkRecheckService"/> with every default restriction type on its own household. No re-check take-back may
     /// lower a recipe's diet flag for any type unless its wording reads as label language of known contents (a composite
-    /// row or a single food of the cited table) or as a plain drink, whose own name keeps the drink's flags (staging
-    /// checkpoint 6, R16); a wording of unknown contents that would lower one keeps its line where it is.
+    /// row or a single food of the cited table, for a diet of choice) or as a plain drink, whose own name keeps the drink's
+    /// flags (staging checkpoint 6, R16); a take-back that would lower one otherwise goes to a wording food marked of unknown
+    /// contents, which the diet gate's store holds as unknown for every severe type (staging checkpoint 7, S11 and S15). The
+    /// free-of set runs last: a free-of marker accounts only for the diets of choice it covers
+    /// (<see cref="RecheckDietGuard.MarkedFree"/>), so a take-back that would lower an allergy, Celiac Disease or a wider diet
+    /// goes to a food of unknown contents too.
     /// </summary>
     [Trait("Category", "Golden")]
     public class GoldenRecheckDietTests
@@ -63,13 +67,20 @@ namespace Nom.Api.Tests.Golden
         }
 
         [Fact]
+        public void Every_row_expecting_a_food_of_unknown_contents_says_why_in_its_note()
+        {
+            GoldenSet.Read(File).Rows.Where(r => r["expect"] == "unknown" && !r["note"].Contains("unknown contents", StringComparison.Ordinal)).Select(r => r["id"])
+                .Should().BeEmpty("an expectation changed by hand shows its reason in the note, and a note that still says the line stays contradicts it (review ck16-r6)");
+        }
+
+        [Fact]
         public async Task No_take_back_lowers_a_recipes_diet_flag_unless_its_wordings_contents_are_known()
         {
             await using var db = new ApplicationDbContext(new DbContextOptionsBuilder<ApplicationDbContext>()
                 .UseInMemoryDatabase(Guid.NewGuid().ToString())
                 .ConfigureWarnings(w => w.Ignore(InMemoryEventId.TransactionIgnoredWarning))
                 .Options);
-            LinkRecheckClassBarTests.Qualify(db, LinkGate.Prepared, LinkRecheckRules.AlcoholClass);
+            LinkRecheckClassBarTests.Qualify(db, LinkGate.Prepared, LinkRecheckRules.AlcoholClass, LinkRecheckRules.FreeOf);
             var households = new Dictionary<string, long>(StringComparer.Ordinal);
             var id = 67000L;
             foreach (var type in DefaultRestrictionCriteria.ByName.Keys.OrderBy(t => t, StringComparer.Ordinal))
@@ -118,21 +129,30 @@ namespace Nom.Api.Tests.Golden
             run.Should().NotBeNull();
             var drinks = await service.RunAsync(LinkRecheckRules.Alcohol, apply: true);
             drinks.Should().NotBeNull();
+            var freeOf = await service.RunAsync(LinkRecheckRules.FreeOf, apply: true);
+            freeOf.Should().NotBeNull();
             db.ChangeTracker.Clear();
             var after = await FlagsAsync(db, households);
             var on = (await db.RecipeIngredients.AsNoTracking().Select(ri => new { ri.RecipeId, ri.IngredientId }).ToListAsync()).ToDictionary(l => l.RecipeId, l => l.IngredientId);
             var names = await db.Ingredients.AsNoTracking().ToDictionaryAsync(i => i.Id, i => i.Name);
             string Wording(string rowId) => names[on[recipes[rowId].Id]];
+            var marked = (await db.IngredientAliases.AsNoTracking().Where(a => a.SourceContext == RecheckDietGuard.UnknownContentsContext).Select(a => a.IngredientId).ToListAsync()).ToHashSet();
+            bool Unknown(string rowId) => marked.Contains(on[recipes[rowId].Id]);
+            await new DietGateStoreBuilder().RunAsync(db);
+            var stored = await db.DietRecipeFlags.AsNoTracking().Join(db.DietGateSets.AsNoTracking(), f => f.SetId, s => s.Id, (f, s) => new { f.RecipeId, s.RestrictionTypeId }).ToListAsync();
+            bool Holds(string type, long recipe) => stored.Any(f => f.RecipeId == recipe && f.RestrictionTypeId == households[type]);
+            bool Severe(string type) => DefaultRestrictionCriteria.ByName[type].Severity >= RecheckDietGuard.SevereFrom;
 
             var report = GoldenSet.Run(File, "status", row =>
             {
                 var recipe = recipes[row.Id].Id;
                 var left = on[recipe] != foods[row["food"]].Id;
                 var lowered = households.Keys.Where(t => before[t].Contains(recipe) && !after[t].Contains(recipe)).ToList();
-                var actual = !left ? "held" : lowered.Count == 0 ? "kept" : "known";
+                var actual = !left ? "held" : Unknown(row.Id) ? "unknown" : lowered.Count == 0 ? "kept" : "known";
                 var pass = row["expect"] switch
                 {
                     "held" => !left,
+                    "unknown" => left && Unknown(row.Id) && lowered.Where(Severe).All(t => Holds(t, recipe)),
                     "kept" => left && lowered.Count == 0,
                     "known" => left && (lowered.Count == 0 || RecheckDietGuard.Known(Wording(row.Id))),
                     "drink" => left && (lowered.Count == 0 || RecheckDietGuard.ReadsAsDrink(Wording(row.Id))),
@@ -145,10 +165,14 @@ namespace Nom.Api.Tests.Golden
 
             var dropped = rows.Where(r => on[recipes[r.Id].Id] != foods[r["food"]].Id)
                 .SelectMany(r => households.Keys.Where(t => before[t].Contains(recipes[r.Id].Id) && !after[t].Contains(recipes[r.Id].Id)).Select(t => (Row: r, Type: t)))
-                .Where(x => !RecheckDietGuard.Known(Wording(x.Row.Id)) && !RecheckDietGuard.ReadsAsDrink(Wording(x.Row.Id)))
+                .Where(x => !Unknown(x.Row.Id) && !RecheckDietGuard.Known(Wording(x.Row.Id)) && !RecheckDietGuard.ReadsAsDrink(Wording(x.Row.Id)) && !RecheckDietGuard.For().MarkedFree(Wording(x.Row.Id)).Contains(x.Type))
                 .Select(x => $"{x.Row.Id} {x.Row["line"]}: {x.Type}");
-            dropped.Should().BeEmpty("a take-back to a wording of unknown contents that is not a plain drink never lowers a recipe's diet flag");
-            (run!.Held + drinks!.Held).Should().Be(rows.Count(r => r["expect"] == "held"));
+            dropped.Should().BeEmpty("a take-back to a wording that is not a plain drink, of contents not known and not marked unknown never lowers a recipe's diet flag, but for a diet of choice its free-of marker covers");
+            var severeDropped = rows.Where(r => on[recipes[r.Id].Id] != foods[r["food"]].Id && !RecheckDietGuard.ReadsAsDrink(Wording(r.Id)))
+                .SelectMany(r => households.Keys.Where(t => Severe(t) && before[t].Contains(recipes[r.Id].Id) && !Holds(t, recipes[r.Id].Id)).Select(t => $"{r.Id} {r["line"]}: {t}"));
+            severeDropped.Should().BeEmpty("staging checkpoint 7, S11: no take-back but a plain drink's lowers a severe type's flag in the store; a dish name of known contents does not account for an allergen the food it leaves named");
+            (run!.Held + drinks!.Held + freeOf!.Held).Should().Be(rows.Count(r => r["expect"] == "held"));
+            (run.UnknownGroups + drinks.UnknownGroups + freeOf.UnknownGroups).Should().Be(rows.Count(r => r["expect"] == "unknown"));
         }
     }
 }

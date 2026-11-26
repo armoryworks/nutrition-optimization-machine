@@ -103,6 +103,15 @@ namespace Nom.Orch.Models.Recipe
         public int? RetainedPercent { get; set; }
         public string? UsdaCode { get; set; }
 
+        /// <summary>
+        /// True when a counted drink line's retention is an upper bound (its basis "up-to"): the steps do not determine a
+        /// single value, so <see cref="RetainedGrams"/> and <see cref="RetainedPercent"/> are the most that may stay.
+        /// </summary>
+        public bool UpTo { get; set; }
+
+        /// <summary>Why the dominant drink line's retention is an upper bound ("parts", "pause", "unnamed", "lines", "choice", "flamed", "marinade"); null when it is not one, or when the heat has no time the reader can take.</summary>
+        public string? Reason { get; set; }
+
         /// <summary>True when a counted drink line's retention has not been read yet, so all of its alcohol counts.</summary>
         public bool NotRead { get; set; }
     }

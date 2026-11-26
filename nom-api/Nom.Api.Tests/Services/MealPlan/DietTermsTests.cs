@@ -252,7 +252,9 @@ namespace Nom.Api.Tests.Services.MealPlan
 
             var breaded = new GateFood(276291, "Breaded Chicken Thighs", "Chicken, thighs, frozen, breaded, reheated");
             RecheckDietGuard.Known("chicken thighs").Should().BeTrue();
-            guard.Lowered(breaded, "chicken thighs", new[] { "6 chicken thighs" }).Should().BeEmpty("chicken thighs are known by the label table, so the breading the prepared food had may leave with it");
+            var thighs = guard.Lowered(breaded, "chicken thighs", new[] { "6 chicken thighs" });
+            thighs.Should().Contain("Wheat Allergy").And.OnlyContain(t => DefaultRestrictionCriteria.ByName[t].Severity >= RecheckDietGuard.SevereFrom,
+                "chicken thighs are known by the label table, so for a diet of choice the breading the prepared food had may leave with it, but known contents never account for a severe type the food named (staging checkpoint 7, S11)");
 
             var vinegar = new GateFood(9, "Apple Cider Vinegar");
             guard.Lowered(vinegar, "qt sweet cider", new[] { "1 qt sweet cider" }).Should().Contain("Sulfite Sensitivity", "a take-back to an unknown wording keeps the flag the vinegar gave");

@@ -356,8 +356,9 @@ namespace Nom.Orch.Services.Support
         }
 
         /// <summary>
-        /// The ready USDA food the alcohol sense shared by every line (or the wording, with no lines)
-        /// allows: the first of the sense's allowed foods that is ready (live, not branded or a
+        /// The ready USDA food the alcohol sense shared by every line (or, with no ingredient line, by every
+        /// comma part of the wording: a line that refers to another recipe, "Porgies, White Wine", names no
+        /// drink; staging checkpoint 7, S13) allows: the first of the sense's allowed foods that is ready (live, not branded or a
         /// prepared food, curated or a pending SR Legacy or Foundation food with no admission
         /// reason, holding the core nutrients and at least <see cref="LinkGate.MinimumNutrientRows"/>
         /// rows). The sense table lists the food of the drink's own kind first and after it only
@@ -367,7 +368,9 @@ namespace Nom.Orch.Services.Support
         /// </summary>
         internal static (long Food, string Detail)? AlcoholTarget(string wording, IReadOnlyList<TierLine> lines, WordingTierCatalog catalog)
         {
-            var readings = lines.Count == 0 ? new[] { AlcoholLineContext.Read(wording) } : lines.Select(l => AlcoholLineContext.Read(l.Raw, l.Recipe)).ToArray();
+            var readings = lines.Count == 0
+                ? wording.Split(',', StringSplitOptions.RemoveEmptyEntries | StringSplitOptions.TrimEntries).Select(part => AlcoholLineContext.Read(part)).ToArray()
+                : lines.Select(l => AlcoholLineContext.Read(l.Raw, l.Recipe)).ToArray();
             if (readings.Any(r => r.Kind == AlcoholSenseKind.None)) return null;
             if (AlcoholLineContext.Shared(readings) is not { Kind: AlcoholSenseKind.Drink } shared) return null;
             foreach (var fdc in AlcoholLineContext.Allowed(shared.Sense))

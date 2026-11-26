@@ -296,7 +296,7 @@ namespace Nom.Orch.Services
             result.OnRebuiltRecipes = lineEntries.Count(a => rebuilt.TryGetValue(a.EntityId, out var at) && at > a.Timestamp);
             if (!apply)
             {
-                result.HeldByDiet = await HeldTakingBackAsync(undo.Where(a => a.ChangeType == RelinkChangeType).ToList(), landings, rebuilt);
+                await CountTakingBackAsync(undo, landings, rebuilt, result);
                 return result;
             }
 
@@ -307,13 +307,18 @@ namespace Nom.Orch.Services
         }
 
         /// <summary>
-        /// The line moves and import landings a retract or an unload would leave where they are because the diet guard holds
-        /// moving them back (<see cref="LineMoveDietGuard"/>): what its apply counts, read without writing.
+        /// What a retract or an unload's apply would do with its line moves and import landings, counted without writing:
+        /// the moves and landings the diet guard holds (<see cref="LineMoveDietGuard"/>), and the landings it moves back, keeps
+        /// or skips, each read as the apply reads it after the undo has brought back the foods it retired
+        /// (<see cref="LineMoveDietGuard.Expect"/>), so the dry run's counts are the apply's (staging checkpoint 7, S10: the w01
+        /// unload's dry run held 8,348 and moved no landing back, its apply held 8,300 and moved 16).
         /// </summary>
-        private async Task<int> HeldTakingBackAsync(List<AuditLogEntryEntity> moves, List<Landing> landings, IReadOnlyDictionary<long, DateTime> rebuilt)
+        private async Task CountTakingBackAsync(List<AuditLogEntryEntity> undo, List<Landing> landings, IReadOnlyDictionary<long, DateTime> rebuilt, WordingLinesUndoResult result)
         {
             var guard = await GuardAsync();
+            ExpectRestored(guard, undo);
             var before = guard.Held;
+            var moves = undo.Where(a => a.EntityType == RelinkEntityType && a.ChangeType == RelinkChangeType).ToList();
             bool Rebuilt(AuditLogEntryEntity entry) => rebuilt.TryGetValue(entry.EntityId, out var at) && at > entry.Timestamp;
             var trail = await RecipeOrderTrail.LoadAsync(_db, moves.Concat(landings.Select(l => l.Entry)).Select(a => a.EntityId).Distinct());
             foreach (var entry in moves.Where(e => !Rebuilt(e)))
@@ -322,22 +327,53 @@ namespace Nom.Orch.Services
                     || trail.Follow(entry.EntityId, now.IngredientId, now.SortOrder, entry.Timestamp) is not { } from) continue;
                 await guard.HoldsAsync(_db, entry.EntityId, now.IngredientId, from, was.IngredientId);
             }
+            result.HeldByDiet = guard.Held - before;
 
+            var restoredNames = undo.Where(a => a.EntityType == RetireEntityType && a.ChangeType == RetireChangeType && a.PropertyName == nameof(IngredientEntity.IsDeleted) && a.OldValue != null)
+                .Select(a => (a.EntityId, Name: a.OldValue!)).ToList();
             var builder = new RecipeLineBuilder(_db, Microsoft.Extensions.Logging.Abstractions.NullLogger.Instance, resolveVerifiedWordings: false);
-            var homes = new Dictionary<string, long?>(StringComparer.Ordinal);
-            foreach (var landing in landings.Where(l => !Rebuilt(l.Entry)))
+            var homes = new Dictionary<string, long>(StringComparer.Ordinal);
+            foreach (var landing in landings.OrderByDescending(l => l.Entry.Id))
             {
                 var entry = landing.Entry;
+                if (Rebuilt(entry))
+                {
+                    result.LandingsSkipped++;
+                    result.LandingsSkippedRebuilt++;
+                    continue;
+                }
                 if (ReadPlace(entry.NewValue) is not { } landed
-                    || trail.Follow(entry.EntityId, landed.IngredientId, landed.SortOrder, entry.Timestamp) is not { } at) continue;
+                    || trail.Follow(entry.EntityId, landed.IngredientId, landed.SortOrder, entry.Timestamp) is not { } at
+                    || await RawLineAsync(entry.EntityId, landed.IngredientId, at) is not { } raw)
+                {
+                    result.LandingsSkipped++;
+                    continue;
+                }
                 if (!homes.TryGetValue(landing.Wording, out var home))
-                    homes[landing.Wording] = home = (await builder.FindWithoutWordingAsync(landing.Wording))?.Food.Id;
-                if (home == landing.TargetId) continue;
-                if (home is { } found) await guard.HoldsAsync(_db, entry.EntityId, landed.IngredientId, at, found);
-                else if (await RawLineAsync(entry.EntityId, landed.IngredientId, at) is { } raw) await guard.HoldsToNameAsync(entry.EntityId, landed.IngredientId, at, landing.Wording, raw);
+                {
+                    var found = (await builder.FindWithoutWordingAsync(landing.Wording))?.Food.Id
+                        ?? restoredNames.Where(r => SameWording(r.Name, landing.Wording)).Select(r => (long?)r.EntityId).FirstOrDefault();
+                    if (found == null && await guard.HoldsToNameAsync(entry.EntityId, landed.IngredientId, at, landing.Wording, raw))
+                    {
+                        result.HeldByDiet++;
+                        continue;
+                    }
+                    homes[landing.Wording] = home = found ?? PlannedLandingHome;
+                }
+                if (home == landing.TargetId)
+                {
+                    result.LandingsKept++;
+                    continue;
+                }
+                var held = home == PlannedLandingHome
+                    ? await guard.HoldsToNameAsync(entry.EntityId, landed.IngredientId, at, landing.Wording, raw)
+                    : await guard.HoldsAsync(_db, entry.EntityId, landed.IngredientId, at, home);
+                if (held) result.HeldByDiet++;
+                else result.LandingsMovedBack++;
             }
-            return guard.Held - before;
         }
+
+        private const long PlannedLandingHome = -1;
 
         private Task<string?> RawLineAsync(long recipeId, long ingredientId, int sortOrder) =>
             _db.RecipeIngredients.IgnoreQueryFilters().AsNoTracking()

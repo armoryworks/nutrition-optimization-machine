@@ -305,5 +305,90 @@ namespace Nom.Api.Tests.Services.MealPlan
                 "a food a writer changed is held until the build decides it again, not served from its old facts");
             (await DietGateStore.UndecidedAsync(db, set, new[] { k.Water, k.Rice })).Should().BeEquivalentTo(new[] { k.Water });
         }
+        private static async Task FoodWrittenAsync(ApplicationDbContext db, long food)
+        {
+            db.DietFoodStates.RemoveRange(await db.DietFoodStates.Where(s => s.IngredientId == food).ToListAsync());
+            db.DietGateWrites.Add(new DietGateWriteEntity { IngredientId = food, WrittenAt = DateTime.UtcNow });
+            foreach (var recipe in await db.RecipeIngredients.Where(ri => ri.IngredientId == food).Select(ri => ri.RecipeId).Distinct().ToListAsync())
+                db.DietGateWrites.Add(new DietGateWriteEntity { RecipeId = recipe, IngredientId = food, WrittenAt = DateTime.UtcNow });
+            await db.SaveChangesAsync();
+        }
+
+        [Fact]
+        public void A_write_to_a_food_logs_its_recipes_for_the_cycle_instead_of_removing_their_states()
+        {
+            foreach (var file in new[] { "db/custom-objects.sql", "db/schema.sql" })
+            {
+                var text = File.ReadAllText(RepoFile(file));
+                var start = text.IndexOf("FUNCTION plan.\"DietGateClearFoods\"", StringComparison.Ordinal);
+                var body = text[start..text.IndexOf("END;", start, StringComparison.Ordinal)];
+                body.Should().Contain("INSERT INTO plan.\"DietGateWrite\" (\"RecipeId\", \"IngredientId\")", file);
+                body.Should().NotContain("DietRecipeState", $"{file}: a food write holds its recipes through the write log (DietGateStore.Standing) and the cycle reads them again only when the food's decision moved (staging checkpoint 7, S2)");
+            }
+        }
+
+        [Fact]
+        public void On_Postgres_a_state_stored_without_its_reading_transaction_does_not_stand_while_a_write_is_logged_for_its_recipe()
+        {
+            using var db = new ApplicationDbContext(new DbContextOptionsBuilder<ApplicationDbContext>().UseNpgsql("Host=localhost;Database=none").Options);
+
+            var sql = db.DietRecipeStates.Standing(db).ToQueryString();
+
+            sql.Should().Contain("\"ReadXmin\" IS NULL",
+                "a food write no longer removes its recipes' states, so a state stored before ReadXmin existed would otherwise keep serving its old verdict until a cycle (review ck16-r5)");
+        }
+
+        [Fact]
+        public async Task A_write_to_a_food_that_moves_no_decision_releases_its_recipes_unread_and_one_that_moves_a_fact_decides_them_again()
+        {
+            using var db = NewContext();
+            var k = await SeedAsync(db, "Celiac Disease", CeliacRef);
+            var builder = new DietGateStoreBuilder();
+            await builder.RunAsync(db);
+            var states = await db.DietRecipeStates.CountAsync();
+
+            db.IngredientAliases.Add(new IngredientAliasEntity { IngredientId = k.Water, AliasName = "spring water", SourceContext = "admin:1" });
+            await db.SaveChangesAsync();
+            await FoodWrittenAsync(db, k.Water);
+            var quiet = await builder.RunChangesAsync(db);
+
+            (quiet.FoodsDecided, quiet.FoodsMoved, quiet.RecipesDecided, quiet.RecipesConfirmed).Should().Be((1, 0, 0, 2),
+                "an alias no pattern reads moves no decision of the water, so the bread and the pilaf keep their verdicts and are not read again (staging checkpoint 7, S2)");
+            (await db.DietRecipeStates.CountAsync()).Should().Be(states);
+            (await DietGateStoreBuilder.PendingWritesAsync(db)).Should().BeFalse();
+
+            var water = await db.Ingredients.SingleAsync(i => i.Id == k.Water);
+            water.Name = "Wheat Water";
+            await db.SaveChangesAsync();
+            await FoodWrittenAsync(db, k.Water);
+            var moved = await builder.RunChangesAsync(db);
+
+            (moved.FoodsMoved, moved.RecipesDecided, moved.RecipesConfirmed).Should().Be((1, 2, 0), "the renamed water now counts for Celiac Disease, so its recipes are decided again");
+            var set = await new HouseholdRestrictionResolver(db).ResolveAsync(HouseholdId);
+            (await db.Recipes.WithoutHeld(db, set).Select(r => r.Id).ToListAsync()).Should().NotContain(k.Pilaf);
+            await DietGateStoreTests.AssertStoreAgreesAsync(db, HouseholdId, PersonId);
+        }
+
+        [Fact]
+        public async Task A_cycle_over_more_recipes_than_the_limit_reads_every_line_in_windows_and_decides_the_same()
+        {
+            using var db = NewContext();
+            var k = await SeedAsync(db, "Celiac Disease", CeliacRef);
+            var builder = new DietGateStoreBuilder { LargeScopeLimit = 1 };
+            await builder.RunAsync(db);
+
+            var rice = await db.Ingredients.SingleAsync(i => i.Id == k.Rice);
+            rice.Name = "Wheat Berries";
+            await db.SaveChangesAsync();
+            await FoodWrittenAsync(db, k.Rice);
+            var report = await builder.RunChangesAsync(db);
+
+            report.Windowed.Should().BeTrue("two recipes are more than the limit of one");
+            (report.FoodsDecided, report.RecipesDecided).Should().Be((1, 2));
+            var set = await new HouseholdRestrictionResolver(db).ResolveAsync(HouseholdId);
+            (await db.Recipes.WithoutHeld(db, set).Select(r => r.Id).ToListAsync()).Should().NotContain(new[] { k.Pilaf, k.Toast });
+            (await builder.RunChangesAsync(db)).RecipesDecided.Should().Be(0);
+            await DietGateStoreTests.AssertStoreAgreesAsync(db, HouseholdId, PersonId);
+        }
     }
 }

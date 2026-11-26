@@ -24,6 +24,9 @@ namespace Nom.Api.Tests.Golden
         public const decimal OverFlagBar = 0.05m;
         public const int FoodsPerType = 150;
 
+        /// <summary>The sources of the rows judged at staging checkpoint 7 and in the ck17 proof draws, which a type holds by its patterns or by the reading of words, so the patterns' own bar does not read them.</summary>
+        public static readonly IReadOnlySet<string> WordRowsSources = new HashSet<string>(StringComparer.Ordinal) { "agent-ck16-diet-known", "agent-ck17-diet-proof" };
+
         private readonly ITestOutputHelper _output;
 
         public GoldenDietCoverageTests(ITestOutputHelper output) => _output = output;
@@ -41,17 +44,83 @@ namespace Nom.Api.Tests.Golden
                 return lines.All(DietRecipeText.IsPlaceholder)
                     || (title != null && DietRecipeText.BuildsOnAnother(null, lines))
                     || rules.Any(r => lines.Any(r.IsMatch) || (description != null && r.IsMatch(description))
-                        || (title != null && r.IsMatch(DietRecipeText.Title(title)) && DietRecipeText.ReadsTitle("-", r, DietRecipeText.RefersElsewhere(lines), title)));
+                        || (title != null && r.IsMatch(DietRecipeText.Title(title)) && DietRecipeText.ReadsTitle("-", r, DietRecipeText.RefersElsewhere(lines), title, lines)));
             }
             return row["kind"] == "food"
                 ? rules.Any(r => r.IsMatch(row["text"]) || r.IsDescriptionMatch(description))
                 : rules.Any(r => r.IsMatch(row["text"]));
         }
 
+        private static readonly Lazy<DietFoodWords.Table> CatalogWords = new(() => DietFoodWords.TableOf(GoldenSet.Read("gate-catalog.tsv").Rows
+            .Where(r => r["status"] == "curated")
+            .Select(r => new DietFoodWords.Food(long.Parse(r["id"], System.Globalization.CultureInfo.InvariantCulture), r["name"],
+                int.TryParse(r["categoryId"], out var c) ? c : null, r["description"] is "" or GoldenTsv.NoAnswer ? null : r["description"]))));
+
+        /// <summary>The word table of the frozen catalog's curated foods.</summary>
+        public static DietFoodWords.Table CatalogTable => CatalogWords.Value;
+
+        private static readonly System.Collections.Concurrent.ConcurrentDictionary<string, DietFoodWords.Vocabulary> Vocabularies = new(StringComparer.Ordinal);
+
+        /// <summary>A severe type's reading of words (<see cref="DietFoodWords"/>) built from the curated foods of the frozen catalog, each flagged when the type's default patterns read its name or its USDA description, as the build job builds it from the stored facts.</summary>
+        public static DietFoodWords.Vocabulary VocabularyOf(string type) => Vocabularies.GetOrAdd(type, t =>
+        {
+            var table = CatalogWords.Value;
+            var criteria = DefaultRestrictionCriteria.ByName[t].Patterns.Where(p => !DietCriteriaMatcher.IsWordPattern(p))
+                .Select((p, i) => new DietDataCriterion(i, 0, null, null, null, null, 4, null, p, t)).ToList();
+            var rules = criteria.Select(c => (Rule: c.Rule!, Words: DietFoodWords.TermWords(c))).ToList();
+            bool Reads(DietPatternRule rule, DietFoodWords.Food food) => rule.IsMatch(food.Name) || (food.Description != null && rule.IsDescriptionMatch(food.Description));
+            return DietFoodWords.Build(table,
+                i => rules.Any(r => Reads(r.Rule, table.Foods[i])),
+                i => rules.Where(r => r.Rule.IsMatch(table.Foods[i].Name)).Select(r => (IReadOnlyList<string>)r.Words).ToList(),
+                rules.Where(r => r.Words.Count == 1).Select(r => r.Words[0]).ToHashSet(StringComparer.Ordinal),
+                DietFoodWords.KindsOf(criteria.Select(c => c.LikePattern!)));
+        });
+
+        /// <summary>The three values a severe type reads in a recipe row: flagged by its patterns (<see cref="Flags"/>) or by a line's word, unknown when a line holds a word the catalog does not understand for the type or leaves its food to the cook (<see cref="DietRecipeText.LeavesChoice"/>), clear otherwise; a food or line row is read by its patterns only (staging checkpoint 7, S3).</summary>
+        public static DietFoodWords.WordClass Reads(GoldenRow row)
+        {
+            if (Flags(row)) return DietFoodWords.WordClass.Flagged;
+            if (row["kind"] != "recipe") return DietFoodWords.WordClass.Clear;
+            var vocabulary = VocabularyOf(row["restriction"]);
+            var unknown = false;
+            foreach (var line in row["text"].Split(" ;; "))
+            {
+                var value = vocabulary.Read(CatalogWords.Value.Read(line)).Value;
+                if (value == DietFoodWords.WordClass.Flagged) return value;
+                unknown |= value != DietFoodWords.WordClass.Clear || DietRecipeText.LeavesChoice(line);
+            }
+            return unknown ? DietFoodWords.WordClass.NotKnown : DietFoodWords.WordClass.Clear;
+        }
+
+        [Fact]
+        public void No_severe_type_shows_a_row_that_holds_what_it_restricts_and_each_flags_under_the_bar_with_the_unknown_share_reported()
+        {
+            var rows = GoldenSet.Read(File).Rows.Where(r => r["status"] is GoldenSet.Ok or GoldenSet.Agent).ToList();
+            var table = new StringBuilder("type\thit rows\tshown\tclear rows\tflagged\tunknown\tunknown share\n");
+            var shown = new List<string>();
+            var failing = new List<string>();
+            foreach (var type in rows.GroupBy(r => r["restriction"]).OrderBy(g => g.Key, StringComparer.Ordinal))
+            {
+                var hits = type.Where(r => r["expect"] == "hit").ToList();
+                var clears = type.Where(r => r["expect"] == "clear").Select(r => (Row: r, Read: Reads(r))).ToList();
+                var lost = hits.Where(r => Reads(r) == DietFoodWords.WordClass.Clear).ToList();
+                var flagged = clears.Count(c => c.Read == DietFoodWords.WordClass.Flagged);
+                var unknown = clears.Count(c => c.Read == DietFoodWords.WordClass.NotKnown);
+                table.Append(type.Key).Append('\t').Append(hits.Count).Append('\t').Append(lost.Count).Append('\t').Append(clears.Count).Append('\t').Append(flagged).Append('\t').Append(unknown).Append('\t')
+                    .Append(clears.Count == 0 ? "-" : ((decimal)unknown / clears.Count).ToString("P1", System.Globalization.CultureInfo.InvariantCulture)).Append('\n');
+                shown.AddRange(lost.Select(r => $"{r.Id} {type.Key}: {r["text"]} | {r["description"]}"));
+                if (clears.Count > 0 && (decimal)flagged / clears.Count >= OverFlagBar) failing.Add($"{type.Key}: {flagged} of {clears.Count} clear rows flagged");
+            }
+            _output.WriteLine(table.ToString());
+            _output.WriteLine("shown:\n" + string.Join('\n', shown));
+            shown.Should().BeEmpty("a severe type holds a row that holds what it restricts, as flagged or as unknown");
+            failing.Should().BeEmpty();
+        }
+
         [Fact]
         public void No_severe_type_misses_a_row_that_names_what_it_restricts_and_each_over_flags_under_the_bar()
         {
-            var rows = GoldenSet.Read(File).Rows.Where(r => r["status"] is GoldenSet.Ok or GoldenSet.Agent).ToList();
+            var rows = GoldenSet.Read(File).Rows.Where(r => r["status"] is GoldenSet.Ok or GoldenSet.Agent && !WordRowsSources.Contains(r["source"])).ToList();
             var table = new StringBuilder("type\tfoods\tlines\trecipes\thit rows\tmissed\tclear rows\tover-flagged\tshare\n");
             var missed = new List<string>();
             var over = new List<string>();

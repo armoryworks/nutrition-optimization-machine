@@ -38,7 +38,8 @@ namespace Nom.Orch.Services.Support
     /// fraction other than a half that is not a part of one of them ("a sixth of pepper", "one-fifth tomato pulp",
     /// "two-thirds potatoes", "three-quarters full of ice"), while "a quarter of an onion" is a quarter of one, the
     /// line's own words ("hind quarter of lamb") are no fraction, and "cut in quarters three onions" still counts
-    /// three. The number always comes from
+    /// three. A rib of meat is part of the food's name, not the stalk measure ("Have a rib roast of beef cut standing" for
+    /// the line "rib roast of beef" is one piece of a food not counted in pieces, so nothing; staging checkpoint 7, S1). The number always comes from
     /// <see cref="IngredientLineParser"/>.
     /// </summary>
     public static class MethodAmountFinder

@@ -23,6 +23,15 @@ namespace Nom.Orch.Models.Curation
         /// <summary>Of the estimated lines, those whose drink no step names (placed by a step that mixes all the ingredients, read from a step naming a drink word, or not placed at all).</summary>
         public int Unnamed { get; set; }
 
+        /// <summary>Lines read as an upper bound ("up to"): the steps do not determine a single value, so the most that may stay is stored.</summary>
+        public int UpperBound { get; set; }
+
+        /// <summary>Recipes with at least one line read as an upper bound.</summary>
+        public int RecipesUpperBound { get; set; }
+
+        /// <summary>Upper-bound lines by their reason (<see cref="Nom.Orch.Services.Support.AlcoholRetention.Reasons"/>, or "time" for heat with no time the reader can take).</summary>
+        public Dictionary<string, int> ByReason { get; set; } = new();
+
         public List<AlcoholRetentionSample> Samples { get; set; } = new();
     }
 
@@ -44,6 +53,9 @@ namespace Nom.Orch.Models.Curation
 
         /// <summary>Whether no step names the line's drink.</summary>
         public bool Unnamed { get; set; }
+
+        /// <summary>Why the new reading is an upper bound; null when it is a single value, "time" when the heat has no time the reader can take.</summary>
+        public string? Reason { get; set; }
     }
 
     /// <summary>What taking a retention run back did, or would do on a dry run.</summary>

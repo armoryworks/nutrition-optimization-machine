@@ -347,8 +347,8 @@ namespace Nom.Api.Tests.Services
 
             tsv.Split('\n', StringSplitOptions.RemoveEmptyEntries).Should().Equal(
                 VerifiedWordingService.ExportHeader,
-                "thyme\tfood\t901\t173470\tFresh Thyme\tw01\t",
-                "white wine\tnone\t\t\t\tw01\t");
+                "thyme\tfood\t901\t173470\tFresh Thyme\tw01\t\t",
+                "white wine\tnone\t\t\t\tw01\t\t");
         }
     }
 }

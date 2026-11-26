@@ -338,6 +338,8 @@ namespace Nom.Orch.Services
                 Minutes = basis?.Minutes,
                 RetainedPercent = count.DrinkAsWritten > 0m ? (int)Math.Round(count.DrinkRetained / count.DrinkAsWritten * 100m) : null,
                 UsdaCode = row?.Code,
+                UpTo = count.UpperBound,
+                Reason = basis?.Reason,
                 NotRead = counted.Any(d => d.Retention == null),
             };
         }

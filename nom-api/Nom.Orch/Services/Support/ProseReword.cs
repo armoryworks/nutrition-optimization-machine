@@ -25,64 +25,46 @@ namespace Nom.Orch.Services.Support
     public sealed record ProseRewordSentence(int Part, int Index, string Text);
 
     /// <summary>
-    /// The reword lane (prose lane v3), on the owner's answer of 2026-11-23: the writer reads the whole
-    /// method, then the step, then the sentence, and only then rewords the sentence; it sees the source.
+    /// The reword lane (prose lane v4), on the owner's answer of 2026-11-23 and the lead's note of 2026-11-24: the writer
+    /// reads the whole method, then the step, then the sentence, and only then rewords the sentence; it sees the source.
     /// <list type="number">
-    /// <item>Work list. A recipe withheld as a whole (or a quarantined import) is reworded from its source
-    /// method, every sentence of it, and its description is built by rule
-    /// (<see cref="ProseDescription"/>). A shown recipe with some copied sentences keeps its text and only
-    /// those sentences (<see cref="ProseSentences.Reading.Copies"/>) are reworded; a copied sentence of its
-    /// description is replaced by the rule description.</item>
-    /// <item>Rounds (<see cref="ProseLanePrompts.RewordRounds"/>). Each step with work-list sentences is one
-    /// call; each reworded sentence is then checked on its own, facts first (<see cref="SentenceProblems"/>:
-    /// the same amounts, foods, actions and heats as the sentence it replaces, nothing added), then copy
-    /// (it may not be a copy or a near word-for-word sentence of the source). A sentence that fails is
-    /// reworded again in the next round with what failed, in the lane's own words; after the last round the
-    /// recipe is given up and keeps its state.</item>
-    /// <item>Gate. The whole text must not fail the prose check (<see cref="ProseCheck"/>: every fact rule,
-    /// a contradiction of the recipe's own ingredient lines included) and may hold no copied sentence; then
-    /// the judge, a model of another family, reads each changed step against the step it replaces. A recipe
+    /// <item>Work list. Every recipe the lane takes (withheld or quarantined) is reworded from its source method as a whole,
+    /// every sentence of it, and its description is built by rule (<see cref="ProseDescription"/>). No sentence of an
+    /// earlier paraphrase is kept.</item>
+    /// <item>Rounds (<see cref="ProseLanePrompts.RewordRounds"/>). Each step is one call; each reworded sentence is then
+    /// checked on its own, facts first (<see cref="SentenceProblems"/>: the same amounts, foods, actions and heats as the
+    /// sentence it replaces, nothing added), then copy, strictly (<see cref="ProseRebuilt"/>: it passes only when clearly
+    /// rebuilt). A sentence that fails is reworded again in the next round with what failed, in the lane's own words;
+    /// after the last round the recipe is given up and stays withheld.</item>
+    /// <item>Gate. The whole text must not fail the prose check (<see cref="ProseCheck"/>: every fact
+    /// rule, a contradiction of the recipe's own ingredient lines included) and every sentence must pass the strict copy
+    /// check; then the judge, a model of another family, reads each step against the source step it replaces. A recipe
     /// is shown when all of it passes.</item>
     /// </list>
     /// A model host outage is not caught: the caller ends its sweep without charging the recipe.
     /// </summary>
     public static class ProseReword
     {
-        public const string Version = "reword/1";
+        public const string Version = "reword/2";
         public const string StyleReword = "reword";
         public const string CopyReason = "copy";
         public const string FactReason = "facts";
         public const string RewordUnreadable = "reword-unreadable";
 
-        /// <summary>
-        /// Rewords <paramref name="input"/>'s text: the whole source method when <paramref name="shown"/> is
-        /// null (withheld as a whole, or quarantined), otherwise the copied sentences of the shown text.
-        /// </summary>
-        public static async Task<ProseLaneOutcome> RunAsync(ProseLaneInput input, RewriteFidelity.SourceText? shown, IProseRewriter writer, IProseJudge judge, CancellationToken cancellationToken = default)
+        /// <summary>Rewords <paramref name="input"/>'s whole source method, sentence by sentence, and puts the result through the gate.</summary>
+        public static async Task<ProseLaneOutcome> RunAsync(ProseLaneInput input, IProseRewriter writer, IProseJudge judge, CancellationToken cancellationToken = default)
         {
             var sourceSteps = input.Source.Steps.Where(s => !string.IsNullOrWhiteSpace(s)).ToList();
             if (sourceSteps.Count == 0) return new ProseLaneOutcome(null, Array.Empty<ProseAttempt>(), false, null, null, 0);
 
-            var whole = shown == null;
-            var baseSteps = whole ? sourceSteps.Select(s => ProseQuantities.Prepare(s)).ToList() : shown!.Steps.ToList();
-            var ruleDescription = ProseDescription.Build(input.Dish, ProseMasking.Mask(Array.Empty<string>(), input.Lines).Lines);
-            var description = whole ? ruleDescription : shown!.Description;
+            var baseSteps = sourceSteps.Select(s => ProseQuantities.Prepare(s)).ToList();
+            var description = ProseDescription.Build(input.Dish, ProseMasking.Mask(Array.Empty<string>(), input.Lines).Lines);
             var steps = baseSteps.Select(s => ProseSentences.Split(s).ToList()).ToList();
 
             var work = new HashSet<(int Step, int Index)>();
-            if (whole)
+            for (var p = 0; p < steps.Count; p++)
             {
-                for (var p = 0; p < steps.Count; p++)
-                    for (var i = 0; i < steps[p].Count; i++) work.Add((p + 1, i + 1));
-            }
-            else
-            {
-                var reading = ProseSentences.Read(input.Source, shown!, input.Lines);
-                foreach (var copy in reading.Copies)
-                {
-                    if (copy.Part == 0) description = ruleDescription;
-                    else work.Add((copy.Part, copy.Index));
-                }
+                for (var i = 0; i < steps[p].Count; i++) work.Add((p + 1, i + 1));
             }
 
             var attempts = new List<ProseAttempt>();
@@ -133,24 +115,20 @@ namespace Nom.Orch.Services.Support
 
             var rewrite = new RewriteFidelity.SourceText(description, texts, input.Dish);
             var finding = ProseCheck.Check(input.Source, rewrite, input.Lines, input.Stock);
-            if (finding.Failed || finding.Repair)
+            var copied = ProseRebuilt.Read(input.Source, new RewriteFidelity.SourceText(string.Empty, texts), input.Lines).Any(c => c.Copy);
+            if (finding.Failed || copied)
             {
-                attempts.Add(new ProseAttempt(attempts.Count + 1, "check", (finding.Failed ? finding.FailReasons : new[] { ProseCheck.CopiedSentences }).ToList()));
+                attempts.Add(new ProseAttempt(attempts.Count + 1, "check", (finding.Failed ? finding.FailReasons : new[] { CopyReason }).ToList()));
                 return new ProseLaneOutcome(null, attempts, false, finding, null, sourceSteps.Count);
             }
 
-            var changed = Enumerable.Range(0, texts.Count).Where(i => work.Any(w => w.Step == i + 1)).ToList();
-            ProseJudgeVerdict? verdict = null;
-            if (changed.Count > 0)
+            var verdict = await judge.JudgeAsync(baseSteps, texts, cancellationToken);
+            if (verdict == null || !verdict.Faithful)
             {
-                verdict = await judge.JudgeAsync(changed.Select(i => baseSteps[i]).ToList(), changed.Select(i => texts[i]).ToList(), cancellationToken);
-                if (verdict == null || !verdict.Faithful)
-                {
-                    attempts.Add(new ProseAttempt(attempts.Count + 1, "judge", verdict == null
-                        ? new[] { ProseCleanRoom.JudgeUnreadable }
-                        : verdict.Steps.Where(s => !s.Same).SelectMany(s => s.Faults()).Distinct().Select(f => ProseCleanRoom.JudgeReason + ":" + f).ToList()));
-                    return new ProseLaneOutcome(null, attempts, false, finding, verdict, sourceSteps.Count);
-                }
+                attempts.Add(new ProseAttempt(attempts.Count + 1, "judge", verdict == null
+                    ? new[] { ProseCleanRoom.JudgeUnreadable }
+                    : verdict.Steps.Where(s => !s.Same).SelectMany(s => s.Faults()).Distinct().Select(f => ProseCleanRoom.JudgeReason + ":" + f).ToList()));
+                return new ProseLaneOutcome(null, attempts, false, finding, verdict, sourceSteps.Count);
             }
 
             attempts.Add(new ProseAttempt(attempts.Count + 1, "gate", Array.Empty<string>()));
@@ -164,8 +142,8 @@ namespace Nom.Orch.Services.Support
         /// The checks of one reworded sentence, facts first: against the sentence it replaces, the same
         /// ingredients, the same amounts as written, every cooking verb and every heat or oven, and no amount
         /// added (masked against the recipe's lines, <see cref="ProseCleanRoom.RuleOnlyAudit"/>,
-        /// <see cref="ProseCleanRoom.HeatProblems"/>); then copy: it may be neither a copy nor a sentence kept
-        /// nearly word for word of the source (<see cref="ProseSentences"/>). Empty when it passes.
+        /// <see cref="ProseCleanRoom.HeatProblems"/>); then copy: it must be clearly rebuilt from the source
+        /// (<see cref="ProseRebuilt"/>). Empty when it passes.
         /// </summary>
         public static IReadOnlyList<Problem> SentenceProblems(string before, string after, RewriteFidelity.SourceText source, IReadOnlyList<string> lines)
         {
@@ -182,8 +160,7 @@ namespace Nom.Orch.Services.Support
             foreach (var heat in ProseCleanRoom.HeatProblems(before, after))
                 problems.Add(new Problem(FactReason, "the rewrite " + heat));
 
-            var reading = ProseSentences.Read(source, new RewriteFidelity.SourceText(string.Empty, new[] { after }), lines);
-            if (reading.Sentences.Any(s => s.Copy || s.NearVerbatim))
+            if (ProseRebuilt.Read(source, new RewriteFidelity.SourceText(string.Empty, new[] { after }), lines).Any(s => s.Copy))
                 problems.Add(new Problem(CopyReason, "the wording follows the published sentence too closely; rebuild it from what the cook must do, in another frame and with other clauses"));
             return problems;
         }

@@ -1,18 +1,18 @@
 {
   "version": "link-recheck/8",
-  "decisionSignature": "c11f0b6fa6ec3570",
+  "decisionSignature": "84cc4d45bc96ad8c",
   "caseSet": "a82db1e18a1f3b78",
   "rows": 1068,
   "bar": 0.95,
   "minimum": 40,
-  "scoredAtUtc": "2026-11-24T20:44:14.5576044Z",
+  "scoredAtUtc": "2026-11-25T11:35:00.9364704Z",
   "classes": [
     {
       "class": "alcohol",
-      "judged": 322,
-      "right": 322,
-      "agentJudged": 302,
-      "agentRight": 302,
+      "judged": 313,
+      "right": 313,
+      "agentJudged": 293,
+      "agentRight": 293,
       "ruleJudged": 20,
       "ruleRight": 20,
       "meetsBar": true

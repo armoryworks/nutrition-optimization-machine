@@ -23,7 +23,7 @@ namespace Nom.Api.Tests.Golden
     [Trait("Category", "Golden")]
     public class GoldenStartupFillTests
     {
-        private static readonly string[] Units = { "Gram", "Piece", "Pound", "Ounce", "Cup", "Tablespoon", "Teaspoon", "Pinch", "Quart", "Gallon" };
+        private static readonly string[] Units = { "Gram", "Piece", "Pound", "Ounce", "Cup", "Tablespoon", "Teaspoon", "Pinch", "Quart", "Gallon", "Stalk" };
 
         private readonly ITestOutputHelper _output;
 

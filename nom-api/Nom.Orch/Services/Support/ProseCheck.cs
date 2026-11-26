@@ -9,16 +9,16 @@ using System.Threading;
 namespace Nom.Orch.Services.Support
 {
     /// <summary>
-    /// Check v7 of a recipe's prose in our own words against its source, the gate the re-check and
-    /// the rewrite lane share. It answers two questions apart and has four outcomes
-    /// (<see cref="Finding.Outcome"/>: failed, repair, unsure, passed):
+    /// Check v8 of a recipe's prose in our own words against its source, the gate the re-check and
+    /// the rewrite lane share (v7's rules; from v8 the re-check withholds every earlier paraphrase by its
+    /// origin, and this check's copy verdict on it only orders the rewrite lane's queue). It answers two
+    /// questions apart and has four outcomes (<see cref="Finding.Outcome"/>: failed, repair, unsure, passed):
     /// <list type="number">
     /// <item>Copy, judged sentence by sentence (<see cref="ProseSentences"/>), each sentence read beside
     /// the source passage it follows with the facts set aside: a text mostly made of the source's
-    /// sentences lightly edited or kept is <see cref="CopiedText"/> and fails, so the re-check withholds
-    /// it and the rewrite lane rewords it as a whole; a text with only some copied sentences is
-    /// <see cref="CopiedSentences"/>, which fails no rewrite of the lane's but is not shown either: the
-    /// re-check withholds it and those sentences are the rewrite lane's work list. Steps word for word the source's are <see cref="Unchanged"/>. The
+    /// sentences lightly edited or kept is <see cref="CopiedText"/> and fails; a text with only some copied
+    /// sentences is <see cref="CopiedSentences"/>, which fails nothing by itself (the rewrite lane's new text
+    /// must also pass the strict check, <see cref="ProseRebuilt"/>). Steps word for word the source's are <see cref="Unchanged"/>. The
     /// whole-text measures (<see cref="CopyMeasures"/>) are recorded with every finding, with no line
     /// drawn on them, and stock phrases count like any other words.</item>
     /// <item>An amount the text, description included, puts before a food whose single ingredient line
@@ -51,7 +51,7 @@ namespace Nom.Orch.Services.Support
     /// </summary>
     public static class ProseCheck
     {
-        public const int Version = 7;
+        public const int Version = 8;
 
         public const int SharedRun = 7;
         public const int MinimumWordsForShare = 40;
@@ -89,7 +89,7 @@ namespace Nom.Orch.Services.Support
         /// <summary>The weak signals: a fault with one of these reasons marks a rewrite unsure and never fails it.</summary>
         public static readonly IReadOnlySet<string> UnsureReasons = new HashSet<string>(StringComparer.Ordinal) { LostStep, OutOfOrder, AddedQuantity, TooShort, TooLong };
 
-        /// <summary>The reasons of the copy rule: mostly copied, unchanged, and some sentences copied (the rewrite lane's work list, which fails nothing).</summary>
+        /// <summary>The reasons of the copy rule: mostly copied, unchanged, and some sentences copied (which fails nothing).</summary>
         public static readonly IReadOnlySet<string> CopyReasons = new HashSet<string>(StringComparer.Ordinal) { CopiedText, Unchanged, CopiedSentences };
 
         /// <summary>The reasons of the form rules.</summary>
@@ -254,7 +254,7 @@ namespace Nom.Orch.Services.Support
             /// <summary>Not failed, with a fault other than copied sentences: a fact class not proven or a weak signal, shown and marked for the prose judge.</summary>
             public bool Unsure => !Failed && Faults.Any(f => f.Reason != ProseCheck.CopiedSentences);
 
-            /// <summary>Not failed, but some of its sentences are copies: withheld until the rewrite lane rewords those sentences, which are its work list.</summary>
+            /// <summary>Not failed, but some of its sentences are copies.</summary>
             public bool Repair => !Failed && Faults.Any(f => f.Reason == ProseCheck.CopiedSentences);
 
             /// <summary>"passed", "repair" (<see cref="Repair"/>), "unsure" (a fact class not proven or a weak signal: shown, marked) or "failed".</summary>

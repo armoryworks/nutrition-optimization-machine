@@ -40,5 +40,27 @@ namespace Nom.Api.Tests.Services
             refusal.Should().Contain("\"UrlKey\"");
             key.Should().Be("forbidden.example/stew");
         }
+
+        [Fact]
+        public void The_wording_queries_of_the_retire_its_undo_and_the_purge_translate()
+        {
+            using var db = Postgres();
+            var retired = RecipeRemovalService.RetiredFoodsOf(db, new List<long> { 1, 2 }).ToQueryString();
+            var inUse = RecipeRemovalService.TextsInUseOf(db, new List<long> { 3 }, new List<string> { "1 cup brandy" }).ToQueryString();
+            var worded = RecipeRemovalService.ProposalsWordedOf(db, new List<string> { "1 cup brandy" }).ToQueryString();
+            var merged = RecipeRemovalService.MergedAwayFoodsOf(db, new List<string> { "1 cup brandy" }).ToQueryString();
+            var aliases = RecipeRemovalService.RetiredAliasesOf(db, new List<string> { "retired:1" }).Select(a => a.AliasName).ToQueryString();
+            _output.WriteLine(retired);
+            _output.WriteLine(merged);
+            _output.WriteLine(aliases);
+            _output.WriteLine(inUse);
+            _output.WriteLine(worded);
+
+            retired.Should().Contain("\"AuditLogEntry\"").And.Contain("EXISTS");
+            inUse.Should().Contain("lower(").And.Contain("btrim(");
+            worded.Should().Contain("\"FoodCatalogProposal\"").And.Contain("lower(");
+            merged.Should().Contain("strpos(").And.Contain("substring(").And.Contain("btrim(");
+            aliases.Should().Contain("\"SourceContext\"");
+        }
     }
 }

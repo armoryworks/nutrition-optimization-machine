@@ -32,6 +32,8 @@ namespace Nom.Orch.Services
         public const string ProposalWithdrawChangeType = "ProposalWithdraw";
         public const string WordingResolveChangeType = "WordingResolve";
         public const string WordingRetractChangeType = "WordingRetract";
+        public const string LoweredByUndoEntityType = "Recipe";
+        public const string LoweredByUndoChangeType = "UndoLoweredDiet";
         public const string RetiredContextPrefix = "retired:";
 
         private static readonly Regex Word = new(@"[\p{L}\p{N}%']+", RegexOptions.CultureInvariant | RegexOptions.Compiled);
@@ -529,17 +531,19 @@ namespace Nom.Orch.Services
 
         private static string Truncate(string text, int length) => text.Length <= length ? text : text[..length];
 
-        public async Task<LineRelinkUndoResult> UndoAsync(DateTime sinceUtc, bool apply = false, CancellationToken cancellationToken = default)
+        public async Task<LineRelinkUndoResult> UndoAsync(DateTime sinceUtc, bool apply = false, CancellationToken cancellationToken = default, bool restoreLowered = false)
         {
             var entries = await EntriesSinceAsync(sinceUtc, tracked: apply, cancellationToken);
+            (await GuardAsync()).Restores = restoreLowered;
             if (apply)
             {
                 var applied = await UndoEntriesAsync(entries, cancellationToken);
                 applied.Applied = true;
+                await JournalRestoredAsync(applied);
                 return applied;
             }
 
-            var result = new LineRelinkUndoResult();
+            var result = new LineRelinkUndoResult { RestoreLowered = restoreLowered };
             await using var turn = await RelinkUndoDryRun.QueueAsync(cancellationToken);
             result.QueuedBehind = turn.Ahead;
             result.QueuedSeconds = Math.Round(turn.Waited.TotalSeconds, 1);
@@ -566,7 +570,59 @@ namespace Nom.Orch.Services
                 result.HeldByDiet += counted.HeldByDiet;
             }
             result.DietHolds = guard.Holds.ToList();
+            result.RestoredLowering = guard.Restored;
+            result.LoweringMoves = guard.RestoredMoves.Take(RestoredListed).ToList();
+            guard.Restores = false;
             return result;
+        }
+
+        private const int RestoredListed = 200;
+
+        /// <summary>Tells the guard how the undo of <paramref name="entries"/> leaves the foods it retired or renamed (<see cref="LineMoveDietGuard.Expect"/>).</summary>
+        private static void ExpectRestored(LineMoveDietGuard guard, IEnumerable<AuditLogEntryEntity> entries)
+        {
+            foreach (var entry in entries.Where(e => e.EntityType == RetireEntityType && e.ChangeType == RetireChangeType && !string.IsNullOrEmpty(e.OldValue)
+                         && e.PropertyName is nameof(IngredientEntity.IsDeleted) or nameof(IngredientEntity.Name)))
+            {
+                var restored = entry.PropertyName == nameof(IngredientEntity.IsDeleted);
+                guard.Expect(entry.EntityId, entry.OldValue, restored,
+                    restored ? RetiredContextPrefix + entry.EntityId.ToString(System.Globalization.CultureInfo.InvariantCulture) : null);
+            }
+        }
+
+        /// <summary>Reports the moves an undo put back although they lower a recipe's diet flags (<see cref="LineMoveDietGuard.Restores"/>, staging checkpoint 7, S9) and turns the choice off.</summary>
+        private async Task JournalRestoredAsync(LineRelinkUndoResult result)
+        {
+            var guard = await GuardAsync();
+            result.RestoreLowered = guard.Restores;
+            result.RestoredLowering = guard.Restored;
+            result.LoweringMoves = guard.RestoredMoves.Take(RestoredListed).ToList();
+            guard.Restores = false;
+        }
+
+        /// <summary>
+        /// Journals each move the guard let through since <paramref name="since"/> moves although it lowers a recipe's diet
+        /// flags, because the operator chose to restore the exact journaled earlier state: one entry per line, naming where
+        /// the line was, the food it went back to and the types it lowered, written with the move in the same transaction
+        /// (review ck16-r2). True when it journaled any.
+        /// </summary>
+        private bool JournalRestored(LineMoveDietGuard guard, int since, long personId)
+        {
+            if (guard.Restored <= since) return false;
+            var now = DateTime.UtcNow;
+            foreach (var move in guard.RestoredMoves.Skip(since))
+                _db.AuditLogEntries.Add(new AuditLogEntryEntity
+                {
+                    EntityType = LoweredByUndoEntityType,
+                    EntityId = move.RecipeId,
+                    ChangeType = LoweredByUndoChangeType,
+                    PropertyName = nameof(RecipeIngredientEntity.IngredientId),
+                    OldValue = Place(move.FromId, move.SortOrder),
+                    NewValue = Truncate(move.ToId.ToString(System.Globalization.CultureInfo.InvariantCulture) + " lowers " + string.Join(", ", move.Types), 4000),
+                    Timestamp = now,
+                    ChangedByPersonId = personId,
+                });
+            return true;
         }
 
         private async Task<List<AuditLogEntryEntity>> EntriesSinceAsync(DateTime sinceUtc, bool tracked, CancellationToken cancellationToken)
@@ -585,13 +641,15 @@ namespace Nom.Orch.Services
                 .ToListAsync(cancellationToken);
         }
 
-        public async Task<LineRelinkUndoResult> UndoEntriesAsync(IReadOnlyCollection<long> entryIds)
+        public async Task<LineRelinkUndoResult> UndoEntriesAsync(IReadOnlyCollection<long> entryIds, bool restoreLowered = false)
         {
             var entries = new List<AuditLogEntryEntity>();
             foreach (var chunk in entryIds.Distinct().Chunk(1000))
                 entries.AddRange(await _db.AuditLogEntries.Where(a => chunk.Contains(a.Id)).ToListAsync());
+            (await GuardAsync()).Restores = restoreLowered;
             var result = await UndoEntriesAsync(entries);
             result.Applied = true;
+            await JournalRestoredAsync(result);
             return result;
         }
 
@@ -609,6 +667,7 @@ namespace Nom.Orch.Services
             var result = new LineRelinkUndoResult();
             var personId = _currentUser.PersonIdOrSystem;
             var guard = await GuardAsync();
+            ExpectRestored(guard, entries);
             var chunks = entries.Chunk(500).ToList();
 
             for (var index = 0; index < chunks.Count; index++)
@@ -690,17 +749,21 @@ namespace Nom.Orch.Services
                     if (LineRepairs.TryGetValue(entry.ChangeType, out var repair))
                     {
                         var heldBefore = guard.Held;
+                        var restoredBefore = guard.Restored;
                         if (await repair.PutBack(_db, entry, personId, trail, guard))
                         {
                             _db.AuditLogEntries.Remove(entry);
                             repair.Count(result);
+                            JournalRestored(guard, restoredBefore, personId);
                         }
                         else if (guard.Held > heldBefore)
                         {
+                            guard.DropRestored(restoredBefore);
                             result.HeldByDiet++;
                         }
                         else
                         {
+                            guard.DropRestored(restoredBefore);
                             result.Skipped++;
                         }
 
@@ -718,8 +781,10 @@ namespace Nom.Orch.Services
 
                     var reordered = trail.Moved(entry.EntityId, entry.Timestamp);
                     var held = guard.Held;
+                    var restored = guard.Restored;
                     if (await MoveAsync(entry.EntityId, now.IngredientId, from, was.IngredientId, reordered ? from : was.SortOrder, personId) is not { } position)
                     {
+                        guard.DropRestored(restored);
                         if (guard.Held > held) result.HeldByDiet++;
                         else result.Skipped++;
                         continue;
@@ -728,6 +793,7 @@ namespace Nom.Orch.Services
                     if (reordered)
                         trail.Carry(entry.EntityId, entry.Timestamp, now.IngredientId, now.SortOrder, r => RecipeOrderTrail.Repoint(r, now.IngredientId, was.IngredientId), was.SortOrder, position);
                     _db.AuditLogEntries.Remove(entry);
+                    if (JournalRestored(guard, restored, personId)) await _db.SaveChangesAsync();
                     result.Restored++;
                 }
 

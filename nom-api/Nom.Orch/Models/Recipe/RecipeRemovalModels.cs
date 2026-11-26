@@ -33,6 +33,13 @@ namespace Nom.Orch.Models.Recipe
 
         public string? Warning { get; set; }
 
+        /// <summary>
+        /// For a retire: the foods named from the source's lines (no FDC id, not curated) that no other recipe's live line
+        /// uses and nothing a household or another food relies on holds, retired with the recipes (journaled, put back by the
+        /// undo until the purge). For its undo: the foods it puts back.
+        /// </summary>
+        public int Foods { get; set; }
+
         /// <summary>The first 500 recipe ids the stage acts on, in id order.</summary>
         public List<long> RecipeIds { get; set; } = new();
     }

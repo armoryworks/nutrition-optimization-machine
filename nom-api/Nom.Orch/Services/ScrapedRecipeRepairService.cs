@@ -120,6 +120,7 @@ namespace Nom.Orch.Services
 
             await LineGuardHolds.RecordAsync(_context, LineGuardHoldOrigin.StartupFill, read, guardHolds, RecipeLineBuilder.Version, now,
                 new Dictionary<string, string> { [LineGuardHoldOrigin.StartupFill] = LineGuardHolds.Released }, cancellationToken);
+            await LineGuardHolds.ResolveAsync(_context, LineGuardHoldOrigin.StartupFill, held.Except(rebuilt).ToList(), LineGuardHolds.LineOperation, now, cancellationToken);
             await _context.SaveChangesAsync(cancellationToken);
             _context.ChangeTracker.Clear();
             return new ScrapedRepairBatchResult(recipes.Count, repaired, unparsed, revetted, cleared, recipes[^1].Id, split, decoded, held.Except(rebuilt).Count(), rebuilt.Count, reread)

@@ -1,0 +1,1359 @@
+# Branded consensus (branded-consensus/2): the contents of generic curated made products from the ingredient statements of their US branded products in FoodData Central (FoodData_Central_branded_food_csv_2025-12-18, public domain), derived by Nom.Import --branded-consensus, never edited by hand.
+# products: the matched products whose statement was read; stating: those that state the class (the gate's reading of the statement against the default criteria of the class's type, warnings left out); examples: up to three FDC ids that state it.
+# verdict: usually when at least 0.75 of at least 10 products state it, split when more than 0.1 and less than that; a food or class with no row reads as its own data.
+fdc	name	class	verdict	products	stating	examples	source
+171603	Alfredo Sauce Mix	wheat	split	11	7	2029282 2321466 2372802	fdc-branded:consensus
+171603	Alfredo Sauce Mix	gluten	split	11	7	2029282 2321466 2372802	fdc-branded:consensus
+171603	Alfredo Sauce Mix	milk	usually	11	11	592735 1688334 2029282	fdc-branded:consensus
+171603	Alfredo Sauce Mix	soy	split	11	3	2029282 2409645 2550007	fdc-branded:consensus
+171031	Almond Oil	treenut	usually	21	21	1862240 1872771 1907763	fdc-branded:consensus
+172694	Angel Food Cake	wheat	usually	41	41	474403 576677 1048037	fdc-branded:consensus
+172694	Angel Food Cake	gluten	usually	41	40	474403 576677 1048037	fdc-branded:consensus
+172694	Angel Food Cake	milk	split	41	11	576677 1948414 2036124	fdc-branded:consensus
+172694	Angel Food Cake	egg	usually	41	41	474403 576677 1048037	fdc-branded:consensus
+172694	Angel Food Cake	soy	split	41	24	576677 1048037 1948414	fdc-branded:consensus
+168014	Animal Crackers	wheat	usually	88	85	518289 603695 1467764	fdc-branded:consensus
+168014	Animal Crackers	gluten	usually	88	84	518289 603695 1467764	fdc-branded:consensus
+168014	Animal Crackers	milk	split	88	16	2021889 2041166 2071172	fdc-branded:consensus
+168014	Animal Crackers	egg	split	88	16	1950723 2041166 2123558	fdc-branded:consensus
+168014	Animal Crackers	soy	usually	88	78	518289 603695 1467764	fdc-branded:consensus
+168014	Animal Crackers	sulfite	split	88	12	1467764 1863537 1882113	fdc-branded:consensus
+175012	Apple Pie	wheat	usually	172	168	454464 467596 480523	fdc-branded:consensus
+175012	Apple Pie	gluten	usually	172	167	454464 467596 480523	fdc-branded:consensus
+170645	Apricot Jam	sulfite	split	18	3	698514 1853141 1888492	fdc-branded:consensus
+171698	Apricots, canned, water pack, with skin, solids and liquids	sulfite	split	81	60	444038 1783121 1858492	fdc-branded:consensus
+173936	Apricots, canned, water pack, without skin, solids and liquids	sulfite	split	81	60	444038 1783121 1858492	fdc-branded:consensus
+171169	Au Jus Gravy Mix	wheat	usually	25	23	542753 598884 1570147	fdc-branded:consensus
+171169	Au Jus Gravy Mix	gluten	usually	25	23	542753 598884 1570147	fdc-branded:consensus
+171169	Au Jus Gravy Mix	milk	split	25	11	542753 1570147 2034782	fdc-branded:consensus
+171169	Au Jus Gravy Mix	soy	usually	25	23	542753 598884 1570147	fdc-branded:consensus
+173150	Bagel Chips	wheat	usually	38	36	429222 429223 718126	fdc-branded:consensus
+173150	Bagel Chips	gluten	usually	38	36	429222 429223 718126	fdc-branded:consensus
+173150	Bagel Chips	soy	split	38	15	429222 429223 1917442	fdc-branded:consensus
+173150	Bagel Chips	sesame	split	38	11	429223 1726801 1959457	fdc-branded:consensus
+172664	Bagels, cinnamon-raisin	wheat	usually	89	84	1066827 1853808 1854379	fdc-branded:consensus
+172664	Bagels, cinnamon-raisin	gluten	usually	89	83	1066827 1853808 1854379	fdc-branded:consensus
+172664	Bagels, cinnamon-raisin	soy	split	89	43	1066827 1854379 1860119	fdc-branded:consensus
+172665	Bagels, cinnamon-raisin, toasted	wheat	usually	89	84	1066827 1853808 1854379	fdc-branded:consensus
+172665	Bagels, cinnamon-raisin, toasted	gluten	usually	89	83	1066827 1853808 1854379	fdc-branded:consensus
+172665	Bagels, cinnamon-raisin, toasted	soy	split	89	43	1066827 1854379 1860119	fdc-branded:consensus
+171852	Bagels, multigrain	wheat	usually	10	10	1851833 1868296 1897965	fdc-branded:consensus
+171852	Bagels, multigrain	gluten	usually	10	10	1851833 1868296 1897965	fdc-branded:consensus
+171852	Bagels, multigrain	fish	split	10	2	1971886 2524113	fdc-branded:consensus
+171852	Bagels, multigrain	sesame	split	10	3	1971886 2054370 2136457	fdc-branded:consensus
+175049	Bagels, plain, enriched, without calcium propionate (includes onion, poppy, sesame)	wheat	usually	135	128	470434 474405 1801077	fdc-branded:consensus
+175049	Bagels, plain, enriched, without calcium propionate (includes onion, poppy, sesame)	gluten	usually	135	127	470434 474405 1801077	fdc-branded:consensus
+175049	Bagels, plain, enriched, without calcium propionate (includes onion, poppy, sesame)	soy	split	135	62	1801077 1854377 1897844	fdc-branded:consensus
+175051	Bagels, plain, unenriched, without calcium propionate(includes onion, poppy, sesame)	wheat	usually	135	128	470434 474405 1801077	fdc-branded:consensus
+175051	Bagels, plain, unenriched, without calcium propionate(includes onion, poppy, sesame)	gluten	usually	135	127	470434 474405 1801077	fdc-branded:consensus
+175051	Bagels, plain, unenriched, without calcium propionate(includes onion, poppy, sesame)	soy	split	135	62	1801077 1854377 1897844	fdc-branded:consensus
+167533	Bagels, wheat	wheat	usually	35	35	472259 474409 1850730	fdc-branded:consensus
+167533	Bagels, wheat	gluten	usually	35	35	472259 474409 1850730	fdc-branded:consensus
+167533	Bagels, wheat	soy	split	35	16	472259 1927609 2022155	fdc-branded:consensus
+167533	Bagels, wheat	sesame	split	35	4	1971886 2136457 2654544	fdc-branded:consensus
+-	Balsamic Glaze	sulfite	split	21	4	2119632 2441912 2596527	fdc-branded:consensus
+172241	Balsamic Vinegar	sulfite	split	170	22	1892709 1893624 1911066	fdc-branded:consensus
+174523	Barbecue Sauce	wheat	split	521	200	356426 356431 356432	fdc-branded:consensus
+174523	Barbecue Sauce	gluten	split	521	213	356426 356431 356432	fdc-branded:consensus
+174523	Barbecue Sauce	soy	split	521	101	399800 400194 500885	fdc-branded:consensus
+174523	Barbecue Sauce	fish	split	521	128	357394 375108 375120	fdc-branded:consensus
+171564	Beef Gravy	wheat	usually	62	59	595397 600195 1467907	fdc-branded:consensus
+171564	Beef Gravy	gluten	usually	62	59	595397 600195 1467907	fdc-branded:consensus
+171564	Beef Gravy	milk	split	62	25	595397 1467907 1819920	fdc-branded:consensus
+171564	Beef Gravy	soy	usually	62	57	595397 600195 1467907	fdc-branded:consensus
+167536	Beef Jerky	wheat	split	955	501	384880 686958 731554	fdc-branded:consensus
+167536	Beef Jerky	gluten	split	955	504	384880 686958 731554	fdc-branded:consensus
+167536	Beef Jerky	soy	split	955	611	384880 638872 686958	fdc-branded:consensus
+174902	Biscuit Mix	wheat	usually	54	49	587477 1858834 1861870	fdc-branded:consensus
+174902	Biscuit Mix	gluten	usually	54	48	587477 1858834 1861870	fdc-branded:consensus
+174902	Biscuit Mix	milk	usually	54	43	587477 1858834 1861870	fdc-branded:consensus
+174902	Biscuit Mix	soy	split	54	31	587477 1858834 1861870	fdc-branded:consensus
+172670	Biscuits	wheat	usually	445	442	387733 395098 397856	fdc-branded:consensus
+172670	Biscuits	gluten	usually	445	442	387733 395098 397856	fdc-branded:consensus
+172670	Biscuits	soy	usually	445	389	387733 395098 397856	fdc-branded:consensus
+174903	Biscuits From Mix	wheat	usually	54	49	587477 1858834 1861870	fdc-branded:consensus
+174903	Biscuits From Mix	gluten	usually	54	48	587477 1858834 1861870	fdc-branded:consensus
+174903	Biscuits From Mix	milk	usually	54	43	587477 1858834 1861870	fdc-branded:consensus
+174903	Biscuits From Mix	soy	split	54	31	587477 1858834 1861870	fdc-branded:consensus
+170186	Black Walnuts	treenut	usually	15	15	1950701 2023295 2073870	fdc-branded:consensus
+171633	Boiled Frankfurters	milk	split	34	7	2018272 2018276 2097882	fdc-branded:consensus
+171633	Boiled Frankfurters	soy	split	34	6	2060810 2114256 2143120	fdc-branded:consensus
+171167	Bottled Teriyaki Sauce	wheat	usually	115	100	581760 1047089 1630397	fdc-branded:consensus
+171167	Bottled Teriyaki Sauce	gluten	usually	115	100	581760 1047089 1630397	fdc-branded:consensus
+171167	Bottled Teriyaki Sauce	soy	usually	115	112	581760 718146 1047089	fdc-branded:consensus
+171167	Bottled Teriyaki Sauce	sesame	split	115	62	581760 718146 1630397	fdc-branded:consensus
+174928	Bread Crumbs	wheat	usually	336	322	596901 596920 597028	fdc-branded:consensus
+174928	Bread Crumbs	gluten	usually	336	322	596901 596920 597028	fdc-branded:consensus
+174928	Bread Crumbs	milk	split	336	168	596901 596920 597028	fdc-branded:consensus
+174928	Bread Crumbs	egg	split	336	61	1467339 1467340 1467342	fdc-branded:consensus
+174928	Bread Crumbs	soy	split	336	223	596901 596920 597028	fdc-branded:consensus
+174928	Bread Crumbs	sesame	split	336	138	597028 741284 894274	fdc-branded:consensus
+174906	Bread, banana, prepared from recipe, made with margarine	wheat	usually	14	14	1724638 1917133 2056049	fdc-branded:consensus
+174906	Bread, banana, prepared from recipe, made with margarine	gluten	usually	14	14	1724638 1917133 2056049	fdc-branded:consensus
+174906	Bread, banana, prepared from recipe, made with margarine	egg	usually	14	12	1724638 1917133 2058180	fdc-branded:consensus
+167944	Bread, cheese	wheat	usually	23	20	1885782 1886317 1898088	fdc-branded:consensus
+167944	Bread, cheese	gluten	usually	23	20	1885782 1886317 1898088	fdc-branded:consensus
+167944	Bread, cheese	milk	usually	23	22	1885782 1886317 1898088	fdc-branded:consensus
+167944	Bread, cheese	egg	split	23	7	1885782 2071819 2133418	fdc-branded:consensus
+167944	Bread, cheese	soy	split	23	8	1885782 1886317 1898088	fdc-branded:consensus
+171849	Bread, cinnamon	wheat	usually	49	47	565158 1067011 1867725	fdc-branded:consensus
+171849	Bread, cinnamon	gluten	usually	49	47	565158 1067011 1867725	fdc-branded:consensus
+171849	Bread, cinnamon	milk	split	49	24	565158 1067011 1912614	fdc-branded:consensus
+171849	Bread, cinnamon	egg	split	49	10	1912564 1912614 2054616	fdc-branded:consensus
+171849	Bread, cinnamon	soy	usually	49	40	565158 1067011 1867725	fdc-branded:consensus
+172672	Bread, cracked-wheat	wheat	usually	18	18	2011765 2035896 2070531	fdc-branded:consensus
+172672	Bread, cracked-wheat	gluten	usually	18	18	2011765 2035896 2070531	fdc-branded:consensus
+172672	Bread, cracked-wheat	soy	split	18	11	2070531 2070974 2070985	fdc-branded:consensus
+168013	Bread, multi-grain (includes whole-grain)	wheat	usually	47	45	872918 1886822 1886823	fdc-branded:consensus
+168013	Bread, multi-grain (includes whole-grain)	gluten	usually	47	45	872918 1886822 1886823	fdc-branded:consensus
+168013	Bread, multi-grain (includes whole-grain)	milk	split	47	8	872918 2068213 2078783	fdc-branded:consensus
+168013	Bread, multi-grain (includes whole-grain)	soy	split	47	32	872918 1914217 1921855	fdc-branded:consensus
+168013	Bread, multi-grain (includes whole-grain)	sesame	split	47	18	872918 1886828 1886834	fdc-branded:consensus
+172679	Bread, oatmeal, toasted	wheat	usually	24	24	1898875 1914195 1938999	fdc-branded:consensus
+172679	Bread, oatmeal, toasted	gluten	usually	24	24	1898875 1914195 1938999	fdc-branded:consensus
+172679	Bread, oatmeal, toasted	milk	split	24	5	1898875 2110080 2485978	fdc-branded:consensus
+172679	Bread, oatmeal, toasted	soy	usually	24	24	1898875 1914195 1938999	fdc-branded:consensus
+172816	Bread, pita, white, unenriched	wheat	usually	13	13	1886996 2056628 2286046	fdc-branded:consensus
+172816	Bread, pita, white, unenriched	gluten	usually	13	13	1886996 2056628 2286046	fdc-branded:consensus
+172816	Bread, pita, white, unenriched	soy	split	13	3	2366126 2634661 2634663	fdc-branded:consensus
+167943	Bread, potato	wheat	usually	45	45	581996 641860 1884978	fdc-branded:consensus
+167943	Bread, potato	gluten	usually	45	45	581996 641860 1884978	fdc-branded:consensus
+167943	Bread, potato	milk	split	45	13	581996 641860 1940327	fdc-branded:consensus
+167943	Bread, potato	soy	usually	45	39	581996 641860 1884978	fdc-branded:consensus
+167943	Bread, potato	sesame	split	45	5	2570246 2570248 2579796	fdc-branded:consensus
+172681	Bread, raisin, enriched, toasted	wheat	usually	69	65	741760 1852379 1860044	fdc-branded:consensus
+172681	Bread, raisin, enriched, toasted	gluten	usually	69	64	741760 1852379 1860044	fdc-branded:consensus
+172681	Bread, raisin, enriched, toasted	milk	split	69	22	1868077 1869739 1882905	fdc-branded:consensus
+172681	Bread, raisin, enriched, toasted	egg	split	69	17	1121978 1869739 1889930	fdc-branded:consensus
+172681	Bread, raisin, enriched, toasted	soy	split	69	47	741760 1860044 1868077	fdc-branded:consensus
+172817	Bread, raisin, unenriched	wheat	usually	69	65	741760 1852379 1860044	fdc-branded:consensus
+172817	Bread, raisin, unenriched	gluten	usually	69	64	741760 1852379 1860044	fdc-branded:consensus
+172817	Bread, raisin, unenriched	milk	split	69	22	1868077 1869739 1882905	fdc-branded:consensus
+172817	Bread, raisin, unenriched	egg	split	69	17	1121978 1869739 1889930	fdc-branded:consensus
+172817	Bread, raisin, unenriched	soy	split	69	47	741760 1860044 1868077	fdc-branded:consensus
+174919	Bread, reduced-calorie, oatmeal	wheat	usually	24	24	1898875 1914195 1938999	fdc-branded:consensus
+174919	Bread, reduced-calorie, oatmeal	gluten	usually	24	24	1898875 1914195 1938999	fdc-branded:consensus
+174919	Bread, reduced-calorie, oatmeal	milk	split	24	5	1898875 2110080 2485978	fdc-branded:consensus
+174919	Bread, reduced-calorie, oatmeal	soy	usually	24	24	1898875 1914195 1938999	fdc-branded:consensus
+174920	Bread, reduced-calorie, rye	wheat	usually	188	184	443062 593079 1121172	fdc-branded:consensus
+174920	Bread, reduced-calorie, rye	gluten	usually	188	188	443062 593079 1121172	fdc-branded:consensus
+174920	Bread, reduced-calorie, rye	soy	usually	188	142	443062 593079 1726030	fdc-branded:consensus
+174920	Bread, reduced-calorie, rye	sulfite	split	188	19	2011091 2019164 2021297	fdc-branded:consensus
+174921	Bread, reduced-calorie, wheat	wheat	usually	716	716	438900 487797 616006	fdc-branded:consensus
+174921	Bread, reduced-calorie, wheat	gluten	usually	716	716	438900 487797 616006	fdc-branded:consensus
+174921	Bread, reduced-calorie, wheat	milk	split	716	82	670720 673510 680186	fdc-branded:consensus
+174921	Bread, reduced-calorie, wheat	soy	usually	716	607	438900 487797 670720	fdc-branded:consensus
+174922	Bread, reduced-calorie, white	wheat	usually	536	525	442105 444865 521275	fdc-branded:consensus
+174922	Bread, reduced-calorie, white	gluten	usually	536	523	442105 444865 521275	fdc-branded:consensus
+174922	Bread, reduced-calorie, white	milk	split	536	73	442105 1473726 1867985	fdc-branded:consensus
+174922	Bread, reduced-calorie, white	soy	usually	536	466	442105 521275 727686	fdc-branded:consensus
+171851	Bread, wheat, sprouted, toasted	wheat	usually	22	22	616006 617618 656010	fdc-branded:consensus
+171851	Bread, wheat, sprouted, toasted	gluten	usually	22	22	616006 617618 656010	fdc-branded:consensus
+171851	Bread, wheat, sprouted, toasted	soy	split	22	10	1985504 2035207 2054146	fdc-branded:consensus
+171851	Bread, wheat, sprouted, toasted	sesame	split	22	5	1985504 2054146 2054148	fdc-branded:consensus
+174927	Bread, white, prepared from recipe, made with low fat (2%) milk	wheat	usually	536	525	442105 444865 521275	fdc-branded:consensus
+174927	Bread, white, prepared from recipe, made with low fat (2%) milk	gluten	usually	536	523	442105 444865 521275	fdc-branded:consensus
+174927	Bread, white, prepared from recipe, made with low fat (2%) milk	soy	usually	536	466	442105 521275 727686	fdc-branded:consensus
+174926	Bread, white, prepared from recipe, made with nonfat dry milk	wheat	usually	536	525	442105 444865 521275	fdc-branded:consensus
+174926	Bread, white, prepared from recipe, made with nonfat dry milk	gluten	usually	536	523	442105 444865 521275	fdc-branded:consensus
+174926	Bread, white, prepared from recipe, made with nonfat dry milk	soy	usually	536	466	442105 521275 727686	fdc-branded:consensus
+335240	Bread, whole-wheat, commercially prepared	wheat	usually	305	305	438900 487797 670720	fdc-branded:consensus
+335240	Bread, whole-wheat, commercially prepared	gluten	usually	305	305	438900 487797 670720	fdc-branded:consensus
+335240	Bread, whole-wheat, commercially prepared	soy	usually	305	245	438900 487797 670720	fdc-branded:consensus
+172689	Bread, whole-wheat, commercially prepared, toasted	wheat	usually	305	305	438900 487797 670720	fdc-branded:consensus
+172689	Bread, whole-wheat, commercially prepared, toasted	gluten	usually	305	305	438900 487797 670720	fdc-branded:consensus
+172689	Bread, whole-wheat, commercially prepared, toasted	soy	usually	305	245	438900 487797 670720	fdc-branded:consensus
+172691	Bread, whole-wheat, prepared from recipe, toasted	wheat	usually	305	305	438900 487797 670720	fdc-branded:consensus
+172691	Bread, whole-wheat, prepared from recipe, toasted	gluten	usually	305	305	438900 487797 670720	fdc-branded:consensus
+172691	Bread, whole-wheat, prepared from recipe, toasted	soy	usually	305	245	438900 487797 670720	fdc-branded:consensus
+171565	Brown Gravy Mix	wheat	usually	92	80	385852 542760 599235	fdc-branded:consensus
+171565	Brown Gravy Mix	gluten	usually	92	81	385852 542760 599235	fdc-branded:consensus
+171565	Brown Gravy Mix	milk	split	92	67	542760 599235 1467903	fdc-branded:consensus
+171565	Brown Gravy Mix	soy	usually	92	81	385852 542760 599235	fdc-branded:consensus
+175080	Brownie Mix	wheat	usually	232	178	892764 1035999 1147056	fdc-branded:consensus
+175080	Brownie Mix	gluten	split	232	172	892764 1035999 1147056	fdc-branded:consensus
+175080	Brownie Mix	milk	split	232	61	892764 1627947 1867847	fdc-branded:consensus
+175080	Brownie Mix	soy	split	232	135	892764 893556 1035999	fdc-branded:consensus
+175080	Brownie Mix	treenut	split	232	28	1035999 1666881 1867847	fdc-branded:consensus
+174949	Brownies	wheat	usually	176	155	411082 446122 446249	fdc-branded:consensus
+174949	Brownies	gluten	usually	176	155	411082 446122 446249	fdc-branded:consensus
+174949	Brownies	milk	usually	176	142	411082 446122 446249	fdc-branded:consensus
+174949	Brownies	egg	usually	176	150	411082 446122 446249	fdc-branded:consensus
+174949	Brownies	soy	usually	176	148	411082 446122 446249	fdc-branded:consensus
+174987	Butter Croissants	wheat	usually	26	26	486060 1892043 1901725	fdc-branded:consensus
+174987	Butter Croissants	gluten	usually	26	26	486060 1892043 1901725	fdc-branded:consensus
+174987	Butter Croissants	milk	usually	26	26	486060 1892043 1901725	fdc-branded:consensus
+174987	Butter Croissants	egg	split	26	12	486060 1933688 2293908	fdc-branded:consensus
+174987	Butter Croissants	soy	split	26	6	1892043 2463138 2500265	fdc-branded:consensus
+172772	Buttermilk Pancake Mix	wheat	usually	57	56	638870 1470132 1940357	fdc-branded:consensus
+172772	Buttermilk Pancake Mix	gluten	usually	57	56	638870 1470132 1940357	fdc-branded:consensus
+172772	Buttermilk Pancake Mix	milk	usually	57	57	638870 1470132 1940357	fdc-branded:consensus
+172772	Buttermilk Pancake Mix	egg	split	57	35	638870 1470132 1975399	fdc-branded:consensus
+172772	Buttermilk Pancake Mix	soy	split	57	41	638870 1470132 1975399	fdc-branded:consensus
+169055	Caesar Dressing	wheat	split	194	51	410972 499806 1822648	fdc-branded:consensus
+169055	Caesar Dressing	gluten	split	194	51	410972 499806 1822648	fdc-branded:consensus
+169055	Caesar Dressing	milk	usually	194	161	382331 386164 410972	fdc-branded:consensus
+169055	Caesar Dressing	egg	usually	194	148	382331 386164 410972	fdc-branded:consensus
+169055	Caesar Dressing	soy	usually	194	165	382331 386164 410972	fdc-branded:consensus
+169055	Caesar Dressing	fish	split	194	127	382331 386164 410972	fdc-branded:consensus
+172704	Cake, pound, commercially prepared, butter (includes fresh and frozen)	wheat	usually	11	11	1889920 1889949 1898669	fdc-branded:consensus
+172704	Cake, pound, commercially prepared, butter (includes fresh and frozen)	gluten	usually	11	11	1889920 1889949 1898669	fdc-branded:consensus
+172704	Cake, pound, commercially prepared, butter (includes fresh and frozen)	milk	usually	11	11	1889920 1889949 1898669	fdc-branded:consensus
+172704	Cake, pound, commercially prepared, butter (includes fresh and frozen)	egg	usually	11	11	1889920 1889949 1898669	fdc-branded:consensus
+172704	Cake, pound, commercially prepared, butter (includes fresh and frozen)	soy	usually	11	11	1889920 1889949 1898669	fdc-branded:consensus
+171538	Canned Beef Bouillon	gluten	split	20	5	2029310 2288578 2566517	fdc-branded:consensus
+171538	Canned Beef Bouillon	soy	split	20	10	1613212 1617966 1897809	fdc-branded:consensus
+171538	Canned Beef Bouillon	sulfite	split	20	7	1613212 2025398 2080546	fdc-branded:consensus
+171976	Canned Clams	shellfish	usually	45	45	1855086 1859513 1859629	fdc-branded:consensus
+169216	Canned Corn	milk	split	926	145	536991 541383 588519	fdc-branded:consensus
+169216	Canned Corn	soy	split	926	119	388340 541383 546329	fdc-branded:consensus
+175121	Canned Mackerel	soy	split	42	5	510940 1893347 2029679	fdc-branded:consensus
+175121	Canned Mackerel	fish	usually	42	42	510940 523236 1766605	fdc-branded:consensus
+171981	Canned Oysters	shellfish	usually	12	12	2028278 2109060 2194556	fdc-branded:consensus
+173690	Canned Salmon	fish	usually	236	236	370193 466326 693104	fdc-branded:consensus
+171972	Canned Shrimp	wheat	split	149	19	1457190 1457387 1457543	fdc-branded:consensus
+171972	Canned Shrimp	gluten	split	149	19	1457190 1457387 1457543	fdc-branded:consensus
+171972	Canned Shrimp	soy	split	149	17	1457190 1457387 1457543	fdc-branded:consensus
+171972	Canned Shrimp	shellfish	usually	149	149	1167210 1167834 1457174	fdc-branded:consensus
+171972	Canned Shrimp	sulfite	split	149	79	1457181 1457354 1457360	fdc-branded:consensus
+168172	Canned Strawberries	wheat	split	66	10	1642958 1646540 1916360	fdc-branded:consensus
+168172	Canned Strawberries	gluten	split	66	10	1642958 1646540 1916360	fdc-branded:consensus
+172942	Canned Vienna Sausage	fish	split	53	6	357928 1502883 2016468	fdc-branded:consensus
+169701	Canned White Hominy	sulfite	usually	40	39	2016805 2017015 2023611	fdc-branded:consensus
+175158	Canned White Tuna In Water	soy	split	174	29	357716 1849767 1853287	fdc-branded:consensus
+175158	Canned White Tuna In Water	fish	usually	174	173	357716 371594 390959	fdc-branded:consensus
+167974	Caramel	wheat	split	197	56	518399 1878449 1881521	fdc-branded:consensus
+167974	Caramel	gluten	split	197	58	518399 1727774 1878449	fdc-branded:consensus
+167974	Caramel	milk	usually	197	192	518399 1592760 1592973	fdc-branded:consensus
+167974	Caramel	soy	usually	197	165	1592760 1592973 1642948	fdc-branded:consensus
+168841	Caramel Topping	gluten	split	18	2	2716691 2740031	fdc-branded:consensus
+168841	Caramel Topping	milk	usually	18	18	1459728 1627964 1628010	fdc-branded:consensus
+168841	Caramel Topping	soy	split	18	9	1459728 1627964 1628010	fdc-branded:consensus
+171646	Cereals ready-to-eat, granola, homemade	gluten	usually	50	49	409997 1066583 1066585	fdc-branded:consensus
+171191	Cheese Sauce	milk	usually	64	60	468098 1592654 1630398	fdc-branded:consensus
+171191	Cheese Sauce	soy	usually	64	51	468098 1630398 1805552	fdc-branded:consensus
+168771	Chewing gum	soy	split	83	33	504476 533716 598116	fdc-branded:consensus
+171563	Chicken Bouillon Cubes	wheat	split	30	6	708836 1997995 2008184	fdc-branded:consensus
+171563	Chicken Bouillon Cubes	gluten	split	30	7	708836 1997995 2008184	fdc-branded:consensus
+171563	Chicken Bouillon Cubes	soy	split	30	10	708836 1997995 2008184	fdc-branded:consensus
+169065	Chili Beans	wheat	split	129	31	596736 1135103 1656632	fdc-branded:consensus
+169065	Chili Beans	gluten	split	129	33	596736 1135103 1656632	fdc-branded:consensus
+169065	Chili Beans	soy	usually	129	99	596736 736596 1135103	fdc-branded:consensus
+173476	Chili Seasoning Mix	wheat	split	90	61	592722 627960 1175497	fdc-branded:consensus
+173476	Chili Seasoning Mix	gluten	split	90	61	592722 627960 1175497	fdc-branded:consensus
+172697	Chocolate Cake	wheat	usually	162	154	453443 505666 549076	fdc-branded:consensus
+172697	Chocolate Cake	gluten	usually	162	154	453443 505666 549076	fdc-branded:consensus
+172697	Chocolate Cake	milk	usually	162	151	453443 505666 549076	fdc-branded:consensus
+172697	Chocolate Cake	egg	usually	162	154	453443 505666 549076	fdc-branded:consensus
+172697	Chocolate Cake	soy	usually	162	150	453443 505666 549076	fdc-branded:consensus
+174935	Chocolate Cake Mix	wheat	split	69	44	570120 571228 1628171	fdc-branded:consensus
+174935	Chocolate Cake Mix	gluten	split	69	41	570120 571228 1628171	fdc-branded:consensus
+174935	Chocolate Cake Mix	milk	split	69	16	571228 1898941 1918016	fdc-branded:consensus
+174935	Chocolate Cake Mix	egg	split	69	12	571228 1898941 1946418	fdc-branded:consensus
+174935	Chocolate Cake Mix	soy	split	69	28	570120 571228 694796	fdc-branded:consensus
+174935	Chocolate Cake Mix	treenut	split	69	10	2037908 2171897 2171898	fdc-branded:consensus
+168795	Chocolate Frosting	wheat	split	50	14	1541873 1861465 1906768	fdc-branded:consensus
+168795	Chocolate Frosting	gluten	split	50	14	1541873 1861465 1906768	fdc-branded:consensus
+168795	Chocolate Frosting	milk	split	50	16	1541873 1861465 1906768	fdc-branded:consensus
+168795	Chocolate Frosting	soy	usually	50	42	1541873 1676494 1861465	fdc-branded:consensus
+168104	Chocolate Frozen Yogurt	milk	usually	42	39	1546185 1917609 1964220	fdc-branded:consensus
+167987	Chocolate Fudge	milk	usually	16	16	690752 958671 1770186	fdc-branded:consensus
+167987	Chocolate Fudge	soy	usually	16	13	690752 958671 1770186	fdc-branded:consensus
+168809	Chocolate Ice Cream	wheat	split	573	69	1042115 1860171 1870774	fdc-branded:consensus
+168809	Chocolate Ice Cream	gluten	split	573	75	1042115 1860171 1870774	fdc-branded:consensus
+168809	Chocolate Ice Cream	milk	usually	573	573	450195 598436 775780	fdc-branded:consensus
+168809	Chocolate Ice Cream	egg	split	573	121	598436 1680382 1891880	fdc-branded:consensus
+168809	Chocolate Ice Cream	soy	split	573	189	775780 1042115 1546182	fdc-branded:consensus
+174117	Chocolate Sauce	milk	split	16	10	1860478 1860481 1865373	fdc-branded:consensus
+174117	Chocolate Sauce	soy	split	16	5	2014830 2025085 2025107	fdc-branded:consensus
+169580	Chocolate Truffles	milk	usually	398	379	384905 384913 416511	fdc-branded:consensus
+169580	Chocolate Truffles	soy	usually	398	377	384905 384913 416511	fdc-branded:consensus
+171145	Chunky Chicken Soup	wheat	usually	25	21	674486 1621811 1678467	fdc-branded:consensus
+171145	Chunky Chicken Soup	gluten	usually	25	21	674486 1621811 1678467	fdc-branded:consensus
+171145	Chunky Chicken Soup	egg	split	25	10	1678682 2008767 2016496	fdc-branded:consensus
+171145	Chunky Chicken Soup	soy	split	25	18	674486 1144858 1621811	fdc-branded:consensus
+171145	Chunky Chicken Soup	sesame	split	25	4	2016496 2020725 2124526	fdc-branded:consensus
+171977	Clam Juice	shellfish	usually	12	11	1908766 2077346 2083628	fdc-branded:consensus
+174067	Cocktail Sauce	soy	split	132	91	540390 1131563 1471459	fdc-branded:consensus
+174067	Cocktail Sauce	fish	split	132	41	540390 1628061 1860407	fdc-branded:consensus
+170173	Coconut Milk	sulfite	split	247	74	493842 497291 1163429	fdc-branded:consensus
+171146	Condensed Cream Of Chicken Soup	wheat	usually	113	109	485750 560516 597034	fdc-branded:consensus
+171146	Condensed Cream Of Chicken Soup	gluten	usually	113	109	485750 560516 597034	fdc-branded:consensus
+171146	Condensed Cream Of Chicken Soup	milk	usually	113	113	485750 560516 597034	fdc-branded:consensus
+171146	Condensed Cream Of Chicken Soup	soy	usually	113	112	485750 560516 597034	fdc-branded:consensus
+171275	Condensed Milk	milk	usually	109	109	365332 379512 508611	fdc-branded:consensus
+171155	Condensed Mushroom Soup	wheat	usually	142	134	485921 596954 597011	fdc-branded:consensus
+171155	Condensed Mushroom Soup	gluten	usually	142	135	485921 596954 597011	fdc-branded:consensus
+171155	Condensed Mushroom Soup	milk	usually	142	139	485921 596954 597011	fdc-branded:consensus
+171155	Condensed Mushroom Soup	soy	usually	142	135	485921 596954 597011	fdc-branded:consensus
+172882	Condensed Tomato Soup	wheat	usually	102	95	486011 597018 597122	fdc-branded:consensus
+172882	Condensed Tomato Soup	gluten	usually	102	95	486011 597018 597122	fdc-branded:consensus
+172882	Condensed Tomato Soup	milk	split	102	24	598213 1624831 1680020	fdc-branded:consensus
+172882	Condensed Tomato Soup	soy	split	102	26	1627059 1679601 1863466	fdc-branded:consensus
+173905	Cooked Oatmeal	gluten	usually	151	124	370677 370680 370689	fdc-branded:consensus
+173905	Cooked Oatmeal	milk	split	151	23	398378 453832 1868620	fdc-branded:consensus
+173905	Cooked Oatmeal	treenut	split	151	50	1852263 1857184 1868620	fdc-branded:consensus
+332864	Cooked Pork Chorizo	soy	split	19	12	1851848 1922640 1931050	fdc-branded:consensus
+172713	Cookies, brownies, commercially prepared	wheat	usually	38	33	430665 474716 549344	fdc-branded:consensus
+172713	Cookies, brownies, commercially prepared	gluten	usually	38	31	430665 474716 549344	fdc-branded:consensus
+172713	Cookies, brownies, commercially prepared	milk	usually	38	32	430665 474716 549344	fdc-branded:consensus
+172713	Cookies, brownies, commercially prepared	egg	usually	38	31	430665 474716 549344	fdc-branded:consensus
+172713	Cookies, brownies, commercially prepared	soy	split	38	26	430665 474716 549344	fdc-branded:consensus
+172713	Cookies, brownies, commercially prepared	treenut	split	38	8	430665 2038825 2295051	fdc-branded:consensus
+174950	Cookies, butter, commercially prepared, enriched	wheat	usually	291	248	397024 487132 499941	fdc-branded:consensus
+174950	Cookies, butter, commercially prepared, enriched	gluten	usually	291	272	397024 487132 499941	fdc-branded:consensus
+174950	Cookies, butter, commercially prepared, enriched	milk	usually	291	223	487132 504513 504752	fdc-branded:consensus
+174950	Cookies, butter, commercially prepared, enriched	egg	split	291	127	499941 588060 634722	fdc-branded:consensus
+174950	Cookies, butter, commercially prepared, enriched	soy	split	291	191	397024 499941 504513	fdc-branded:consensus
+174950	Cookies, butter, commercially prepared, enriched	peanut	split	291	148	397024 504513 504752	fdc-branded:consensus
+172819	Cookies, butter, commercially prepared, unenriched	wheat	usually	291	248	397024 487132 499941	fdc-branded:consensus
+172819	Cookies, butter, commercially prepared, unenriched	gluten	usually	291	272	397024 487132 499941	fdc-branded:consensus
+172819	Cookies, butter, commercially prepared, unenriched	milk	usually	291	223	487132 504513 504752	fdc-branded:consensus
+172819	Cookies, butter, commercially prepared, unenriched	egg	split	291	127	499941 588060 634722	fdc-branded:consensus
+172819	Cookies, butter, commercially prepared, unenriched	soy	split	291	191	397024 499941 504513	fdc-branded:consensus
+172819	Cookies, butter, commercially prepared, unenriched	peanut	split	291	148	397024 504513 504752	fdc-branded:consensus
+172808	Cookies, chocolate chip, prepared from recipe, made with butter	wheat	usually	714	628	379565 422381 429873	fdc-branded:consensus
+172808	Cookies, chocolate chip, prepared from recipe, made with butter	gluten	usually	714	612	379565 422381 429873	fdc-branded:consensus
+172808	Cookies, chocolate chip, prepared from recipe, made with butter	soy	usually	714	620	379565 422381 427567	fdc-branded:consensus
+174955	Cookies, chocolate chip, prepared from recipe, made with margarine	wheat	usually	711	628	379565 422381 429873	fdc-branded:consensus
+174955	Cookies, chocolate chip, prepared from recipe, made with margarine	gluten	usually	711	611	379565 422381 429873	fdc-branded:consensus
+174955	Cookies, chocolate chip, prepared from recipe, made with margarine	soy	usually	711	619	379565 422381 427567	fdc-branded:consensus
+174096	Cookies, chocolate, made with rice cereal	wheat	usually	508	439	425207 429183 509749	fdc-branded:consensus
+174096	Cookies, chocolate, made with rice cereal	gluten	usually	508	437	425207 429183 509749	fdc-branded:consensus
+174096	Cookies, chocolate, made with rice cereal	milk	split	508	357	425207 429183 509749	fdc-branded:consensus
+174096	Cookies, chocolate, made with rice cereal	egg	split	508	274	425207 429183 509749	fdc-branded:consensus
+174096	Cookies, chocolate, made with rice cereal	soy	usually	508	408	429183 509749 517497	fdc-branded:consensus
+174096	Cookies, chocolate, made with rice cereal	treenut	split	508	65	429183 1499346 1849720	fdc-branded:consensus
+172722	Cookies, fortune	wheat	usually	12	12	1853592 1854319 1876454	fdc-branded:consensus
+172722	Cookies, fortune	gluten	usually	12	12	1853592 1854319 1876454	fdc-branded:consensus
+172722	Cookies, fortune	milk	split	12	4	1876454 2041400 2045167	fdc-branded:consensus
+172722	Cookies, fortune	egg	split	12	8	1854319 1876454 2032134	fdc-branded:consensus
+172722	Cookies, fortune	soy	usually	12	11	1853592 1854319 1876454	fdc-branded:consensus
+172725	Cookies, oatmeal, commercially prepared, regular	wheat	usually	158	151	1046997 1046999 1060439	fdc-branded:consensus
+172725	Cookies, oatmeal, commercially prepared, regular	gluten	usually	158	154	1046997 1046999 1060439	fdc-branded:consensus
+172725	Cookies, oatmeal, commercially prepared, regular	milk	split	158	83	1526460 1530851 1616426	fdc-branded:consensus
+172725	Cookies, oatmeal, commercially prepared, regular	egg	split	158	94	1526460 1530851 1616426	fdc-branded:consensus
+172725	Cookies, oatmeal, commercially prepared, regular	soy	usually	158	119	1046997 1046999 1060439	fdc-branded:consensus
+172807	Cookies, oatmeal, prepared from recipe, without raisins	wheat	usually	246	230	420963 423770 471917	fdc-branded:consensus
+172807	Cookies, oatmeal, prepared from recipe, without raisins	gluten	usually	246	241	420963 423770 471917	fdc-branded:consensus
+174965	Cookies, peanut butter sandwich, regular	wheat	usually	25	25	397024 1657210 1662141	fdc-branded:consensus
+174965	Cookies, peanut butter sandwich, regular	gluten	usually	25	25	397024 1657210 1662141	fdc-branded:consensus
+174965	Cookies, peanut butter sandwich, regular	milk	split	25	4	1662141 2535848 2603471	fdc-branded:consensus
+174965	Cookies, peanut butter sandwich, regular	soy	usually	25	25	397024 1657210 1662141	fdc-branded:consensus
+174965	Cookies, peanut butter sandwich, regular	peanut	usually	25	25	397024 1657210 1662141	fdc-branded:consensus
+172727	Cookies, peanut butter, commercially prepared, regular	wheat	split	148	108	397024 774356 1508668	fdc-branded:consensus
+172727	Cookies, peanut butter, commercially prepared, regular	gluten	usually	148	133	397024 504513 504752	fdc-branded:consensus
+172727	Cookies, peanut butter, commercially prepared, regular	milk	split	148	91	504513 504752 774356	fdc-branded:consensus
+172727	Cookies, peanut butter, commercially prepared, regular	egg	split	148	75	774356 1508668 1526743	fdc-branded:consensus
+172727	Cookies, peanut butter, commercially prepared, regular	soy	usually	148	113	397024 504513 504752	fdc-branded:consensus
+172727	Cookies, peanut butter, commercially prepared, regular	peanut	usually	148	147	397024 504513 504752	fdc-branded:consensus
+174964	Cookies, peanut butter, prepared from recipe	gluten	usually	148	133	397024 504513 504752	fdc-branded:consensus
+174964	Cookies, peanut butter, prepared from recipe	soy	usually	148	113	397024 504513 504752	fdc-branded:consensus
+174964	Cookies, peanut butter, prepared from recipe	peanut	usually	148	147	397024 504513 504752	fdc-branded:consensus
+174968	Cookies, shortbread, commercially prepared, pecan	wheat	usually	46	44	832722 1123175 1518929	fdc-branded:consensus
+174968	Cookies, shortbread, commercially prepared, pecan	gluten	usually	46	44	832722 1123175 1518929	fdc-branded:consensus
+174968	Cookies, shortbread, commercially prepared, pecan	milk	split	46	25	1725082 1909091 1950674	fdc-branded:consensus
+174968	Cookies, shortbread, commercially prepared, pecan	egg	split	46	33	832722 1123175 1518929	fdc-branded:consensus
+174968	Cookies, shortbread, commercially prepared, pecan	soy	usually	46	41	832722 1123175 1518929	fdc-branded:consensus
+174968	Cookies, shortbread, commercially prepared, pecan	treenut	usually	46	46	832722 1123175 1518929	fdc-branded:consensus
+174971	Cookies, sugar, commercially prepared, regular (includes vanilla)	wheat	usually	461	451	417464 474719 475105	fdc-branded:consensus
+174971	Cookies, sugar, commercially prepared, regular (includes vanilla)	gluten	usually	461	449	417464 474719 475105	fdc-branded:consensus
+174971	Cookies, sugar, commercially prepared, regular (includes vanilla)	milk	usually	461	377	417464 474719 475105	fdc-branded:consensus
+174971	Cookies, sugar, commercially prepared, regular (includes vanilla)	egg	usually	461	396	417464 474719 475105	fdc-branded:consensus
+174971	Cookies, sugar, commercially prepared, regular (includes vanilla)	soy	usually	461	379	417464 474719 475105	fdc-branded:consensus
+168857	Corn Cake	wheat	split	17	3	1851510 2440661 2630015	fdc-branded:consensus
+168857	Corn Cake	gluten	split	17	3	1851510 2440661 2630015	fdc-branded:consensus
+168857	Corn Cake	milk	split	17	8	1790387 1851510 1926306	fdc-branded:consensus
+168857	Corn Cake	egg	split	17	3	1790387 1851510 2630015	fdc-branded:consensus
+168857	Corn Cake	soy	split	17	7	1851510 1926306 2440661	fdc-branded:consensus
+175003	Corn Muffins From Mix	wheat	usually	25	24	1611741 1639035 1866246	fdc-branded:consensus
+175003	Corn Muffins From Mix	gluten	usually	25	24	1611741 1639035 1866246	fdc-branded:consensus
+175003	Corn Muffins From Mix	milk	split	25	4	1911512 1963004 2271642	fdc-branded:consensus
+175003	Corn Muffins From Mix	soy	split	25	16	1611741 1639035 1866246	fdc-branded:consensus
+175036	Corn Tortillas	wheat	split	239	89	1671771 1792254 1858974	fdc-branded:consensus
+175036	Corn Tortillas	gluten	split	239	89	1671771 1792254 1858974	fdc-branded:consensus
+-	Crackers	wheat	usually	1254	1146	357657 357663 359367	fdc-branded:consensus
+-	Crackers	gluten	usually	1254	1147	357657 357663 359367	fdc-branded:consensus
+-	Crackers	milk	split	1254	237	359367 453976 506095	fdc-branded:consensus
+-	Crackers	soy	split	1254	689	357657 357663 359367	fdc-branded:consensus
+-	Crackers	sulfite	split	1254	301	357663 411463 564394	fdc-branded:consensus
+175060	Crackers, cheese, low sodium	wheat	usually	89	80	588265 1063525 1466151	fdc-branded:consensus
+175060	Crackers, cheese, low sodium	gluten	usually	89	81	588265 1063525 1466151	fdc-branded:consensus
+175060	Crackers, cheese, low sodium	milk	usually	89	86	576059 588265 1063525	fdc-branded:consensus
+175060	Crackers, cheese, low sodium	soy	split	89	50	576059 588265 1063525	fdc-branded:consensus
+174975	Crackers, cheese, regular	wheat	usually	89	80	588265 1063525 1466151	fdc-branded:consensus
+174975	Crackers, cheese, regular	gluten	usually	89	81	588265 1063525 1466151	fdc-branded:consensus
+174975	Crackers, cheese, regular	milk	usually	89	86	576059 588265 1063525	fdc-branded:consensus
+174975	Crackers, cheese, regular	soy	split	89	50	576059 588265 1063525	fdc-branded:consensus
+171838	Crackers, multigrain	wheat	usually	33	33	1431447 1853747 1885222	fdc-branded:consensus
+171838	Crackers, multigrain	gluten	usually	33	33	1431447 1853747 1885222	fdc-branded:consensus
+171838	Crackers, multigrain	milk	split	33	6	1431447 1929797 2010015	fdc-branded:consensus
+171838	Crackers, multigrain	soy	split	33	12	1431447 1853747 1885222	fdc-branded:consensus
+171838	Crackers, multigrain	sesame	split	33	12	1899558 1899559 1955384	fdc-branded:consensus
+171838	Crackers, multigrain	sulfite	split	33	9	1431447 1853747 1885222	fdc-branded:consensus
+167934	Crackers, wheat, reduced fat	wheat	usually	10	10	1539255 2056227 2056750	fdc-branded:consensus
+167934	Crackers, wheat, reduced fat	gluten	usually	10	10	1539255 2056227 2056750	fdc-branded:consensus
+167934	Crackers, wheat, reduced fat	soy	usually	10	9	1539255 2056227 2056750	fdc-branded:consensus
+167934	Crackers, wheat, reduced fat	sulfite	split	10	5	2056750 2255085 2447660	fdc-branded:consensus
+174985	Crackers, wheat, regular	wheat	usually	207	207	359998 428867 453938	fdc-branded:consensus
+174985	Crackers, wheat, regular	gluten	usually	207	207	359998 428867 453938	fdc-branded:consensus
+174985	Crackers, wheat, regular	milk	split	207	25	428867 495617 673166	fdc-branded:consensus
+174985	Crackers, wheat, regular	soy	split	207	126	359998 428867 453938	fdc-branded:consensus
+174985	Crackers, wheat, regular	sulfite	split	207	64	495617 673166 1467640	fdc-branded:consensus
+172749	Crackers, whole-wheat	wheat	usually	33	33	539116 1537876 1539254	fdc-branded:consensus
+172749	Crackers, whole-wheat	gluten	usually	33	33	539116 1537876 1539254	fdc-branded:consensus
+172749	Crackers, whole-wheat	soy	usually	33	30	1537876 1539254 1539255	fdc-branded:consensus
+169619	Cream Cheese Frosting	wheat	split	24	9	1142964 1854023 1886224	fdc-branded:consensus
+169619	Cream Cheese Frosting	gluten	split	24	9	1142964 1854023 1886224	fdc-branded:consensus
+169619	Cream Cheese Frosting	milk	split	24	6	1860080 1914423 2038837	fdc-branded:consensus
+169619	Cream Cheese Frosting	soy	usually	24	21	1142964 1676482 1854023	fdc-branded:consensus
+169081	Cream Cheese Spread	milk	usually	435	425	373611 411998 442162	fdc-branded:consensus
+167684	Creamy dressing, made with sour cream and/or buttermilk and oil, reduced calorie	wheat	split	190	37	1593125 1625397 1872348	fdc-branded:consensus
+167684	Creamy dressing, made with sour cream and/or buttermilk and oil, reduced calorie	gluten	split	190	37	1593125 1625397 1872348	fdc-branded:consensus
+167684	Creamy dressing, made with sour cream and/or buttermilk and oil, reduced calorie	milk	split	190	131	386164 496699 500232	fdc-branded:consensus
+167684	Creamy dressing, made with sour cream and/or buttermilk and oil, reduced calorie	egg	split	190	111	386164 496699 500232	fdc-branded:consensus
+167684	Creamy dressing, made with sour cream and/or buttermilk and oil, reduced calorie	soy	usually	190	162	386164 496699 500232	fdc-branded:consensus
+167684	Creamy dressing, made with sour cream and/or buttermilk and oil, reduced calorie	fish	split	190	35	386164 738094 1892420	fdc-branded:consensus
+172751	Croutons	wheat	usually	200	192	493628 561582 721620	fdc-branded:consensus
+172751	Croutons	gluten	usually	200	192	493628 561582 721620	fdc-branded:consensus
+172751	Croutons	milk	usually	200	160	493628 721620 1467231	fdc-branded:consensus
+172751	Croutons	soy	split	200	45	493628 1467233 1869780	fdc-branded:consensus
+170273	Dark Chocolate	milk	split	837	340	539895 733454 826256	fdc-branded:consensus
+170273	Dark Chocolate	soy	split	837	560	367585 392883 403349	fdc-branded:consensus
+170273	Dark Chocolate	treenut	split	837	138	562223 719074 734488	fdc-branded:consensus
+-	Dark Chocolate Chips	milk	split	16	3	2600768 2611659 2627358	fdc-branded:consensus
+-	Dark Chocolate Chips	soy	split	16	6	2032181 2180075 2600768	fdc-branded:consensus
+167523	Deep Dish Pie Crust	wheat	usually	19	19	1668773 1821401 1971397	fdc-branded:consensus
+167523	Deep Dish Pie Crust	gluten	usually	19	19	1668773 1821401 1971397	fdc-branded:consensus
+167523	Deep Dish Pie Crust	soy	split	19	10	1971397 1994454 2038354	fdc-branded:consensus
+167523	Deep Dish Pie Crust	sulfite	split	19	12	1668773 1821401 1971397	fdc-branded:consensus
+172793	Dinner Roll	wheat	usually	173	166	465034 550893 1617231	fdc-branded:consensus
+172793	Dinner Roll	gluten	usually	173	165	465034 550893 1617231	fdc-branded:consensus
+172793	Dinner Roll	milk	split	173	38	1867986 1894898 1894923	fdc-branded:consensus
+172793	Dinner Roll	egg	split	173	27	465034 550893 1917606	fdc-branded:consensus
+172793	Dinner Roll	soy	split	173	122	465034 550893 1851433	fdc-branded:consensus
+171691	Dried Apples	sulfite	split	11	5	1920565 2084923 2117762	fdc-branded:consensus
+173941	Dried Apricots	sulfite	usually	108	82	493530 728360 1150691	fdc-branded:consensus
+326905	Dried Figs	sulfite	split	28	4	1978507 2091497 2398483	fdc-branded:consensus
+169091	Dried Mango	sulfite	split	79	37	539492 582484 1886082	fdc-branded:consensus
+168436	Dried Shiitake Mushrooms	sulfite	split	12	4	1953971 2285474 2542768	fdc-branded:consensus
+174122	Dry Hot Cocoa Mix	milk	usually	30	29	2563830 2568953 2568954	fdc-branded:consensus
+174122	Dry Hot Cocoa Mix	soy	split	30	7	2568953 2568954 2568956	fdc-branded:consensus
+175063	English Muffins	wheat	usually	310	305	449309 506135 513982	fdc-branded:consensus
+175063	English Muffins	gluten	usually	310	303	449309 506135 513982	fdc-branded:consensus
+175063	English Muffins	milk	split	310	92	449309 506135 1856170	fdc-branded:consensus
+175063	English Muffins	soy	usually	310	273	449309 506135 1121980	fdc-branded:consensus
+173238	English muffins, plain, unenriched, without calcium propionate (includes sourdough)	wheat	usually	21	21	1565681 1639048 1888186	fdc-branded:consensus
+173238	English muffins, plain, unenriched, without calcium propionate (includes sourdough)	gluten	usually	21	21	1565681 1639048 1888186	fdc-branded:consensus
+173238	English muffins, plain, unenriched, without calcium propionate (includes sourdough)	milk	split	21	4	1973419 2391304 2391716	fdc-branded:consensus
+173238	English muffins, plain, unenriched, without calcium propionate (includes sourdough)	soy	usually	21	18	1565681 1639048 1888186	fdc-branded:consensus
+173022	Figs, canned, water pack, solids and liquids	sulfite	split	30	8	1888235 1888240 2031047	fdc-branded:consensus
+174665	Figs, dried, uncooked	sulfite	split	28	4	1978507 2091497 2398483	fdc-branded:consensus
+172475	Firm Tofu	soy	usually	57	56	958277 1810172 1863093	fdc-branded:consensus
+174531	Fish Sauce	egg	split	27	3	1895265 1928260 2671918	fdc-branded:consensus
+174531	Fish Sauce	soy	split	27	5	1895265 1928260 2377369	fdc-branded:consensus
+174531	Fish Sauce	fish	split	27	19	371215 500170 1142912	fdc-branded:consensus
+167535	Flour Tortillas	wheat	usually	509	497	402630 459998 492868	fdc-branded:consensus
+167535	Flour Tortillas	gluten	usually	509	496	402630 459998 492868	fdc-branded:consensus
+167535	Flour Tortillas	soy	usually	509	412	459998 492868 493847	fdc-branded:consensus
+167535	Flour Tortillas	sulfite	split	509	209	512254 1572705 1572711	fdc-branded:consensus
+168131	Frankfurter, low sodium	milk	split	34	7	2018272 2018276 2097882	fdc-branded:consensus
+168131	Frankfurter, low sodium	soy	split	34	6	2060810 2114256 2143120	fdc-branded:consensus
+174615	Frankfurters	milk	split	34	7	2018272 2018276 2097882	fdc-branded:consensus
+174615	Frankfurters	soy	split	34	6	2060810 2114256 2143120	fdc-branded:consensus
+171414	French Dressing	wheat	split	152	21	1586781 1872348 1895404	fdc-branded:consensus
+171414	French Dressing	gluten	split	152	21	1586781 1872348 1895404	fdc-branded:consensus
+171414	French Dressing	milk	split	152	31	597145 1853887 1872882	fdc-branded:consensus
+171414	French Dressing	soy	usually	152	139	414492 597009 597145	fdc-branded:consensus
+172795	French Rolls	wheat	usually	50	48	1503620 1617231 1893333	fdc-branded:consensus
+172795	French Rolls	gluten	usually	50	48	1503620 1617231 1893333	fdc-branded:consensus
+172795	French Rolls	soy	split	50	32	1503620 1893333 1940338	fdc-branded:consensus
+-	Fresh Mozzarella	milk	usually	30	30	357077 521666 1664211	fdc-branded:consensus
+174304	Fried Tofu	soy	usually	121	117	395850 958277 1118973	fdc-branded:consensus
+170414	Frozen Onion Rings	wheat	split	101	52	1154573 1385587 1613885	fdc-branded:consensus
+170414	Frozen Onion Rings	gluten	split	101	53	1154573 1385587 1613885	fdc-branded:consensus
+170414	Frozen Onion Rings	milk	split	101	71	737006 737010 1043037	fdc-branded:consensus
+170414	Frozen Onion Rings	soy	usually	101	85	737006 737010 1043037	fdc-branded:consensus
+167939	Garlic bread, frozen	wheat	usually	98	98	442858 529530 589479	fdc-branded:consensus
+167939	Garlic bread, frozen	gluten	usually	98	98	442858 529530 589479	fdc-branded:consensus
+167939	Garlic bread, frozen	milk	usually	98	76	442858 529530 1666109	fdc-branded:consensus
+167939	Garlic bread, frozen	soy	usually	98	74	442858 529530 1666109	fdc-branded:consensus
+172811	Graham Cracker Crust	wheat	usually	41	41	592790 1499078 1636424	fdc-branded:consensus
+172811	Graham Cracker Crust	gluten	usually	41	41	592790 1499078 1636424	fdc-branded:consensus
+172811	Graham Cracker Crust	soy	usually	41	39	592790 1499078 1636424	fdc-branded:consensus
+174957	Graham Crackers	wheat	usually	181	170	357663 506095 524380	fdc-branded:consensus
+174957	Graham Crackers	gluten	usually	181	171	357663 506095 524380	fdc-branded:consensus
+174957	Graham Crackers	milk	split	181	25	506095 1882963 1911659	fdc-branded:consensus
+174957	Graham Crackers	soy	usually	181	146	357663 506095 524380	fdc-branded:consensus
+174957	Graham Crackers	sulfite	split	181	94	357663 894142 1723191	fdc-branded:consensus
+-	Granola	gluten	split	494	341	370671 370673 370681	fdc-branded:consensus
+-	Granola	soy	split	494	67	370671 370673 370681	fdc-branded:consensus
+-	Granola	treenut	split	494	287	370681 410004 445330	fdc-branded:consensus
+-	Granola	sesame	split	494	72	532587 588775 1767436	fdc-branded:consensus
+173041	Grape Juice	sulfite	split	175	51	696054 1522258 1872707	fdc-branded:consensus
+169393	Grape leaves, canned	sulfite	split	15	8	458637 468371 2029750	fdc-branded:consensus
+171566	Gravy, chicken, canned or bottled, ready-to-serve	wheat	usually	61	56	595406 600196 1467908	fdc-branded:consensus
+171566	Gravy, chicken, canned or bottled, ready-to-serve	gluten	usually	61	56	595406 600196 1467908	fdc-branded:consensus
+171566	Gravy, chicken, canned or bottled, ready-to-serve	milk	usually	61	57	595406 600196 1467908	fdc-branded:consensus
+171566	Gravy, chicken, canned or bottled, ready-to-serve	egg	split	61	7	2012510 2064750 2099724	fdc-branded:consensus
+171566	Gravy, chicken, canned or bottled, ready-to-serve	soy	split	61	25	600196 1627143 1648608	fdc-branded:consensus
+171567	Gravy, chicken, dry	wheat	usually	61	56	595406 600196 1467908	fdc-branded:consensus
+171567	Gravy, chicken, dry	gluten	usually	61	56	595406 600196 1467908	fdc-branded:consensus
+171567	Gravy, chicken, dry	milk	usually	61	57	595406 600196 1467908	fdc-branded:consensus
+171567	Gravy, chicken, dry	egg	split	61	7	2012510 2064750 2099724	fdc-branded:consensus
+171567	Gravy, chicken, dry	soy	split	61	25	600196 1627143 1648608	fdc-branded:consensus
+171568	Gravy, turkey, canned, ready-to-serve	wheat	usually	85	75	595418 600192 1154815	fdc-branded:consensus
+171568	Gravy, turkey, canned, ready-to-serve	gluten	usually	85	75	595418 600192 1154815	fdc-branded:consensus
+171568	Gravy, turkey, canned, ready-to-serve	milk	split	85	50	595418 1154815 1679011	fdc-branded:consensus
+171568	Gravy, turkey, canned, ready-to-serve	soy	split	85	32	600192 1679011 1684031	fdc-branded:consensus
+171569	Gravy, turkey, dry	wheat	usually	85	75	595418 600192 1154815	fdc-branded:consensus
+171569	Gravy, turkey, dry	gluten	usually	85	75	595418 600192 1154815	fdc-branded:consensus
+171569	Gravy, turkey, dry	milk	split	85	50	595418 1154815 1679011	fdc-branded:consensus
+171569	Gravy, turkey, dry	soy	split	85	32	600192 1679011 1684031	fdc-branded:consensus
+-	Greek Yogurt	milk	usually	1640	1635	360742 373595 391387	fdc-branded:consensus
+171605	Green Chile Sauce	wheat	split	34	6	597682 1896229 2069056	fdc-branded:consensus
+171605	Green Chile Sauce	gluten	split	34	6	597682 1896229 2069056	fdc-branded:consensus
+171605	Green Chile Sauce	soy	split	34	18	468074 597682 1862933	fdc-branded:consensus
+169057	Green Goddess Dressing	wheat	split	10	3	2210912 2590069 2590090	fdc-branded:consensus
+169057	Green Goddess Dressing	gluten	split	10	3	2210912 2590069 2590090	fdc-branded:consensus
+169057	Green Goddess Dressing	milk	split	10	5	2149039 2210912 2548940	fdc-branded:consensus
+169057	Green Goddess Dressing	egg	split	10	6	2149039 2164097 2395685	fdc-branded:consensus
+169057	Green Goddess Dressing	soy	split	10	4	2210912 2388572 2548940	fdc-branded:consensus
+169057	Green Goddess Dressing	fish	split	10	2	2149039 2590090	fdc-branded:consensus
+172796	Hamburger Buns	wheat	usually	465	454	549346 571977 726842	fdc-branded:consensus
+172796	Hamburger Buns	gluten	usually	465	455	549346 571977 726842	fdc-branded:consensus
+172796	Hamburger Buns	milk	split	465	55	1931809 1984203 1996074	fdc-branded:consensus
+172796	Hamburger Buns	egg	split	465	53	1892856 1894404 1913537	fdc-branded:consensus
+172796	Hamburger Buns	soy	usually	465	415	549346 571977 726842	fdc-branded:consensus
+172796	Hamburger Buns	sesame	split	465	125	726842 1669550 1686808	fdc-branded:consensus
+167990	Hard Candy	milk	split	301	51	384883 1865385 1866135	fdc-branded:consensus
+167990	Hard Candy	soy	split	301	79	384883 533759 662938	fdc-branded:consensus
+172886	Hoisin Sauce	wheat	split	26	16	1928276 1941496 2012647	fdc-branded:consensus
+172886	Hoisin Sauce	gluten	split	26	16	1928276 1941496 2012647	fdc-branded:consensus
+172886	Hoisin Sauce	soy	usually	26	26	1928276 1934766 1941496	fdc-branded:consensus
+172886	Hoisin Sauce	sesame	usually	26	20	1928276 1934766 1941496	fdc-branded:consensus
+172200	Homemade Cheese Sauce	milk	usually	64	60	468098 1592654 1630398	fdc-branded:consensus
+172200	Homemade Cheese Sauce	soy	usually	64	51	468098 1630398 1805552	fdc-branded:consensus
+174910	Homemade Cornbread	wheat	usually	19	19	438729 453438 1125700	fdc-branded:consensus
+174910	Homemade Cornbread	gluten	usually	19	18	438729 453438 1125700	fdc-branded:consensus
+174910	Homemade Cornbread	milk	usually	19	19	438729 453438 1125700	fdc-branded:consensus
+174910	Homemade Cornbread	egg	usually	19	17	438729 453438 1125700	fdc-branded:consensus
+171416	Homemade French Dressing	soy	usually	152	139	414492 597009 597145	fdc-branded:consensus
+169752	Hominy	sulfite	split	32	15	1861411 1862341 2030083	fdc-branded:consensus
+171043	Honey Mustard Dressing	wheat	split	69	33	410975 1554496 1589303	fdc-branded:consensus
+171043	Honey Mustard Dressing	gluten	split	69	33	410975 1554496 1589303	fdc-branded:consensus
+171043	Honey Mustard Dressing	egg	usually	69	52	410975 1554496 1589303	fdc-branded:consensus
+171043	Honey Mustard Dressing	soy	usually	69	63	410975 1554496 1589303	fdc-branded:consensus
+173472	Horseradish	egg	split	66	12	1859162 1934695 2024345	fdc-branded:consensus
+173472	Horseradish	soy	split	66	24	1625906 1859162 1925732	fdc-branded:consensus
+173472	Horseradish	sulfite	split	66	20	1859162 1919008 1925732	fdc-branded:consensus
+171833	Horseradish Sauce	wheat	split	47	7	500109 710928 727838	fdc-branded:consensus
+171833	Horseradish Sauce	gluten	split	47	7	500109 710928 727838	fdc-branded:consensus
+171833	Horseradish Sauce	egg	usually	47	43	500109 710928 727838	fdc-branded:consensus
+171833	Horseradish Sauce	soy	usually	47	38	710928 727838 1123222	fdc-branded:consensus
+172454	Hummus	sesame	usually	408	391	359105 445479 453949	fdc-branded:consensus
+175001	Ice Cream Cones	wheat	usually	44	41	1850276 1858405 1869492	fdc-branded:consensus
+175001	Ice Cream Cones	gluten	usually	44	41	1850276 1858405 1869492	fdc-branded:consensus
+175001	Ice Cream Cones	milk	split	44	26	1850276 1858405 1869492	fdc-branded:consensus
+175001	Ice Cream Cones	soy	usually	44	40	642662 1850276 1858405	fdc-branded:consensus
+175001	Ice Cream Cones	peanut	split	44	15	1850276 1900164 1921446	fdc-branded:consensus
+167585	Ice creams, chocolate, light	milk	usually	57	57	1502853 1502892 1680382	fdc-branded:consensus
+167585	Ice creams, chocolate, light	egg	split	57	12	1680382 1926226 2124733	fdc-branded:consensus
+167585	Ice creams, chocolate, light	soy	split	57	14	2124733 2135813 2269344	fdc-branded:consensus
+168136	Ice creams, chocolate, rich	milk	usually	17	17	2115318 2161357 2163676	fdc-branded:consensus
+168136	Ice creams, chocolate, rich	egg	split	17	3	2161357 2163676 2665232	fdc-branded:consensus
+168136	Ice creams, chocolate, rich	soy	split	17	5	2577566 2614989 2620460	fdc-branded:consensus
+167572	Ice creams, vanilla, light	milk	usually	77	77	1680384 1918715 1921454	fdc-branded:consensus
+167572	Ice creams, vanilla, light	egg	split	77	17	1680384 1921454 1923192	fdc-branded:consensus
+167572	Ice creams, vanilla, light	soy	split	77	9	2030315 2122935 2467513	fdc-branded:consensus
+168779	Instant Chocolate Pudding	milk	split	14	6	591748 592742 597675	fdc-branded:consensus
+171661	Instant Oats	gluten	usually	10	10	2131322 2431497 2551930	fdc-branded:consensus
+174913	Italian Bread	wheat	usually	164	163	598432 694042 716516	fdc-branded:consensus
+174913	Italian Bread	gluten	usually	164	163	598432 694042 716516	fdc-branded:consensus
+174913	Italian Bread	soy	usually	164	125	716516 1786722 1792145	fdc-branded:consensus
+174913	Italian Bread	sesame	split	164	43	1786722 1796592 1886348	fdc-branded:consensus
+171019	Italian Dressing	milk	split	362	65	1601262 1711982 1861358	fdc-branded:consensus
+171019	Italian Dressing	soy	usually	362	319	495624 500826 597155	fdc-branded:consensus
+175031	Kaiser Rolls	wheat	usually	28	28	1779155 1892581 1902236	fdc-branded:consensus
+175031	Kaiser Rolls	gluten	usually	28	27	1779155 1892581 1902236	fdc-branded:consensus
+175031	Kaiser Rolls	egg	split	28	3	2269934 2585246 2633038	fdc-branded:consensus
+175031	Kaiser Rolls	soy	usually	28	26	1892581 1902236 2021279	fdc-branded:consensus
+175031	Kaiser Rolls	sesame	split	28	4	1892581 2021279 2479992	fdc-branded:consensus
+173879	Kielbasa	milk	split	63	7	2019992 2098746 2138535	fdc-branded:consensus
+173879	Kielbasa	soy	split	63	15	1160964 1956163 2074152	fdc-branded:consensus
+167748	Lemon Juice	sulfite	split	106	62	416729 1618579 1875596	fdc-branded:consensus
+173593	Light Ranch Dressing	milk	usually	41	41	597125 1115041 1115045	fdc-branded:consensus
+173593	Light Ranch Dressing	egg	usually	41	40	597125 1115041 1115045	fdc-branded:consensus
+173593	Light Ranch Dressing	soy	usually	41	41	597125 1115041 1115045	fdc-branded:consensus
+334194	Light Tuna	soy	split	329	85	357717 371597 399767	fdc-branded:consensus
+334194	Light Tuna	fish	usually	329	329	357717 371597 399767	fdc-branded:consensus
+171613	Low-Sodium Bouillon	gluten	split	58	10	2024066 2025258 2029310	fdc-branded:consensus
+171613	Low-Sodium Bouillon	milk	split	58	6	2009004 2024206 2040750	fdc-branded:consensus
+171613	Low-Sodium Bouillon	soy	split	58	15	1863846 1897502 2009004	fdc-branded:consensus
+171613	Low-Sodium Bouillon	sulfite	split	58	8	2025398 2148633 2173514	fdc-branded:consensus
+171597	Low-Sodium Pasta Sauce	milk	split	1457	432	403150 410995 467980	fdc-branded:consensus
+171597	Low-Sodium Pasta Sauce	soy	split	1457	553	356524 394408 403150	fdc-branded:consensus
+172473	Low-Sodium Soy Sauce	wheat	split	287	201	411434 492571 493591	fdc-branded:consensus
+172473	Low-Sodium Soy Sauce	gluten	split	287	201	411434 492571 493591	fdc-branded:consensus
+172473	Low-Sodium Soy Sauce	soy	usually	287	281	411434 492571 493591	fdc-branded:consensus
+171847	Macaroons	wheat	split	71	19	396350 430657 633978	fdc-branded:consensus
+171847	Macaroons	gluten	split	71	19	396350 430657 633978	fdc-branded:consensus
+171847	Macaroons	milk	split	71	14	1770725 1876763 1899688	fdc-branded:consensus
+171847	Macaroons	egg	usually	71	65	396350 430657 633978	fdc-branded:consensus
+171847	Macaroons	soy	split	71	26	396350 430657 633978	fdc-branded:consensus
+171847	Macaroons	treenut	split	71	18	430657 1899011 1912138	fdc-branded:consensus
+171847	Macaroons	sulfite	split	71	9	1876763 1979489 2044101	fdc-branded:consensus
+167766	Maraschino Cherries	sulfite	usually	124	111	393602 461443 597443	fdc-branded:consensus
+-	Marinara Sauce	milk	split	194	20	410992 1626397 1805884	fdc-branded:consensus
+169664	Marshmallow Cream	wheat	split	19	4	1898629 1900869 2136821	fdc-branded:consensus
+169664	Marshmallow Cream	gluten	split	19	4	1898629 1900869 2136821	fdc-branded:consensus
+169664	Marshmallow Cream	milk	usually	19	19	1898629 1900869 1960110	fdc-branded:consensus
+169664	Marshmallow Cream	egg	split	19	5	1898629 1900869 2561268	fdc-branded:consensus
+169664	Marshmallow Cream	soy	split	19	5	1898629 1900869 2136821	fdc-branded:consensus
+169664	Marshmallow Cream	peanut	split	19	4	1898629 2136821 2480781	fdc-branded:consensus
+170493	Mashed Potatoes	milk	usually	88	69	639470 639472 639486	fdc-branded:consensus
+171009	Mayonnaise	egg	usually	471	471	356442 385113 386163	fdc-branded:consensus
+171009	Mayonnaise	soy	usually	471	417	356442 385113 386163	fdc-branded:consensus
+168115	Mayonnaise, low sodium, low calorie or diet	egg	usually	471	471	356442 385113 386163	fdc-branded:consensus
+168115	Mayonnaise, low sodium, low calorie or diet	soy	usually	471	417	356442 385113 386163	fdc-branded:consensus
+171638	Meatballs	wheat	usually	124	96	742262 1066823 1614148	fdc-branded:consensus
+171638	Meatballs	gluten	usually	124	96	742262 1066823 1614148	fdc-branded:consensus
+171638	Meatballs	milk	split	124	92	462076 742262 1066823	fdc-branded:consensus
+171638	Meatballs	egg	split	124	39	1614148 1893920 1893967	fdc-branded:consensus
+171638	Meatballs	soy	usually	124	111	742262 1066823 1614148	fdc-branded:consensus
+169067	Meatless Meatballs	wheat	split	21	13	896460 1893707 1893711	fdc-branded:consensus
+169067	Meatless Meatballs	gluten	split	21	14	896460 1893707 1893711	fdc-branded:consensus
+169067	Meatless Meatballs	soy	split	21	15	700884 896460 1893707	fdc-branded:consensus
+174977	Melba Toast	wheat	usually	10	10	1854479 1894043 1913598	fdc-branded:consensus
+174977	Melba Toast	gluten	usually	10	10	1854479 1894043 1913598	fdc-branded:consensus
+174977	Melba Toast	soy	split	10	4	1894043 1913598 2412649	fdc-branded:consensus
+174977	Melba Toast	sesame	split	10	5	1854479 1913598 2463165	fdc-branded:consensus
+167587	Milk Chocolate	gluten	split	846	117	431642 517499 562209	fdc-branded:consensus
+167587	Milk Chocolate	milk	usually	846	830	400144 404826 418679	fdc-branded:consensus
+167587	Milk Chocolate	soy	usually	846	745	400144 404826 418679	fdc-branded:consensus
+167587	Milk Chocolate	treenut	split	846	149	429533 431642 538379	fdc-branded:consensus
+170878	Milk, canned, evaporated, nonfat, with added vitamin A and vitamin D	milk	usually	131	131	495774 495775 546556	fdc-branded:consensus
+171276	Milk, canned, evaporated, with added vitamin D and without added vitamin A	milk	usually	131	131	495774 495775 546556	fdc-branded:consensus
+172724	Molasses Cookies	wheat	usually	29	27	1530852 1858888 1918148	fdc-branded:consensus
+172724	Molasses Cookies	gluten	usually	29	26	1530852 1858888 1918148	fdc-branded:consensus
+172724	Molasses Cookies	milk	split	29	20	1530852 1858888 1918089	fdc-branded:consensus
+172724	Molasses Cookies	egg	usually	29	26	1530852 1858888 1918089	fdc-branded:consensus
+172724	Molasses Cookies	soy	usually	29	24	1530852 1858888 1918148	fdc-branded:consensus
+174573	Mortadella	milk	split	15	4	2061216 2143311 2580493	fdc-branded:consensus
+-	Mozzarella Cheese	milk	usually	1083	1080	380742 399345 400904	fdc-branded:consensus
+174997	Muffins, English, raisin-cinnamon (includes apple-cinnamon)	wheat	usually	17	17	1651297 1972041 2173310	fdc-branded:consensus
+174997	Muffins, English, raisin-cinnamon (includes apple-cinnamon)	gluten	usually	17	16	1651297 2173310 2190058	fdc-branded:consensus
+174997	Muffins, English, raisin-cinnamon (includes apple-cinnamon)	milk	split	17	7	2190058 2190260 2276164	fdc-branded:consensus
+174997	Muffins, English, raisin-cinnamon (includes apple-cinnamon)	soy	usually	17	17	1651297 1972041 2173310	fdc-branded:consensus
+172760	Muffins, English, raisin-cinnamon, toasted (includes apple-cinnamon)	wheat	usually	17	17	1651297 1972041 2173310	fdc-branded:consensus
+172760	Muffins, English, raisin-cinnamon, toasted (includes apple-cinnamon)	gluten	usually	17	16	1651297 2173310 2190058	fdc-branded:consensus
+172760	Muffins, English, raisin-cinnamon, toasted (includes apple-cinnamon)	milk	split	17	7	2190058 2190260 2276164	fdc-branded:consensus
+172760	Muffins, English, raisin-cinnamon, toasted (includes apple-cinnamon)	soy	usually	17	17	1651297 1972041 2173310	fdc-branded:consensus
+172761	Muffins, English, wheat	wheat	usually	35	35	449309 1080909 1649145	fdc-branded:consensus
+172761	Muffins, English, wheat	gluten	usually	35	35	449309 1080909 1649145	fdc-branded:consensus
+172761	Muffins, English, wheat	milk	split	35	10	449309 1972107 2052490	fdc-branded:consensus
+172761	Muffins, English, wheat	soy	usually	35	30	449309 1649145 1672037	fdc-branded:consensus
+172765	Muffins, blueberry, commercially prepared (Includes mini-muffins)	wheat	usually	129	114	475866 486062 732604	fdc-branded:consensus
+172765	Muffins, blueberry, commercially prepared (Includes mini-muffins)	gluten	usually	129	114	475866 486062 732604	fdc-branded:consensus
+172765	Muffins, blueberry, commercially prepared (Includes mini-muffins)	milk	usually	129	108	475866 486062 732604	fdc-branded:consensus
+172765	Muffins, blueberry, commercially prepared (Includes mini-muffins)	egg	usually	129	122	475866 486062 732604	fdc-branded:consensus
+172765	Muffins, blueberry, commercially prepared (Includes mini-muffins)	soy	usually	129	108	475866 486062 732604	fdc-branded:consensus
+172768	Muffins, blueberry, prepared from recipe, made with low fat (2%) milk	wheat	usually	130	115	475866 486062 732604	fdc-branded:consensus
+172768	Muffins, blueberry, prepared from recipe, made with low fat (2%) milk	gluten	usually	130	115	475866 486062 732604	fdc-branded:consensus
+172768	Muffins, blueberry, prepared from recipe, made with low fat (2%) milk	milk	usually	130	109	475866 486062 732604	fdc-branded:consensus
+172768	Muffins, blueberry, prepared from recipe, made with low fat (2%) milk	egg	usually	130	123	475866 486062 732604	fdc-branded:consensus
+172768	Muffins, blueberry, prepared from recipe, made with low fat (2%) milk	soy	usually	130	109	475866 486062 732604	fdc-branded:consensus
+175002	Muffins, corn, commercially prepared	wheat	usually	23	23	522577 1891524 1932435	fdc-branded:consensus
+175002	Muffins, corn, commercially prepared	gluten	usually	23	23	522577 1891524 1932435	fdc-branded:consensus
+175002	Muffins, corn, commercially prepared	milk	usually	23	22	522577 1891524 1932435	fdc-branded:consensus
+175002	Muffins, corn, commercially prepared	egg	usually	23	20	1891524 1932435 1946702	fdc-branded:consensus
+175002	Muffins, corn, commercially prepared	soy	usually	23	20	522577 1891524 1932435	fdc-branded:consensus
+175005	Muffins, corn, prepared from recipe, made with low fat (2%) milk	wheat	usually	23	23	522577 1891524 1932435	fdc-branded:consensus
+175005	Muffins, corn, prepared from recipe, made with low fat (2%) milk	gluten	usually	23	23	522577 1891524 1932435	fdc-branded:consensus
+175005	Muffins, corn, prepared from recipe, made with low fat (2%) milk	milk	usually	23	22	522577 1891524 1932435	fdc-branded:consensus
+175005	Muffins, corn, prepared from recipe, made with low fat (2%) milk	egg	usually	23	20	1891524 1932435 1946702	fdc-branded:consensus
+175005	Muffins, corn, prepared from recipe, made with low fat (2%) milk	soy	usually	23	20	522577 1891524 1932435	fdc-branded:consensus
+172764	Muffins, plain, prepared from recipe, made with low fat (2%) milk	wheat	usually	21	21	1565681 1639048 1888186	fdc-branded:consensus
+172764	Muffins, plain, prepared from recipe, made with low fat (2%) milk	gluten	usually	21	21	1565681 1639048 1888186	fdc-branded:consensus
+172764	Muffins, plain, prepared from recipe, made with low fat (2%) milk	soy	usually	21	18	1565681 1639048 1888186	fdc-branded:consensus
+171170	Mushroom Gravy	wheat	usually	21	17	1853266 1854359 1862724	fdc-branded:consensus
+171170	Mushroom Gravy	gluten	usually	21	17	1853266 1854359 1862724	fdc-branded:consensus
+171170	Mushroom Gravy	milk	split	21	7	1854359 2101391 2144671	fdc-branded:consensus
+171170	Mushroom Gravy	soy	usually	21	17	1853266 1854359 1862724	fdc-branded:consensus
+171170	Mushroom Gravy	sulfite	split	21	5	2093086 2095795 2119170	fdc-branded:consensus
+171171	Mushroom Gravy Mix	wheat	usually	21	20	592701 1467904 1860276	fdc-branded:consensus
+171171	Mushroom Gravy Mix	gluten	usually	21	20	592701 1467904 1860276	fdc-branded:consensus
+171171	Mushroom Gravy Mix	milk	usually	21	17	592701 1467904 1860276	fdc-branded:consensus
+171171	Mushroom Gravy Mix	soy	usually	21	18	592701 1467904 1860276	fdc-branded:consensus
+169256	Mustard Greens	soy	split	22	3	1853301 2017132 2667419	fdc-branded:consensus
+170503	Mustard greens, cooked, boiled, drained, with salt	soy	split	22	3	1853301 2017132 2667419	fdc-branded:consensus
+169257	Mustard greens, cooked, boiled, drained, without salt	soy	split	22	3	1853301 2017132 2667419	fdc-branded:consensus
+170504	Mustard greens, frozen, cooked, boiled, drained, with salt	soy	split	29	3	1853301 2017132 2667419	fdc-branded:consensus
+169259	Mustard greens, frozen, cooked, boiled, drained, without salt	soy	split	29	3	1853301 2017132 2667419	fdc-branded:consensus
+171845	Naan Bread	wheat	usually	10	10	1961872 1961875 1968196	fdc-branded:consensus
+171845	Naan Bread	gluten	usually	10	10	1961872 1961875 1968196	fdc-branded:consensus
+171845	Naan Bread	milk	usually	10	10	1961872 1961875 1968196	fdc-branded:consensus
+171845	Naan Bread	egg	split	10	7	1961872 1961875 1968196	fdc-branded:consensus
+171845	Naan Bread	soy	usually	10	8	1961872 1961875 1968196	fdc-branded:consensus
+172678	Oatmeal Bread	wheat	usually	24	24	1898875 1914195 1938999	fdc-branded:consensus
+172678	Oatmeal Bread	gluten	usually	24	24	1898875 1914195 1938999	fdc-branded:consensus
+172678	Oatmeal Bread	milk	split	24	5	1898875 2110080 2485978	fdc-branded:consensus
+172678	Oatmeal Bread	soy	usually	24	24	1898875 1914195 1938999	fdc-branded:consensus
+171030	Oil, walnut	treenut	usually	13	12	1857543 1907768 1907772	fdc-branded:consensus
+170003	Onions, canned, solids and liquids	wheat	split	149	75	359419 574517 596945	fdc-branded:consensus
+170003	Onions, canned, solids and liquids	gluten	split	149	75	359419 574517 596945	fdc-branded:consensus
+170003	Onions, canned, solids and liquids	soy	split	149	40	359419 596945 597784	fdc-branded:consensus
+167577	Orange Sherbet	milk	usually	66	66	708202 897646 1546183	fdc-branded:consensus
+175009	Pancakes	wheat	usually	22	19	1897976 1897977 1920466	fdc-branded:consensus
+175009	Pancakes	gluten	usually	22	19	1897976 1897977 1920466	fdc-branded:consensus
+175009	Pancakes	milk	usually	22	17	1897976 1897977 1912627	fdc-branded:consensus
+175009	Pancakes	egg	usually	22	20	1897976 1897977 1912627	fdc-branded:consensus
+175009	Pancakes	soy	usually	22	19	1897976 1897977 1917177	fdc-branded:consensus
+332282	Pasta Sauce	milk	split	1457	432	403150 410995 467980	fdc-branded:consensus
+332282	Pasta Sauce	soy	split	1457	553	356524 394408 403150	fdc-branded:consensus
+172927	Pastrami, turkey	gluten	split	15	7	378254 402464 2040285	fdc-branded:consensus
+174561	Pea Soup	soy	split	33	4	1860564 1860623 2104119	fdc-branded:consensus
+171410	Peanut Oil	peanut	usually	78	78	410989 597683 1467794	fdc-branded:consensus
+174070	Peanut Sauce	wheat	split	35	21	1852651 1852652 1861621	fdc-branded:consensus
+174070	Peanut Sauce	gluten	split	35	21	1852651 1852652 1861621	fdc-branded:consensus
+174070	Peanut Sauce	milk	split	35	5	673090 1864949 2025160	fdc-branded:consensus
+174070	Peanut Sauce	soy	usually	35	30	673090 719250 1852651	fdc-branded:consensus
+174070	Peanut Sauce	peanut	usually	35	35	673090 719250 1852651	fdc-branded:consensus
+174070	Peanut Sauce	sesame	split	35	23	673090 719250 1862157	fdc-branded:consensus
+169766	Pickled Hot Peppers	soy	split	14	2	2170333 2390547	fdc-branded:consensus
+169766	Pickled Hot Peppers	sulfite	split	14	4	1906058 2170874 2338776	fdc-branded:consensus
+167932	Pie Crust	wheat	usually	123	117	589954 592790 599243	fdc-branded:consensus
+167932	Pie Crust	gluten	usually	123	117	589954 592790 599243	fdc-branded:consensus
+167932	Pie Crust	soy	split	123	92	592790 599243 1468671	fdc-branded:consensus
+167932	Pie Crust	sulfite	split	123	14	589954 1668773 1994454	fdc-branded:consensus
+167522	Pie, Dutch Apple, Commercially Prepared	wheat	usually	20	20	1063231 1552075 1793385	fdc-branded:consensus
+167522	Pie, Dutch Apple, Commercially Prepared	gluten	usually	20	20	1063231 1552075 1793385	fdc-branded:consensus
+167522	Pie, Dutch Apple, Commercially Prepared	milk	split	20	8	1063231 1552075 1793385	fdc-branded:consensus
+167522	Pie, Dutch Apple, Commercially Prepared	soy	split	20	13	1063231 1552075 1793385	fdc-branded:consensus
+172777	Pie, banana cream, prepared from recipe	wheat	usually	11	11	1778495 1784928 1891698	fdc-branded:consensus
+172777	Pie, banana cream, prepared from recipe	gluten	usually	11	11	1778495 1784928 1891698	fdc-branded:consensus
+172777	Pie, banana cream, prepared from recipe	milk	usually	11	10	1778495 1784928 1891698	fdc-branded:consensus
+172777	Pie, banana cream, prepared from recipe	egg	usually	11	10	1778495 1784928 1891698	fdc-branded:consensus
+172777	Pie, banana cream, prepared from recipe	soy	usually	11	10	1778495 1891698 1899923	fdc-branded:consensus
+172778	Pie, blueberry, commercially prepared	wheat	usually	41	40	1551521 1828671 1851515	fdc-branded:consensus
+172778	Pie, blueberry, commercially prepared	gluten	usually	41	40	1551521 1828671 1851515	fdc-branded:consensus
+172778	Pie, blueberry, commercially prepared	milk	split	41	22	1551521 1828671 1934166	fdc-branded:consensus
+172778	Pie, blueberry, commercially prepared	egg	split	41	13	1828671 1851515 1859718	fdc-branded:consensus
+172778	Pie, blueberry, commercially prepared	soy	split	41	28	1551521 1851515 1934166	fdc-branded:consensus
+172779	Pie, blueberry, prepared from recipe	wheat	usually	41	40	1551521 1828671 1851515	fdc-branded:consensus
+172779	Pie, blueberry, prepared from recipe	gluten	usually	41	40	1551521 1828671 1851515	fdc-branded:consensus
+172780	Pie, cherry, commercially prepared	wheat	usually	94	92	467597 639072 1063233	fdc-branded:consensus
+172780	Pie, cherry, commercially prepared	gluten	usually	94	92	467597 639072 1063233	fdc-branded:consensus
+172780	Pie, cherry, commercially prepared	milk	split	94	42	1551522 1890869 1925313	fdc-branded:consensus
+172780	Pie, cherry, commercially prepared	egg	split	94	24	1859720 1890869 1905402	fdc-branded:consensus
+172780	Pie, cherry, commercially prepared	soy	split	94	62	467597 639072 1063233	fdc-branded:consensus
+172781	Pie, cherry, prepared from recipe	wheat	usually	94	92	467597 639072 1063233	fdc-branded:consensus
+172781	Pie, cherry, prepared from recipe	gluten	usually	94	92	467597 639072 1063233	fdc-branded:consensus
+175014	Pie, chocolate creme, commercially prepared	wheat	usually	21	21	1890805 1891710 1941482	fdc-branded:consensus
+175014	Pie, chocolate creme, commercially prepared	gluten	usually	21	21	1890805 1891710 1941482	fdc-branded:consensus
+175014	Pie, chocolate creme, commercially prepared	milk	usually	21	19	1891710 1941482 2037526	fdc-branded:consensus
+175014	Pie, chocolate creme, commercially prepared	egg	split	21	13	1891710 1941482 2063643	fdc-branded:consensus
+175014	Pie, chocolate creme, commercially prepared	soy	usually	21	21	1890805 1891710 1941482	fdc-branded:consensus
+173240	Pie, fried pies, cherry	wheat	usually	94	92	467597 639072 1063233	fdc-branded:consensus
+173240	Pie, fried pies, cherry	gluten	usually	94	92	467597 639072 1063233	fdc-branded:consensus
+173240	Pie, fried pies, cherry	milk	split	94	42	1551522 1890869 1925313	fdc-branded:consensus
+173240	Pie, fried pies, cherry	egg	split	94	24	1859720 1890869 1905402	fdc-branded:consensus
+173240	Pie, fried pies, cherry	soy	split	94	62	467597 639072 1063233	fdc-branded:consensus
+172784	Pie, fried pies, fruit	wheat	usually	44	44	1865510 1869675 1869680	fdc-branded:consensus
+172784	Pie, fried pies, fruit	gluten	usually	44	44	1865510 1869675 1869680	fdc-branded:consensus
+172784	Pie, fried pies, fruit	milk	split	44	19	1865510 1869675 1869680	fdc-branded:consensus
+172784	Pie, fried pies, fruit	egg	split	44	11	1869675 1869680 1934018	fdc-branded:consensus
+172784	Pie, fried pies, fruit	soy	usually	44	41	1865510 1869675 1869680	fdc-branded:consensus
+172784	Pie, fried pies, fruit	sulfite	split	44	14	1896190 1958174 2164260	fdc-branded:consensus
+175064	Pie, fried pies, lemon	wheat	usually	29	29	652366 1851434 1905113	fdc-branded:consensus
+175064	Pie, fried pies, lemon	gluten	usually	29	29	652366 1851434 1905113	fdc-branded:consensus
+175064	Pie, fried pies, lemon	milk	split	29	17	1851434 1905132 1924257	fdc-branded:consensus
+175064	Pie, fried pies, lemon	egg	split	29	18	1851434 1905132 1924257	fdc-branded:consensus
+175064	Pie, fried pies, lemon	soy	usually	29	26	652366 1905113 1905132	fdc-branded:consensus
+172785	Pie, lemon meringue, commercially prepared	wheat	usually	18	18	1859767 1891304 1891603	fdc-branded:consensus
+172785	Pie, lemon meringue, commercially prepared	gluten	usually	18	18	1859767 1891304 1891603	fdc-branded:consensus
+172785	Pie, lemon meringue, commercially prepared	milk	usually	18	14	1859767 1891304 1891603	fdc-branded:consensus
+172785	Pie, lemon meringue, commercially prepared	egg	usually	18	18	1859767 1891304 1891603	fdc-branded:consensus
+172785	Pie, lemon meringue, commercially prepared	soy	split	18	13	1859767 1891304 1916127	fdc-branded:consensus
+175018	Pie, lemon meringue, prepared from recipe	wheat	usually	18	18	1859767 1891304 1891603	fdc-branded:consensus
+175018	Pie, lemon meringue, prepared from recipe	gluten	usually	18	18	1859767 1891304 1891603	fdc-branded:consensus
+175018	Pie, lemon meringue, prepared from recipe	milk	usually	18	14	1859767 1891304 1891603	fdc-branded:consensus
+175018	Pie, lemon meringue, prepared from recipe	egg	usually	18	18	1859767 1891304 1891603	fdc-branded:consensus
+175020	Pie, peach	wheat	usually	39	39	482058 564628 1551523	fdc-branded:consensus
+175020	Pie, peach	gluten	usually	39	39	482058 564628 1551523	fdc-branded:consensus
+175020	Pie, peach	milk	split	39	22	482058 564628 1551523	fdc-branded:consensus
+175020	Pie, peach	egg	split	39	12	482058 1891032 1953799	fdc-branded:consensus
+175020	Pie, peach	soy	split	39	24	564628 1551523 1891032	fdc-branded:consensus
+175021	Pie, pecan, commercially prepared	wheat	usually	80	76	516193 1778075 1891203	fdc-branded:consensus
+175021	Pie, pecan, commercially prepared	gluten	usually	80	76	516193 1778075 1891203	fdc-branded:consensus
+175021	Pie, pecan, commercially prepared	milk	usually	80	65	516193 1778075 1891203	fdc-branded:consensus
+175021	Pie, pecan, commercially prepared	egg	usually	80	74	516193 1778075 1891203	fdc-branded:consensus
+175021	Pie, pecan, commercially prepared	soy	split	80	48	516193 1778075 1891203	fdc-branded:consensus
+175021	Pie, pecan, commercially prepared	treenut	usually	80	80	516193 1778075 1891203	fdc-branded:consensus
+172786	Pie, pecan, prepared from recipe	wheat	usually	80	76	516193 1778075 1891203	fdc-branded:consensus
+172786	Pie, pecan, prepared from recipe	gluten	usually	80	76	516193 1778075 1891203	fdc-branded:consensus
+172786	Pie, pecan, prepared from recipe	milk	usually	80	65	516193 1778075 1891203	fdc-branded:consensus
+172786	Pie, pecan, prepared from recipe	egg	usually	80	74	516193 1778075 1891203	fdc-branded:consensus
+172786	Pie, pecan, prepared from recipe	treenut	usually	80	80	516193 1778075 1891203	fdc-branded:consensus
+172787	Pie, pumpkin, commercially prepared	wheat	usually	89	85	456170 1133670 1597696	fdc-branded:consensus
+172787	Pie, pumpkin, commercially prepared	gluten	usually	89	85	456170 1133670 1597696	fdc-branded:consensus
+172787	Pie, pumpkin, commercially prepared	milk	usually	89	83	456170 1133670 1597696	fdc-branded:consensus
+172787	Pie, pumpkin, commercially prepared	egg	usually	89	78	456170 1133670 1597696	fdc-branded:consensus
+172787	Pie, pumpkin, commercially prepared	soy	split	89	61	456170 1133670 1597696	fdc-branded:consensus
+172788	Pie, pumpkin, prepared from recipe	wheat	usually	89	85	456170 1133670 1597696	fdc-branded:consensus
+172788	Pie, pumpkin, prepared from recipe	gluten	usually	89	85	456170 1133670 1597696	fdc-branded:consensus
+172788	Pie, pumpkin, prepared from recipe	milk	usually	89	83	456170 1133670 1597696	fdc-branded:consensus
+172788	Pie, pumpkin, prepared from recipe	egg	usually	89	78	456170 1133670 1597696	fdc-branded:consensus
+174915	Pita Bread	wheat	usually	72	72	1871669 1886996 1916543	fdc-branded:consensus
+174915	Pita Bread	gluten	usually	72	72	1871669 1886996 1916543	fdc-branded:consensus
+174915	Pita Bread	soy	split	72	20	1916543 2035212 2035213	fdc-branded:consensus
+173147	Pita Chips	wheat	usually	191	190	357687 360005 742362	fdc-branded:consensus
+173147	Pita Chips	gluten	usually	191	190	357687 360005 742362	fdc-branded:consensus
+173147	Pita Chips	milk	split	191	36	1516079 1531148 1570711	fdc-branded:consensus
+173147	Pita Chips	soy	split	191	39	357687 360005 1786005	fdc-branded:consensus
+173147	Pita Chips	sesame	split	191	31	360005 1616242 1727364	fdc-branded:consensus
+172880	Pizza Sauce	milk	split	232	30	1861997 1871385 1893859	fdc-branded:consensus
+172880	Pizza Sauce	soy	split	232	90	596925 1467237 1467972	fdc-branded:consensus
+173142	Plantain Chips	soy	split	179	80	408160 668344 739472	fdc-branded:consensus
+172879	Plum Sauce	wheat	split	18	4	1853531 2169040 2340109	fdc-branded:consensus
+172879	Plum Sauce	gluten	split	18	4	1853531 2169040 2340109	fdc-branded:consensus
+172879	Plum Sauce	soy	split	18	7	1853531 1957944 2019901	fdc-branded:consensus
+172879	Plum Sauce	sesame	split	18	2	2019901 2025083	fdc-branded:consensus
+167959	Popcorn	milk	split	1503	780	381764 512161 541385	fdc-branded:consensus
+167959	Popcorn	soy	split	1503	615	512161 530051 541385	fdc-branded:consensus
+173141	Popcorn, microwave, regular (butter) flavor, made with palm oil	milk	split	40	16	1850071 2147015 2266847	fdc-branded:consensus
+171173	Pork Gravy Mix	wheat	usually	30	29	592693 1674516 1852910	fdc-branded:consensus
+171173	Pork Gravy Mix	gluten	usually	30	29	592693 1674516 1852910	fdc-branded:consensus
+171173	Pork Gravy Mix	milk	usually	30	28	592693 1674516 1852910	fdc-branded:consensus
+171173	Pork Gravy Mix	soy	usually	30	28	592693 1674516 1852910	fdc-branded:consensus
+169677	Potato Chips	milk	split	3366	792	419387 429242 434562	fdc-branded:consensus
+169677	Potato Chips	soy	split	3366	2383	375414 419387 429242	fdc-branded:consensus
+169269	Potato Salad	egg	usually	298	293	477467 516119 1066789	fdc-branded:consensus
+169269	Potato Salad	soy	usually	298	291	477467 516119 1066789	fdc-branded:consensus
+170253	Potato chips, without salt, reduced fat	milk	split	29	4	1915230 2569270 2611258	fdc-branded:consensus
+170253	Potato chips, without salt, reduced fat	soy	split	29	19	1728120 1881746 2038510	fdc-branded:consensus
+170253	Potato chips, without salt, reduced fat	peanut	split	29	8	1915230 2038510 2045170	fdc-branded:consensus
+170444	Potatoes, canned, drained solids	soy	split	619	288	584879 694104 891322	fdc-branded:consensus
+170443	Potatoes, canned, solids and liquids	soy	split	619	288	584879 694104 891322	fdc-branded:consensus
+174931	Prepared Stuffing	wheat	usually	72	67	690132 718740 1599880	fdc-branded:consensus
+174931	Prepared Stuffing	gluten	usually	72	66	690132 718740 1599880	fdc-branded:consensus
+174931	Prepared Stuffing	milk	split	72	24	690132 1599880 1892917	fdc-branded:consensus
+174931	Prepared Stuffing	soy	split	72	50	690132 718740 1599880	fdc-branded:consensus
+167555	Pretzels	wheat	usually	427	416	363482 363489 417374	fdc-branded:consensus
+167555	Pretzels	gluten	usually	427	416	363482 363489 417374	fdc-branded:consensus
+167555	Pretzels	milk	split	427	173	417374 551952 727348	fdc-branded:consensus
+167555	Pretzels	soy	split	427	275	363482 417374 551952	fdc-branded:consensus
+168778	Puddings, chocolate, ready-to-eat	milk	usually	79	68	510941 1849751 1854502	fdc-branded:consensus
+168778	Puddings, chocolate, ready-to-eat	soy	split	79	15	468054 510941 1849751	fdc-branded:consensus
+168782	Puddings, rice, ready-to-eat	milk	usually	62	50	1850019 1869836 1893422	fdc-branded:consensus
+168782	Puddings, rice, ready-to-eat	egg	split	62	27	1850019 1951918 1955879	fdc-branded:consensus
+169614	Puddings, tapioca, ready-to-eat	milk	usually	28	27	1781026 1794156 1849753	fdc-branded:consensus
+169614	Puddings, tapioca, ready-to-eat	egg	split	28	11	2019604 2021522 2064407	fdc-branded:consensus
+169614	Puddings, tapioca, ready-to-eat	soy	split	28	10	1781026 1794156 1849753	fdc-branded:consensus
+172790	Puff Pastry	wheat	usually	27	26	1854645 1854684 1891451	fdc-branded:consensus
+172790	Puff Pastry	gluten	usually	27	26	1854645 1854684 1891451	fdc-branded:consensus
+172790	Puff Pastry	milk	split	27	17	1854684 1891451 1903402	fdc-branded:consensus
+172790	Puff Pastry	egg	split	27	7	1854684 1903402 1938808	fdc-branded:consensus
+172790	Puff Pastry	soy	usually	27	23	1854684 1891451 1899932	fdc-branded:consensus
+174918	Pumpernickel Bread	wheat	usually	28	28	1908110 1924131 1946700	fdc-branded:consensus
+174918	Pumpernickel Bread	gluten	usually	28	28	1908110 1924131 1946700	fdc-branded:consensus
+174918	Pumpernickel Bread	soy	usually	28	23	1908110 1924131 1946700	fdc-branded:consensus
+174918	Pumpernickel Bread	sulfite	split	28	5	2053935 2098983 2100240	fdc-branded:consensus
+173904	Quick Oats	gluten	usually	144	144	1467788 1467789 1536944	fdc-branded:consensus
+172680	Raisin Bread	wheat	usually	69	65	741760 1852379 1860044	fdc-branded:consensus
+172680	Raisin Bread	gluten	usually	69	64	741760 1852379 1860044	fdc-branded:consensus
+172680	Raisin Bread	milk	split	69	22	1868077 1869739 1882905	fdc-branded:consensus
+172680	Raisin Bread	egg	split	69	17	1121978 1869739 1889930	fdc-branded:consensus
+172680	Raisin Bread	soy	split	69	47	741760 1860044 1868077	fdc-branded:consensus
+171177	Ramen Noodles	wheat	usually	28	27	926574 1858429 1931812	fdc-branded:consensus
+171177	Ramen Noodles	gluten	usually	28	27	926574 1858429 1931812	fdc-branded:consensus
+171177	Ramen Noodles	milk	split	28	6	926574 1858429 2059595	fdc-branded:consensus
+171177	Ramen Noodles	egg	split	28	5	926574 1858429 2083415	fdc-branded:consensus
+171177	Ramen Noodles	soy	split	28	14	1858429 2031662 2031667	fdc-branded:consensus
+171177	Ramen Noodles	sesame	split	28	3	2083415 2270501 2396534	fdc-branded:consensus
+173592	Ranch Dressing	milk	usually	476	428	410943 410974 410981	fdc-branded:consensus
+173592	Ranch Dressing	egg	usually	476	394	410943 410981 497387	fdc-branded:consensus
+173592	Ranch Dressing	soy	usually	476	421	410943 410974 410981	fdc-branded:consensus
+173859	Raw Pork Chorizo	soy	split	19	12	1851848 1922640 1931050	fdc-branded:consensus
+174074	Red Enchilada Sauce	soy	split	73	50	387069 387096 1046969	fdc-branded:consensus
+172240	Red Wine Vinegar	sulfite	split	109	42	465406 598302 1836589	fdc-branded:consensus
+172474	Reduced Sodium Soy Sauce	wheat	split	286	200	411434 492571 493591	fdc-branded:consensus
+172474	Reduced Sodium Soy Sauce	gluten	split	286	200	411434 492571 493591	fdc-branded:consensus
+172474	Reduced Sodium Soy Sauce	soy	usually	286	280	411434 492571 493591	fdc-branded:consensus
+168094	Reduced-Calorie Mayonnaise	egg	usually	471	471	356442 385113 386163	fdc-branded:consensus
+168094	Reduced-Calorie Mayonnaise	soy	usually	471	417	356442 385113 386163	fdc-branded:consensus
+172966	Reduced-Sodium Italian Dry Salami	milk	split	51	9	778484 1138261 1139770	fdc-branded:consensus
+172890	Reduced-Sodium Teriyaki Sauce	wheat	usually	115	100	581760 1047089 1630397	fdc-branded:consensus
+172890	Reduced-Sodium Teriyaki Sauce	gluten	usually	115	100	581760 1047089 1630397	fdc-branded:consensus
+172890	Reduced-Sodium Teriyaki Sauce	soy	usually	115	112	581760 718146 1047089	fdc-branded:consensus
+172890	Reduced-Sodium Teriyaki Sauce	sesame	split	115	62	581760 718146 1630397	fdc-branded:consensus
+172438	Refried Beans	soy	split	337	64	369308 386480 408444	fdc-branded:consensus
+174298	Refried beans, canned, traditional, reduced sodium	soy	split	48	5	2010074 2395767 2406826	fdc-branded:consensus
+174296	Refried beans, canned, vegetarian	soy	split	37	7	1862203 2080661 2241301	fdc-branded:consensus
+172668	Refrigerated Buttermilk Biscuits	wheat	usually	88	88	591134 744998 1404768	fdc-branded:consensus
+172668	Refrigerated Buttermilk Biscuits	gluten	usually	88	88	591134 744998 1404768	fdc-branded:consensus
+172668	Refrigerated Buttermilk Biscuits	milk	split	88	40	591134 744998 1468688	fdc-branded:consensus
+172668	Refrigerated Buttermilk Biscuits	soy	usually	88	86	591134 744998 1404768	fdc-branded:consensus
+172798	Refrigerated Cinnamon Rolls	wheat	usually	72	71	465217 465218 544490	fdc-branded:consensus
+172798	Refrigerated Cinnamon Rolls	gluten	usually	72	71	465217 465218 544490	fdc-branded:consensus
+172798	Refrigerated Cinnamon Rolls	milk	usually	72	66	465217 465218 544490	fdc-branded:consensus
+172798	Refrigerated Cinnamon Rolls	egg	split	72	51	465217 465218 544490	fdc-branded:consensus
+172798	Refrigerated Cinnamon Rolls	soy	usually	72	64	465217 465218 544490	fdc-branded:consensus
+171579	Refrigerated Pesto	milk	usually	49	37	599626 734016 897454	fdc-branded:consensus
+171579	Refrigerated Pesto	egg	split	49	10	1936912 1972571 2025280	fdc-branded:consensus
+171579	Refrigerated Pesto	soy	split	49	5	1126598 1935139 1984636	fdc-branded:consensus
+171579	Refrigerated Pesto	treenut	usually	49	38	599626 734016 897454	fdc-branded:consensus
+-	Rice Cakes	milk	split	151	29	506453 570743 1853779	fdc-branded:consensus
+-	Rice Cakes	soy	split	151	42	506453 570175 646124	fdc-branded:consensus
+173161	Rice crackers	wheat	split	114	62	399064 453937 453939	fdc-branded:consensus
+173161	Rice crackers	gluten	split	114	63	399064 453937 453939	fdc-branded:consensus
+173161	Rice crackers	soy	split	114	68	399064 453937 453939	fdc-branded:consensus
+173161	Rice crackers	sesame	split	114	53	455092 1046793 1511680	fdc-branded:consensus
+-	Rolled Oats	gluten	usually	86	82	776872 1136410 1136417	fdc-branded:consensus
+172684	Rye Bread	wheat	usually	188	184	443062 593079 1121172	fdc-branded:consensus
+172684	Rye Bread	gluten	usually	188	188	443062 593079 1121172	fdc-branded:consensus
+172684	Rye Bread	soy	usually	188	142	443062 593079 1726030	fdc-branded:consensus
+172684	Rye Bread	sulfite	split	188	19	2011091 2019164 2021297	fdc-branded:consensus
+169877	Salad dressing, caesar, low calorie	wheat	split	16	7	499806 1822648 2133287	fdc-branded:consensus
+169877	Salad dressing, caesar, low calorie	gluten	split	16	7	499806 1822648 2133287	fdc-branded:consensus
+169877	Salad dressing, caesar, low calorie	milk	split	16	11	499806 1822648 2028910	fdc-branded:consensus
+169877	Salad dressing, caesar, low calorie	egg	split	16	7	499806 2101930 2129279	fdc-branded:consensus
+169877	Salad dressing, caesar, low calorie	soy	usually	16	13	499806 1822648 2101930	fdc-branded:consensus
+169877	Salad dressing, caesar, low calorie	fish	usually	16	15	499806 1822648 2028910	fdc-branded:consensus
+171020	Salad dressing, french dressing, commercial, regular, without salt	wheat	split	29	3	2723858 2725627 2725661	fdc-branded:consensus
+171020	Salad dressing, french dressing, commercial, regular, without salt	gluten	split	29	3	2723858 2725627 2725661	fdc-branded:consensus
+171020	Salad dressing, french dressing, commercial, regular, without salt	soy	usually	29	27	1558083 1894894 2100214	fdc-branded:consensus
+167693	Salad dressing, french dressing, reduced calorie	wheat	split	29	3	2723858 2725627 2725661	fdc-branded:consensus
+167693	Salad dressing, french dressing, reduced calorie	gluten	split	29	3	2723858 2725627 2725661	fdc-branded:consensus
+167693	Salad dressing, french dressing, reduced calorie	soy	usually	29	27	1558083 1894894 2100214	fdc-branded:consensus
+168096	Salad dressing, italian dressing, reduced calorie	milk	split	40	7	2115220 2434713 2546622	fdc-branded:consensus
+168096	Salad dressing, italian dressing, reduced calorie	soy	usually	40	33	745642 1558082 1780817	fdc-branded:consensus
+172935	Salami, cooked, beef	soy	split	12	3	2677225 2679492 2679493	fdc-branded:consensus
+173723	Salmon, sockeye, canned, drained solids, without skin and bones	fish	usually	38	38	695898 1853285 1866908	fdc-branded:consensus
+175139	Sardines	soy	split	176	41	400129 407179 508785	fdc-branded:consensus
+175139	Sardines	fish	usually	176	174	400090 400129 407179	fdc-branded:consensus
+171823	Sauce, duck, ready-to-serve	sulfite	split	20	9	1855273 2024662 2156774	fdc-branded:consensus
+174524	Sauce, salsa, ready-to-serve	wheat	split	28	4	2031773 2150150 2168671	fdc-branded:consensus
+174524	Sauce, salsa, ready-to-serve	gluten	split	28	4	2031773 2150150 2168671	fdc-branded:consensus
+174524	Sauce, salsa, ready-to-serve	soy	split	28	6	1883535 1894593 1995293	fdc-branded:consensus
+174066	Sauce, sweet and sour, ready-to-serve	wheat	split	46	22	1894038 1941463 1953512	fdc-branded:consensus
+174066	Sauce, sweet and sour, ready-to-serve	gluten	split	46	23	1882410 1894038 1941463	fdc-branded:consensus
+174066	Sauce, sweet and sour, ready-to-serve	soy	split	46	27	1894038 1941463 1953512	fdc-branded:consensus
+169279	Sauerkraut	sulfite	split	190	36	1144785 1617089 1682848	fdc-branded:consensus
+172806	Seasoned Bread Crumbs	wheat	usually	52	52	596920 1862704 1863364	fdc-branded:consensus
+172806	Seasoned Bread Crumbs	gluten	usually	52	52	596920 1862704 1863364	fdc-branded:consensus
+172806	Seasoned Bread Crumbs	milk	split	52	36	596920 1862704 1863364	fdc-branded:consensus
+172806	Seasoned Bread Crumbs	soy	usually	52	40	596920 1863364 1889884	fdc-branded:consensus
+172806	Seasoned Bread Crumbs	sesame	split	52	23	1863364 2031507 2056461	fdc-branded:consensus
+172752	Seasoned Croutons	wheat	usually	73	71	561582 721620 1467232	fdc-branded:consensus
+172752	Seasoned Croutons	gluten	usually	73	71	561582 721620 1467232	fdc-branded:consensus
+172752	Seasoned Croutons	milk	split	73	50	721620 1467232 1898392	fdc-branded:consensus
+172752	Seasoned Croutons	soy	split	73	20	1898394 1982911 2009125	fdc-branded:consensus
+170271	Semi-Sweet Chocolate Chips	milk	split	78	52	687554 687940 1467348	fdc-branded:consensus
+170271	Semi-Sweet Chocolate Chips	soy	split	78	58	687554 687940 1467348	fdc-branded:consensus
+171006	Sesame Dressing	wheat	usually	58	44	499819 1592665 1822951	fdc-branded:consensus
+171006	Sesame Dressing	gluten	usually	58	47	499819 1592665 1822951	fdc-branded:consensus
+171006	Sesame Dressing	soy	usually	58	56	499819 1592665 1822951	fdc-branded:consensus
+171006	Sesame Dressing	sesame	usually	58	58	499819 1592665 1822951	fdc-branded:consensus
+170191	Sesame Paste	sesame	usually	12	12	1885946 1918256 2157267	fdc-branded:consensus
+170150	Sesame Seeds	sesame	usually	60	60	399754 400427 1858997	fdc-branded:consensus
+168411	Shelled Cooked Edamame	soy	usually	19	19	1858623 1917403 1955830	fdc-branded:consensus
+174967	Shortbread Cookies	wheat	usually	299	288	428884 434936 832722	fdc-branded:consensus
+174967	Shortbread Cookies	gluten	usually	299	283	428884 434936 832722	fdc-branded:consensus
+174967	Shortbread Cookies	milk	split	299	219	434936 1078251 1113403	fdc-branded:consensus
+174967	Shortbread Cookies	egg	split	299	147	832722 1078251 1113403	fdc-branded:consensus
+174967	Shortbread Cookies	soy	split	299	192	428884 434936 832722	fdc-branded:consensus
+174967	Shortbread Cookies	treenut	split	299	67	434936 832722 1123175	fdc-branded:consensus
+173584	Shortening	soy	usually	57	53	358829 599242 1596640	fdc-branded:consensus
+170607	Smoked Beef	wheat	split	12	5	1946857 2134147 2145626	fdc-branded:consensus
+170607	Smoked Beef	gluten	split	12	5	1946857 2134147 2145626	fdc-branded:consensus
+170607	Smoked Beef	soy	split	12	5	1946857 2134147 2145626	fdc-branded:consensus
+170607	Smoked Beef	fish	split	12	2	2626026 2670414	fdc-branded:consensus
+174606	Smoked Turkey Sausage	gluten	split	22	3	1903266 2154955 2297473	fdc-branded:consensus
+174606	Smoked Turkey Sausage	milk	split	22	5	1949843 2015105 2494464	fdc-branded:consensus
+174606	Smoked Turkey Sausage	soy	split	22	7	1855031 2014962 2145418	fdc-branded:consensus
+172746	Soda Crackers	wheat	usually	21	21	506530 1898977 1955382	fdc-branded:consensus
+172746	Soda Crackers	gluten	usually	21	21	506530 1898977 1955382	fdc-branded:consensus
+172746	Soda Crackers	milk	split	21	9	2055592 2055594 2119558	fdc-branded:consensus
+172746	Soda Crackers	soy	split	21	15	506530 1898977 2008249	fdc-branded:consensus
+172449	Soft Tofu	soy	usually	11	11	1864415 1864422 1894174	fdc-branded:consensus
+171190	Soup, beef and vegetables, canned, ready-to-serve	wheat	split	51	36	567059 597063 1024047	fdc-branded:consensus
+171190	Soup, beef and vegetables, canned, ready-to-serve	gluten	usually	51	43	567059 597063 757920	fdc-branded:consensus
+171190	Soup, beef and vegetables, canned, ready-to-serve	soy	usually	51	47	567059 597063 757920	fdc-branded:consensus
+174065	Soup, beef and vegetables, reduced sodium, canned, ready-to-serve	wheat	split	51	36	567059 597063 1024047	fdc-branded:consensus
+174065	Soup, beef and vegetables, reduced sodium, canned, ready-to-serve	gluten	usually	51	43	567059 597063 757920	fdc-branded:consensus
+174065	Soup, beef and vegetables, reduced sodium, canned, ready-to-serve	soy	usually	51	47	567059 597063 757920	fdc-branded:consensus
+174073	Soup, beef barley, ready to serve	wheat	split	10	6	1467800 1627236 1994654	fdc-branded:consensus
+174073	Soup, beef barley, ready to serve	gluten	usually	10	10	1467800 1627236 1858996	fdc-branded:consensus
+174073	Soup, beef barley, ready to serve	soy	usually	10	8	1467800 1627236 1994654	fdc-branded:consensus
+172906	Soup, beef noodle, canned, prepared with equal volume water	wheat	usually	16	12	668380 2032430 2084102	fdc-branded:consensus
+172906	Soup, beef noodle, canned, prepared with equal volume water	gluten	usually	16	12	668380 2032430 2084102	fdc-branded:consensus
+172906	Soup, beef noodle, canned, prepared with equal volume water	milk	split	16	7	668380 2032430 2132139	fdc-branded:consensus
+172906	Soup, beef noodle, canned, prepared with equal volume water	egg	split	16	3	668380 2132139 2642334	fdc-branded:consensus
+172906	Soup, beef noodle, canned, prepared with equal volume water	soy	usually	16	12	668380 2032430 2084102	fdc-branded:consensus
+172906	Soup, beef noodle, canned, prepared with equal volume water	fish	split	16	2	1965090 2314625	fdc-branded:consensus
+172894	Soup, cheese, canned, prepared with equal volume milk	wheat	usually	37	28	1594913 1679374 1728762	fdc-branded:consensus
+172894	Soup, cheese, canned, prepared with equal volume milk	gluten	usually	37	30	1594913 1679374 1728762	fdc-branded:consensus
+172894	Soup, cheese, canned, prepared with equal volume milk	milk	usually	37	37	757552 761194 761210	fdc-branded:consensus
+172894	Soup, cheese, canned, prepared with equal volume milk	soy	split	37	23	757552 761194 761210	fdc-branded:consensus
+174550	Soup, cheese, canned, prepared with equal volume water	wheat	usually	37	28	1594913 1679374 1728762	fdc-branded:consensus
+174550	Soup, cheese, canned, prepared with equal volume water	gluten	usually	37	30	1594913 1679374 1728762	fdc-branded:consensus
+174550	Soup, cheese, canned, prepared with equal volume water	milk	usually	37	37	757552 761194 761210	fdc-branded:consensus
+174550	Soup, cheese, canned, prepared with equal volume water	soy	split	37	23	757552 761194 761210	fdc-branded:consensus
+172908	Soup, chicken gumbo, canned, prepared with equal volume water	wheat	split	13	6	758540 1861771 2116234	fdc-branded:consensus
+172908	Soup, chicken gumbo, canned, prepared with equal volume water	gluten	split	13	6	758540 1861771 2116234	fdc-branded:consensus
+172908	Soup, chicken gumbo, canned, prepared with equal volume water	milk	split	13	4	758540 1861771 2116234	fdc-branded:consensus
+172908	Soup, chicken gumbo, canned, prepared with equal volume water	soy	usually	13	12	758540 1621110 1728566	fdc-branded:consensus
+171543	Soup, chicken noodle, canned, condensed	wheat	usually	125	125	485880 597043 687204	fdc-branded:consensus
+171543	Soup, chicken noodle, canned, condensed	gluten	usually	125	125	485880 597043 687204	fdc-branded:consensus
+171543	Soup, chicken noodle, canned, condensed	egg	usually	125	125	485880 597043 687204	fdc-branded:consensus
+171543	Soup, chicken noodle, canned, condensed	soy	split	125	38	485880 597043 687204	fdc-branded:consensus
+172909	Soup, chicken noodle, canned, prepared with equal volume water	wheat	usually	339	332	369572 468324 485880	fdc-branded:consensus
+172909	Soup, chicken noodle, canned, prepared with equal volume water	gluten	usually	339	332	369572 468324 485880	fdc-branded:consensus
+172909	Soup, chicken noodle, canned, prepared with equal volume water	milk	split	339	46	510964 1627145 1851842	fdc-branded:consensus
+172909	Soup, chicken noodle, canned, prepared with equal volume water	egg	usually	339	299	369572 485880 584759	fdc-branded:consensus
+172909	Soup, chicken noodle, canned, prepared with equal volume water	soy	split	339	114	369572 485880 597043	fdc-branded:consensus
+171593	Soup, chicken noodle, low sodium, canned, prepared with equal volume water	wheat	usually	339	332	369572 468324 485880	fdc-branded:consensus
+171593	Soup, chicken noodle, low sodium, canned, prepared with equal volume water	gluten	usually	339	332	369572 468324 485880	fdc-branded:consensus
+171593	Soup, chicken noodle, low sodium, canned, prepared with equal volume water	milk	split	339	46	510964 1627145 1851842	fdc-branded:consensus
+171593	Soup, chicken noodle, low sodium, canned, prepared with equal volume water	egg	usually	339	299	369572 485880 584759	fdc-branded:consensus
+171593	Soup, chicken noodle, low sodium, canned, prepared with equal volume water	soy	split	339	114	369572 485880 597043	fdc-branded:consensus
+174064	Soup, chicken noodle, reduced sodium, canned, ready-to-serve	wheat	usually	339	332	369572 468324 485880	fdc-branded:consensus
+174064	Soup, chicken noodle, reduced sodium, canned, ready-to-serve	gluten	usually	339	332	369572 468324 485880	fdc-branded:consensus
+174064	Soup, chicken noodle, reduced sodium, canned, ready-to-serve	milk	split	339	46	510964 1627145 1851842	fdc-branded:consensus
+174064	Soup, chicken noodle, reduced sodium, canned, ready-to-serve	egg	usually	339	299	369572 485880 584759	fdc-branded:consensus
+174064	Soup, chicken noodle, reduced sodium, canned, ready-to-serve	soy	split	339	114	369572 485880 597043	fdc-branded:consensus
+172910	Soup, chicken with rice, canned, prepared with equal volume water	wheat	split	60	13	1502862 1868747 1893810	fdc-branded:consensus
+172910	Soup, chicken with rice, canned, prepared with equal volume water	gluten	split	60	13	1502862 1868747 1893810	fdc-branded:consensus
+172910	Soup, chicken with rice, canned, prepared with equal volume water	milk	split	60	14	1780539 1868747 1893106	fdc-branded:consensus
+172910	Soup, chicken with rice, canned, prepared with equal volume water	soy	split	60	12	686816 738298 1780539	fdc-branded:consensus
+171148	Soup, chunky chicken noodle, canned, ready-to-serve	wheat	usually	24	24	686820 711646 1572257	fdc-branded:consensus
+171148	Soup, chunky chicken noodle, canned, ready-to-serve	gluten	usually	24	24	686820 711646 1572257	fdc-branded:consensus
+171148	Soup, chunky chicken noodle, canned, ready-to-serve	egg	usually	24	24	686820 711646 1572257	fdc-branded:consensus
+171148	Soup, chunky chicken noodle, canned, ready-to-serve	soy	split	24	7	686820 711646 1572257	fdc-branded:consensus
+171559	Soup, chunky vegetable, canned, ready-to-serve	wheat	split	17	10	1590321 1678474 1850889	fdc-branded:consensus
+171559	Soup, chunky vegetable, canned, ready-to-serve	gluten	split	17	10	1590321 1678474 1850889	fdc-branded:consensus
+171559	Soup, chunky vegetable, canned, ready-to-serve	soy	split	17	12	1678474 1850889 1921844	fdc-branded:consensus
+174071	Soup, chunky vegetable, reduced sodium, canned, ready-to-serve	wheat	split	17	10	1590321 1678474 1850889	fdc-branded:consensus
+174071	Soup, chunky vegetable, reduced sodium, canned, ready-to-serve	gluten	split	17	10	1590321 1678474 1850889	fdc-branded:consensus
+174071	Soup, chunky vegetable, reduced sodium, canned, ready-to-serve	soy	split	17	12	1678474 1850889 1921844	fdc-branded:consensus
+174539	Soup, clam chowder, new england, canned, prepared with equal volume low fat (2%) milk	wheat	split	27	17	1495900 1619753 1621105	fdc-branded:consensus
+174539	Soup, clam chowder, new england, canned, prepared with equal volume low fat (2%) milk	gluten	split	27	17	1495900 1619753 1621105	fdc-branded:consensus
+174539	Soup, clam chowder, new england, canned, prepared with equal volume low fat (2%) milk	milk	usually	27	26	1468804 1495900 1619753	fdc-branded:consensus
+174539	Soup, clam chowder, new england, canned, prepared with equal volume low fat (2%) milk	soy	usually	27	23	1468804 1619753 1621105	fdc-branded:consensus
+174539	Soup, clam chowder, new england, canned, prepared with equal volume low fat (2%) milk	fish	split	27	7	1619753 1621105 1641656	fdc-branded:consensus
+174539	Soup, clam chowder, new england, canned, prepared with equal volume low fat (2%) milk	shellfish	usually	27	27	1468804 1495900 1619753	fdc-branded:consensus
+174555	Soup, clam chowder, new england, canned, prepared with equal volume water	wheat	split	27	17	1495900 1619753 1621105	fdc-branded:consensus
+174555	Soup, clam chowder, new england, canned, prepared with equal volume water	gluten	split	27	17	1495900 1619753 1621105	fdc-branded:consensus
+174555	Soup, clam chowder, new england, canned, prepared with equal volume water	milk	usually	27	26	1468804 1495900 1619753	fdc-branded:consensus
+174555	Soup, clam chowder, new england, canned, prepared with equal volume water	soy	usually	27	23	1468804 1619753 1621105	fdc-branded:consensus
+174555	Soup, clam chowder, new england, canned, prepared with equal volume water	fish	split	27	7	1619753 1621105 1641656	fdc-branded:consensus
+174555	Soup, clam chowder, new england, canned, prepared with equal volume water	shellfish	usually	27	27	1468804 1495900 1619753	fdc-branded:consensus
+174062	Soup, clam chowder, new england, canned, ready-to-serve	wheat	split	27	17	1495900 1619753 1621105	fdc-branded:consensus
+174062	Soup, clam chowder, new england, canned, ready-to-serve	gluten	split	27	17	1495900 1619753 1621105	fdc-branded:consensus
+174062	Soup, clam chowder, new england, canned, ready-to-serve	milk	usually	27	26	1468804 1495900 1619753	fdc-branded:consensus
+174062	Soup, clam chowder, new england, canned, ready-to-serve	soy	usually	27	23	1468804 1619753 1621105	fdc-branded:consensus
+174062	Soup, clam chowder, new england, canned, ready-to-serve	fish	split	27	7	1619753 1621105 1641656	fdc-branded:consensus
+174062	Soup, clam chowder, new england, canned, ready-to-serve	shellfish	usually	27	27	1468804 1495900 1619753	fdc-branded:consensus
+174063	Soup, clam chowder, new england, reduced sodium, canned, ready-to-serve	wheat	split	27	17	1495900 1619753 1621105	fdc-branded:consensus
+174063	Soup, clam chowder, new england, reduced sodium, canned, ready-to-serve	gluten	split	27	17	1495900 1619753 1621105	fdc-branded:consensus
+174063	Soup, clam chowder, new england, reduced sodium, canned, ready-to-serve	milk	usually	27	26	1468804 1495900 1619753	fdc-branded:consensus
+174063	Soup, clam chowder, new england, reduced sodium, canned, ready-to-serve	soy	usually	27	23	1468804 1619753 1621105	fdc-branded:consensus
+174063	Soup, clam chowder, new england, reduced sodium, canned, ready-to-serve	fish	split	27	7	1619753 1621105 1641656	fdc-branded:consensus
+174063	Soup, clam chowder, new england, reduced sodium, canned, ready-to-serve	shellfish	usually	27	27	1468804 1495900 1619753	fdc-branded:consensus
+171540	Soup, cream of celery, canned, condensed	wheat	usually	42	42	597128 1024557 1467643	fdc-branded:consensus
+171540	Soup, cream of celery, canned, condensed	gluten	usually	42	42	597128 1024557 1467643	fdc-branded:consensus
+171540	Soup, cream of celery, canned, condensed	milk	usually	42	42	597128 1024557 1467643	fdc-branded:consensus
+171540	Soup, cream of celery, canned, condensed	soy	usually	42	42	597128 1024557 1467643	fdc-branded:consensus
+172893	Soup, cream of celery, canned, prepared with equal volume milk	wheat	usually	42	42	597128 1024557 1467643	fdc-branded:consensus
+172893	Soup, cream of celery, canned, prepared with equal volume milk	gluten	usually	42	42	597128 1024557 1467643	fdc-branded:consensus
+172893	Soup, cream of celery, canned, prepared with equal volume milk	milk	usually	42	42	597128 1024557 1467643	fdc-branded:consensus
+172893	Soup, cream of celery, canned, prepared with equal volume milk	soy	usually	42	42	597128 1024557 1467643	fdc-branded:consensus
+172907	Soup, cream of celery, canned, prepared with equal volume water	wheat	usually	42	42	597128 1024557 1467643	fdc-branded:consensus
+172907	Soup, cream of celery, canned, prepared with equal volume water	gluten	usually	42	42	597128 1024557 1467643	fdc-branded:consensus
+172907	Soup, cream of celery, canned, prepared with equal volume water	milk	usually	42	42	597128 1024557 1467643	fdc-branded:consensus
+172907	Soup, cream of celery, canned, prepared with equal volume water	soy	usually	42	42	597128 1024557 1467643	fdc-branded:consensus
+171602	Soup, cream of chicken, canned, condensed, reduced sodium	wheat	usually	113	109	485750 560516 597034	fdc-branded:consensus
+171602	Soup, cream of chicken, canned, condensed, reduced sodium	gluten	usually	113	109	485750 560516 597034	fdc-branded:consensus
+171602	Soup, cream of chicken, canned, condensed, reduced sodium	milk	usually	113	113	485750 560516 597034	fdc-branded:consensus
+171602	Soup, cream of chicken, canned, condensed, reduced sodium	soy	usually	113	112	485750 560516 597034	fdc-branded:consensus
+174537	Soup, cream of chicken, canned, prepared with equal volume milk	wheat	usually	114	109	485750 560516 597034	fdc-branded:consensus
+174537	Soup, cream of chicken, canned, prepared with equal volume milk	gluten	usually	114	109	485750 560516 597034	fdc-branded:consensus
+174537	Soup, cream of chicken, canned, prepared with equal volume milk	milk	usually	114	114	485750 560516 597034	fdc-branded:consensus
+174537	Soup, cream of chicken, canned, prepared with equal volume milk	soy	usually	114	113	485750 560516 597034	fdc-branded:consensus
+174553	Soup, cream of chicken, canned, prepared with equal volume water	wheat	usually	114	109	485750 560516 597034	fdc-branded:consensus
+174553	Soup, cream of chicken, canned, prepared with equal volume water	gluten	usually	114	109	485750 560516 597034	fdc-branded:consensus
+174553	Soup, cream of chicken, canned, prepared with equal volume water	milk	usually	114	114	485750 560516 597034	fdc-branded:consensus
+174553	Soup, cream of chicken, canned, prepared with equal volume water	soy	usually	114	113	485750 560516 597034	fdc-branded:consensus
+172887	Soup, cream of mushroom, canned, condensed, reduced sodium	wheat	usually	136	130	485921 596954 597011	fdc-branded:consensus
+172887	Soup, cream of mushroom, canned, condensed, reduced sodium	gluten	usually	136	130	485921 596954 597011	fdc-branded:consensus
+172887	Soup, cream of mushroom, canned, condensed, reduced sodium	milk	usually	136	136	485921 596954 597011	fdc-branded:consensus
+172887	Soup, cream of mushroom, canned, condensed, reduced sodium	soy	usually	136	130	485921 596954 597011	fdc-branded:consensus
+174540	Soup, cream of mushroom, canned, prepared with equal volume low fat (2%) milk	wheat	usually	139	133	485921 596954 597011	fdc-branded:consensus
+174540	Soup, cream of mushroom, canned, prepared with equal volume low fat (2%) milk	gluten	usually	139	133	485921 596954 597011	fdc-branded:consensus
+174540	Soup, cream of mushroom, canned, prepared with equal volume low fat (2%) milk	milk	usually	139	139	485921 596954 597011	fdc-branded:consensus
+174540	Soup, cream of mushroom, canned, prepared with equal volume low fat (2%) milk	soy	usually	139	133	485921 596954 597011	fdc-branded:consensus
+172915	Soup, cream of mushroom, canned, prepared with equal volume water	wheat	usually	139	133	485921 596954 597011	fdc-branded:consensus
+172915	Soup, cream of mushroom, canned, prepared with equal volume water	gluten	usually	139	133	485921 596954 597011	fdc-branded:consensus
+172915	Soup, cream of mushroom, canned, prepared with equal volume water	milk	usually	139	139	485921 596954 597011	fdc-branded:consensus
+172915	Soup, cream of mushroom, canned, prepared with equal volume water	soy	usually	139	133	485921 596954 597011	fdc-branded:consensus
+171607	Soup, cream of mushroom, low sodium, ready-to-serve, canned	wheat	usually	139	133	485921 596954 597011	fdc-branded:consensus
+171607	Soup, cream of mushroom, low sodium, ready-to-serve, canned	gluten	usually	139	133	485921 596954 597011	fdc-branded:consensus
+171607	Soup, cream of mushroom, low sodium, ready-to-serve, canned	milk	usually	139	139	485921 596954 597011	fdc-branded:consensus
+171607	Soup, cream of mushroom, low sodium, ready-to-serve, canned	soy	usually	139	133	485921 596954 597011	fdc-branded:consensus
+171158	Soup, cream of potato, canned, condensed	wheat	usually	19	19	1680448 1861655 2013283	fdc-branded:consensus
+171158	Soup, cream of potato, canned, condensed	gluten	usually	19	19	1680448 1861655 2013283	fdc-branded:consensus
+171158	Soup, cream of potato, canned, condensed	milk	usually	19	19	1680448 1861655 2013283	fdc-branded:consensus
+171158	Soup, cream of potato, canned, condensed	egg	split	19	2	1680448 2013283	fdc-branded:consensus
+171158	Soup, cream of potato, canned, condensed	soy	usually	19	18	1680448 2013283 2064526	fdc-branded:consensus
+171158	Soup, cream of potato, canned, condensed	sulfite	split	19	2	1680448 2013283	fdc-branded:consensus
+172897	Soup, cream of potato, canned, prepared with equal volume milk	wheat	usually	19	19	1680448 1861655 2013283	fdc-branded:consensus
+172897	Soup, cream of potato, canned, prepared with equal volume milk	gluten	usually	19	19	1680448 1861655 2013283	fdc-branded:consensus
+172897	Soup, cream of potato, canned, prepared with equal volume milk	milk	usually	19	19	1680448 1861655 2013283	fdc-branded:consensus
+172897	Soup, cream of potato, canned, prepared with equal volume milk	egg	split	19	2	1680448 2013283	fdc-branded:consensus
+172897	Soup, cream of potato, canned, prepared with equal volume milk	soy	usually	19	18	1680448 2013283 2064526	fdc-branded:consensus
+172897	Soup, cream of potato, canned, prepared with equal volume milk	sulfite	split	19	2	1680448 2013283	fdc-branded:consensus
+172917	Soup, cream of potato, canned, prepared with equal volume water	wheat	usually	19	19	1680448 1861655 2013283	fdc-branded:consensus
+172917	Soup, cream of potato, canned, prepared with equal volume water	gluten	usually	19	19	1680448 1861655 2013283	fdc-branded:consensus
+172917	Soup, cream of potato, canned, prepared with equal volume water	milk	usually	19	19	1680448 1861655 2013283	fdc-branded:consensus
+172917	Soup, cream of potato, canned, prepared with equal volume water	egg	split	19	2	1680448 2013283	fdc-branded:consensus
+172917	Soup, cream of potato, canned, prepared with equal volume water	soy	usually	19	18	1680448 2013283 2064526	fdc-branded:consensus
+172917	Soup, cream of potato, canned, prepared with equal volume water	sulfite	split	19	2	1680448 2013283	fdc-branded:consensus
+172913	Soup, minestrone, canned, prepared with equal volume water	wheat	usually	84	75	686846 1136483 1626454	fdc-branded:consensus
+172913	Soup, minestrone, canned, prepared with equal volume water	gluten	usually	84	75	686846 1136483 1626454	fdc-branded:consensus
+172913	Soup, minestrone, canned, prepared with equal volume water	milk	split	84	29	686846 1136483 1631657	fdc-branded:consensus
+172913	Soup, minestrone, canned, prepared with equal volume water	egg	split	84	51	686846 1136483 1626454	fdc-branded:consensus
+172913	Soup, minestrone, canned, prepared with equal volume water	soy	split	84	37	686846 1136483 1626454	fdc-branded:consensus
+174530	Soup, minestrone, canned, reduced sodium, ready-to-serve	wheat	usually	84	75	686846 1136483 1626454	fdc-branded:consensus
+174530	Soup, minestrone, canned, reduced sodium, ready-to-serve	gluten	usually	84	75	686846 1136483 1626454	fdc-branded:consensus
+174530	Soup, minestrone, canned, reduced sodium, ready-to-serve	milk	split	84	29	686846 1136483 1631657	fdc-branded:consensus
+174530	Soup, minestrone, canned, reduced sodium, ready-to-serve	egg	split	84	51	686846 1136483 1626454	fdc-branded:consensus
+174530	Soup, minestrone, canned, reduced sodium, ready-to-serve	soy	split	84	37	686846 1136483 1626454	fdc-branded:consensus
+172914	Soup, mushroom barley, canned, prepared with equal volume water	wheat	split	11	3	1861669 2069443 2133126	fdc-branded:consensus
+172914	Soup, mushroom barley, canned, prepared with equal volume water	gluten	usually	11	11	1625259 1861669 1903698	fdc-branded:consensus
+172914	Soup, mushroom barley, canned, prepared with equal volume water	soy	split	11	4	1625259 1861669 1994338	fdc-branded:consensus
+171592	Soup, pea, low sodium, prepared with equal volume water	soy	split	31	4	1860564 1860623 2104119	fdc-branded:consensus
+171614	Soup, ramen noodle, beef flavor, dry	wheat	usually	10	10	2032430 2132139 2421094	fdc-branded:consensus
+171614	Soup, ramen noodle, beef flavor, dry	gluten	usually	10	10	2032430 2132139 2421094	fdc-branded:consensus
+171614	Soup, ramen noodle, beef flavor, dry	milk	usually	10	10	2032430 2132139 2421094	fdc-branded:consensus
+171614	Soup, ramen noodle, beef flavor, dry	egg	split	10	5	2132139 2567941 2597474	fdc-branded:consensus
+171614	Soup, ramen noodle, beef flavor, dry	soy	usually	10	10	2032430 2132139 2421094	fdc-branded:consensus
+171615	Soup, ramen noodle, chicken flavor, dry	wheat	usually	19	19	2040749 2040754 2274515	fdc-branded:consensus
+171615	Soup, ramen noodle, chicken flavor, dry	gluten	usually	19	19	2040749 2040754 2274515	fdc-branded:consensus
+171615	Soup, ramen noodle, chicken flavor, dry	milk	usually	19	17	2040749 2040754 2274515	fdc-branded:consensus
+171615	Soup, ramen noodle, chicken flavor, dry	egg	split	19	7	2397965 2567943 2597481	fdc-branded:consensus
+171615	Soup, ramen noodle, chicken flavor, dry	soy	usually	19	19	2040749 2040754 2274515	fdc-branded:consensus
+172902	Soup, tomato bisque, canned, prepared with equal volume milk	wheat	split	13	4	1626515 2090139 2103762	fdc-branded:consensus
+172902	Soup, tomato bisque, canned, prepared with equal volume milk	gluten	split	13	4	1626515 2090139 2103762	fdc-branded:consensus
+172902	Soup, tomato bisque, canned, prepared with equal volume milk	milk	usually	13	12	1626515 1715504 1859106	fdc-branded:consensus
+171574	Soup, tomato bisque, canned, prepared with equal volume water	wheat	split	13	4	1626515 2090139 2103762	fdc-branded:consensus
+171574	Soup, tomato bisque, canned, prepared with equal volume water	gluten	split	13	4	1626515 2090139 2103762	fdc-branded:consensus
+171574	Soup, tomato bisque, canned, prepared with equal volume water	milk	usually	13	12	1626515 1715504 1859106	fdc-branded:consensus
+171587	Soup, tomato, canned, condensed, reduced sodium	wheat	usually	102	95	486011 597018 597122	fdc-branded:consensus
+171587	Soup, tomato, canned, condensed, reduced sodium	gluten	usually	102	95	486011 597018 597122	fdc-branded:consensus
+171587	Soup, tomato, canned, condensed, reduced sodium	milk	split	102	24	598213 1624831 1680020	fdc-branded:consensus
+171587	Soup, tomato, canned, condensed, reduced sodium	soy	split	102	26	1627059 1679601 1863466	fdc-branded:consensus
+174546	Soup, tomato, canned, prepared with equal volume low fat (2%) milk	wheat	split	154	105	486011 597018 597122	fdc-branded:consensus
+174546	Soup, tomato, canned, prepared with equal volume low fat (2%) milk	gluten	split	154	106	486011 597018 597122	fdc-branded:consensus
+174546	Soup, tomato, canned, prepared with equal volume low fat (2%) milk	milk	split	154	61	500125 521088 555203	fdc-branded:consensus
+174546	Soup, tomato, canned, prepared with equal volume low fat (2%) milk	soy	split	154	33	1627059 1679601 1859109	fdc-branded:consensus
+171591	Soup, tomato, low sodium, with water	wheat	split	149	104	486011 597018 597122	fdc-branded:consensus
+171591	Soup, tomato, low sodium, with water	gluten	split	149	105	486011 597018 597122	fdc-branded:consensus
+171591	Soup, tomato, low sodium, with water	milk	split	149	58	500125 521088 555203	fdc-branded:consensus
+171591	Soup, tomato, low sodium, with water	soy	split	149	33	1627059 1679601 1859109	fdc-branded:consensus
+171163	Soup, vegetable beef, canned, condensed	wheat	usually	25	21	597063 1024047 1675272	fdc-branded:consensus
+171163	Soup, vegetable beef, canned, condensed	gluten	usually	25	25	597063 1024047 1675272	fdc-branded:consensus
+171163	Soup, vegetable beef, canned, condensed	soy	usually	25	25	597063 1024047 1675272	fdc-branded:consensus
+174565	Soup, vegetable beef, canned, prepared with equal volume water	wheat	split	51	36	567059 597063 1024047	fdc-branded:consensus
+174565	Soup, vegetable beef, canned, prepared with equal volume water	gluten	usually	51	43	567059 597063 757920	fdc-branded:consensus
+174565	Soup, vegetable beef, canned, prepared with equal volume water	soy	usually	51	47	567059 597063 757920	fdc-branded:consensus
+171594	Soup, vegetable soup, condensed, low sodium, prepared with equal volume water	wheat	usually	43	39	597063 1594934 1626614	fdc-branded:consensus
+171594	Soup, vegetable soup, condensed, low sodium, prepared with equal volume water	gluten	usually	43	43	597063 1594934 1626614	fdc-branded:consensus
+171594	Soup, vegetable soup, condensed, low sodium, prepared with equal volume water	egg	split	43	18	1594934 1626614 1678471	fdc-branded:consensus
+171594	Soup, vegetable soup, condensed, low sodium, prepared with equal volume water	soy	split	43	30	597063 1594934 1626614	fdc-branded:consensus
+174538	Soup, vegetable, canned, low sodium, condensed	wheat	usually	43	39	597063 1594934 1626614	fdc-branded:consensus
+174538	Soup, vegetable, canned, low sodium, condensed	gluten	usually	43	43	597063 1594934 1626614	fdc-branded:consensus
+174538	Soup, vegetable, canned, low sodium, condensed	egg	split	43	18	1594934 1626614 1678471	fdc-branded:consensus
+174538	Soup, vegetable, canned, low sodium, condensed	soy	split	43	30	597063 1594934 1626614	fdc-branded:consensus
+171161	Soup, vegetarian vegetable, canned, condensed	wheat	usually	11	11	1678471 2020705 2023866	fdc-branded:consensus
+171161	Soup, vegetarian vegetable, canned, condensed	gluten	usually	11	11	1678471 2020705 2023866	fdc-branded:consensus
+171161	Soup, vegetarian vegetable, canned, condensed	egg	usually	11	11	1678471 2020705 2023866	fdc-branded:consensus
+171161	Soup, vegetarian vegetable, canned, condensed	soy	split	11	2	2026551 2100140	fdc-branded:consensus
+174564	Soup, vegetarian vegetable, canned, prepared with equal volume water	wheat	usually	11	11	1678471 2020705 2023866	fdc-branded:consensus
+174564	Soup, vegetarian vegetable, canned, prepared with equal volume water	gluten	usually	11	11	1678471 2020705 2023866	fdc-branded:consensus
+174564	Soup, vegetarian vegetable, canned, prepared with equal volume water	egg	usually	11	11	1678471 2020705 2023866	fdc-branded:consensus
+174564	Soup, vegetarian vegetable, canned, prepared with equal volume water	soy	split	11	2	2026551 2100140	fdc-branded:consensus
+172675	Sourdough Bread	wheat	usually	137	134	694036 718094 1002531	fdc-branded:consensus
+172675	Sourdough Bread	gluten	usually	137	134	694036 718094 1002531	fdc-branded:consensus
+172675	Sourdough Bread	soy	split	137	48	1867565 1908114 1940334	fdc-branded:consensus
+171411	Soybean Oil	soy	usually	15	15	1853241 1884923 1932631	fdc-branded:consensus
+-	Spaghetti	wheat	usually	164	149	356488 356490 356491	fdc-branded:consensus
+-	Spaghetti	gluten	usually	164	149	356488 356490 356491	fdc-branded:consensus
+174534	Split pea soup, canned, reduced sodium, prepared with water or ready-to serve	soy	split	25	3	1860564 2104119 2665810	fdc-branded:consensus
+172707	Sponge Cake	wheat	usually	23	22	896282 896290 1856121	fdc-branded:consensus
+172707	Sponge Cake	gluten	usually	23	22	896282 896290 1856121	fdc-branded:consensus
+172707	Sponge Cake	egg	usually	23	23	896282 896290 1856121	fdc-branded:consensus
+171850	Sprouted Wheat Bread	wheat	usually	22	22	616006 617618 656010	fdc-branded:consensus
+171850	Sprouted Wheat Bread	gluten	usually	22	22	616006 617618 656010	fdc-branded:consensus
+171850	Sprouted Wheat Bread	soy	split	22	10	1985504 2035207 2054146	fdc-branded:consensus
+171850	Sprouted Wheat Bread	sesame	split	22	5	1985504 2054146 2054148	fdc-branded:consensus
+171186	Sriracha Sauce	soy	split	80	15	468074 1481782 1850468	fdc-branded:consensus
+171825	Steak Sauce	wheat	split	138	30	356433 392823 1586813	fdc-branded:consensus
+171825	Steak Sauce	gluten	split	138	38	356433 392823 597076	fdc-branded:consensus
+171825	Steak Sauce	soy	split	138	31	356433 392823 1586813	fdc-branded:consensus
+171825	Steak Sauce	fish	split	138	34	356433 392823 459218	fdc-branded:consensus
+174869	Strawberry Drink Mix	milk	split	19	9	1996610 1996627 2463657	fdc-branded:consensus
+174869	Strawberry Drink Mix	soy	split	19	2	1996610 2463657	fdc-branded:consensus
+174930	Stuffing Mix	wheat	usually	137	127	391395 411019 1136420	fdc-branded:consensus
+174930	Stuffing Mix	gluten	usually	137	127	391395 411019 1136420	fdc-branded:consensus
+174930	Stuffing Mix	milk	split	137	35	391395 411019 1675124	fdc-branded:consensus
+174930	Stuffing Mix	soy	usually	137	114	391395 411019 1136420	fdc-branded:consensus
+168567	Sun-Dried Tomatoes	sulfite	split	51	30	1895238 1908940 1996211	fdc-branded:consensus
+170562	Sunflower Seeds	milk	split	279	36	724514 726048 878354	fdc-branded:consensus
+170562	Sunflower Seeds	soy	split	279	51	401096 599217 726048	fdc-branded:consensus
+170562	Sunflower Seeds	peanut	split	279	41	1855535 1866731 1868005	fdc-branded:consensus
+167977	Sweet Chocolate	milk	usually	12	9	2032085 2214788 2543377	fdc-branded:consensus
+167977	Sweet Chocolate	egg	split	12	2	2214788 2543377	fdc-branded:consensus
+167977	Sweet Chocolate	soy	usually	12	11	2032085 2041276 2214788	fdc-branded:consensus
+170577	Sweetened Coconut Flakes	sulfite	usually	36	34	600661 1577161 1577448	fdc-branded:consensus
+172243	Taco Seasoning	soy	split	74	11	1469501 1889053 1939192	fdc-branded:consensus
+172800	Taco Shells	wheat	split	76	31	1467847 1619989 1863352	fdc-branded:consensus
+172800	Taco Shells	gluten	split	76	31	1467847 1619989 1863352	fdc-branded:consensus
+172800	Taco Shells	soy	split	76	41	1467847 1619989 1914752	fdc-branded:consensus
+171826	Tartar Sauce	wheat	split	105	41	507148 1593582 1625476	fdc-branded:consensus
+171826	Tartar Sauce	gluten	split	105	41	507148 1593582 1625476	fdc-branded:consensus
+171826	Tartar Sauce	egg	usually	105	103	507148 1487277 1593582	fdc-branded:consensus
+171826	Tartar Sauce	soy	usually	105	95	507148 1487277 1593582	fdc-branded:consensus
+171402	Thousand Island Dressing	wheat	split	113	62	496696 597185 1123223	fdc-branded:consensus
+171402	Thousand Island Dressing	gluten	split	113	62	496696 597185 1123223	fdc-branded:consensus
+171402	Thousand Island Dressing	egg	usually	113	91	496696 597185 1123223	fdc-branded:consensus
+171402	Thousand Island Dressing	soy	usually	113	110	496696 597185 1123223	fdc-branded:consensus
+174925	Toasted Bread	wheat	usually	2153	2092	356867 442105 443062	fdc-branded:consensus
+174925	Toasted Bread	gluten	usually	2153	2098	356867 442105 443062	fdc-branded:consensus
+174925	Toasted Bread	milk	split	2153	343	442105 565158 681636	fdc-branded:consensus
+174925	Toasted Bread	soy	split	2153	1483	442105 443062 465708	fdc-branded:consensus
+174925	Toasted Bread	sesame	split	2153	234	521275 589517 652142	fdc-branded:consensus
+170579	Toasted Coconut Flakes	sulfite	split	71	51	573164 600661 690436	fdc-branded:consensus
+174911	Toasted French Bread	wheat	usually	90	90	1698504 1796587 1850915	fdc-branded:consensus
+174911	Toasted French Bread	gluten	usually	90	90	1698504 1796587 1850915	fdc-branded:consensus
+174911	Toasted French Bread	soy	split	90	45	1850915 1898004 1898379	fdc-branded:consensus
+172685	Toasted Rye Bread	wheat	usually	188	184	443062 593079 1121172	fdc-branded:consensus
+172685	Toasted Rye Bread	gluten	usually	188	188	443062 593079 1121172	fdc-branded:consensus
+172685	Toasted Rye Bread	soy	usually	188	142	443062 593079 1726030	fdc-branded:consensus
+172685	Toasted Rye Bread	sulfite	split	188	19	2011091 2019164 2021297	fdc-branded:consensus
+171016	Toasted Sesame Oil	sesame	usually	113	112	364692 413433 493592	fdc-branded:consensus
+172687	Toasted Wheat Bread	wheat	usually	716	716	438900 487797 616006	fdc-branded:consensus
+172687	Toasted Wheat Bread	gluten	usually	716	716	438900 487797 616006	fdc-branded:consensus
+172687	Toasted Wheat Bread	milk	split	716	82	670720 673510 680186	fdc-branded:consensus
+172687	Toasted Wheat Bread	soy	usually	716	607	438900 487797 670720	fdc-branded:consensus
+174914	Toasted Whole Grain Bread	wheat	usually	145	130	471397 556049 1776246	fdc-branded:consensus
+174914	Toasted Whole Grain Bread	gluten	usually	145	130	471397 556049 1776246	fdc-branded:consensus
+174914	Toasted Whole Grain Bread	milk	split	145	26	556049 1905556 1927538	fdc-branded:consensus
+174914	Toasted Whole Grain Bread	egg	split	145	15	1468817 1857560 2057716	fdc-branded:consensus
+174914	Toasted Whole Grain Bread	soy	split	145	91	471397 556049 1867725	fdc-branded:consensus
+174914	Toasted Whole Grain Bread	peanut	split	145	16	1941555 2079382 2385760	fdc-branded:consensus
+174914	Toasted Whole Grain Bread	treenut	split	145	16	1941555 2079382 2385760	fdc-branded:consensus
+174914	Toasted Whole Grain Bread	sesame	split	145	34	2033707 2055370 2057762	fdc-branded:consensus
+169671	Toffee	milk	usually	70	69	470787 1864694 1873884	fdc-branded:consensus
+169671	Toffee	soy	usually	70	66	470787 1864694 1873884	fdc-branded:consensus
+174290	Tofu, extra firm, prepared with nigari	soy	usually	31	31	958277 1810172 1863093	fdc-branded:consensus
+172448	Tofu, firm, prepared with calcium sulfate and magnesium chloride (nigari)	soy	usually	57	56	958277 1810172 1863093	fdc-branded:consensus
+172476	Tofu, raw, regular, prepared with calcium sulfate	soy	usually	121	117	395850 958277 1118973	fdc-branded:consensus
+171176	Tomato Soup	wheat	split	149	104	486011 597018 597122	fdc-branded:consensus
+171176	Tomato Soup	gluten	split	149	105	486011 597018 597122	fdc-branded:consensus
+171176	Tomato Soup	milk	split	149	58	500125 521088 555203	fdc-branded:consensus
+171176	Tomato Soup	soy	split	149	33	1627059 1679601 1859109	fdc-branded:consensus
+173143	Tortilla Chips	gluten	split	1576	214	542757 1024049 1573754	fdc-branded:consensus
+173143	Tortilla Chips	milk	split	1576	515	533647 580980 655792	fdc-branded:consensus
+173143	Tortilla Chips	soy	split	1576	1070	488033 504079 542757	fdc-branded:consensus
+167561	Trail Mix	wheat	split	810	167	427019 515963 535147	fdc-branded:consensus
+167561	Trail Mix	gluten	split	810	194	427019 515963 535147	fdc-branded:consensus
+167561	Trail Mix	milk	split	810	342	427019 515963 535147	fdc-branded:consensus
+167561	Trail Mix	soy	split	810	549	401140 427019 515963	fdc-branded:consensus
+167561	Trail Mix	peanut	usually	810	618	400994 427019 518702	fdc-branded:consensus
+167561	Trail Mix	treenut	usually	810	685	400994 401140 427019	fdc-branded:consensus
+167561	Trail Mix	sesame	split	810	97	427019 1526276 1572171	fdc-branded:consensus
+167561	Trail Mix	sulfite	split	810	155	400994 401140 401197	fdc-branded:consensus
+171500	Turkey and gravy, frozen	wheat	usually	85	75	595418 600192 1154815	fdc-branded:consensus
+171500	Turkey and gravy, frozen	gluten	usually	85	75	595418 600192 1154815	fdc-branded:consensus
+171500	Turkey and gravy, frozen	milk	split	85	50	595418 1154815 1679011	fdc-branded:consensus
+171500	Turkey and gravy, frozen	soy	split	85	32	600192 1679011 1684031	fdc-branded:consensus
+170467	Turnip greens, canned, solids and liquids	soy	split	29	5	1853383 1867344 2012470	fdc-branded:consensus
+168751	Vanilla Almond Milk	treenut	usually	13	13	2133966 2147800 2309058	fdc-branded:consensus
+169620	Vanilla Frosting	wheat	split	61	9	443452 1488468 1856543	fdc-branded:consensus
+169620	Vanilla Frosting	gluten	split	61	9	443452 1488468 1856543	fdc-branded:consensus
+169620	Vanilla Frosting	soy	usually	61	56	443452 1488468 1610657	fdc-branded:consensus
+167575	Vanilla Ice Cream	milk	usually	632	632	356469 450193 703814	fdc-branded:consensus
+167575	Vanilla Ice Cream	egg	split	632	169	1043855 1121977 1667899	fdc-branded:consensus
+169608	Vanilla Pudding	milk	usually	39	31	1868455 1893070 1894033	fdc-branded:consensus
+169608	Vanilla Pudding	soy	split	39	6	1860812 1893070 1894033	fdc-branded:consensus
+172737	Vanilla Sandwich Cookies	wheat	usually	75	71	632966 1499037 1515830	fdc-branded:consensus
+172737	Vanilla Sandwich Cookies	gluten	usually	75	69	632966 1499037 1515830	fdc-branded:consensus
+172737	Vanilla Sandwich Cookies	milk	split	75	15	1662146 1952573 2109782	fdc-branded:consensus
+172737	Vanilla Sandwich Cookies	soy	usually	75	73	632966 1499037 1515830	fdc-branded:consensus
+174974	Vanilla Wafers	wheat	usually	86	80	389933 590221 1511355	fdc-branded:consensus
+174974	Vanilla Wafers	gluten	usually	86	80	389933 590221 1511355	fdc-branded:consensus
+174974	Vanilla Wafers	milk	split	86	47	389933 1523693 1858297	fdc-branded:consensus
+174974	Vanilla Wafers	egg	split	86	28	389933 1520637 1523693	fdc-branded:consensus
+174974	Vanilla Wafers	soy	usually	86	79	389933 590221 1511355	fdc-branded:consensus
+172370	Vegetable Oil	soy	usually	317	307	371600 465772 475569	fdc-branded:consensus
+167691	Vegetable oil-butter spread, reduced calorie	milk	split	15	11	1112311 1863940 2060292	fdc-branded:consensus
+167691	Vegetable oil-butter spread, reduced calorie	soy	usually	15	15	1112311 1863940 2060292	fdc-branded:consensus
+172237	Vinegar	sulfite	split	634	98	465405 465406 484213	fdc-branded:consensus
+171831	Wasabi	soy	split	14	2	2119645 2652163	fdc-branded:consensus
+173157	Wasabi Peas	wheat	split	46	7	1862110 1867076 1900783	fdc-branded:consensus
+173157	Wasabi Peas	gluten	split	46	7	1862110 1867076 1900783	fdc-branded:consensus
+173157	Wasabi Peas	soy	split	46	23	401164 1638551 1878397	fdc-branded:consensus
+171856	Water Crackers	wheat	usually	1254	1146	357657 357663 359367	fdc-branded:consensus
+171856	Water Crackers	gluten	usually	1254	1147	357657 357663 359367	fdc-branded:consensus
+171856	Water Crackers	milk	split	1254	237	359367 453976 506095	fdc-branded:consensus
+171856	Water Crackers	soy	split	1254	689	357657 357663 359367	fdc-branded:consensus
+171856	Water Crackers	sulfite	split	1254	301	357663 411463 564394	fdc-branded:consensus
+172686	Wheat Bread	wheat	usually	716	716	438900 487797 616006	fdc-branded:consensus
+172686	Wheat Bread	gluten	usually	716	716	438900 487797 616006	fdc-branded:consensus
+172686	Wheat Bread	milk	split	716	82	670720 673510 680186	fdc-branded:consensus
+172686	Wheat Bread	soy	usually	716	607	438900 487797 670720	fdc-branded:consensus
+175030	Wheat Dinner Rolls	wheat	usually	15	15	2066793 2067336 2074973	fdc-branded:consensus
+175030	Wheat Dinner Rolls	gluten	usually	15	15	2066793 2067336 2074973	fdc-branded:consensus
+175030	Wheat Dinner Rolls	milk	split	15	3	2089957 2416293 2635528	fdc-branded:consensus
+175030	Wheat Dinner Rolls	egg	split	15	2	2477673 2635528	fdc-branded:consensus
+175030	Wheat Dinner Rolls	soy	usually	15	12	2066793 2067336 2074973	fdc-branded:consensus
+325871	White Bread	wheat	usually	536	525	442105 444865 521275	fdc-branded:consensus
+325871	White Bread	gluten	usually	536	523	442105 444865 521275	fdc-branded:consensus
+325871	White Bread	milk	split	536	73	442105 1473726 1867985	fdc-branded:consensus
+325871	White Bread	soy	usually	536	466	442105 521275 727686	fdc-branded:consensus
+172709	White Cake	wheat	usually	25	24	446233 446234 446237	fdc-branded:consensus
+172709	White Cake	gluten	usually	25	24	446233 446234 446237	fdc-branded:consensus
+172709	White Cake	milk	usually	25	24	446233 446234 446237	fdc-branded:consensus
+172709	White Cake	egg	usually	25	24	446233 446234 446237	fdc-branded:consensus
+172709	White Cake	soy	usually	25	24	446233 446234 446237	fdc-branded:consensus
+167571	White Chocolate	milk	usually	53	50	431617 1593602 1662228	fdc-branded:consensus
+167571	White Chocolate	soy	split	53	39	431617 1593602 1662228	fdc-branded:consensus
+167571	White Chocolate	treenut	split	53	6	1882273 2042126 2046642	fdc-branded:consensus
+169626	White Frosting	wheat	split	10	3	1916599 2016215 2118608	fdc-branded:consensus
+169626	White Frosting	gluten	split	10	3	1916599 2016215 2118608	fdc-branded:consensus
+169626	White Frosting	soy	split	10	7	1916599 1960195 2016215	fdc-branded:consensus
+172690	Whole Wheat Bread	wheat	usually	305	305	438900 487797 670720	fdc-branded:consensus
+172690	Whole Wheat Bread	gluten	usually	305	305	438900 487797 670720	fdc-branded:consensus
+172690	Whole Wheat Bread	soy	usually	305	245	438900 487797 670720	fdc-branded:consensus
+172762	Whole Wheat English Muffins	wheat	usually	24	24	1649145 1672037 1852371	fdc-branded:consensus
+172762	Whole Wheat English Muffins	gluten	usually	24	24	1649145 1672037 1852371	fdc-branded:consensus
+172762	Whole Wheat English Muffins	milk	split	24	4	2052490 2246187 2434645	fdc-branded:consensus
+172762	Whole Wheat English Muffins	soy	usually	24	21	1649145 1672037 1920330	fdc-branded:consensus
+174916	Whole Wheat Pita Bread	wheat	usually	21	21	1871669 1920747 2035212	fdc-branded:consensus
+174916	Whole Wheat Pita Bread	gluten	usually	21	21	1871669 1920747 2035212	fdc-branded:consensus
+174916	Whole Wheat Pita Bread	soy	split	21	6	2035212 2054577 2154021	fdc-branded:consensus
+174916	Whole Wheat Pita Bread	sulfite	split	21	3	2154021 2409522 2598549	fdc-branded:consensus
+172794	Whole Wheat Rolls	wheat	usually	22	22	1893792 1945464 2022251	fdc-branded:consensus
+172794	Whole Wheat Rolls	gluten	usually	22	22	1893792 1945464 2022251	fdc-branded:consensus
+172794	Whole Wheat Rolls	soy	usually	22	21	1945464 2022251 2077174	fdc-branded:consensus
+174081	Whole-Wheat Tortillas	wheat	usually	64	64	402631 1066433 1613582	fdc-branded:consensus
+174081	Whole-Wheat Tortillas	gluten	usually	64	64	402631 1066433 1613582	fdc-branded:consensus
+174081	Whole-Wheat Tortillas	soy	usually	64	49	402631 1066433 1613582	fdc-branded:consensus
+174081	Whole-Wheat Tortillas	sulfite	split	64	20	1066433 1907011 1917477	fdc-branded:consensus
+171610	Worcestershire Sauce	soy	split	80	31	742000 1589190 1627703	fdc-branded:consensus
+171610	Worcestershire Sauce	fish	split	80	55	742000 1514633 1537279	fdc-branded:consensus
+174947	Yellow Cake Mix	wheat	split	58	38	570121 571227 1883956	fdc-branded:consensus
+174947	Yellow Cake Mix	gluten	split	58	37	570121 571227 1883956	fdc-branded:consensus
+174947	Yellow Cake Mix	milk	split	58	10	571227 1884785 2070838	fdc-branded:consensus
+174947	Yellow Cake Mix	soy	split	58	28	570121 571227 1883956	fdc-branded:consensus

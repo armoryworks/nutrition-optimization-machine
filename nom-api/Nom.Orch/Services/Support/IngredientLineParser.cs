@@ -26,7 +26,8 @@ namespace Nom.Orch.Services.Support
     /// Italian count after a dash is read ("Uova - 6 numero" → 6), a cross-reference to another
     /// recipe of the book ("descritto al N. 579", "comme celui du N. 579", "forcemeat No. 1", "white sauce (No. 7)") is no
     /// count, and "one-half ounce" is half an
-    /// ounce. Returns null when the line has no leading quantity ("salt, to taste"), states
+    /// ounce. A rib before the food is the stalk measure only of celery and the like ("2 ribs celery" → 2 Stalk); a rib
+    /// of meat is part of the food's name ("a rib roast of beef", "1 rib of beef" count pieces). Returns null when the line has no leading quantity ("salt, to taste"), states
     /// a vague one ("a drop of water"), sizes a utensil ("two-quart tin mould"), states a price ("twenty cents' worth") or
     /// a spelt fraction of another amount ("a third as much soda", "one fourth of the flour", "a tenth part of onions"), a
     /// peck or bushel (no measure NOM has), a spelt fraction of pieces that is no part of one item ("two-thirds Java
@@ -94,6 +95,13 @@ namespace Nom.Orch.Services.Support
 
         private static readonly string UnitPattern = Alternation(Units.SelectMany(u => u.Forms));
 
+        private static readonly string[] RibForms = { "ribs", "rib" };
+
+        private const string StalkFoods = @"celery|celeriac\s+stalks?|rhubarb|lemon\s*grass|fennel|chard|swiss\s+chard|bok\s+choy|pak\s+choi|cardoons?|lovage";
+
+        private static readonly string LeadingUnitPattern = Alternation(Units.SelectMany(u => u.Forms).Where(f => !RibForms.Contains(f))) +
+            @"|ribs?(?=\.?\s+(?:of\s+)?(?:(?:fresh|green|white|large|small|medium|inner|outer|tender|crisp|leafy)\s+){0,2}(?:" + StalkFoods + @")\b)";
+
         private static string Alternation(IEnumerable<string> forms) =>
             string.Join("|", forms.OrderByDescending(f => f.Length).Select(f => Regex.Escape(f).Replace(@"\ ", @"\s+")));
 
@@ -104,8 +112,8 @@ namespace Nom.Orch.Services.Support
         private static readonly Regex LineRegex = new(
             @"^\s*(?<qty>\d+\s+\d+\s*/\s*\d+|\d+\s*/\s*\d+|\d+(?:\.\d+)?\s*[" + Fractions + @"]|[" + Fractions + @"]|\d+(?:[.,]\d+)?)" +
             @"(?:\s*(?:-|–|to|or|o)\s*(?:\d+\s+\d+\s*/\s*\d+|\d+\s*/\s*\d+|\d+(?:[.,]\d+)?\s*[" + Fractions + @"]?|[" + Fractions + @"]))?" +
-            @"[\s-]*(?:" + Qualifier + @"\s+(?=(?:" + Qualifier + @"\s+)?(?:" + UnitPattern + @")(?![a-z])))*" +
-            @"(?<unit>(?:" + UnitPattern + @")(?![a-z]))?\.?(?<rest>.*)$",
+            @"[\s-]*(?:" + Qualifier + @"\s+(?=(?:" + Qualifier + @"\s+)?(?:" + LeadingUnitPattern + @")(?![a-z])))*" +
+            @"(?<unit>(?:" + LeadingUnitPattern + @")(?![a-z]))?\.?(?<rest>.*)$",
             RegexOptions.Compiled | RegexOptions.IgnoreCase | RegexOptions.CultureInvariant);
 
         private static readonly Dictionary<string, decimal> NumberWords = new(StringComparer.OrdinalIgnoreCase)
@@ -117,6 +125,9 @@ namespace Nom.Orch.Services.Support
             ["three-quarters"] = 0.75m, ["three quarters"] = 0.75m, ["one-third"] = 1m / 3m, ["one third"] = 1m / 3m,
             ["two-thirds"] = 2m / 3m, ["two thirds"] = 2m / 3m,
         };
+
+        /// <summary>Every one-word form of a measure and every one-word number the parser reads, lower case: the diet gate's reading of a line's food words drops them (<see cref="DietFoodWords"/>).</summary>
+        internal static IEnumerable<string> MeasureWords => Units.SelectMany(u => u.Forms).Concat(NumberWords.Keys).Where(f => !f.Contains(' ') && !f.Contains('.')).Select(f => f.ToLowerInvariant());
 
         private static readonly string NumberWordPattern = string.Join("|",
             NumberWords.Keys.OrderByDescending(k => k.Length).Select(k => Regex.Escape(k).Replace(@"\ ", @"\s+")));

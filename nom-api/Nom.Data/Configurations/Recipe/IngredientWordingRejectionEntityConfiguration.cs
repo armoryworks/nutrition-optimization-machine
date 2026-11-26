@@ -15,6 +15,7 @@ public class IngredientWordingRejectionEntityConfiguration : IEntityTypeConfigur
 
         builder.Property(e => e.Wording).IsRequired().HasMaxLength(511);
         builder.Property(e => e.Verdict).IsRequired().HasMaxLength(16);
+        builder.Property(e => e.CategoryHead).HasMaxLength(255);
         builder.Property(e => e.Reason).IsRequired().HasMaxLength(1023);
         builder.Property(e => e.Source).IsRequired().HasMaxLength(255);
         builder.Property(e => e.EvidenceKey).HasMaxLength(128);

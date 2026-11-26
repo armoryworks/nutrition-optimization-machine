@@ -21,8 +21,8 @@ namespace Nom.Orch.Services.Support
     /// </summary>
     public sealed class DietFoodCatalog
     {
-        /// <summary>One food as the decision reads it.</summary>
-        public sealed record Food(long Id, string Name, bool Live, int? CategoryId, string? DataType, string? Category, decimal? GramsPerMilliliter, decimal? GramsPerItem, decimal? ReferenceServingGrams);
+        /// <summary>One food as the decision reads it, and whether a person or the admission rule curated it (a curated food decides its lines; a line on any other food is read by its words, <see cref="DietFoodWords"/>).</summary>
+        public sealed record Food(long Id, string Name, bool Live, int? CategoryId, string? DataType, string? Category, decimal? GramsPerMilliliter, decimal? GramsPerItem, decimal? ReferenceServingGrams, bool Curated = false, string? FdcId = null);
 
         /// <summary>One live alias.</summary>
         public sealed record Alias(long IngredientId, string Text, string? Context);
@@ -49,6 +49,13 @@ namespace Nom.Orch.Services.Support
         /// <summary>The latest live FDC statement row of each food that has one.</summary>
         public IReadOnlyDictionary<long, Statement> Statements { get; }
 
+        /// <summary>The rows of the branded consensus the decision reads: the committed file (<see cref="BrandedConsensus.All"/>), or the rows a test gives.</summary>
+        public IReadOnlyList<ConsensusRow> Consensus { get; init; } = BrandedConsensus.All;
+
+        /// <summary>The consensus rows of a food: only a curated food carries them, and only under the name they were derived for.</summary>
+        public IReadOnlyList<ConsensusRow> ConsensusOf(Food food) =>
+            !food.Curated ? Array.Empty<ConsensusRow>() : BrandedConsensus.ForFood(food.Name, food.FdcId, ReferenceEquals(Consensus, BrandedConsensus.All) ? null : Consensus);
+
         /// <summary>The statement rows with their text, for the foods <see cref="LoadStatementsAsync"/> loaded.</summary>
         public Dictionary<long, IngredientContentsEntity> StatementRows { get; } = new();
 
@@ -65,9 +72,9 @@ namespace Nom.Orch.Services.Support
             {
                 foreach (var i in await db.Ingredients.IgnoreQueryFilters().AsNoTracking()
                              .Where(i => scope == null || scope.Contains(i.Id))
-                             .Select(i => new { i.Id, i.Name, i.IsDeleted, i.FdcCategoryId, i.FdcDataType, i.FdcCategory, i.GramsPerMilliliter, i.GramsPerItem, i.ReferenceServingGrams })
+                             .Select(i => new { i.Id, i.Name, i.IsDeleted, i.FdcCategoryId, i.FdcDataType, i.FdcCategory, i.GramsPerMilliliter, i.GramsPerItem, i.ReferenceServingGrams, i.CurationStatusId, i.FdcId })
                              .ToListAsync(cancellationToken))
-                    foods[i.Id] = new Food(i.Id, i.Name ?? string.Empty, !i.IsDeleted, i.FdcCategoryId, i.FdcDataType, i.FdcCategory, i.GramsPerMilliliter, i.GramsPerItem, i.ReferenceServingGrams);
+                    foods[i.Id] = new Food(i.Id, i.Name ?? string.Empty, !i.IsDeleted, i.FdcCategoryId, i.FdcDataType, i.FdcCategory, i.GramsPerMilliliter, i.GramsPerItem, i.ReferenceServingGrams, i.CurationStatusId == (long)CurationStatusEnum.Curated, i.FdcId);
                 aliasRows.AddRange((await db.IngredientAliases.AsNoTracking()
                         .Where(a => scope == null || scope.Contains(a.IngredientId))
                         .Select(a => new { a.IngredientId, a.AliasName, a.SourceContext })
@@ -93,10 +100,10 @@ namespace Nom.Orch.Services.Support
         }
 
         /// <summary>A catalog of the given foods as they are (or as a move would make them), with no nutrient and no statement rows beyond those given.</summary>
-        public static DietFoodCatalog Of(IEnumerable<Food> foods, IEnumerable<Alias> aliases, IReadOnlyDictionary<long, Dictionary<long, decimal>>? nutrients = null, IReadOnlyDictionary<long, Statement>? statements = null) =>
+        public static DietFoodCatalog Of(IEnumerable<Food> foods, IEnumerable<Alias> aliases, IReadOnlyDictionary<long, Dictionary<long, decimal>>? nutrients = null, IReadOnlyDictionary<long, Statement>? statements = null, IReadOnlyList<ConsensusRow>? consensus = null) =>
             new(foods.ToDictionary(f => f.Id), aliases.GroupBy(a => a.IngredientId).ToDictionary(g => g.Key, g => g.ToArray()),
                 nutrients?.ToDictionary(kv => kv.Key, kv => kv.Value) ?? new Dictionary<long, Dictionary<long, decimal>>(),
-                statements?.ToDictionary(kv => kv.Key, kv => kv.Value) ?? new Dictionary<long, Statement>());
+                statements?.ToDictionary(kv => kv.Key, kv => kv.Value) ?? new Dictionary<long, Statement>()) { Consensus = consensus ?? BrandedConsensus.All };
 
         /// <summary>Loads the text of the latest statement of each of the foods that has a read one, in bounded batches.</summary>
         public async Task LoadStatementsAsync(ApplicationDbContext db, IEnumerable<long> foodIds, CancellationToken cancellationToken = default)
@@ -121,7 +128,7 @@ namespace Nom.Orch.Services.Support
             if (!Foods.TryGetValue(foodId, out var food)) return 0;
             var hash = new Fnv();
             hash.Add(food.Name).Add(food.Live ? "1" : "0").Add(food.CategoryId).Add(food.DataType).Add(food.Category)
-                .Add(food.GramsPerMilliliter).Add(food.GramsPerItem).Add(food.ReferenceServingGrams);
+                .Add(food.GramsPerMilliliter).Add(food.GramsPerItem).Add(food.ReferenceServingGrams).Add(food.Curated ? "curated" : "-");
             if (Aliases.TryGetValue(foodId, out var aliases))
                 foreach (var a in aliases.OrderBy(a => a.Text, StringComparer.Ordinal).ThenBy(a => a.Context, StringComparer.Ordinal)) hash.Add(a.Text).Add(a.Context);
             hash.Add("|");
@@ -129,6 +136,8 @@ namespace Nom.Orch.Services.Support
                 foreach (var (id, amount) in nutrients.OrderBy(n => n.Key)) hash.Add(id).Add(amount);
             hash.Add("|");
             if (Statements.TryGetValue(foodId, out var s)) hash.Add(s.Id).Add(s.Outcome).Add(s.ReaderVersion).Add(s.Modified?.Ticks);
+            hash.Add("|");
+            foreach (var row in ConsensusOf(food).OrderBy(r => r.Class, StringComparer.Ordinal)) hash.Add(row.Class).Add(row.Verdict);
             return hash.Value;
         }
 
@@ -175,7 +184,19 @@ namespace Nom.Orch.Services.Support
     public static class DietFoodReader
     {
         /// <summary>A set's decision: the foods each criterion counts (by criterion id), how each counts it, and the foods a pattern matches only through an alias that does not count.</summary>
-        public sealed record Decision(Dictionary<long, HashSet<long>> Foods, Dictionary<(long Criterion, long Food), string> Sources, HashSet<long> AliasOnly);
+        public sealed record Decision(Dictionary<long, HashSet<long>> Foods, Dictionary<(long Criterion, long Food), string> Sources, HashSet<long> AliasOnly)
+        {
+            /// <summary>
+            /// The live foods the set counts for nothing whose contents a rule marked not known (an alias of
+            /// <see cref="RecheckDietGuard.UnknownContentsContext"/>: a wording food the link re-check took lines back to
+            /// although the take-back would lower a flag, staging checkpoint 7, S15): a recipe on one is unknown, held by a set
+            /// that holds unknowns.
+            /// </summary>
+            public HashSet<long> Unknown { get; init; } = new();
+
+            /// <summary>The live curated foods the set counts for nothing whose branded products are split on a class a severe criterion of the set reads (<see cref="BrandedConsensus.Split"/>): their contents for the set are unknown.</summary>
+            public HashSet<long> Split { get; init; } = new();
+        }
 
         /// <summary>What a batch of foods reads for every rule, computed once per rule and kept for every set that needs it.</summary>
         public sealed class Reading
@@ -390,8 +411,30 @@ namespace Nom.Orch.Services.Support
             foreach (var c in criteria.Where(c => c.LikePattern != null || c.WordPattern != null))
                 foreach (var food in reading.Contents(c)) Count(c.Id, food, "contents");
 
+            var split = new HashSet<long>();
+            var severe = criteria.Where(c => c.Severity >= 4 && (c.LikePattern != null || c.WordPattern != null)).ToList();
+            if (severe.Count > 0)
+                foreach (var food in reading.Live)
+                    foreach (var row in catalog.ConsensusOf(food))
+                    {
+                        var reads = severe.Where(c => BrandedConsensus.Reads(c, row.Class)).ToList();
+                        if (reads.Count == 0) continue;
+                        if (row.Verdict == BrandedConsensus.Usually)
+                            foreach (var c in reads) Count(c.Id, food.Id, BrandedConsensus.FactSource);
+                        else split.Add(food.Id);
+                    }
+
             foreach (var ids in result.Values) aliasOnly.ExceptWith(ids);
-            return new Decision(result, sources, aliasOnly);
+            var countedAny = result.Values.SelectMany(ids => ids).ToHashSet();
+            var unknown = reading.Live
+                .Where(f => !countedAny.Contains(f.Id) && catalog.Aliases.TryGetValue(f.Id, out var aliases) && aliases.Any(a => a.Context == RecheckDietGuard.UnknownContentsContext))
+                .Select(f => f.Id)
+                .ToHashSet();
+            aliasOnly.ExceptWith(unknown);
+            split.ExceptWith(countedAny);
+            split.ExceptWith(unknown);
+            aliasOnly.ExceptWith(split);
+            return new Decision(result, sources, aliasOnly) { Unknown = unknown, Split = split };
         }
     }
 }

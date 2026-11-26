@@ -108,17 +108,34 @@ namespace Nom.Orch.Services
             };
         }
 
-        public async Task<ShoppingListResponseModel?> GetShoppingListAsync(long id, long personId)
+        public async Task<ShoppingListDetailResponseModel?> GetShoppingListAsync(long id, long personId)
         {
             var shoppingList = await _context.ShoppingLists
                 .Include(sl => sl.Items)
+                    .ThenInclude(i => i.Recipe)
                 .FirstOrDefaultAsync(sl => sl.Id == id);
 
             if (shoppingList == null || !await CanAccessListAsync(shoppingList, personId))
                 return null;
 
-            return new ShoppingListResponseModel
+            var items = shoppingList.Items?.ToList() ?? new List<ShoppingListItemEntity>();
+            var removed = await RecipeRemovalService.RemovedAsync(_context, items.Where(i => i.RecipeId != null && i.Recipe == null).Select(i => i.RecipeId!.Value));
+            return new ShoppingListDetailResponseModel
             {
+                Items = items.OrderBy(i => i.Position ?? int.MaxValue).ThenBy(i => i.Id).Select(i => new ShoppingListItemResponseModel
+                {
+                    Id = i.Id,
+                    ShoppingListId = i.ShoppingListId,
+                    Name = i.Name,
+                    Quantity = i.Quantity,
+                    IsCompleted = i.IsChecked,
+                    Note = Support.ShoppingItemNote.Shown(i, removed),
+                    IngredientId = i.IngredientId,
+                    RecipeId = i.RecipeId,
+                    Position = i.Position,
+                    CreatedDate = i.CreatedDate,
+                    ModifiedDate = i.LastModifiedDate,
+                }).ToList(),
                 Id = shoppingList.Id,
                 Name = shoppingList.Name,
                 Description = shoppingList.Description,

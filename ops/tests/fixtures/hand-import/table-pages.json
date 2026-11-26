@@ -1,0 +1,230 @@
+{
+  "about": "Page images made for the hand-import tests by table-pages.py, not taken from the Library of Congress. The text is NCI's \"Down Home Healthy Cooking\" (NIH Publication No. 06-3408, U.S. government text, public domain; the same pages as nci-pages.json), set in the layout of the Library's old cookbooks: a title, an ingredient table with dot leaders and the amount at the right, the method in prose. The last page keeps only the whole-number rows of NCI's seasoning (its fractional rows left out), so a table every row of which can be read is on a page. expected holds the ingredient lines the rule reader gives each recipe, amount first.",
+  "pages": [
+    {
+      "file": "table-page-skillet.jpg",
+      "head": "DOWN HOME HEALTHY COOKING. 9",
+      "recipes": [
+        {
+          "title": "BLACK SKILLET BEEF.",
+          "rows": [
+            [
+              "Beef top round",
+              "1 lb."
+            ],
+            [
+              "Red-skinned potatoes, halved",
+              "8"
+            ],
+            [
+              "Finely chopped onion",
+              "3 cups"
+            ],
+            [
+              "Beef broth",
+              "2 cups"
+            ],
+            [
+              "Large cloves garlic, minced",
+              "2"
+            ],
+            [
+              "Large carrots, peeled",
+              "2"
+            ]
+          ],
+          "method": [
+            "Partially freeze beef. Thinly slice across the grain into long strips, one-eighth inch thick.",
+            "Spray a large, heavy skillet with non-stick spray coating. Preheat pan over high heat. Add meat; cook, stirring for 5 minutes.",
+            "Add potatoes, onion, broth, and garlic. Cook, covered, over medium heat for 20 minutes. Stir in carrots and cook, covered, until carrots are tender (about 15 minutes)."
+          ],
+          "expected": [
+            "1 lb Beef top round",
+            "8 Red-skinned potatoes, halved",
+            "3 cups Finely chopped onion",
+            "2 cups Beef broth",
+            "2 Large cloves garlic, minced",
+            "2 Large carrots, peeled"
+          ]
+        }
+      ]
+    },
+    {
+      "file": "table-page-chicken.jpg",
+      "head": "DOWN HOME HEALTHY COOKING. 13",
+      "recipes": [
+        {
+          "title": "BAKED FRIED CHICKEN.",
+          "rows": [
+            [
+              "Plain dried bread crumbs",
+              "½ cup"
+            ],
+            [
+              "Grated Parmesan cheese",
+              "½ cup"
+            ],
+            [
+              "Cornmeal",
+              "2 tablespoons"
+            ],
+            [
+              "Large egg white",
+              "1"
+            ],
+            [
+              "Salt",
+              "½ teaspoon"
+            ],
+            [
+              "Boneless, skinless chicken breast",
+              "1½ lbs."
+            ],
+            [
+              "Mixed vegetables",
+              "3 cups"
+            ]
+          ],
+          "method": [
+            "Pre-heat oven to 350 degrees. Spray a medium baking pan with cooking spray. On waxed paper, mix bread crumbs, cheese and cornmeal.",
+            "In pie plate, beat egg white and salt. Dip each piece of chicken in egg white mixture, then coat with bread crumb mixture. Place chicken in pan.",
+            "Bake chicken for 30 minutes or until coating is crisp. Add mixed vegetables to chicken. Bake for 5 more minutes."
+          ],
+          "expected": [
+            "½ cup Plain dried bread crumbs",
+            "½ cup Grated Parmesan cheese",
+            "2 tablespoons Cornmeal",
+            "1 Large egg white",
+            "½ teaspoon Salt",
+            "1½ lbs Boneless, skinless chicken breast",
+            "3 cups Mixed vegetables"
+          ]
+        }
+      ]
+    },
+    {
+      "file": "table-page-two.jpg",
+      "head": "DOWN HOME HEALTHY COOKING. 19",
+      "recipes": [
+        {
+          "title": "SPICY SEASONING.",
+          "rows": [
+            [
+              "Paprika",
+              "¼ cup"
+            ],
+            [
+              "Dried oregano, crushed",
+              "2 tablespoons"
+            ],
+            [
+              "Chili powder",
+              "2 teaspoons"
+            ],
+            [
+              "Garlic powder",
+              "1 teaspoon"
+            ],
+            [
+              "Black pepper",
+              "1 teaspoon"
+            ],
+            [
+              "Dry mustard",
+              "½ teaspoon"
+            ]
+          ],
+          "method": [
+            "Mix together all ingredients. Store in an airtight container."
+          ],
+          "expected": [
+            "¼ cup Paprika",
+            "2 tablespoons Dried oregano, crushed",
+            "2 teaspoons Chili powder",
+            "1 teaspoon Garlic powder",
+            "1 teaspoon Black pepper",
+            "½ teaspoon Dry mustard"
+          ]
+        },
+        {
+          "title": "BAKED PORK CHOPS.",
+          "rows": [
+            [
+              "Lean center-cut pork chops",
+              "6"
+            ],
+            [
+              "Egg white",
+              "1"
+            ],
+            [
+              "Evaporated skim milk",
+              "1 cup"
+            ],
+            [
+              "Cornflake crumbs",
+              "¾ cup"
+            ],
+            [
+              "Fine dry bread crumbs",
+              "1¼ cup"
+            ],
+            [
+              "Salt",
+              "1½ teaspoon"
+            ]
+          ],
+          "method": [
+            "Trim all fat from chops. Beat egg white with evaporated skim milk. Place chops in milk mixture; let stand for 5 minutes, turning chops once.",
+            "Meanwhile, mix together cornflake crumbs, bread crumbs and salt. Remove chops from milk mixture. Coat thoroughly with crumb mixture.",
+            "Place chops in pan; bake in 375 degree oven for 20 minutes. Turn chops; bake 15 minutes longer or until no pink remains."
+          ],
+          "expected": [
+            "6 Lean center-cut pork chops",
+            "1 Egg white",
+            "1 cup Evaporated skim milk",
+            "¾ cup Cornflake crumbs",
+            "1¼ cup Fine dry bread crumbs",
+            "1½ teaspoon Salt"
+          ]
+        }
+      ]
+    },
+    {
+      "file": "table-page-whole.jpg",
+      "head": "DOWN HOME HEALTHY COOKING. 21",
+      "recipes": [
+        {
+          "title": "SEASONING.",
+          "rows": [
+            [
+              "Dried oregano, crushed",
+              "2 tablespoons"
+            ],
+            [
+              "Chili powder",
+              "2 teaspoons"
+            ],
+            [
+              "Garlic powder",
+              "1 teaspoon"
+            ],
+            [
+              "Black pepper",
+              "1 teaspoon"
+            ]
+          ],
+          "method": [
+            "Mix together all ingredients. Store in an airtight container."
+          ],
+          "expected": [
+            "2 tablespoons Dried oregano, crushed",
+            "2 teaspoons Chili powder",
+            "1 teaspoon Garlic powder",
+            "1 teaspoon Black pepper"
+          ]
+        }
+      ]
+    }
+  ]
+}

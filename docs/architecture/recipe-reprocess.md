@@ -179,7 +179,11 @@ holds the line. A line is the same line by its food and its source text wherever
 `cleanup2/ck11-lines`, staging checkpoint 6 R22: after the order-only pass the next start released 152
 start-up fill holds and made 152 new rows for the same lines): its hold moves with it to its new position,
 unless another open hold of the writer stands there or another held line takes its old place, and only then
-is a line matched by position alone; a rebuild apply resolves the start-up fill's open holds of its recipe (`rebuilt`). A hold
+is a line matched by position alone; a rebuild apply resolves the start-up fill's open holds of its recipe (`rebuilt`),
+and a start that no longer reads a recipe because a journaled line operation holds it (a re-check move, an unfold)
+resolves that recipe's start-up fill holds (`line-operation`, since `cleanup2/ck16-diet-store-moves`; staging
+checkpoint 7, S21: two such holds stayed open, no longer refreshed); the start after that operation's undo reads the
+recipe again and records its own. A hold
 writes nothing to the recipe. A dry run stores none. An undo of a rebuild resolves that recipe's open
 rebuild holds (`undone`) in the undo's transaction; the next start-up fill reads the recipe again and records
 its own. A worker that takes a hold still first checks that the row carries the stored amount. `ResolvedAt` and `Resolution` are for
@@ -255,6 +259,18 @@ in the recipes checkpoint 6's start read, from 190 to 54 (`rebuilt-ungrounded` 4
 both-grounded counts against a measure the line states ("3-4 tablespns.", "a couple of cloves" against a stored 1),
 "wine glass" spelt apart and bird meat whose method alone says it is cooked. The draws are in the
 `cleanup2/ck12-lines-proof` build report.
+
+Staging checkpoint 7 (S1) found a meat "rib" filled as the celery-rib measure: "rib roast of beef" 0 -> 1 Stalk from
+"Have a rib roast of beef cut standing", 5 of 3,884 fills (24658, 69509, 74264, 87126, 125859). The parser now reads a
+rib before the food as the stalk measure only of celery and the like (celery, rhubarb, lemongrass, fennel, chard, bok
+choy, cardoon, lovage: "2 ribs celery" is 2 Stalk); a rib of meat is part of the food's name ("a rib roast of beef", "1
+rib of beef", "rib-eye" count pieces), so a method's "a rib roast of beef" is one piece of a food not counted in pieces
+and fills nothing, and a "rib chop" counted in pieces is one piece. A trailing "celery, 2 ribs" is read as before. The
+other measure words that are also food words, read on every fill of that start (read-only): "head of celery" 1 Piece,
+"heads of asparagus" 25 Piece, "ears of Indian corn" half a dozen, "a dozen and a half of sheep's ears", "Cloves bruised,
+three ounces" and "stalk of celery" 1 Stalk are right; no fill used leaf or pod as a measure (neither is a parser unit),
+and no stick, ear, head or clove fill was wrong. The fill guard does not ground a stalk on the word "rib", so "rib of
+celery" filled from a method is held, not filled.
 
 ## Rebuild
 

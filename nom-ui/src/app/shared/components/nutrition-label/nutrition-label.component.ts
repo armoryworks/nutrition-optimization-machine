@@ -1,6 +1,16 @@
 import { Component, computed, input, signal, ChangeDetectionStrategy } from '@angular/core';
 import { DecimalPipe } from '@angular/common';
-import { RecipeAlcoholNote, RecipeNutritionModel, RecipeNutritionSource } from '../../../core/models/recipe-nutrition.model';
+import { RecipeAlcoholNote, RecipeNutritionModel, RecipeNutritionSource, RetentionBoundReason } from '../../../core/models/recipe-nutrition.model';
+
+const BOUND_REASONS: Record<RetentionBoundReason, string> = {
+  parts: 'The recipe has more than one part, and the steps do not make clear that the part with the alcohol is the one cooked',
+  pause: 'The part with the alcohol is set aside or chilled before the cooking, and the steps do not make clear that the cooking is of that part',
+  unnamed: 'The steps never say when the alcohol goes in',
+  lines: 'The alcohol goes in at more than one point, and the steps do not say how much at each',
+  choice: 'The steps offer a choice of time or method',
+  flamed: 'Flamed, and how long it burns is not stated',
+  marinade: 'Used to soak or marinate, and how much goes on with the food, and how, is not stated',
+};
 
 interface NutrientDisplayRow {
   displayName: string;
@@ -156,6 +166,14 @@ export class NutritionLabel {
     const stays = `${this.grams(a.retainedGrams)} ${this.per(a)}`;
     const pct = a.retainedPercent ?? 100;
     if (a.notRead) return 'How it is cooked has not been read yet, so all of the alcohol is counted.';
+    if (a.basis === 'up-to' && a.reason) {
+      return `${BOUND_REASONS[a.reason]}, so up to ${pct}% may stay (USDA retention table): up to ${stays}. This is an upper bound; calories count only the alcohol that may stay.`;
+    }
+    const others = a.upTo && a.basis !== 'up-to' ? ` Another drink line can only be bounded, so in all up to ${stays} may stay.` : '';
+    return this.cookingText(a, pct, stays) + others;
+  });
+
+  private cookingText(a: RecipeAlcoholNote, pct: number, stays: string): string {
     switch (a.basis) {
       case 'timed':
         return `${a.method === 'bake' ? 'Baked' : 'Simmered'} about ${a.minutes} minutes, so about ${pct}% stays (USDA retention table): about ${stays}. Calories count only the alcohol that stays.`;
@@ -174,7 +192,7 @@ export class NutritionLabel {
       default:
         return 'Not cooked after the alcohol is added, so all of it stays.';
     }
-  });
+  }
 
   alcoholFlavouringText = computed(() => {
     const a = this.alcohol();

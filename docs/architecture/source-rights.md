@@ -413,15 +413,29 @@ reprocess-journal undo and a rights-step undo (`rights/undo`) skip a removed rec
   retired recipe stay. They are served with the recipe's title, its source link and the plain note "This recipe is
   no longer available here." (`recipeRemoved`, `recipeSourceUrl`, `recipeRemovedNote`; in a cookbook `removed`,
   `sourceUrl`, `removedNote`; on a shopping item the note "From recipe: TITLE. This recipe is no longer available
-  here. Source: URL", in the smart list and the grocery export). Nothing of the source's wording or images is
-  served: no description, steps, lines or image, and a shopping item named from the source's line text is renamed at
-  retire to its catalog food, or else to its own food words (`ProseWithholding.FoodWords`), the old name journaled
-  (`RecipeRetireItemName`) for the undo.
+  here. Source: URL", on the plain shopping list read `GET api/ShoppingList/{id}` (which now serves the list's items),
+  in the smart list and in the grocery export). Nothing of the source's wording or images is served: no description,
+  steps, lines or image, and a shopping item named from the source's line text is renamed at retire to its catalog
+  food, or else to its own food words (`ProseWithholding.FoodWords`, then the looser `PlainFoodWords`: preparation
+  words, a closing purpose and every alternative after the first taken off, so "Finely-grated zest of one lemon or
+  orange" is "lemon zest" and "avocado and cilantro for topping" is "avocado and cilantro"; the bare word "Ingredient"
+  only when neither reading finds food words), the old name journaled (`RecipeRetireItemName`) for the undo
+  (`RecipeRemovalService.ItemName`; staging checkpoint 7, S18).
+- **Foods left without a recipe.** A food named from the source's lines (no FDC id, not curated) that a retired line
+  names, that no live line of another recipe names and that nothing a household or another food relies on holds
+  (a pantry, shopping list or household shopping item, a meal plan, a household food, a goal, a restriction, a
+  substitution, a variation, a component, a message thread or a live verified wording) is retired with the recipes,
+  under the run's stamp, one `RecipeRetireFood` journal row each (`Foods` in the report; the dry run counts the same).
+  A food shared by two batches of one run goes with the later batch, and a food shared with a recipe an earlier run
+  retired goes with the run that retires its last live line. The undo puts a food back when it puts back a line naming
+  it, whichever retire retired the food (so undoing an earlier run never leaves a restored line on a retired food;
+  staging: about 4,826 such foods on the six forbidden hosts).
 - **Undo** (`POST api/ScrapingSource/rights/removal/undo?stamp=&apply=`): every recipe of the run that is not purged
   is put back exactly (`LastModified*` included): the rows soft-deleted with the stamp are restored, a recipe that was already deleted stays
   deleted, the item names come back where they still read as the retire wrote them, and the removal row is marked
   undone (`RecipeRetireUndo`). A repeated undo counts them as already done. The stored diet gate decides the recipe
-  again on its next cycle.
+  again on its next cycle. The foods the retire retired come back with their lines (`Foods` in the report, and in its
+  dry run).
 
 **Stage 2, purge** (`POST api/ScrapingSource/rights/removal/purge?sourceId=&apply=&backupTaken=`): on retired,
 not undone recipes only, irreversible, refused unless `backupTaken=true` (take a database backup first). A
@@ -442,12 +456,22 @@ rows it touches. Per recipe it:
 | `audit.AuditLogEntry` | `OldValue`, `NewValue` of the recipe's rows (`Recipe`, `RecipeStep`, `RecipeIngredient`), its documents' rows (`ScrapedDocument`) and its items' renames | replaced by `(purged with the recipe, sha256:...)`; the removal's own rows stay |
 | `curation.LaneDecision` (subject `recipe:ID`) | `SignalsJson`, `VerdictsJson`, `AuditJson` | cleared |
 | `shopping.ShoppingListItem` | `Name` | renamed to the catalog food or its own food words where it still differs; the household's row stays |
+| `recipe.Ingredient` (the foods the purged lines name, and the retired foods merged away from them: named by a free text below, under that name or under the "X (deleted #id)" name a merge gives; in both cases only when no line of any other recipe names the food, live or retired; a live food merely named like a line is never taken) | `Name`, `NameNormalized`, `PluralName`, `PluralNameNormalized`, `Description` | a food a household or another food holds is renamed by its food words (with its id when another food has that name); any other gets the purged placeholder name and is retired |
+| `recipe.IngredientAlias`, deleted `recipe.IngredientWording` rows, `recipe.IngredientWordingRejection` of those foods; the alias a relink gave the food that took a merged food's lines (`SourceContext` `retired:ID`) | all | rows deleted |
+| `curation.FoodCatalogProposal` (on those foods, or whose `CurrentValue` is a purged line's text, its normalised text or such a food's name, when no line of another recipe holds that text and no other live food is named by it) | `CurrentValue`, `ProposedValue` (unless a number or an id), `Reason` (when it quotes the text) | replaced by `(purged with the recipe, sha256:...)` |
+| `audit.AuditLogEntry` of those foods (`Ingredient`) and proposals (`FoodCatalogProposal`) | `OldValue`, `NewValue` | replaced by the same hash; the removal's own rows stay |
+| `curation.LaneDecision` (subject `wording:` such a text's key, when the key is itself free: no line of another recipe holds it, no other live food is named by it and no live verified wording row has it) | `Subject`, `SignalsJson`, `VerdictsJson`, `AuditJson` | cleared, the subject replaced by the hash |
 
 What stays is the `recipe.RecipeRemoval` row (recipe id, source, host, address, title, with `PurgedAtUtc` and a
 `PurgeSummary` of what went, by table) and the recipe row's title and address, so the address is never taken again
 and a household's entries keep their title and link. A purged recipe can no longer be put back: its run's undo skips
 it ("purged"). `RecipeRemovalTests` proves the purge by reading every string column of every entity with a
-`RecipeId`, the recipe row, its journal rows and its lane decisions.
+`RecipeId`, the recipe row, its journal rows and its lane decisions, and then every string column of every row of
+the model for the purged recipes' own line wordings (a wording food, a food merged away from a purged line, its
+proposals, a proposal keyed by the wording alone, a wording lane's decision, a food merged away under its tombstoned
+name with its relink journal row and the alias the merge left), while a wording a recipe not removed still uses stays
+(its food, its proposal, and the lane's decision about a key that live recipes link to) (staging checkpoint 7, S20: 24 proposal values and 13 food names were left before). The purge's dry
+run counts, per source, the same household holdings as the retire's dry run (S19).
 
 **Never taken again.** URL import, the test scrape, a data import naming the address and the staged import the
 harvester uses refuse an address with a removal that is not undone ("This address was removed: its source HOST

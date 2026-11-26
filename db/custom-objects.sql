@@ -49,11 +49,9 @@ BEGIN
     DELETE FROM plan."DietFoodState" s
     WHERE s."BuildId" IN (SELECT b."Id" FROM plan."DietGateBuild" b)
       AND s."IngredientId" = ANY (foods);
-    DELETE FROM plan."DietRecipeState" s
-    WHERE s."BuildId" IN (SELECT b."Id" FROM plan."DietGateBuild" b)
-      AND s."RecipeId" = ANY (ARRAY(
-          SELECT DISTINCT ri."RecipeId" FROM recipe."RecipeIngredient" ri WHERE ri."IngredientId" = ANY (foods) ORDER BY 1));
     INSERT INTO plan."DietGateWrite" ("IngredientId") SELECT f FROM unnest(foods) f;
+    INSERT INTO plan."DietGateWrite" ("RecipeId", "IngredientId")
+    SELECT DISTINCT ri."RecipeId", ri."IngredientId" FROM recipe."RecipeIngredient" ri WHERE ri."IngredientId" = ANY (foods) ORDER BY 1, 2;
 END;
 $$;
 
@@ -85,8 +83,8 @@ CREATE OR REPLACE FUNCTION plan."DietGateRecipesWritten"() RETURNS trigger
 BEGIN
     PERFORM plan."DietGateClearRecipes"(ARRAY(
         SELECT n."Id" FROM new_rows n JOIN old_rows o ON o."Id" = n."Id"
-        WHERE (o."Servings", o."RecipeServings", o."IsDeleted", o."Name", o."SourceUrl", o."ScrapedAtUtc")
-            IS DISTINCT FROM (n."Servings", n."RecipeServings", n."IsDeleted", n."Name", n."SourceUrl", n."ScrapedAtUtc")));
+        WHERE (o."Servings", o."RecipeServings", o."IsDeleted", o."Name", o."SourceUrl", o."ScrapedAtUtc", o."SourceAttribution")
+            IS DISTINCT FROM (n."Servings", n."RecipeServings", n."IsDeleted", n."Name", n."SourceUrl", n."ScrapedAtUtc", n."SourceAttribution")));
     RETURN NULL;
 END;
 $$;
@@ -126,8 +124,8 @@ BEGIN
     ELSE
         PERFORM plan."DietGateClearFoods"(ARRAY(
             SELECT n."Id" FROM new_rows n JOIN old_rows o ON o."Id" = n."Id"
-            WHERE (o."Name", o."IsDeleted", o."FdcCategoryId", o."FdcDataType", o."FdcCategory", o."GramsPerMilliliter", o."GramsPerItem", o."ReferenceServingGrams")
-                  IS DISTINCT FROM (n."Name", n."IsDeleted", n."FdcCategoryId", n."FdcDataType", n."FdcCategory", n."GramsPerMilliliter", n."GramsPerItem", n."ReferenceServingGrams")));
+            WHERE (o."Name", o."IsDeleted", o."FdcCategoryId", o."FdcDataType", o."FdcCategory", o."GramsPerMilliliter", o."GramsPerItem", o."ReferenceServingGrams", o."CurationStatusId")
+                  IS DISTINCT FROM (n."Name", n."IsDeleted", n."FdcCategoryId", n."FdcDataType", n."FdcCategory", n."GramsPerMilliliter", n."GramsPerItem", n."ReferenceServingGrams", n."CurationStatusId")));
     END IF;
     RETURN NULL;
 END;

@@ -3545,3 +3545,88 @@ Sulfite Sensitivity	%vin%	name	Vinespinach, (basella), raw	reads	-
 Sulfite Sensitivity	%vin%	name	Waxgourd, (chinese preserving melon), cooked, boiled, drained, with salt	reads	-
 Sulfite Sensitivity	%vin%	name	Waxgourd, (chinese preserving melon), cooked, boiled, drained, without salt	reads	-
 Sulfite Sensitivity	%vin%	name	Waxgourd, (chinese preserving melon), raw	reads	-
+Celiac Disease	-	food word	angelfood	-	flagged
+Celiac Disease	-	food word	archway	-	flagged
+Celiac Disease	-	food word	cheesecake	-	flagged
+Celiac Disease	-	food word	coffeecake	-	flagged
+Celiac Disease	-	food word	cornbread	-	flagged, method
+Celiac Disease	-	food word	crispbread	-	flagged
+Celiac Disease	-	food word	fortune	-	flagged
+Celiac Disease	-	food word	fruitcake	-	flagged
+Celiac Disease	-	food word	gingerbread	-	flagged, method
+Celiac Disease	-	food word	kneel	-	flagged
+Celiac Disease	-	food word	mince	-	flagged
+Celiac Disease	-	food word	oatmeal	-	flagged, method
+Celiac Disease	-	food word	ring	-	flagged
+Celiac Disease	-	food word	saltine	-	flagged
+Celiac Disease	-	food word	shortbread	-	flagged
+Celiac Disease	-	food word	shortcake	-	flagged
+Celiac Disease	-	food word	sponge	-	flagged
+Celiac Disease	-	food word	wheatena	-	flagged
+Wheat Allergy	-	food word	angelfood	-	flagged
+Wheat Allergy	-	food word	archway	-	flagged
+Wheat Allergy	-	food word	cheesecake	-	flagged
+Wheat Allergy	-	food word	coffeecake	-	flagged
+Wheat Allergy	-	food word	cornbread	-	flagged, method
+Wheat Allergy	-	food word	crispbread	-	flagged
+Wheat Allergy	-	food word	dinner	-	flagged
+Wheat Allergy	-	food word	fortune	-	flagged
+Wheat Allergy	-	food word	fruitcake	-	flagged
+Wheat Allergy	-	food word	gingerbread	-	flagged, method
+Wheat Allergy	-	food word	kneel	-	flagged
+Wheat Allergy	-	food word	mince	-	flagged
+Wheat Allergy	-	food word	ring	-	flagged
+Wheat Allergy	-	food word	saltine	-	flagged
+Wheat Allergy	-	food word	shortbread	-	flagged
+Wheat Allergy	-	food word	shortcake	-	flagged
+Wheat Allergy	-	food word	sponge	-	flagged
+Milk Allergy	-	food word	biscuit	-	flagged, method
+Milk Allergy	-	food word	brick	-	flagged
+Milk Allergy	-	food word	buttermilk	-	flagged, method
+Milk Allergy	-	food word	cheshire	-	flagged
+Milk Allergy	-	food word	edam	-	flagged
+Milk Allergy	-	food word	evaporated	-	flagged
+Milk Allergy	-	food word	fluid	-	flagged
+Milk Allergy	-	food word	gjetost	-	flagged
+Milk Allergy	-	food word	grand	-	flagged
+Milk Allergy	-	food word	human	-	flagged
+Milk Allergy	-	food word	ice	-	flagged
+Milk Allergy	-	food word	limburger	-	flagged
+Milk Allergy	-	food word	monterey	-	flagged
+Milk Allergy	-	food word	oaxaca	-	flagged
+Milk Allergy	-	food word	pillsbury	-	flagged, method
+Milk Allergy	-	food word	sheep	-	flagged, method
+Milk Allergy	-	food word	soup	-	flagged, method
+Milk Allergy	-	food word	tilsit	-	flagged
+Milk Allergy	-	food word	topping	-	flagged, method
+Milk Allergy	-	food word	whipped	-	flagged
+Egg Allergy	-	food word	potsticker	-	flagged
+Egg Allergy	-	food word	scrambled	-	flagged
+Peanut Allergy	-	food word	virginia	-	flagged
+Tree Nut Allergy	-	food word	beaked	-	flagged
+Soy Allergy	-	food word	baking	-	flagged
+Soy Allergy	-	food word	confectionery	-	flagged
+Soy Allergy	-	food word	firm	-	flagged
+Soy Allergy	-	food word	household	-	flagged
+Sesame Allergy	-	food word	bagel	-	flagged, method
+Fish Allergy	-	food word	blackfish	-	flagged
+Fish Allergy	-	food word	bluefish	-	flagged
+Fish Allergy	-	food word	butterfish	-	flagged
+Fish Allergy	-	food word	devilfish	-	flagged
+Fish Allergy	-	food word	gefiltefish	-	flagged
+Fish Allergy	-	food word	lingcod	-	flagged
+Fish Allergy	-	food word	mahimahi	-	flagged
+Fish Allergy	-	food word	milkfish	-	flagged
+Fish Allergy	-	food word	monkfish	-	flagged
+Fish Allergy	-	food word	rockfish	-	flagged
+Fish Allergy	-	food word	sablefish	-	flagged
+Fish Allergy	-	food word	seatrout	-	flagged
+Fish Allergy	-	food word	sheefish	-	flagged
+Fish Allergy	-	food word	sockeye	-	flagged
+Fish Allergy	-	food word	sunfish	-	flagged
+Fish Allergy	-	food word	tilefish	-	flagged
+Fish Allergy	-	food word	whitefish	-	flagged
+Fish Allergy	-	food word	wolffish	-	flagged
+Shellfish Allergy	-	food word	potsticker	-	flagged
+Sulfite Sensitivity	-	food word	chowchow	-	flagged
+Sulfite Sensitivity	-	food word	cider	-	flagged, method

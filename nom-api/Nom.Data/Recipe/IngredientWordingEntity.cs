@@ -12,12 +12,18 @@ namespace Nom.Data.Recipe
         /// <summary>The wording in key form: normalised and lower-cased, unique across the table.</summary>
         public string Wording { get; set; } = string.Empty;
 
-        /// <summary>food | none | unclear — see <see cref="IngredientWordingVerdict"/>.</summary>
+        /// <summary>food | category | none | unclear — see <see cref="IngredientWordingVerdict"/>.</summary>
         public string Verdict { get; set; } = IngredientWordingVerdict.Unclear;
 
         /// <summary>The food the wording means; set only when the verdict is food.</summary>
         public long? IngredientId { get; set; }
         public virtual IngredientEntity? Ingredient { get; set; }
+
+        /// <summary>The USDA food category of the foods the wording is one of; set only when the verdict is category.</summary>
+        public int? FdcCategoryId { get; set; }
+
+        /// <summary>The leading part of the USDA description the foods of <see cref="FdcCategoryId"/> share with the wording ("Fish", "Beef, variety meats and by-products"); null for the whole category.</summary>
+        public string? CategoryHead { get; set; }
 
         /// <summary>Where the verdict came from, e.g. <c>verified:{batch}</c>.</summary>
         public string Source { get; set; } = string.Empty;
@@ -32,6 +38,7 @@ namespace Nom.Data.Recipe
     public static class IngredientWordingVerdict
     {
         public const string Food = "food";
+        public const string Category = "category";
         public const string None = "none";
         public const string Unclear = "unclear";
     }

@@ -77,12 +77,22 @@ namespace Nom.Orch.Services.Support
             return null;
         }
 
-        /// <summary>The words the gate reads for a declared or warned allergen: the word itself and every word of its class.</summary>
+        /// <summary>The words of a class that name no member of it: a label that says "tree nuts" or "nuts" names none, while one that says "cashews" or "coconut" names its nut.</summary>
+        public static readonly IReadOnlyDictionary<string, string[]> UnnamedClassWords = new Dictionary<string, string[]>(StringComparer.Ordinal)
+        {
+            ["tree nuts"] = new[] { "tree nut", "tree nuts", "nuts" },
+        };
+
+        /// <summary>The words the gate reads for a declared or warned allergen: the word itself and every word of its class, except the class's words that name no member when the allergen names one ("coconut" is not an unnamed nut, which Peanut Allergy holds by "% nut%": staging checkpoint 7, R7).</summary>
         public static IEnumerable<string> GateWords(StatementAllergen allergen)
         {
             yield return allergen.Word;
-            if (allergen.Class != null && AllergenClasses.TryGetValue(allergen.Class, out var words))
-                foreach (var w in words) yield return w;
+            if (allergen.Class == null || !AllergenClasses.TryGetValue(allergen.Class, out var words)) yield break;
+            var unnamed = UnnamedClassWords.GetValueOrDefault(allergen.Class) ?? Array.Empty<string>();
+            var word = allergen.Word.Trim().ToLowerInvariant();
+            var named = unnamed.Length > 0 && words.Contains(word, StringComparer.Ordinal) && !unnamed.Contains(word, StringComparer.Ordinal);
+            foreach (var w in words)
+                if (!named || !unnamed.Contains(w, StringComparer.Ordinal)) yield return w;
         }
 
         private const RegexOptions Options = RegexOptions.IgnoreCase | RegexOptions.CultureInvariant | RegexOptions.Compiled;

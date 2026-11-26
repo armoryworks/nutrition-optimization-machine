@@ -30,6 +30,12 @@
     <EmbeddedResource Include="Contents\diet-vocabulary.tsv" LogicalName="Nom.Orch.Contents.diet-vocabulary.tsv" />
     <EmbeddedResource Include="Contents\diet-term-words.tsv" LogicalName="Nom.Orch.Contents.diet-term-words.tsv" />
     <EmbeddedResource Include="Contents\diet-dishes.tsv" LogicalName="Nom.Orch.Contents.diet-dishes.tsv" />
+    <EmbeddedResource Include="Contents\diet-line-words.tsv" LogicalName="Nom.Orch.Contents.diet-line-words.tsv" />
+    <EmbeddedResource Include="Contents\diet-method-foods.tsv" LogicalName="Nom.Orch.Contents.diet-method-foods.tsv" />
+    <EmbeddedResource Include="Contents\diet-method-dishes.tsv" LogicalName="Nom.Orch.Contents.diet-method-dishes.tsv" />
+    <EmbeddedResource Include="Contents\diet-dough-titles.tsv" LogicalName="Nom.Orch.Contents.diet-dough-titles.tsv" />
+    <EmbeddedResource Include="Contents\diet-spellings.tsv" LogicalName="Nom.Orch.Contents.diet-spellings.tsv" />
+    <EmbeddedResource Include="Contents\diet-branded-consensus.tsv" LogicalName="Nom.Orch.Contents.diet-branded-consensus.tsv" />
     <EmbeddedResource Include="Fonts\Lato\*.ttf" LogicalName="Nom.Orch.Fonts.Lato.%(Filename)%(Extension)" />
     <EmbeddedResource Include="..\Nom.Api.Tests\Fixtures\Golden\prose-verbs.tsv" LogicalName="Nom.Orch.Prose.prose-verbs.tsv" Link="Prose\prose-verbs.tsv" />
     <EmbeddedResource Include="..\Nom.Api.Tests\Fixtures\Golden\model-lanes.json" LogicalName="Nom.Orch.Golden.model-lanes.json" Link="Golden\model-lanes.json" />

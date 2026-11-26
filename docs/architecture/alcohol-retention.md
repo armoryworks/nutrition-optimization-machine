@@ -4,6 +4,66 @@ Alcohol design A7 and A8, owner answer 6 (2026-11-20). Branch `cleanup2/alcohol-
 Rules and a published table only; no model reads or writes anything here, and no food's stored
 nutrition is changed.
 
+## A single value only where the steps determine it (`alcohol-retention/10`, branch `cleanup2/ck15-retention`)
+
+Fifteen draw-and-patch rounds of the reader below never met the bar (at most 2 of 40 recipes wrong, none on the low
+side). The reader was changed in approach, not patched again. `AlcoholRetention.ReadRecipe` now gives:
+
+- **A single value** only where the steps determine it: the drink is named, and the heat that reaches it is read from
+  the **certain run** (`CertainSegment`): the drink's clause and the sentences after it while they go on with the same
+  mixture. The run ends before a separate preparation, a new bowl or pan opened by the sentence, a new part ("For the
+  glaze", "RISOTTO:", "To make the sauce"), a new mixture or preparation of something else ("Beat the egg whites",
+  "Melt the chocolate", "Heat the oil"), a sentence that cooks a food the run has not named ("Bake the shortcakes"), and,
+  for a drink in a side part (an icing, sauce, filling, whipped cream and the like), any heat that does not name the part
+  or go on with it on the stove. It ends after a sentence that serves the dish, puts a cold part on a finished food, or
+  sets the mixture aside, chills or cools it, except a rest of the same dough or mixture before it goes on uncooked. A
+  sentence that offers a choice ("if using", "Optional:", another method) is left out, and times offered as choices
+  count at the shortest (`ChoiceTime`, `OrMethod`, seconds count as none). A batter or dough goes on after a separate
+  preparation only where the steps make that clear (`Return`): a separate bowl that joins back within two sentences, the
+  batter or dough named again, the dry ingredients stirred into it, an "x mixture" whose x the run named, or the run's
+  mixture already in its pan, dish, crust or cups and the next oven sentence after any part put over or into it.
+- **Heat before the drink goes in is never its heat.** A mention that holds the drink back ("all the ingredients except
+  the rum", "everything but the brandy", "reserve 2 tablespoons of the wine"; `HeldBack`) does not place it: the drink is
+  read from the step that adds it, and when no step does, the reading is all of it, an upper bound with reason `unnamed`.
+  A heat that the drink's own clause says is already done ("Add the wine after the sauce has simmered for 30 minutes",
+  "once boiled"; `PriorHeat`) is left out of its run. When the drink is added again inside its own run ("Stir in the
+  remaining wine just before serving", "Brush the warm cake with the rest of the brandy"; `AddsAgain`), that addition is
+  read too, and a higher reading makes the line an upper bound with reason `lines` (review of the branch, ck15-ret-1 and
+  ck15-ret-2).
+- **An upper bound** everywhere else (`Bound`), marked "up to" and estimated, with its reason: the most that may stay,
+  from the heat that is certain. The cost is over-statement, never under-statement.
+
+| Reason | When |
+|---|---|
+| `parts` | the full reading (`ReadAt`: parts resumed, joined or assembled) takes heat beyond the certain run, or the run ends at a new part and heat follows |
+| `pause` | the run ends by setting aside, chilling or cooling before any heat, and heat follows |
+| `unnamed` | no step names the drink: all of it, unless one step mixes all the ingredients (read from there) or steps name a drink word of its kind (the highest of those readings, and all of it when the word is "liquor") |
+| `lines` | several lines of one drink whose amounts the steps do not tie to a sentence (equal amounts are read in turn; stated amounts are matched), a drink named again outside its run or added again inside it, or part of a sauce or mixture served apart ("Serve with the extra sauce") |
+| `choice` | the times or methods offered as choices shorten the certain heat |
+| `flamed` | a flaming: how long it burns is not stated, so up to the warmed row 5002 (85 %), or the timed heat after it |
+| `marinade` | the drink soaks or marinates a food: up to the certain run's reading |
+
+An upper bound takes the USDA row of what is certain (`RowFor`): a timed heat of 15 minutes or more its timed row, less
+or no time the method's highest row (5002 on the stove, 5010 in the oven), a hot liquid or a flaming 5002, a certain
+stand overnight 5001, and no certain heat all of it. Ranges count at their lower end in the certain run, even after heat
+with no time.
+
+The stored basis carries the reason as a fourth part (`up-to:no-heat::parts`, `up-to:simmer:30:pause`); a basis
+without one is read as before (`up-to:simmer` is heat with no time). The factor stored is the bound, so everything that
+uses the retained alcohol uses the bound: the label's calories, the recipe page's note, and the No Alcohol decision
+(`RecipeAlcohol.Excludes`), whose diet match then reads "Up to 2.1 g of alcohol per serving stays after cooking, more
+than 0.5 g." (`RecipeAlcohol.UpperBound`). Halal and Whole30 exclude every drink line whatever the retention, so a bound
+does not change them. The note (`RecipeAlcoholNoteModel.UpTo`, `Reason`) says, for example, "The recipe has more than one
+part, and the steps do not make clear that the part with the alcohol is the one cooked, so up to 100% may stay (USDA
+retention table): up to 3 g per serving. This is an upper bound; calories count only the alcohol that may stay." The
+run counts the upper bounds, the recipes that carry one and the reasons (`UpperBound`, `RecipesUpperBound`, `ByReason`;
+each sample carries its `Reason`).
+
+The bar was then met on fresh staging draws read against their stored steps (build report `ck15-retention.md`): draw
+12 of twelve had no low-side reading, no single value wrong and 2 upper bounds where the steps clearly give a lower
+value. About a fifth of the recipes of a draw (15 % to 28 %) get an upper bound with a reason, and about two fifths
+(32 % to 60 %) carry some "up to" reading once heat with no time is counted.
+
 ## The table
 
 `nom-api/Nom.Orch/Nutrition/usda-retention-r6-alcohol.tsv` holds the ten alcohol rows of the
@@ -299,15 +359,17 @@ into the sauce just thickened over the fire, 85 %. The apply stays held: the bar
 
 ## Golden set and scorer
 
-`alcohol-retention.tsv` (189 rows since `alcohol-retention/9`: 162 rule-given, `rule:alcohol-retention`, `ok`, ar-ck10s-01 to ar-ck10s-11 from staging checkpoint 5 and its review, ar-ck11-01 to ar-ck11-15 from staging checkpoint 6, ar-ck12a-01 to ar-ck12a-36 from the fresh draws and their review; 9 realistic methods
+`alcohol-retention.tsv` (241 rows since `alcohol-retention/10`: the 189 below, 49 of them changed by hand to the upper
+bound (the note of each says what it was), ar-ck15-01 to ar-ck15-20 (rule-given, step texts written for the rule) and
+32 cookbook recipes of the fresh draws, `agent-review-alcohol-retention-2026-11-24-ck15`, `agent`; earlier: 189 rows since `alcohol-retention/9`: 162 rule-given, `rule:alcohol-retention`, `ok`, ar-ck10s-01 to ar-ck10s-11 from staging checkpoint 5 and its review, ar-ck11-01 to ar-ck11-15 from staging checkpoint 6, ar-ck12a-01 to ar-ck12a-36 from the fresh draws and their review; 9 realistic methods
 judged by the builder, `agent-review-alcohol-retention-2026-11-21`, `agent`, and 17 cookbook recipes from the fresh
 draws plus ar-107 (the fondue kirsch, re-judged from that review's 100 % to 85 %), `agent-review-alcohol-retention-2026-11-24`, `agent`). The optional `before` and `after`
 columns hold the recipe's other drink lines (` | `-joined), which the scorer reads with the row's line through
 `AlcoholRetention.ReadRecipe`. No-model scorer lane
 `alcohol-retention` in `model-lanes.json` (`required`, floor 100 %, no false accept; a false accept is
 a factor below the row's). Record: `dotnet run --project nom-api/Nom.Import -- --golden-score --lane
-alcohol-retention --record`; `GoldenAlcoholRetentionTests` checks every row, that every kind has a
-rule-given row and every timed USDA row is reached, and that the record is current.
+alcohol-retention --record`; `GoldenAlcoholRetentionTests` checks every row, that every kind and every upper-bound
+reason has a rule-given row and every timed USDA row is reached, and that the record is current.
 
 ## Not built here
 

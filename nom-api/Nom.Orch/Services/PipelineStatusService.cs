@@ -537,8 +537,8 @@ namespace Nom.Orch.Services
                     WaitingWithSourceProse = g.Count(r => r.CurationStatusId == NonCurated && r.ContainsSourceProse),
                     ProseWithheld = g.Count(r => r.ProseWithheld),
                     ProseWithheldApproved = g.Count(r => r.ProseWithheld && r.CurationStatusId == Curated),
-                    ProseRepair = g.Count(r => r.ProseCopiedSentences > 0 && !r.ContainsSourceProse && !(r.ProseWithheld && r.SourceRights == SourceRightsRule.FactsOnly)),
-                    ProseRepairApproved = g.Count(r => r.ProseCopiedSentences > 0 && !r.ContainsSourceProse && !(r.ProseWithheld && r.SourceRights == SourceRightsRule.FactsOnly) && r.CurationStatusId == Curated),
+                    ProseRepair = g.Count(r => r.ProseCopiedSentences > 0 && r.ProseWithheld && !r.ContainsSourceProse),
+                    ProseRepairApproved = g.Count(r => r.ProseCopiedSentences > 0 && r.ProseWithheld && !r.ContainsSourceProse && r.CurationStatusId == Curated),
                     ProseUnsure = g.Count(r => r.ProseUnsure && !r.ProseWithheld),
                     ProseUnsureApproved = g.Count(r => r.ProseUnsure && !r.ProseWithheld && r.CurationStatusId == Curated),
                     RevisionMissingQuantities = g.Count(r => r.CurationStatusId == RequiresRevision && r.VettingIssues != null

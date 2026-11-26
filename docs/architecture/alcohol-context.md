@@ -267,6 +267,33 @@ Three read-only draws of 25 written and 25 held alcohol-context rows, none in an
 "marsala"), a porterhouse, brandy colouring (burnt sugar), "vineger" and "vinager" as vinegar, Scotch peas, and a
 drink before marmalade, preserves, compote or chutney (a dish). Golden rows ac-ck12a-01 to ac-ck12a-08.
 
+### Staging checkpoint 7 and six fresh draws (`alcohol-context/12`)
+
+Checkpoint 7 (S13) found `scotch ale` written as whisky and `kirsch ice` as a spirit (2 of 33). Fixed by kind, then
+proven on fresh draws of 40 would-write rows each (read-only role; every alcohol-context answer whose lines all share
+one drink sense, before the gate, so a superset of the writes; none in an earlier sample file or golden row, nor in
+an earlier draw; `ck16-removal-small.md` in the evidence folder). Wrong: 7, 3, 5, 4, 4, then 2 of 40, which meets the
+bar of at most 1 in 20; each draw's kinds were fixed before the next, and every earlier draw replays with only its
+wrong and doubtful rows held. Now read:
+
+- "Scotch" before ale, beer, lager, stout, porter or IPA is a beer; Scotch kail, scones, haggis, a bun and
+  kiln-dried oats are other foods; butterscotch is a sweet.
+- a drink word before ice, sherbet, sorbet, parfait, mousse, souffle, fool, snow or sponge, before salame, salami,
+  court-bouillon, bouillon, ketchup, barbecue or a cheese's name, a sauce, stock, glaze, meringue, cream, cake or
+  fruit "with", "in" or "of" a drink, a food marinaded in or sauteed, cooked, braised, glazed or basted with a drink,
+  and a grape name before "soaked" (the grape names now count as drink words there) are dishes.
+- several foods run into one line (three or more parts, two of which state an amount and name no drink; or a part of
+  one to three plain words that is no note, no amount and no drink; or two or more parts that each name a drink and
+  give no example) are a list; a part in a cook's bracketed note, an example after "such as" or "like", an amount
+  and a measure do not make one. Italian "o", "oppure" and French "ou" join alternatives.
+- stout before a fish or fowl, or before strings and cords, means strong or plump; wort is malt liquor before it
+  ferments; a muslin, linen or cloth sack is a bag; yeast "of small beer" is yeast; spirits ammonia is not food;
+  sloe gin is a liqueur USDA has no food for.
+- With no ingredient line (a line that refers to another recipe, "Porgies, White Wine"), the tier reads every comma
+  part of the wording, so a referenced recipe's title names no drink (`WordingTiers.AlcoholTarget`).
+
+Golden rows ac-ck16-01 to ac-ck16-28 (rule-given, both sides).
+
 ## Golden set and scorer
 
 - `alcohol-context.tsv`: 207 lines with the expected sense, a food the sense must allow and one it

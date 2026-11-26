@@ -346,8 +346,11 @@ namespace Nom.Orch.Services.Support
                 .ToDictionary(g => g.Key, g => RecipeAlcohol.Count(g.Select(f => f.Facts), servings.GetValueOrDefault(g.Key)));
         }
 
-        /// <summary>Whether a recipe line's own text counts as alcohol for the diet gate, whatever food it is linked to.</summary>
-        public static bool LineCounts(string? rawLine) => !string.IsNullOrWhiteSpace(rawLine) && AlcoholLineContext.CountsForDiet(AlcoholLineContext.Read(rawLine));
+        /// <summary>Whether a recipe line's own text counts as alcohol for the diet gate, whatever food it is linked to: as a whole, or by an alternative it offers in a bracket ("beef stock (or I used dry red wine)", which the cook's-note reading drops: staging checkpoint 7, S12).</summary>
+        public static bool LineCounts(string? rawLine) => !string.IsNullOrWhiteSpace(rawLine)
+            && (AlcoholLineContext.CountsForDiet(AlcoholLineContext.Read(rawLine)) || Offered.Matches(rawLine).Any(m => AlcoholLineContext.CountsForDiet(AlcoholLineContext.Read(m.Groups[1].Value))));
+
+        private static readonly Regex Offered = new(@"\(\s*or\s+(?:(?:i|we|you)\s+(?:used|use|like|prefer)\s+|use\s+)?([^()]+)\)", RegexOptions.IgnoreCase | RegexOptions.CultureInvariant | RegexOptions.Compiled);
 
         /// <summary>
         /// The recipes with a line whose own text reads as a drink while its food is none of the

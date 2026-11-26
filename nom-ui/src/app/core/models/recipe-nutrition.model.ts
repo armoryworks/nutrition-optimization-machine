@@ -26,5 +26,9 @@ export interface RecipeAlcoholNote {
   minutes?: number | null;
   retainedPercent?: number | null;
   usdaCode?: string | null;
+  upTo?: boolean;
+  reason?: RetentionBoundReason | null;
   notRead: boolean;
 }
+
+export type RetentionBoundReason = 'parts' | 'pause' | 'unnamed' | 'lines' | 'choice' | 'flamed' | 'marinade';

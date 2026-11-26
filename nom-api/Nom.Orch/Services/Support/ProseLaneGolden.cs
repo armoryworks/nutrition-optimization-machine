@@ -118,21 +118,15 @@ namespace Nom.Orch.Services.Support
 
         /// <summary>
         /// The case ids a prose lane is scored on: the judge and the audit read every row; the
-        /// rewrite lane rewords each recipe of the file once from its method as a whole, rewords the
-        /// copied sentences of each faithful rewrite the sentence copy rule finds some in
-        /// (<see cref="IsRepairCase"/>), and puts each planted fault through its gate.
+        /// rewrite lane rewords the whole method of each recipe of the file once, as it rewords every
+        /// recipe it takes, and puts each planted fault through its facts gate.
         /// </summary>
         public static IReadOnlyList<string> CaseIds(string lane, IReadOnlyList<ProseJudgeCase> cases) => lane switch
         {
             RewriteLane => cases.Select(c => c.Recipe).Distinct(StringComparer.Ordinal).Select(r => $"{lane}:recipe:{r}")
-                .Concat(cases.Where(c => IsRepairCase(c, ProseStockIndex.Empty)).Select(c => $"{lane}:repair:{c.Id}"))
                 .Concat(cases.Where(c => !c.Faithful).Select(c => $"{lane}:{c.Id}")).ToList(),
             _ => cases.Select(c => $"{lane}:{c.Id}").ToList(),
         };
-
-        /// <summary>Whether a row is a repair case of the rewrite lane: a faithful rewrite some of whose sentences, but not most, the sentence copy rule reads as copies of the method.</summary>
-        public static bool IsRepairCase(ProseJudgeCase c, ProseStockIndex stock) =>
-            c.Faithful && ProseCheck.Check(c.Input(stock).Source, c.RewriteText, c.Lines, stock).Repair;
 
         public static string CaseSet(IEnumerable<string> ids) =>
             Convert.ToHexString(SHA256.HashData(Encoding.UTF8.GetBytes(string.Join('\n', ids.OrderBy(id => id, StringComparer.Ordinal)))))[..16].ToLowerInvariant();

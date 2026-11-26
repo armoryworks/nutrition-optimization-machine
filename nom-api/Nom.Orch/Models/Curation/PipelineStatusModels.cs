@@ -35,11 +35,11 @@ namespace Nom.Orch.Models.Curation
         /// <summary>Waiting scraped recipes of unknown licence that have no image of their own.</summary>
         public int WaitingScrapedWithoutOwnImage { get; init; }
         public int WaitingWithSourceProse { get; init; }
-        /// <summary>Recipes whose own prose failed the prose check and is withheld until the rewrite lane replaces it; the goal is none.</summary>
+        /// <summary>Recipes whose own prose is withheld (an earlier paraphrase of its source, or a source's rights) until the rewrite lane replaces it; the goal is none.</summary>
         public int ProseWithheld { get; init; }
         /// <summary>Of those withheld, the approved ones, which the rewrite lane takes first.</summary>
         public int ProseWithheldApproved { get; init; }
-        /// <summary>Recipes with some sentences the prose check reads as copies of the source, withheld until the rewrite lane rewords those sentences, its work list; most are also counted as withheld.</summary>
+        /// <summary>Of those withheld, the recipes in whose old text the prose check reads copied sentences (<c>ProseCopiedSentences</c>, the queue figure): the rewrite lane takes them first, most copied first.</summary>
         public int ProseRepair { get; init; }
         /// <summary>Of those with copied sentences, the approved ones.</summary>
         public int ProseRepairApproved { get; init; }

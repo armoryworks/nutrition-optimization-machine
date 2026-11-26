@@ -167,16 +167,20 @@ namespace Nom.Orch.Services
     }
 
     /// <summary>
-    /// A model reading a rewrite against its original with the step rubric on an Ollama host: the
-    /// auditor of a sample (the roster's auditor), which reads the whole method at once and confirms
-    /// its own flag blind. Temperature 0; the answer is a verdict, never text that is shown.
+    /// The auditor of a sample (the roster's auditor) on an Ollama host. Rules decide first, with the
+    /// recipe's own ingredient lines (<see cref="ProseAudit.ByRule"/>), and no model is asked when they
+    /// flag a step. Otherwise the model reads each changed step pair in a call of its own
+    /// (<see cref="ProseLanePrompts.AuditStep"/>) with the dish, the lines, the whole source method and
+    /// the rules' notes on the step, listing each difference before its verdict, and re-reads a step it
+    /// flagged blind (<see cref="ProseLanePrompts.Confirm"/>). Temperature 0 and a fixed seed; the
+    /// answer is a verdict, never text that is shown.
     /// </summary>
-    public sealed class OllamaProseJudge : IProseJudge
+    public sealed class OllamaProseAuditor : IProseAuditor
     {
         private readonly HttpClient _http;
         private readonly string _baseUrl;
 
-        public OllamaProseJudge(HttpClient http, string baseUrl, string model)
+        public OllamaProseAuditor(HttpClient http, string baseUrl, string model)
         {
             _http = http;
             _baseUrl = baseUrl.TrimEnd('/');
@@ -185,70 +189,53 @@ namespace Nom.Orch.Services
 
         public string Model { get; }
 
-        public async Task<ProseJudgeVerdict?> JudgeAsync(IReadOnlyList<string> original, IReadOnlyList<string> rewrite, CancellationToken cancellationToken)
+        public async Task<ProseAuditVerdict?> AuditAsync(ProseAuditPair pair, CancellationToken cancellationToken)
         {
-            var steps = Math.Max(original.Count, rewrite.Count);
-            var answer = await OllamaProseChat.AskAsync(_http, _baseUrl, Model, ProseLanePrompts.Audit, Pair(original, rewrite), JudgeSchema(steps), 0, null, cancellationToken);
-            return ProseJudgeVerdict.Parse(answer, steps);
-        }
-
-        public async Task<bool?> ConfirmAsync(IReadOnlyList<string> original, IReadOnlyList<string> rewrite, int step, CancellationToken cancellationToken)
-        {
-            var system = string.Format(CultureInfo.InvariantCulture, ProseLanePrompts.Confirm, step);
-            var schema = new { type = "object", properties = new { wrong = new { type = "boolean" } }, required = new[] { "wrong" } };
-            var answer = await OllamaProseChat.AskAsync(_http, _baseUrl, Model, system, Pair(original, rewrite), schema, 0, null, cancellationToken);
-            if (string.IsNullOrWhiteSpace(answer)) return null;
-            try
+            if (ProseAudit.ByRule(pair) is { } ruled) return ruled;
+            var flagged = new List<int>();
+            var notes = new List<string>();
+            foreach (var step in ProseAudit.ChangedSteps(pair))
             {
-                using var document = JsonDocument.Parse(answer);
-                return document.RootElement.ValueKind == JsonValueKind.Object
-                    && document.RootElement.TryGetProperty("wrong", out var wrong)
-                    && wrong.ValueKind is JsonValueKind.True or JsonValueKind.False
-                        ? wrong.GetBoolean()
-                        : null;
+                var answer = await OllamaProseChat.AskAsync(_http, _baseUrl, Model, ProseLanePrompts.AuditStep, ProseAudit.StepMessage(pair, step), StepSchema, 0, ProseLanePrompts.AuditSeed, cancellationToken);
+                if (ProseAudit.ParseStep(answer) is not { } reading) return null;
+                if (!reading.Differs) continue;
+                flagged.Add(step);
+                notes.Add($"step {step.ToString(CultureInfo.InvariantCulture)}: {reading.Kinds}");
             }
-            catch (JsonException)
-            {
-                return null;
-            }
+
+            return flagged.Count == 0 ? ProseAuditVerdict.Same : new ProseAuditVerdict(flagged, false, string.Join("; ", notes.Take(3)));
         }
 
-        internal static string Pair(IReadOnlyList<string> original, IReadOnlyList<string> rewrite)
+        public async Task<bool?> ConfirmAsync(ProseAuditPair pair, int step, CancellationToken cancellationToken)
         {
-            var body = new StringBuilder("ORIGINAL\n");
-            for (var i = 0; i < original.Count; i++) body.Append("Step ").Append((i + 1).ToString(CultureInfo.InvariantCulture)).Append(": ").Append(original[i]).Append('\n');
-            body.Append("\nREWRITE\n");
-            for (var i = 0; i < rewrite.Count; i++) body.Append("Step ").Append((i + 1).ToString(CultureInfo.InvariantCulture)).Append(": ").Append(rewrite[i]).Append('\n');
-            return body.ToString();
+            var schema = new { type = "object", properties = new { difference = new { type = "string" }, wrong = new { type = "boolean" } }, required = new[] { "difference", "wrong" } };
+            var answer = await OllamaProseChat.AskAsync(_http, _baseUrl, Model, ProseLanePrompts.Confirm, ProseAudit.StepMessage(pair, step), schema, 0, ProseLanePrompts.AuditSeed, cancellationToken);
+            return ProseAudit.ParseConfirm(answer);
         }
 
-        private static object JudgeSchema(int count) => new
+        private static readonly object StepSchema = new
         {
             type = "object",
             properties = new
             {
-                steps = new
+                differences = new
                 {
                     type = "array",
-                    minItems = count,
-                    maxItems = count,
                     items = new
                     {
                         type = "object",
                         properties = new
                         {
-                            n = new { type = "integer", minimum = 1, maximum = count },
-                            actions = new { type = "boolean" },
-                            amounts = new { type = "boolean" },
-                            missing = new { type = "boolean" },
-                            added = new { type = "boolean" },
-                            note = new { type = "string" },
+                            what = new { type = "string", @enum = new[] { ProseAudit.LeftOut, ProseAudit.Changed, ProseAudit.Added } },
+                            original = new { type = "string" },
+                            rewrite = new { type = "string" },
                         },
-                        required = new[] { "n", "actions", "amounts", "missing", "added", "note" },
+                        required = new[] { "what", "original", "rewrite" },
                     },
                 },
+                verdict = new { type = "string", @enum = new[] { ProseAudit.SameVerdict, ProseAudit.DiffersVerdict } },
             },
-            required = new[] { "steps" },
+            required = new[] { "differences", "verdict" },
         };
     }
 

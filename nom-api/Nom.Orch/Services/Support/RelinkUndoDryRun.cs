@@ -229,6 +229,9 @@ namespace Nom.Orch.Services.Support
         private static int _mostRunning;
         private IReadOnlyDictionary<long, IngredientEntity> _settled = new Dictionary<long, IngredientEntity>();
 
+        /// <summary>The whole dry runs running or waiting for their turn now.</summary>
+        internal static int Waiting => Volatile.Read(ref _waiting);
+
         /// <summary>The most whole dry runs the process has run at once since the count was last reset.</summary>
         internal static int MostRunning => Volatile.Read(ref _mostRunning);
 

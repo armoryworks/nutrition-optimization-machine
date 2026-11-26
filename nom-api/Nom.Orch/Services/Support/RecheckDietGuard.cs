@@ -10,18 +10,35 @@ namespace Nom.Orch.Services.Support
     /// foods whose descriptions named pasta, wonton and pork, onto new foods whose names carry no such word, so Celiac
     /// Disease and Wheat Allergy stopped flagging 111 and 128 recipes). A take-back or a move may lower the flag of a
     /// restriction type only when the new food's name or USDA description still names what the type restricts (a composite
-    /// food's companion patterns included), or its contents are known by the cited table (<see cref="StatementLabelTerms"/>:
-    /// "chicken thighs" is chicken, and "large chicken thighs" with its size words read off) and none of them is a word the
-    /// type restricts, or the wording reads as a plain drink (<see cref="ReadsAsDrink"/>: its own name keeps the drink's
-    /// flags, staging checkpoint 6, R16). Otherwise the lines stay where they are, on the safe side.
+    /// food's companion patterns included), or, for a diet of choice, its contents are known by the cited table
+    /// (<see cref="StatementLabelTerms"/>: "chicken thighs" is chicken, and "large chicken thighs" with its size words read
+    /// off) and none of them is a word the type restricts, or the wording reads as a plain drink (<see cref="ReadsAsDrink"/>:
+    /// its own name keeps the drink's flags, staging checkpoint 6, R16), or the type is a diet of choice whose whole
+    /// restriction a free-of marker of the new name's first item states it lacks (<see cref="MarkedFree"/>: "vegan butter"
+    /// for Vegan and Dairy-Free). Otherwise the lines are not left on a food the rules prove wrong: they go back to a wording
+    /// food marked of unknown contents (<see cref="UnknownContentsContext"/>), which every severe type holds as unknown
+    /// (staging checkpoint 7, S15: 9 of 20 holds kept only the wrong food's flags, shaoxing wine on red wine vinegar).
     /// </summary>
     public sealed class RecheckDietGuard
     {
         /// <summary>The reason a held take-back carries, before the types it names.</summary>
         public const string HeldReason = "diet flags kept";
 
-        /// <summary>The guard's version, part of the re-check's signature: raise it when what it holds changes (recheck-diet/2: a plain drink and a wording with size words, staging checkpoint 6, R16).</summary>
-        public const string Version = "recheck-diet/2";
+        /// <summary>The guard's version, part of the re-check's signature: raise it when what it holds changes (recheck-diet/2: a plain drink and a wording with size words, staging checkpoint 6, R16; recheck-diet/3: a free-of marker for the diets of choice it covers; recheck-diet/4: a take-back it would hold goes to a wording food of unknown contents instead, and a severe flag the gate reads from a food's data and not its name is never lowered, staging checkpoint 7, S11 and S15).</summary>
+        public const string Version = "recheck-diet/4";
+
+        /// <summary>
+        /// The context of the alias that marks a wording food's contents not known (the alias is the food's own name): the diet
+        /// gate decides it unknown for every restriction set its name does not flag, so a set that holds unknowns (a severe
+        /// type, or a member at severity 4 or 5) holds every recipe on it (staging checkpoint 7, S15).
+        /// </summary>
+        public const string UnknownContentsContext = "deterministic:recheck:contents-unknown";
+
+        /// <summary>The reason a take-back to a wording food of unknown contents carries, before the types it names.</summary>
+        public const string UnknownReason = "contents unknown";
+
+        /// <summary>The lowest severity of a severe type (allergy, medical, intolerance); a type all of whose criteria sit below it is a diet of choice.</summary>
+        public const int SevereFrom = 4;
 
         private readonly IReadOnlyList<(string Type, IReadOnlyList<DietDataCriterion> Criteria)> _types;
 
@@ -104,10 +121,13 @@ namespace Nom.Orch.Services.Support
         /// <summary>
         /// The restriction types that read the lines' recipe as restricted while they sit on <paramref name="food"/> (by its
         /// name, its USDA description in either order, or a line's own text) and would not once the lines sit on a food named
-        /// <paramref name="wording"/> (by that name or a line's own text), unless the wording is <see cref="Known"/> and
-        /// nothing the table says it is, is made of or may be made of is a word the type restricts: the gate reads a recipe
+        /// <paramref name="wording"/> (by that name or a line's own text), unless the type is no severe type (every criterion
+        /// below <see cref="SevereFrom"/>), the wording is <see cref="Known"/> and nothing the table says it is, is made of or
+        /// may be made of is a word the type restricts (a dish name never accounts for an allergen the food it leaves named,
+        /// staging checkpoint 7, S11: "spanish rice" off the USDA mix made with margarine lowered Soy Allergy): the gate reads a recipe
         /// line by its food's name and composite companions only, so contents it cannot read from the name ("textured
-        /// vegetable protein" is soy) never keep a flag.
+        /// vegetable protein" is soy) never keep a flag; nor is a diet of choice the wording's free-of marker covers
+        /// (<see cref="MarkedFree"/>).
         /// </summary>
         public IReadOnlyList<string> Lowered(GateFood food, string wording, IEnumerable<string?> lines) =>
             Lowering(food, wording, null, lines);
@@ -121,11 +141,42 @@ namespace Nom.Orch.Services.Support
         public IReadOnlyList<string> Lowered(GateFood food, GateFood target, IEnumerable<string?> lines) =>
             !string.IsNullOrWhiteSpace(target.FdcId) && !string.IsNullOrWhiteSpace(target.Description) ? Array.Empty<string>() : Lowering(food, target.Name, target.Description, lines);
 
+        /// <summary>
+        /// The diets of choice whose flag a free-of marker in the first item of <paramref name="wording"/> accounts for
+        /// (<see cref="LinkRecheckRules.FreeMarkedTypes"/>): every type whose criteria all sit below <see cref="SevereFrom"/>
+        /// and whose every pattern is a pattern of a type the marker names, so the wording states the food lacks all the
+        /// type restricts ("vegan butter": Vegan, Dairy-Free; "gluten-free flour": Gluten-Free; "meatless sausage":
+        /// Vegetarian). An allergy, Celiac Disease and every other severe type is never among them, nor a diet that also
+        /// restricts what the marker does not name (Grain-Free under "gluten-free", Sugar-Free under "vegan").
+        /// </summary>
+        public IReadOnlyList<string> MarkedFree(string? wording)
+        {
+            var named = LinkRecheckRules.FreeMarkedTypes(wording);
+            if (named.Count == 0) return Array.Empty<string>();
+            return _marked.GetOrAdd(string.Join("\n", named.OrderBy(n => n, StringComparer.OrdinalIgnoreCase)), _ => Covered(named));
+        }
+
+        private readonly System.Collections.Concurrent.ConcurrentDictionary<string, IReadOnlyList<string>> _marked = new(StringComparer.OrdinalIgnoreCase);
+
+        private IReadOnlyList<string> Covered(IReadOnlyList<string> named)
+        {
+            var marker = _types.Where(t => named.Contains(t.Type, StringComparer.OrdinalIgnoreCase)).SelectMany(t => t.Criteria).ToList();
+            var lacks = marker.Select(PatternOf).OfType<string>().ToHashSet(StringComparer.OrdinalIgnoreCase);
+            bool Lacks(DietDataCriterion c) => PatternOf(c) is { } p
+                && (lacks.Contains(p) || !DietCriteriaMatcher.IsWordPattern(p) && marker.Any(m => DietCriteriaMatcher.LineNames(m, "1 cup " + p.Trim('%'))));
+            return _types.Where(t => t.Criteria.Count > 0 && t.Criteria.All(c => c.Severity < SevereFrom) && t.Criteria.All(Lacks))
+                .Select(t => t.Type)
+                .ToList();
+        }
+
+        private static string? PatternOf(DietDataCriterion criterion) => (criterion.LikePattern ?? criterion.WordPattern)?.Trim();
+
         private IReadOnlyList<string> Lowering(GateFood food, string name, string? description, IEnumerable<string?> lines)
         {
             if (ReadsAsDrink(name, food.Name + " " + food.Description)) return Array.Empty<string>();
             var texts = lines.Where(l => !string.IsNullOrWhiteSpace(l)).ToList();
             var terms = Terms(name);
+            var marked = MarkedFree(name);
             var lowered = new List<string>();
             foreach (var (type, criteria) in _types)
             {
@@ -133,11 +184,29 @@ namespace Nom.Orch.Services.Support
                 bool Describes(string? text) => criteria.Any(c => DietCriteriaMatcher.LineNames(c, text) && (c.Rule == null || c.Rule.IsDescriptionMatch(text)));
                 var before = Names(food.Name) || Describes(food.Description) || texts.Any(Names);
                 if (!before || Names(name) || Describes(description) || texts.Any(Names)) continue;
-                if (terms != null && !terms.Any(t => new[] { t.Term }.Concat(t.Contains).Concat(t.May).Any(w => Names("1 cup " + w)))) continue;
+                if (terms != null && criteria.All(c => c.Severity < SevereFrom) && !terms.Any(t => new[] { t.Term }.Concat(t.Contains).Concat(t.May).Any(w => Names("1 cup " + w)))) continue;
+                if (marked.Contains(type, StringComparer.OrdinalIgnoreCase)) continue;
                 lowered.Add(type);
             }
             return lowered;
         }
+
+        /// <summary>
+        /// Whether the guard reads <paramref name="type"/> on <paramref name="food"/> where the lines sit, by its name, its USDA
+        /// description or a line's own text; a type the gate counts for the food that this does not read comes from the food's
+        /// data (a read statement, a nutrient, a category), which no wording's words can account for.
+        /// </summary>
+        public bool Reads(GateFood food, string type, IEnumerable<string?> lines)
+        {
+            var criteria = _types.Where(t => string.Equals(t.Type, type, StringComparison.OrdinalIgnoreCase)).SelectMany(t => t.Criteria).ToList();
+            bool Names(string? text) => criteria.Any(c => DietCriteriaMatcher.LineNames(c, text));
+            bool Describes(string? text) => criteria.Any(c => DietCriteriaMatcher.LineNames(c, text) && (c.Rule == null || c.Rule.IsDescriptionMatch(text)));
+            return Names(food.Name) || Describes(food.Description) || lines.Any(Names);
+        }
+
+        /// <summary>The reason a take-back to a wording food of unknown contents carries, naming the types it would lower (<see cref="UnknownContentsContext"/>).</summary>
+        public static string ReasonUnknown(IReadOnlyCollection<string> types) =>
+            UnknownReason + " (it would lower " + Types(types) + "; the severe types hold it as unknown)";
 
         /// <summary>The reason a take-back held by the guard carries, naming the types whose flags it keeps.</summary>
         public static string Reason(IReadOnlyCollection<string> types) =>

@@ -1,0 +1,50 @@
+# Diet dough titles (recipe-text/4): the dish words of the recipe corpus whose book recipes nearly always carry a line that names a flour, a meal, a starch, a paste, a crust, a dough, a bread, a crumb or a pasta (DietRecipeText.NamesDough), derived from the corpus, never listed by hand (proof draw 8 of ck17: 122491 Brown betty, whose one line is "enough apples to make two cupfuls"). DietRecipeText.DoughLost reads a book recipe whose title ends with one of them, and whose lines name no dough, as a dish whose base the lines lost, beside the defined DoughTerms.
+# Derivation, on the local copy of the read-only staging copy of 2026-11-25 with batch w02 applied: for every live book recipe (DietRecipeText.FromBook), the last word of its title (DietFoodWords.AllWords of DietRecipeText.Title); a word is kept when it ends the titles of at least 10 book recipes and at least nine tenths of them carry a dough line.
+# titles: the book recipes whose title ends with the word; with dough: those with a dough line.
+word	titles	with dough
+bread	1073	1007
+muffin	436	410
+cookie	426	387
+gingerbread	231	219
+crust	172	157
+macaroni	170	169
+waffle	169	161
+bun	155	140
+sweetbread	121	120
+doughnut	120	111
+jumble	105	100
+gem	93	88
+cruller	61	56
+scone	60	56
+noodle	53	50
+finger	50	47
+flour	49	45
+lunn	45	45
+crumb	42	40
+spaghetti	36	35
+crumpet	35	34
+turnover	33	30
+betty	30	27
+pop	28	27
+popover	28	27
+hermit	24	22
+meal	24	23
+dough	20	18
+brioche	19	18
+ramekin	19	19
+shortbread	19	19
+dodger	16	16
+poly	16	15
+vent	15	14
+vermicelli	15	14
+coquille	14	13
+savarin	14	13
+bannock	12	12
+breaded	11	11
+crescent	11	11
+roux	11	11
+tamale	11	11
+villeroi	11	10
+brewi	10	9
+ramakin	10	9
+roulette	10	10

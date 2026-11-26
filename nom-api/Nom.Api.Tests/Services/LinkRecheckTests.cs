@@ -379,7 +379,7 @@ namespace Nom.Api.Tests.Services
         }
 
         [Fact]
-        public async Task The_free_of_set_takes_back_a_line_marked_free_of_what_its_food_holds_unless_the_diet_guard_keeps_it_and_leaves_a_stand_in_and_a_food_named_first()
+        public async Task The_free_of_set_takes_back_a_line_marked_free_of_what_its_food_holds_to_a_food_of_unknown_contents_where_the_diet_guard_would_lower_a_flag_and_leaves_a_stand_in_and_a_food_named_first()
         {
             await using var db = NewContext();
             LinkRecheckClassBarTests.Qualify(db, LinkRecheckRules.FreeOf);
@@ -396,12 +396,15 @@ namespace Nom.Api.Tests.Services
             var run = await Recheck(db).RunAsync(LinkRecheckRules.FreeOf, apply: true);
 
             run!.Groups.Should().Be(2, "the sauce and the cream cheese lines are marked free of what their foods hold; the stand-in and the food named first are not read");
-            run.LinesUnlinked.Should().Be(1);
-            run.Held.Should().Be(1, "the cream cheese line's own words do not say it lacks milk for every type its take-back would lower");
+            run.LinesUnlinked.Should().Be(2);
+            (run.Held, run.UnknownGroups).Should().Be((0, 1), "the cream cheese line's own words do not say it lacks milk for every type its take-back would lower, so it goes to a food of unknown contents, not back to the cream cheese (staging checkpoint 7, S15)");
             var home = await FoodOfAsync(db, dip.Id, "1 Tbsp vegan worcestershire sauce");
             home.Should().NotBe(sauce.Id);
             (await db.Ingredients.SingleAsync(i => i.Id == home)).Name.Should().Be("vegan worcestershire sauce");
-            (await FoodOfAsync(db, dip.Id, "8 ounces vegan cream cheese")).Should().Be(cheese.Id);
+            (await db.IngredientAliases.AnyAsync(a => a.IngredientId == home && a.SourceContext == RecheckDietGuard.UnknownContentsContext)).Should().BeFalse();
+            var unknown = await FoodOfAsync(db, dip.Id, "8 ounces vegan cream cheese");
+            unknown.Should().NotBe(cheese.Id);
+            (await db.IngredientAliases.AnyAsync(a => a.IngredientId == unknown && a.SourceContext == RecheckDietGuard.UnknownContentsContext)).Should().BeTrue();
             (await FoodOfAsync(db, dip.Id, "1 cup vegan sour cream")).Should().Be(imitation.Id);
             (await FoodOfAsync(db, dip.Id, "1/2 cup butter or vegan butter")).Should().Be(butter.Id);
         }
@@ -820,16 +823,19 @@ namespace Nom.Api.Tests.Services
 
             var run = await Recheck(db).RunAsync(LinkRecheckRules.Prepared, apply: true);
             run!.Verified.Should().Be(0, "a prepared food is never a recipe line's food, whoever gave it");
-            run.LinesUnlinked.Should().Be(1);
+            run.LinesUnlinked.Should().Be(2);
             (await FoodOfAsync(db, party.Id, "12 taquitos")).Should().NotBe(taquitos.Id);
-            (await FoodOfAsync(db, party.Id, "20 nuggets")).Should().Be(nuggets.Id, "\"nuggets\" names no contents, and taking the line off chicken nuggets would lower the meat types' flag (staging checkpoint 4, P19)");
-            run.Held.Should().Be(1);
-            run.ByReason.Should().ContainKey(RecheckDietGuard.HeldReason);
+            var nuggetsNow = await FoodOfAsync(db, party.Id, "20 nuggets");
+            nuggetsNow.Should().NotBe(nuggets.Id, "a line is never left on a food the rules prove wrong (staging checkpoint 7, S15)");
+            (await db.IngredientAliases.AnyAsync(a => a.IngredientId == nuggetsNow && a.SourceContext == RecheckDietGuard.UnknownContentsContext)).Should().BeTrue(
+                "\"nuggets\" names no contents, and taking the line off chicken nuggets would lower the meat types' flag (staging checkpoint 4, P19), so its food is of unknown contents");
+            (run.Held, run.UnknownGroups, run.FoodsMarkedUnknown).Should().Be((0, 1, 1));
+            run.ByReason.Should().ContainKey(RecheckDietGuard.UnknownReason);
             run.WordingRows.Should().Equal(new[] { row.Id }, "its retract is the operator's next step, so imports stop landing on the prepared food");
         }
 
         [Fact]
-        public async Task A_take_back_to_a_wording_of_unknown_contents_that_would_lower_a_diet_flag_keeps_its_line()
+        public async Task A_take_back_that_would_lower_a_diet_flag_goes_to_a_food_of_unknown_contents_that_a_severe_type_holds_and_its_undo_puts_it_back()
         {
             await using var db = NewContext();
             var juice = Food("Orange Juice", "Orange juice, raw", "169098", 9);
@@ -841,17 +847,69 @@ namespace Nom.Api.Tests.Services
             db.Recipes.AddRange(duck, punch);
             await db.SaveChangesAsync();
 
+            var before = await FingerprintAsync(db);
             var dry = await Recheck(db).RunAsync(LinkRecheckRules.Alcohol);
-            dry!.Samples.Should().Contain(s => s.Outcome == LinkRecheckRules.Held && s.FoodId == juice.Id && s.Reason!.StartsWith(RecheckDietGuard.HeldReason) && s.Reason.Contains("Citrus Allergy"),
-                "an orange liqueur taken off orange juice to a wording of unknown contents would lower Citrus Allergy");
+            dry!.Samples.Should().Contain(s => s.Outcome == LinkRecheckRules.Unlink && s.FoodId == juice.Id && s.Reason!.StartsWith(RecheckDietGuard.UnknownReason) && s.Reason.Contains("Citrus Allergy"),
+                "an orange liqueur taken off orange juice to its own wording would lower Citrus Allergy, so its new food is of unknown contents");
             var run = await Recheck(db).RunAsync(LinkRecheckRules.Alcohol, apply: true);
-            (await FoodOfAsync(db, duck.Id, "1 glass Grand Marnier")).Should().Be(juice.Id);
-            (await FoodOfAsync(db, punch.Id, "1 qt hard cider")).Should().Be(cider.Id, "the cider vinegar's Sulfite Sensitivity flag stays until the wording's contents are known");
-            run!.LinesUnlinked.Should().Be(0);
+            (run!.LinesUnlinked, run.UnknownGroups, run.FoodsMarkedUnknown, run.Held).Should().Be((2, 2, 2, 0));
+            (dry.UnknownGroups, dry.FoodsMarkedUnknown).Should().Be((run.UnknownGroups, run.FoodsMarkedUnknown));
+            var marnier = await FoodOfAsync(db, duck.Id, "1 glass Grand Marnier");
+            marnier.Should().NotBe(juice.Id, "staging checkpoint 7, S15: a hold kept the line on a food the rules prove wrong");
+            (await FoodOfAsync(db, punch.Id, "1 qt hard cider")).Should().NotBe(cider.Id);
+
+            const long citrus = 61001, household = 61002;
+            db.Set<Nom.Data.Reference.ReferenceEntity>().Add(new Nom.Data.Reference.ReferenceEntity { Id = citrus, Name = "Citrus Allergy" });
+            db.HouseholdMembers.Add(new Nom.Data.Plan.HouseholdMemberEntity { HouseholdId = household, PersonId = household, IsActive = true });
+            db.Restrictions.Add(new Nom.Data.Plan.RestrictionEntity { PersonId = household, Name = "Citrus Allergy", RestrictionTypeId = citrus });
+            await db.SaveChangesAsync();
+            await DefaultRestrictionCriteria.EnsureAsync(db);
+            await new DietGateStoreBuilder().RunAsync(db);
+            var set = await new HouseholdRestrictionResolver(db).ResolveAsync(household);
+            set.Stored!.UnknownSetIds.Should().NotBeEmpty("an allergy holds unknowns");
+            (await db.Recipes.WithoutHeld(db, set).Select(r => r.Id).ToListAsync()).Should().NotContain(duck.Id, "Citrus Allergy holds the recipe as unknown, not shown as if the liqueur were free of orange");
+            (await db.DietRecipeFlags.AnyAsync(f => f.RecipeId == duck.Id && f.Verdict == Nom.Data.Plan.DietVerdict.Unknown && f.Reason == Nom.Data.Plan.DietFlagReason.UnknownFood && f.IngredientId == marnier)).Should().BeTrue();
+
+            var dryUndo = await Recheck(db).UndoAsync(run.Stamp!.Value);
+            var held = await Recheck(db).UndoAsync(run.Stamp!.Value, apply: true);
+            (held.LinesRestored, held.HeldByDiet, held.MarksKept, held.FoodsRemoved).Should().Be((0, 2, 2, 0),
+                "by default an undo never lowers a flag, and a line off a food of unknown contents lowers every type its old food does not flag, so the lines and their foods' marks stay (review ck16-r1)");
+            (dryUndo.LinesRestored, dryUndo.HeldByDiet, dryUndo.MarksKept, dryUndo.FoodsRemoved).Should().Be((held.LinesRestored, held.HeldByDiet, held.MarksKept, held.FoodsRemoved), "the dry run counts what the apply does");
+            (await FoodOfAsync(db, duck.Id, "1 glass Grand Marnier")).Should().Be(marnier);
+            (await db.IngredientAliases.CountAsync(a => a.SourceContext == RecheckDietGuard.UnknownContentsContext)).Should().Be(2);
+
+            var undo = await Recheck(db).UndoAsync(run.Stamp!.Value, apply: true, restoreLowered: true);
+            (undo.LinesRestored, undo.RestoredLowering).Should().Be((2, 2));
+            (await FingerprintAsync(db)).Should().Be(before, "by the operator's explicit choice the undo puts the lines back and removes the foods it made with their marks");
+            (await db.IngredientAliases.AnyAsync(a => a.SourceContext == RecheckDietGuard.UnknownContentsContext)).Should().BeFalse();
         }
 
         [Fact]
-        public async Task A_move_to_a_curated_food_whose_name_would_lower_a_diet_flag_keeps_its_line_and_a_move_that_lowers_none_goes_ahead()
+        public async Task A_move_off_a_food_of_unknown_contents_to_a_food_no_severe_type_flags_is_held_by_the_move_guard()
+        {
+            await using var db = NewContext();
+            var wine = Food("Dry Sherry");
+            var marked = Food("shaoxing wine");
+            db.Ingredients.AddRange(wine, marked);
+            await db.SaveChangesAsync();
+            db.IngredientAliases.Add(new IngredientAliasEntity { IngredientId = marked.Id, AliasName = "shaoxing wine", SourceContext = RecheckDietGuard.UnknownContentsContext });
+            var stirfry = Scraped("Stir-fry", (marked, "2 tablespoons shaoxing wine"));
+            db.Recipes.Add(stirfry);
+            await db.SaveChangesAsync();
+            db.ChangeTracker.Clear();
+
+            var guard = await LineMoveDietGuard.LoadAsync(db);
+            (await guard.LoweredAsync(marked.Id, wine.Id, "2 tablespoons shaoxing wine")).Should().Contain(new[] { "Celiac Disease", "Wheat Allergy" },
+                "the store holds a recipe on a food of unknown contents as unknown for every set that holds unknowns, so taking the line to a food Celiac Disease does not flag lowers it (review ck16-r1)");
+            (await guard.LoweredAsync(wine.Id, marked.Id, "2 tablespoons shaoxing wine")).Should().BeEmpty("a move onto a food of unknown contents raises");
+
+            var moved = await new LineRelinkService(db, new NoUser()).MoveFoodAsync(marked.Id, wine.Id);
+            (moved!.Moved, moved.HeldByDiet).Should().Be((0, 1));
+            (await FoodOfAsync(db, stirfry.Id, "2 tablespoons shaoxing wine")).Should().Be(marked.Id);
+        }
+
+        [Fact]
+        public async Task A_move_to_a_curated_food_whose_name_would_lower_a_diet_flag_goes_to_a_food_of_unknown_contents_and_a_move_that_lowers_none_goes_ahead()
         {
             await using var db = NewContext();
             var burger = Food("Beef Hamburger");
@@ -872,9 +930,11 @@ namespace Nom.Api.Tests.Services
             LinkRecheckClassBarTests.Qualify(db, LinkGate.OtherFood);
 
             var run = await Recheck(db).RunLaneBatchAsync(LinkRecheckRules.AppliedNovember, LaneMode.Live, 50000);
-            run.Held.Should().Be(1);
-            run.ByReason.Should().ContainKey(RecheckDietGuard.HeldReason);
-            (await FoodOfAsync(db, supper.Id, "1 patty")).Should().Be(burger.Id, "a promoted move to a food named only \"Patty\" would lower the meat types' flag the beef hamburger gave (review CK9T-2)");
+            (run.Held, run.UnknownGroups).Should().Be((0, 1));
+            run.ByReason.Should().ContainKey(RecheckDietGuard.UnknownReason);
+            var now = await FoodOfAsync(db, supper.Id, "1 patty");
+            now.Should().NotBe(burger.Id).And.NotBe(patty.Id, "a promoted move to a food named only \"Patty\" would lower the meat types' flag the beef hamburger gave (review CK9T-2), so the line goes to a food of unknown contents");
+            (await db.IngredientAliases.AnyAsync(a => a.IngredientId == now && a.SourceContext == RecheckDietGuard.UnknownContentsContext)).Should().BeTrue();
             (await FoodOfAsync(db, supper.Id, "2 tbsp olive oil")).Should().Be(olive.Id);
         }
 

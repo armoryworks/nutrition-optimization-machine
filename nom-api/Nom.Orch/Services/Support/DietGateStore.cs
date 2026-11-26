@@ -60,7 +60,7 @@ namespace Nom.Orch.Services.Support
         public const string Superseded = "superseded";
 
         /// <summary>The rule version a build is made under: a change builds a new build beside the active one.</summary>
-        public static string Version => string.Join(';', StoreVersion, DietPatternRule.Version, StatementLabelTerms.Version, DietDishes.Version, DietVocabulary.Version, DietRecipeText.Version, DietMeasureWords.Version, AlcoholLineContext.Version, IngredientStatementReader.Version);
+        public static string Version => string.Join(';', StoreVersion, DietPatternRule.Version, StatementLabelTerms.Version, DietDishes.Version, DietVocabulary.Version, DietFoodWords.Version, DietRecipeText.Version, DietMeasureWords.Version, AlcoholLineContext.Version, IngredientStatementReader.Version);
 
         /// <summary>The criteria of a set as the gate reads them, without the rule version.</summary>
         public static string CriteriaText(IEnumerable<DietDataCriterion> criteria) =>
@@ -80,9 +80,13 @@ namespace Nom.Orch.Services.Support
         /// (a row of <c>plan."DietGateWrite"</c> whose transaction is not older than <see cref="DietRecipeStateEntity.ReadXmin"/>)
         /// does not, so the recipe is held as undecided from the moment that write commits, although the writer's trigger
         /// found no state to remove while the build job's chunk was not yet committed, until a cycle decides it again (review ck12ls-r1).
+        /// On Postgres a state stored without a <see cref="DietRecipeStateEntity.ReadXmin"/> (before the column existed) does
+        /// not stand while any write is logged for its recipe, since a food write no longer removes it (review ck16-r5).
         /// </summary>
         public static IQueryable<DietRecipeStateEntity> Standing(this IQueryable<DietRecipeStateEntity> states, ApplicationDbContext db) =>
-            states.Where(s => !db.DietGateWrites.Any(w => w.RecipeId == s.RecipeId && w.Tx >= s.ReadXmin));
+            db.Database.IsRelational()
+                ? states.Where(s => !db.DietGateWrites.Any(w => w.RecipeId == s.RecipeId && (s.ReadXmin == null || w.Tx >= s.ReadXmin)))
+                : states.Where(s => !db.DietGateWrites.Any(w => w.RecipeId == s.RecipeId && w.Tx >= s.ReadXmin));
 
         /// <summary>The build requests read, or null before the first build is complete.</summary>
         public static Task<long?> ActiveBuildAsync(ApplicationDbContext db) =>
@@ -178,8 +182,10 @@ namespace Nom.Orch.Services.Support
             if (set.Stored is { SetIds.Count: > 0 } stored)
             {
                 var sets = stored.SetIds.ToList();
+                var unknown = stored.UnknownSetIds.ToList();
                 var build = stored.BuildId;
-                foods = foods.Where(i => !db.DietFoodFacts.Any(f => f.IngredientId == i.Id && sets.Contains(f.SetId) && f.Verdict == DietVerdict.Contains));
+                foods = foods.Where(i => !db.DietFoodFacts.Any(f => f.IngredientId == i.Id && sets.Contains(f.SetId)
+                    && (f.Verdict == DietVerdict.Contains || (f.Verdict == DietVerdict.Unknown && unknown.Contains(f.SetId)))));
                 foods = foods.Where(i => db.DietFoodStates.Any(s => s.BuildId == build && s.IngredientId == i.Id));
             }
             return foods;
@@ -211,7 +217,7 @@ namespace Nom.Orch.Services.Support
             return ids.Where(id => !decided.Contains(id)).ToHashSet();
         }
 
-        /// <summary>What the recipe page reads for a person's restriction types from the store: each type's foods by criterion and alias-only foods among the given foods, the types whose set is not complete, the recipes a severe set could not decide, and of those the ones its title or method holds (by type and recipe, the reason and the criterion that named the food).</summary>
+        /// <summary>What the recipe page reads for a person's restriction types from the store: each type's foods by criterion and alias-only foods among the given foods, the types whose set is not complete, the recipes a severe set could not decide or holds by a line's food word, and of those the ones its title, method or a line's word holds (by type and recipe, the reason and the criterion that named the food).</summary>
         public sealed record PageReading(Dictionary<long, DietCriteriaMatcher.TypeProbe> Probes, HashSet<long> PendingTypes, Dictionary<long, HashSet<long>> UnknownByType)
         {
             public Dictionary<(long Type, long Recipe), (DietFlagReason Reason, long? CriterionId)> TextHeld { get; } = new();
@@ -239,7 +245,7 @@ namespace Nom.Orch.Services.Support
                 .ToListAsync();
             var recipes = recipeIds.Distinct().ToList();
             var flags = setIds.Count == 0 || recipes.Count == 0 ? new List<DietRecipeFlagEntity>() : await db.DietRecipeFlags.AsNoTracking()
-                .Where(f => setIds.Contains(f.SetId) && recipes.Contains(f.RecipeId) && f.Verdict == DietVerdict.Unknown)
+                .Where(f => setIds.Contains(f.SetId) && recipes.Contains(f.RecipeId) && (f.Verdict == DietVerdict.Unknown || f.Reason == DietFlagReason.FoodWord))
                 .ToListAsync();
             var decided = recipes.Count == 0 ? new HashSet<long>() : (await db.DietRecipeStates.AsNoTracking().Standing(db)
                     .Where(s => s.BuildId == build && recipes.Contains(s.RecipeId))
@@ -275,7 +281,7 @@ namespace Nom.Orch.Services.Support
                 if (set.Severe || list.Any(c => c.Severity >= 4))
                 {
                     var held = flags.Where(f => f.SetId == set.Id).Select(f => f.RecipeId).ToHashSet();
-                    foreach (var f in flags.Where(f => f.SetId == set.Id && f.Reason is DietFlagReason.Title or DietFlagReason.Method))
+                    foreach (var f in flags.Where(f => f.SetId == set.Id && f.Reason is DietFlagReason.Title or DietFlagReason.Method or DietFlagReason.UnknownWord or DietFlagReason.FoodWord))
                         textHeld[(type, f.RecipeId)] = (f.Reason, f.CriterionId);
                     held.UnionWith(recipes.Where(id => !decided.Contains(id)));
                     if (held.Count > 0) unknown[type] = held;
@@ -302,8 +308,10 @@ namespace Nom.Orch.Services.Support
     /// <param name="RecipesUnknownFood">Of the unknown recipes, those with a line on a food the build has not decided.</param>
     /// <param name="RecipesByTitle">Of the unknown recipes, those a book recipe's title holds (<see cref="DietFlagReason.Title"/>).</param>
     /// <param name="RecipesByMethod">Of the unknown recipes, those a book recipe's method holds (<see cref="DietFlagReason.Method"/>).</param>
+    /// <param name="RecipesUnknownWord">Of the unknown recipes, those with a line no curated food decides that names a word the set does not understand (<see cref="DietFlagReason.UnknownWord"/>): the work list the wording and link lanes shrink.</param>
+    /// <param name="RecipesByFoodWord">Of the flagged recipes, those a line's word flags that the curated catalog knows only on foods the set flags, or a processing kind (<see cref="DietFlagReason.FoodWord"/>).</param>
     public sealed record DietStoredTypeCount(long TypeId, string Name, string Reading, int Severity, bool Severe, long SetId, string State, int Foods, int RecipesByFood, int RecipesByText, int RecipesUnknown, int RecipesNotDecided, int RecipesHeld, int RecipesHeldOnlyForUnknown,
-        int RecipesNoLine, int RecipesUnknownFood, int RecipesByTitle, int RecipesByMethod);
+        int RecipesNoLine, int RecipesUnknownFood, int RecipesByTitle, int RecipesByMethod, int RecipesUnknownWord = 0, int RecipesByFoodWord = 0);
 
     /// <summary>The count of every set of the active build over the live recipes, with the build it was read from; <see cref="Types"/> is empty before the first build is complete.</summary>
     public sealed record DietStoredCountsReport(int Recipes, long? BuildId, string? Version, DateTime? CompletedAt, DateTime? LastCycleAt, IReadOnlyList<DietStoredTypeCount> Types);
@@ -354,7 +362,8 @@ namespace Nom.Orch.Services.Support
                 var onlyUnknown = (set.Severe ? unknown : 0) + notDecided;
                 types.Add(new DietStoredTypeCount(set.RestrictionTypeId, names.GetValueOrDefault(set.RestrictionTypeId) ?? "#" + set.RestrictionTypeId, set.MinimumSeverity >= 4 ? "severe" : "all",
                     severities.GetValueOrDefault(set.RestrictionTypeId), set.Severe, set.Id, set.State, foods.GetValueOrDefault(set.Id), byFood, byText, unknown, notDecided, byFood + byText + onlyUnknown, onlyUnknown,
-                    Unknown(DietFlagReason.NoLine), Unknown(DietFlagReason.UnknownFood), Unknown(DietFlagReason.Title), Unknown(DietFlagReason.Method)));
+                    Unknown(DietFlagReason.NoLine), Unknown(DietFlagReason.UnknownFood), Unknown(DietFlagReason.Title), Unknown(DietFlagReason.Method), Unknown(DietFlagReason.UnknownWord),
+                    mine.Where(f => f.Verdict == DietVerdict.Contains && f.Reason == DietFlagReason.FoodWord).Sum(f => f.Count)));
 
                 int Unknown(DietFlagReason reason) => mine.Where(f => f.Verdict == DietVerdict.Unknown && f.Reason == reason).Sum(f => f.Count);
             }

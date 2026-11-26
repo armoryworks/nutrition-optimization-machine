@@ -19,7 +19,10 @@ namespace Nom.Api.Tests.Services.MealPlan
     /// Every food name and USDA description of the frozen catalog (gate-catalog.tsv) on which a severe type's word rule
     /// and ilike disagree, pattern by pattern, is in the reviewed register diet-reading-register.tsv: a change to the word
     /// rule, the term readings, the exceptions, the maker blanking or the vocabulary shows there as a diff a person reviews
-    /// before any entry changes its verdict unseen (staging checkpoint 6, R6 and R7).
+    /// before any entry changes its verdict unseen (staging checkpoint 6, R6 and R7). Below them stand, per severe type, the
+    /// words of the frozen catalog's curated foods that the reading of words flags (<see cref="DietFoodWords"/>, staging
+    /// checkpoint 7, S3), each marked where a book method that names it without a line holds the recipe (review ck16-5): a word
+    /// that joins or leaves that list, or gains or loses the method reading, shows in the same diff.
     /// </summary>
     [Collection(RunsAlone)]
     public class DietReadingRegisterTests
@@ -67,6 +70,13 @@ namespace Nom.Api.Tests.Services.MealPlan
                                 .Append(ilike ? "reads" : "-").Append('\t').Append(read ? "reads" : "-").Append('\n');
                     }
                 }
+            var words = GoldenDietCoverageTests.CatalogTable;
+            foreach (var type in SevereTypes)
+            {
+                var vocabulary = GoldenDietCoverageTests.VocabularyOf(type);
+                foreach (var i in Enumerable.Range(0, words.Count).Where(i => vocabulary.ClassOf(i) == DietFoodWords.WordClass.Flagged).OrderBy(words.WordAt, StringComparer.Ordinal))
+                    table.Append(type).Append("\t-\tfood word\t").Append(words.WordAt(i)).Append("\t-\t").Append(vocabulary.HoldsInMethod(i) ? "flagged, method" : "flagged").Append('\n');
+            }
             return table.ToString();
         }
 

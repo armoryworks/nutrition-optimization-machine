@@ -141,6 +141,13 @@ namespace Nom.Import
                 return;
             }
 
+            var consensusFlag = Array.IndexOf(args, "--branded-consensus");
+            if (consensusFlag >= 0)
+            {
+                await RunBrandedConsensusAsync(host, args, consensusFlag);
+                return;
+            }
+
             var contentsFlag = Array.IndexOf(args, "--prepared-contents");
             if (contentsFlag >= 0)
             {
@@ -512,6 +519,58 @@ namespace Nom.Import
             }
             if (r.RunStamp is { } runStamp)
                 Console.WriteLine($"Run stamp:        {runStamp:O} (take this run back with --branded-lift --undo {runStamp:O})");
+        }
+
+        private static async Task RunBrandedConsensusAsync(IHost host, string[] args, int flag)
+        {
+            string? Value(string name)
+            {
+                var i = Array.IndexOf(args, name);
+                return i >= 0 && i + 1 < args.Length && !args[i + 1].StartsWith("--", StringComparison.Ordinal) ? args[i + 1] : null;
+            }
+            var dir = flag + 1 < args.Length ? args[flag + 1] : null;
+            var output = Value("--out");
+            if (dir == null || dir.StartsWith("--", StringComparison.Ordinal) || !Directory.Exists(dir) || output == null)
+            {
+                Console.WriteLine("Usage: --branded-consensus <fdc-branded-csv-dir> --out <diet-branded-consensus.tsv> [--matches <file>] [--tallies <file>]   (reads the catalog, writes files only)");
+                return;
+            }
+            using var scope = host.Services.CreateScope();
+            var db = scope.ServiceProvider.GetRequiredService<ApplicationDbContext>();
+            var curated = (long)Nom.Data.Recipe.CurationStatusEnum.Curated;
+            var rows = await db.Ingredients.AsNoTracking()
+                .Where(i => i.CurationStatusId == curated && i.FdcDataType != Nom.Data.Nutrition.CatalogAdmissionRule.BrandedFood)
+                .Select(i => new
+                {
+                    i.Id,
+                    i.FdcId,
+                    i.Name,
+                    i.FdcCategoryId,
+                    Description = db.IngredientAliases.Where(a => a.IngredientId == i.Id && a.SourceContext == Nom.Orch.Services.IngredientLinkService.UsdaDescriptionContext)
+                        .OrderBy(a => a.Id).Select(a => a.AliasName).FirstOrDefault(),
+                })
+                .ToListAsync();
+            var foods = rows.Select(r => new Nom.Orch.Services.Support.ConsensusFood(r.Id, r.FdcId, r.Name ?? string.Empty, r.FdcCategoryId, string.IsNullOrWhiteSpace(r.Description) ? r.Name ?? string.Empty : r.Description!))
+                .Where(f => Nom.Orch.Services.Support.BrandedConsensus.IsMadeProduct(f.CategoryId, f.Description))
+                .ToList();
+            var products = FdcBrandedProducts.Read(dir);
+            Console.WriteLine($"Curated generic foods: {rows.Count}; made products: {foods.Count}; US branded products with a statement: {products.Count}");
+            var heads = rows.Select(r => Nom.Orch.Services.Support.BrandedConsensus.HeadOf(string.IsNullOrWhiteSpace(r.Description) ? r.Name ?? string.Empty : r.Description!))
+                .OfType<string>().ToHashSet(StringComparer.Ordinal);
+            var matches = Nom.Orch.Services.Support.BrandedConsensus.Match(foods, products, heads);
+            var tallies = Nom.Orch.Services.Support.BrandedConsensus.Tally(matches);
+            var consensus = Nom.Orch.Services.Support.BrandedConsensus.Rows(foods, tallies);
+            await File.WriteAllTextAsync(output, Nom.Orch.Services.Support.BrandedConsensus.Write(consensus, new DirectoryInfo(dir).Name));
+            if (Value("--matches") is { } matchFile)
+                await File.WriteAllLinesAsync(matchFile, foods.SelectMany(f => matches.GetValueOrDefault(f.Id, new List<Nom.Orch.Services.Support.ConsensusProduct>())
+                    .Select(p => string.Join('	', f.Id, f.Name, p.FdcId, p.Description.Replace('	', ' '), p.Category ?? string.Empty))));
+            if (Value("--tallies") is { } tallyFile)
+                await File.WriteAllLinesAsync(tallyFile, foods.Where(f => tallies.ContainsKey(f.Id)).Select(f => string.Join('	', f.Id, f.Name, f.CategoryId, tallies[f.Id].Matched, tallies[f.Id].Read,
+                    string.Join(' ', Nom.Orch.Services.Support.DietVocabulary.Classes.Select(c => c.Name + "=" + (tallies[f.Id].Stating.GetValueOrDefault(c.Name)?.Count ?? 0))))));
+            Console.WriteLine($"Foods with a match: {matches.Count(m => m.Value.Count > 0)}; with at least {Nom.Orch.Services.Support.BrandedConsensus.MinProducts} read statements: {tallies.Count(t => t.Value.Read >= Nom.Orch.Services.Support.BrandedConsensus.MinProducts)}");
+            foreach (var g in consensus.GroupBy(r => (r.Class, r.Verdict)).OrderBy(g => g.Key.Class, StringComparer.Ordinal).ThenBy(g => g.Key.Verdict, StringComparer.Ordinal))
+                Console.WriteLine($"  {g.Key.Class} {g.Key.Verdict}: {g.Count()}");
+            Console.WriteLine($"Rows written: {consensus.Count} to {output} (nothing written to the database)");
         }
 
         private static async Task RunPreparedContentsAsync(IHost host, string[] args, int flag)

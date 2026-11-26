@@ -15,7 +15,8 @@ namespace Nom.Orch.Services.Support
     /// fact-sheet, description and check rules they run with; the judge
     /// (<see cref="JudgeSignature"/>) is the step-fact reading with the rules around it
     /// (<see cref="ProseJudgeRules"/>) and its decoding options; the audit (<see cref="AuditSignature"/>)
-    /// is the step rubric read by the auditor and its own blind confirmation of a flag. None includes a
+    /// is the rules it runs first (<see cref="ProseAudit"/>, with the prose check's version), the step
+    /// reading of the auditor and its own blind confirmation of a flag. None includes a
     /// model name, so a golden score record names its model separately, and any change to a prompt
     /// or rule shows as a new signature that needs a new record.
     /// </summary>
@@ -54,16 +55,30 @@ namespace Nom.Orch.Services.Support
             "{\"step\":\"Melt ⟦Q3⟧ of ⟦L2⟧ in the saucepan over low heat. Stir in the ⟦L4⟧ for ⟦Q4⟧, until glossy.\"}\n" +
             "Reply with STRICT JSON only: {\"step\":\"...\"}.";
 
-        public const string Audit =
-            "You compare a recipe method (ORIGINAL) with a rewrite of it (REWRITE), step by step: step n of the rewrite must say what step n of the original says. " +
-            "For each step n answer:\n" +
-            "  actions - true when the rewrite's step does the same cooking actions on the same ingredients, in a way that gives the same result;\n" +
-            "  amounts - true when it states the same amounts, times, temperatures, sizes and heat levels, with the same units and ranges;\n" +
-            "  missing - true when anything the original step says is left out (an action, an ingredient, a cue, a warning such as \"do not stir\");\n" +
-            "  added - true when it adds an action, an ingredient, an amount or a cue the original step does not state;\n" +
-            "  note - at most 12 words on what differs, or an empty string.\n" +
-            "Wording may differ freely; only meaning counts. " +
-            "Reply with STRICT JSON only: {\"steps\":[{\"n\":1,\"actions\":true,\"amounts\":true,\"missing\":false,\"added\":false,\"note\":\"\"}]} with one entry per step.";
+        public const string AuditStep =
+            "You audit one step of a reworded recipe. REWRITE STEP must let the cook do and know everything ORIGINAL STEP says, and nothing more; only the wording may change. " +
+            "The dish, its INGREDIENT LINES and the whole ORIGINAL METHOD are shown so you know the recipe; audit only the step shown.\n" +
+            "Go through ORIGINAL STEP clause by clause. For each thing the cook must do or know, find where REWRITE STEP says it: " +
+            "every action and what it acts on; every food; every amount, time, temperature and size, with its unit, and a range as a range; every heat level or oven heat; " +
+            "every sign of doneness (\"until golden\", \"until it thickens\"); how a food is cut, shaped or prepared (\"chopped\", \"well beaten\", \"in salted water\"); how a pan or dish is made ready (\"greased\", \"lined\"); every warning; how it is served; and the order of the actions. " +
+            "Then look for anything REWRITE STEP says that ORIGINAL STEP does not: a new action, food, amount, cue or warning.\n" +
+            "List in differences each thing left out, changed or added, with the original's words and the rewrite's words (\"\" when there are none). " +
+            "A food or an amount of the rewrite step that disagrees with the INGREDIENT LINES and with the original step is a difference. " +
+            "Not a difference: other words for the same thing (\"fry\" for \"cook in a little fat\", \"pan\" for \"skillet\", \"30 minutes\" for \"half an hour\", \"until it smells toasted\" for \"until fragrant\"); " +
+            "another order of words or sentences inside the step when the cook still does the actions in the same order; naming what the original plainly means (the pan it already uses, the food it already holds).\n" +
+            "RULE NOTES come from a rule that compares words; each may be wrong, so check each one against the two steps.\n" +
+            "Then give verdict: \"same\" when differences is empty, \"differs\" when it is not.\n" +
+            "Example. ORIGINAL STEP: Brush the buns with the beaten egg and bake in a hot oven for 15 to 20 minutes, until deep brown. REWRITE STEP: Bake the buns in a hot oven for 20 minutes, until light brown.\n" +
+            "{\"differences\":[{\"what\":\"left out\",\"original\":\"Brush the buns with the beaten egg\",\"rewrite\":\"\"},{\"what\":\"changed\",\"original\":\"15 to 20 minutes\",\"rewrite\":\"20 minutes\"},{\"what\":\"changed\",\"original\":\"until deep brown\",\"rewrite\":\"until light brown\"}],\"verdict\":\"differs\"}\n" +
+            "Example. ORIGINAL STEP: Drain the beans, keeping a cup of the cooking water, and return them to the pot. REWRITE STEP: Save a cup of the cooking liquid, then drain the beans and put them back in the pot.\n" +
+            "{\"differences\":[],\"verdict\":\"same\"}\n" +
+            "Reply with STRICT JSON only, in this form.";
+
+        /// <summary>The seed of every auditor call; part of <see cref="AuditSignature"/>.</summary>
+        public const int AuditSeed = 29;
+
+        /// <summary>How many of the steps the auditor flags, in order, it is asked again about blind; a flag counts once any one is confirmed. Part of <see cref="AuditSignature"/>.</summary>
+        public const int AuditConfirmations = 3;
 
         public const string JudgeStep =
             "You check whether a rewrite of one recipe step keeps the facts of the original step (ORIGINAL STEP and REWRITE STEP). " +
@@ -114,9 +129,12 @@ namespace Nom.Orch.Services.Support
         public const int JudgeContext = 8192;
 
         public const string Confirm =
-            "You check one step of a recipe rewrite against the original method. A reviewer flagged step {0} of the rewrite. " +
-            "Compare step {0} of REWRITE with step {0} of ORIGINAL: it is wrong when it does other actions, states other amounts, times, temperatures or heat levels, leaves something out or adds something. " +
-            "Wording may differ freely; only meaning counts. Reply with STRICT JSON only: {{\"wrong\":true}} or {{\"wrong\":false}}.";
+            "You check one step of a reworded recipe that a reviewer flagged: REWRITE STEP against ORIGINAL STEP. The dish, its INGREDIENT LINES and the whole ORIGINAL METHOD are shown so you know the recipe. " +
+            "Compare the two steps clause by clause: the rewrite step is wrong when it does other actions or does them in another order, names other foods, states other amounts, times, temperatures, units, ranges or heat levels, " +
+            "states a food or an amount that disagrees with the INGREDIENT LINES and with the original step, changes or leaves out a sign of doneness, a cut or shape, a warning or a serving note, leaves out an action or a food, or adds something the original step does not state. " +
+            "RULE NOTES come from a rule that compares words; each may be wrong. " +
+            "Wording may differ freely; only meaning counts. First give difference: the differences in what the cook does or knows, in a few words, or an empty string when there is none; then wrong. " +
+            "Reply with STRICT JSON only: {\"difference\":\"\",\"wrong\":false}.";
 
         /// <summary>The temperature, seed offset and style of each model attempt; the attempt after them is the rule rendering of the fact sheets.</summary>
         public static readonly IReadOnlyList<(string Style, double Temperature, int? Seed)> Attempts = new (string, double, int?)[]
@@ -134,7 +152,8 @@ namespace Nom.Orch.Services.Support
             "  2. the STEP the sentences stand in: what this step is for and what comes before and after it;\n" +
             "  3. each SENTENCE: what the cook must do or know from it.\n" +
             "Then write each sentence again from that understanding, not by swapping words: give it another frame, rebuild its clauses, " +
-            "and you may join it with a neighbouring thought or split it in two. Never keep the sentence's own run of words with only single words changed, dropped or moved.\n" +
+            "and you may join it with a neighbouring thought or split it in two. Never keep the sentence's own run of words with only single words changed, dropped or moved: " +
+            "swapping words for synonyms while the sentence keeps its shape is copying too, so start the sentence from another part of it, turn its clauses around or say it as a result, a reason or a condition.\n" +
             "Keep every fact of the sentence exactly: every amount, time, temperature, size and heat level as it is written, every food, every action and its order, every sign of doneness and every warning. " +
             "Use the recipe's INGREDIENT LINES for the names of foods; never state an amount the lines or the sentence do not state, and never move an amount to another food. " +
             "Add nothing the sentence does not say and leave nothing out. Words of the craft that have no other name (preheat, fold, simmer, parchment) may stay.\n" +
@@ -152,7 +171,7 @@ namespace Nom.Orch.Services.Support
         /// <summary>The signature of the reword writer: its prompt and rounds with the sentence copy rule and the check it runs with; part of the lane version.</summary>
         public static string RewordSignature { get; } = Hash(string.Join("\n␞\n", Reword,
             string.Join(";", RewordRounds.Select(a => $"{a.Temperature.ToString(CultureInfo.InvariantCulture)}/{a.Seed}")), ProseReword.Version,
-            ProseSentences.Version, ProseDescription.Version, "check " + ProseCheck.Version.ToString(CultureInfo.InvariantCulture)));
+            ProseRebuilt.Version, ProseDescription.Version, "check " + ProseCheck.Version.ToString(CultureInfo.InvariantCulture)));
 
         /// <summary>How an attempt after the first is taken: only the steps the last attempt failed on are written again (by the writer, then by the rule rendering, also of rule-built sheets), the others are kept, and a measured amount token a written step leaves out is put back before its ingredient (<see cref="ProseFactSheet.RepairMeasures"/>); part of <see cref="WriterSignature"/>.</summary>
         public const string Retry = "retry/2, measures put back";
@@ -163,7 +182,21 @@ namespace Nom.Orch.Services.Support
 
         public static string JudgeSignature { get; } = Hash("judge\n" + JudgeStep + "\n␞\n" + JudgeKept + "\n␞\n" + JudgeAdded + "\n␞\n" + ProseJudgeRules.Version + $"\n␞\nseed {JudgeSeed} ctx {JudgeContext} check {ProseCheck.Version}");
 
-        public static string AuditSignature { get; } = Hash("audit, confirmed by the auditor\n" + Audit + "\n␞\n" + Confirm);
+        public static string AuditSignature { get; } = Hash("audit by step, confirmed by the auditor\n" + AuditStep + "\n␞\n" + Confirm + "\n␞\n" + ProseAudit.Version + "\n␞\n" + ProseAuditEvidence.Version + "\n␞\n" + ProseJudgeRules.Version + $"\n␞\nseed {AuditSeed}, up to {AuditConfirmations} flagged steps confirmed, check {ProseCheck.Version}");
+
+        /// <summary>The prefix of every lane version that rewords a whole method (prose lane v4 on).</summary>
+        public const string LaneVersionPrefix = "v4-";
+
+        /// <summary>Whether a journaled lane value is tagged (<see cref="ProseLaneJournal.Tag"/>) with a lane version that rewords a whole method.</summary>
+        public static bool IsWholeMethodTag(string? value)
+        {
+            if (string.IsNullOrEmpty(value) || value[0] != '[') return false;
+            var end = value.IndexOf(']', StringComparison.Ordinal);
+            if (end < 0) return false;
+            var tag = value[1..end];
+            var space = tag.LastIndexOf(' ');
+            return space >= 0 && tag[(space + 1)..].StartsWith(LaneVersionPrefix, StringComparison.Ordinal);
+        }
 
         /// <summary>
         /// The lane version stamped on each recipe the lane tries (<c>Recipe.ProseLaneVersion</c>) and
@@ -171,25 +204,29 @@ namespace Nom.Orch.Services.Support
         /// any of them makes a recipe the lane gave up on eligible again.
         /// </summary>
         public static string LaneVersion(string writerModel, string judgeModel) =>
-            "v3-" + Hash($"{RewordSignature}|{WriterSignature}|{JudgeSignature}|{writerModel.Trim()}|{judgeModel.Trim()}")[..12];
+            LaneVersionPrefix + Hash($"{RewordSignature}|{WriterSignature}|{JudgeSignature}|{writerModel.Trim()}|{judgeModel.Trim()}")[..12];
 
         private static string Hash(string text) => Convert.ToHexString(SHA256.HashData(Encoding.UTF8.GetBytes(text)))[..16].ToLowerInvariant();
     }
 
     /// <summary>
-    /// The models of the clean-room prose lane: the writer is <c>Ai:RewriteModel</c> when set,
-    /// otherwise reader A of the roster; the judge is reader B and the auditor the roster's
-    /// auditor. <see cref="Problem"/> refuses a writer and judge of one family and an auditor of
-    /// either's family, since no model may check its own family's work.
+    /// The models of the prose lane: the writer is <c>Ai:RewriteModel</c> when set, otherwise reader A
+    /// of the roster; the judge is <c>Ai:ProseJudgeModel</c> when set (so a prompt round can try another
+    /// judge, such as <c>mistral-small:24b</c>), otherwise reader B; and the auditor is the roster's
+    /// auditor. <see cref="Problem"/> refuses a judge outside the OSI-licensed families, a writer and judge of
+    /// one family and an auditor of either's family, since no model may check its own family's work.
     /// </summary>
     public sealed record ProseLaneModels(string Writer, string Judge, string Auditor)
     {
+        public const string JudgeModelKey = "Ai:ProseJudgeModel";
+
         public static ProseLaneModels From(IConfiguration configuration)
         {
             var roster = new LaneModelRoster();
             configuration.GetSection(LaneModelRoster.SectionName).Bind(roster);
             var writer = configuration["Ai:RewriteModel"] is { Length: > 0 } rewrite ? rewrite.Trim() : roster.ReaderA;
-            return new ProseLaneModels(writer, roster.ReaderB, roster.Auditor);
+            var judge = configuration[JudgeModelKey] is { Length: > 0 } chosen ? chosen.Trim() : roster.ReaderB;
+            return new ProseLaneModels(writer, judge, roster.Auditor);
         }
 
         public string Version => ProseLanePrompts.LaneVersion(Writer, Judge);
@@ -202,6 +239,7 @@ namespace Nom.Orch.Services.Support
                 var writer = LaneModelRoster.Family(Writer);
                 var judge = LaneModelRoster.Family(Judge);
                 var auditor = LaneModelRoster.Family(Auditor);
+                if (!LaneModelRoster.AllowedFamilies.Contains(judge)) return $"the judge {Judge} is of the {judge} family, which is not among the families known to publish OSI-licensed models";
                 if (writer == judge) return $"the judge {Judge} is of the writer {Writer}'s family ({writer})";
                 if (auditor == writer || auditor == judge) return $"the auditor {Auditor} is of the writer's or the judge's family ({auditor})";
                 return null;

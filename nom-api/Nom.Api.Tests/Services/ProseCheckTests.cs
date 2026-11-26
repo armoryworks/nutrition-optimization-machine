@@ -26,7 +26,7 @@ namespace Nom.Api.Tests.Services
         {
             var finding = Check(new[] { "Bake the bread for 30 minutes." }, new[] { "Bake the loaf 30 minutes." }, stock: new ProseStockIndex(7, Enumerable.Empty<long>()));
 
-            finding.CheckVersion.Should().Be(ProseCheck.Version).And.Be(7);
+            finding.CheckVersion.Should().Be(ProseCheck.Version).And.Be(8);
             finding.StockVersion.Should().Be(7);
             finding.Passed.Should().BeTrue(finding.ToString());
         }

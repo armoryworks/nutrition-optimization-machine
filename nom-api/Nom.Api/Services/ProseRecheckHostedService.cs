@@ -3,10 +3,9 @@ using Nom.Orch.Interfaces;
 namespace Nom.Api.Services
 {
     /// <summary>
-    /// Re-checks the shown prose of every scraped recipe with the prose check and withholds the
-    /// prose of those that fail (<see cref="IProseRecheckService.RecheckAsync"/> with apply), so
-    /// copied or changed text that an older lane or check let through stops being served without a
-    /// person. A full run is due when none is recorded, when the prose check or the stock-phrase
+    /// Withholds the shown prose of every scraped recipe whose method is an earlier paraphrase of its
+    /// source (<see cref="IProseRecheckService.RecheckAsync"/> with apply), so text that an older lane or
+    /// check let through stops being served without a person until the reword lane has reworded it. A full run is due when none is recorded, when the prose check or the stock-phrase
     /// index has a version the last run did not use (so a deploy with a new check runs it), and
     /// otherwise every ProseRecheck:IntervalDays (default 7); it never runs while no stock-phrase
     /// index has been built. Deterministic, no model.
@@ -108,10 +107,10 @@ namespace Nom.Api.Services
             }
 
             _logger.LogInformation(
-                "Prose re-check done (check {Check}, stock index {Stock}): {Examined} examined, {Passed} passed, {Withheld} withheld ({Approved} approved), {Edited} skipped as edited by a person, {NoSource} without a source; by reason {Reasons}",
-                result.CheckVersion, result.StockVersion, result.Examined, result.Passed, result.Withheld, result.FailedApproved,
+                "Prose re-check done (check {Check}, stock index {Stock}): {Examined} examined, {Withheld} earlier paraphrases withheld ({Approved} approved), {Lane} written by the lane, {Edited} skipped as edited by a person, {NoSource} without a source; copied {Copied}",
+                result.CheckVersion, result.StockVersion, result.Examined, result.Withheld, result.EarlierParaphrasesApproved, result.ExemptLaneWritten,
                 result.SkippedEditedByPerson, result.SkippedNoSource,
-                string.Join(", ", result.FailedByReason.OrderBy(r => r.Key, StringComparer.Ordinal).Select(r => $"{r.Key} {r.Value}")));
+                string.Join(", ", result.ByCopy.OrderBy(r => r.Key, StringComparer.Ordinal).Select(r => $"{r.Key} {r.Value}")));
             return false;
         }
 

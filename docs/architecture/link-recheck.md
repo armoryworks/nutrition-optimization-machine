@@ -367,8 +367,34 @@ and a 70 % dark chocolate no pattern reads. A take-back still passes the re-chec
 which keeps a line whose take-back would lower a flag its own words do not name: on that copy 24 of the 52 groups (47
 of 148 lines) lower nothing and are taken back (vegan cream cheese, melted vegan butter, vegan Worcestershire, vegan
 pesto, vegan mayonnaise ...); the other 28 stay, counted `diet flags kept`, and hold their recipes on the safe side as
-before. Whether a free-of marker may itself count as the line naming what it is made without is an owner question
-(`ck12-links-small.md`).
+before. Whether a free-of marker may itself count as the line naming what it is made without was put to the owner
+(`ck12-links-small.md`); the lead's decision and what it changed follow.
+
+### A free-of marker and the diet guard (recheck-diet/3, `cleanup2/ck15-free-of`)
+
+A free-of marker counts as the line naming what it lacks only for a diet of choice: a type every criterion of which
+sits below severity 4 (`RecheckDietGuard.SevereFrom`), and whose every pattern is a pattern of the type the marker
+names (`LinkRecheckRules.FreeMarkers`: vegan names Vegan, dairy-free Milk Allergy, gluten-free Celiac Disease,
+meatless Vegetarian ...), or a composite companion such a pattern reads ("1 cup <companion>"). So "vegan butter"
+covers Vegan, Ethical Vegan, Raw Vegan, Plant-Based, Vegetarian, Hindu Vegetarian, Pescatarian, Dairy-Free and
+Kosher; "gluten-free flour" Gluten-Free; "dairy-free cheese" Dairy-Free; "meatless crumbles" Vegetarian, Pescatarian
+and Kosher (`RecheckDietGuard.MarkedFree`). The marker is read in the new name's first item only, cut as `FreeOfHold`
+cuts it ("butter or vegan butter" covers nothing). A take-back or a move whose new name carries the marker may drop
+the flag of a covered type. Every allergy, Celiac Disease, Gluten Sensitivity, Lactose Intolerance and every other
+type of severity 4 or 5 (a stored criterion at that severity makes its type severe) reads the take-back strictly as
+before, and so does a diet that also restricts what the marker does not name: Grain-Free, Paleo, Whole30, Carnivore,
+Low-FODMAP, Sugar-Free, Jain, Buddhist Vegetarian and Halal hold "gluten-free flour" (rice is a grain),
+"vegan butter" and "meatless crumbles" (onion, garlic, alcohol) as unknown. The guard's version is part of the
+signature, so `scores/link-recheck-classes.json` was re-recorded; no class figure moved.
+
+Measured on the read-only staging copy (default types only; the read-only role cannot read stored criteria), over
+the free-of set's 52 groups (148 lines): held 28 groups (101 lines) before and 28 groups (101 lines) after. No group
+moves, because every held group also lowers a severe type (Milk Allergy 20 groups, Lactose Intolerance 9, Celiac
+Disease and Gluten Sensitivity 4, Egg Allergy 1) or a diet the marker does not cover (Carnivore for gluten-free oats,
+4 groups and 61 lines; Paleo and Whole30 11; Jain and Sugar-Free for vegan graham crackers). What changes is the
+reason a held group carries: Dairy-Free (20 groups) and Gluten-Free (4) are no longer named, and Vegan, Ethical
+Vegan, Raw Vegan and Plant-Based fall from 22 groups to 4 (three dairy-free wordings, which do not say vegan, and
+gluten-free egg noodles).
 
 The other kinds stay where they are, each a single wording or a few, too few to be a class: they are left to the
 link-audit candidates and the wording lanes, and the generic oils on Soybean Oil match owner rule Q5 (vegetable oil is
@@ -404,6 +430,20 @@ lines that moved since (an alias two groups of one wording on one food share, as
 sense groups can, is counted once, as the apply writes it once); an undo's dry run likewise counts the lines, aliases, foods and names it
 would give back. Line moves have their own change type, so the time-window `relink/undo` and a wording
 retract never take back a re-check's lines without its aliases; only its stamp does.
+
+**An exact undo, by the operator's choice (staging checkpoint 7, S9).** Since the move guard reads every way back
+(`cleanup2/ck11-diet-moves`), an undo whose way back would lower a flag holds that line where the run put it: the alcohol
+set's undo held 16 lines, and `relink/undo` after a move that raised flags (Worcestershire Sauce onto Steak Sauce) held
+1,017 of 1,018, so the earlier state could only be restored by SQL. Both undos take `restoreLowered=true`: the dry run
+lists every move the choice would let lower a flag (`restoredLowering`, and the first 200 in `loweringMoves` with the
+types each lowers), the apply puts those lines back too and journals each one (`Recipe`/`UndoLoweredDiet`: the line's
+place before the undo, the food it went back to and the types it lowered), each entry written with its move in the
+chunk's transaction, so a stop part way leaves no lowering move unjournaled, and only for a move the writer made (a
+line or a food gone since is skipped and journals nothing; review ck16-r2, ck16-r3). Without it (the default) nothing
+changes: such lines are held and counted `heldByDiet`. The time-window undo's dry run and apply read every retired food the undo
+brings back as live and under the name it takes back (`LineMoveDietGuard.Expect`), and a retract's or unload's dry run
+counts its import landings as its apply moves them (`landingsMovedBack`, `landingsKept`, `landingsSkipped`), so the dry
+run equals the apply (S10: the w01 unload's dry run held 8,348 and moved no landing, its apply held 8,300 and moved 16).
 
 Operator note: after the withdrawal every withdrawn wording is a link-lane source again: expect
 `linkQueue` to rise to about 64,000 while the link lane stays paused. A food holding the wording's
@@ -474,8 +514,45 @@ was not. Two parts close it:
   `diet flags kept (a move to <food> would lower ...)`, and its lines stay on their food, on the safe side
   ("patty" off a fast-food hamburger, whether as a take-back or a move to a curated food named "Patty" (review
   CK9T-2), "the food" off a biscuit, a seasoning off a rice mix, an orange liqueur off orange juice for Citrus
-  Allergy, a hard cider off cider vinegar for Sulfite Sensitivity). A group with no lines (an alias only) is not
+  Allergy, a hard cider off cider vinegar for Sulfite Sensitivity). A diet of choice whose whole restriction a
+  free-of marker of the new name states it lacks may drop ("vegan butter" for Vegan and Dairy-Free; never an
+  allergy or Celiac Disease; see "A free-of marker and the diet guard"). A group with no lines (an alias only) is not
   judged: no recipe's flag depends on it.
+
+### A hold never keeps a line on a wrong food (recheck-diet/4, staging checkpoint 7, S11, S15; `cleanup2/ck16-diet-store-moves`)
+
+Checkpoint 7 read 20 of the 109 `diet flags kept` holds: 9 kept only the wrong food's flags (brandy lists on Coffee
+Cream Liqueur, frozen cheese ravioli on the ravioli with tomato sauce, vegan cream cheese, butter and frosting by the
+free-of set, `shaoxing wine` on Red Wine Vinegar for Interstitial Cystitis while `rice wine` left it). And the prepared
+set lowered Soy Allergy on four Spanish rice recipes, unheld: "spanish rice" is a composite of the label table (rice,
+tomato), and known contents let the take-back drop the soy the USDA mix's description named (margarine). So:
+
+- **No hold on a food the rules prove wrong.** Every group the re-check acts on is proven wrong by its class's rules.
+  Where the guard would have held it, the take-back (or the move, which becomes a take-back) now goes to the wording's
+  own food as before, and that food is marked of unknown contents: an alias of its own name with the context
+  `deterministic:recheck:contents-unknown` (`RecheckDietGuard.UnknownContentsContext`), journaled with the run's other
+  aliases so the run's undo removes it with the food. The move guard reads the mark as the store does: a food of
+  unknown contents flags every type, so a later move off it (a relink, a link-lane apply, an undo) to a food that does
+  not flag a type is held like any lowering move, and the re-check's own undo holds those lines by default and keeps the
+  marks of the foods they stay on (`marksKept`, with their journal entries); `restoreLowered=true` takes them back with
+  the marks (review ck16-r1). The diet gate decides such a food `Unknown` for every set its name
+  does not flag (`diet-gate.md`, "Catalog-wide writes"), so every severe type (and a member at severity 4 or 5) holds
+  the recipe as unknown; a diet of choice reads it by its name. The reason is `contents unknown (it would lower ...;
+  the severe types hold it as unknown)`; the run counts `unknownGroups` (also in `unlinkGroups`) and
+  `foodsMarkedUnknown`, its dry run the same. `held` is no longer an outcome of the diet guard.
+- **Known contents never account for a severe type.** The label table's composition lets a take-back drop a flag only
+  for a diet of choice (every criterion below severity 4): "chicken thighs" off Breaded Chicken Thighs may drop Gluten-Free,
+  but Celiac Disease and Wheat Allergy hold it as unknown; "spanish rice" off the mix keeps Soy Allergy the same way.
+  A plain drink's own name still accounts for every type ("brandy" off the cream liqueur drops Milk Allergy).
+- **A severe flag from the food's data.** The guard reads the old food by its name and USDA description; the gate also
+  reads a statement, a nutrient and a category. A take-back that would lower a severe type the gate counts on the old
+  food (`LineMoveDietGuard.SevereLoweredToNameAsync`) but the guard does not read from its name (`RecheckDietGuard.Reads`)
+  goes to a food of unknown contents too, unless the wording reads as a plain drink, whose own name accounts for every
+  type (review ck16-r4).
+
+`recheck-diet.tsv`: the expectation `unknown` (the line leaves to a food marked of unknown contents, and the store holds
+the recipe for every severe type whose flag it had). The test builds the diet gate's store after the three sets and
+checks that no take-back but a plain drink's lowers a severe type's stored flag.
 
 ### Every other path that moves a line (staging checkpoint 5, Q21)
 

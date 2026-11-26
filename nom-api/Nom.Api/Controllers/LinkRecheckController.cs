@@ -52,11 +52,11 @@ namespace Nom.Api.Controllers
             return result == null ? BadRequest(new { error = $"Unknown set '{set}'.", sets = LinkRecheckRules.AllSets }) : Ok(result);
         }
 
-        /// <summary>Take back one run (a set, a withdrawal or a rename) by its stamp; a dry run unless apply=true.</summary>
+        /// <summary>Take back one run (a set, a withdrawal or a rename) by its stamp; a dry run unless apply=true. restoreLowered=true, an operator's explicit choice, also puts back the lines whose way back lowers a recipe's diet flags (listed by the dry run, journaled by the apply).</summary>
         [HttpPost("undo")]
-        public async Task<ActionResult<LinkRecheckUndoResult>> Undo([FromQuery, Required] DateTime stamp, [FromQuery] bool apply = false)
+        public async Task<ActionResult<LinkRecheckUndoResult>> Undo([FromQuery, Required] DateTime stamp, [FromQuery] bool apply = false, [FromQuery] bool restoreLowered = false)
         {
-            var result = await _recheck.UndoAsync(DateTime.SpecifyKind(stamp.ToUniversalTime(), DateTimeKind.Utc), apply, HttpContext.RequestAborted);
+            var result = await _recheck.UndoAsync(DateTime.SpecifyKind(stamp.ToUniversalTime(), DateTimeKind.Utc), apply, HttpContext.RequestAborted, restoreLowered);
             return result.Found ? Ok(result) : NotFound(new { error = $"No link re-check run has the stamp {stamp:O}." });
         }
 

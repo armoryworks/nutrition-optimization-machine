@@ -15,6 +15,7 @@ public class IngredientWordingEntityConfiguration : IEntityTypeConfiguration<Ing
 
         builder.Property(e => e.Wording).IsRequired().HasMaxLength(511);
         builder.Property(e => e.Verdict).IsRequired().HasMaxLength(16);
+        builder.Property(e => e.CategoryHead).HasMaxLength(255);
         builder.Property(e => e.Source).IsRequired().HasMaxLength(255);
         builder.Property(e => e.Batch).IsRequired().HasMaxLength(128);
         builder.Property(e => e.Note).HasMaxLength(1023);

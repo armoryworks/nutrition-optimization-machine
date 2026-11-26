@@ -1,0 +1,40 @@
+# Diet spellings (diet-food-words/3): the old and variant spellings of the recipe corpus (cocoanut, cinamon, sirup, chesnut, shalot, yelk) read as the curated catalog's word, derived from the corpus, never listed by hand (review ck16-4 and owner question 2 of build/ck16-diet-known.md: "cinamon" held 58566 although its lines carry cinnamon). DietFoodWords.Normal reads a spelling of this file as its word.
+# Derivation, on the read-only staging copy of 2026-11-25: every word of a live line (DietFoodWords.AllWords) that no live curated food holds (name, USDA description, trusted aliases) and that has at least four letters; kept when a word the curated catalog holds differs from it by one letter (inserted, dropped, changed, or two neighbours swapped), starts with the same letter, and at least half of the lines that hold the spelling and are on a live curated food (at least 3) are on curated foods that hold that word; the word most of them hold is taken. A spelling no line on a curated food carries (pye, pistachia) is not read: it stays not understood.
+# lines: the live lines that hold the spelling; recipes: their recipes; curated: those lines on a live curated food; word lines: those on a curated food that holds the word.
+spelling	word	lines	recipes	curated	word lines
+blanchd	blanched	15	15	5	5
+bleu	blue	7	7	3	3
+cardamon	cardamom	10	10	3	2
+carraway	caraway	162	156	113	99
+chesnut	chestnut	60	55	5	3
+cinamon	cinnamon	207	205	138	134
+cleansed	cleaned	25	25	15	8
+cocoanut	coconut	640	610	169	150
+crawfish	crayfish	37	34	6	4
+crema	cream	27	27	5	4
+cummin	cumin	40	40	8	8
+curran	currant	310	309	235	233
+desert	dessert	5	5	4	3
+distilld	distilled	5	5	5	5
+fennell	fennel	18	17	4	4
+fennil	fennel	14	14	6	5
+finer	fine	6	6	4	3
+gelatine	gelatin	1461	1448	993	929
+grate	grated	45	45	33	30
+grater	grated	26	25	18	13
+juyce	juice	65	60	22	15
+monterrey	monterey	10	10	7	4
+naval	navel	12	10	3	2
+paprica	paprika	56	56	53	37
+pasty	pastry	8	8	4	3
+peeler	peeled	31	28	17	13
+pistacchio	pistachio	7	7	5	5
+quarterd	quartered	5	5	5	3
+sale	salt	326	326	4	2
+shalot	shallot	505	500	337	283
+sirup	syrup	90	89	25	15
+tomata	tomato	109	107	30	29
+tomate	tomato	16	16	7	7
+tumeric	turmeric	29	29	26	25
+yelk	yolk	126	125	77	72
+yest	yeast	126	125	3	2

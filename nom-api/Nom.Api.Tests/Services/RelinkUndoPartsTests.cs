@@ -24,9 +24,9 @@ namespace Nom.Api.Tests.Services
     {
         private static readonly DateTime Imported = new(2026, 9, 1, 0, 0, 0, DateTimeKind.Utc);
 
-        private sealed record Scene(ApplicationDbContext Db, DateTime Started, List<long> Foods);
+        internal sealed record Scene(ApplicationDbContext Db, DateTime Started, List<long> Foods);
 
-        private static async Task<Scene> SceneAsync(int recipes)
+        internal static async Task<Scene> SceneAsync(int recipes)
         {
             var db = ReprocessUndoWorld.NewDb();
             var foods = Enumerable.Range(0, 12).Select(i => new IngredientEntity
@@ -74,7 +74,7 @@ namespace Nom.Api.Tests.Services
             return new Scene(db, started, ids);
         }
 
-        private static (int, int, int, int, int, int, int, int, int) Counts(LineRelinkUndoResult r) =>
+        internal static (int, int, int, int, int, int, int, int, int) Counts(LineRelinkUndoResult r) =>
             (r.Restored, r.FoodsRestored, r.Refolded, r.Unsplit, r.AlternativesPutBack, r.PicksRestored, r.ProposalsRestored, r.Skipped, r.SkippedRebuilt);
 
         [Fact]
@@ -94,24 +94,6 @@ namespace Nom.Api.Tests.Services
             (dry.Restored, dry.FoodsRestored, dry.Skipped).Should().Match<(int Restored, int Foods, int Skipped)>(c => c.Restored > 500 && c.Foods > 0 && c.Skipped > 0);
             dry.DryRunLargestPart.Should().BeLessThanOrEqualTo(100, "staging checkpoint 6, R15: the recipes whose lines name a retired food no longer share one large copy");
             dry.DryRunParts.Should().Be(RelinkUndoDryRun.Parts(entries).Count);
-        }
-
-        [Fact]
-        public async Task Two_dry_runs_called_together_run_one_after_the_other_and_the_second_says_it_waited()
-        {
-            var first = await SceneAsync(300);
-            var second = await SceneAsync(300);
-            RelinkUndoDryRun.ResetMostRunning();
-
-            var together = await Task.WhenAll(
-                Task.Run(() => new LineRelinkService(first.Db, new ReprocessUndoWorld.Admin()).UndoAsync(first.Started)),
-                Task.Run(() => new LineRelinkService(second.Db, new ReprocessUndoWorld.Admin()).UndoAsync(second.Started)));
-
-            RelinkUndoDryRun.MostRunning.Should().Be(1, "staging checkpoint 6, R15: T1 and T7 took turns part by part and took 636 s and 425 s; whole runs now queue");
-            var later = together.OrderByDescending(r => r.QueuedSeconds).First();
-            later.QueuedBehind.Should().BeGreaterThanOrEqualTo(1, "the run that started second is told it ran behind the other");
-            later.QueuedSeconds.Should().BeGreaterThan(0, "it waited for the whole of the other run");
-            Counts(together[0]).Should().Be(Counts(together[1]), "both scenes are built alike");
         }
 
         [Fact]
@@ -188,6 +170,50 @@ namespace Nom.Api.Tests.Services
             Counts(dry).Should().Be(Counts(applied));
             dry.FoodsRestored.Should().BeGreaterThan(60);
             dry.DryRunLargestPart.Should().BeLessThanOrEqualTo(100);
+        }
+    }
+
+    /// <summary>
+    /// Whole relink undo dry runs queue in the process. The test holds a turn of the queue itself until both runs are
+    /// waiting (<see cref="RelinkUndoDryRun.Waiting"/>), so the two runs overlap for certain: before, they overlapped only
+    /// when the first had not finished before the second read its entries, and the test failed about 1.5 % of runs under
+    /// load (ck15-free-of). It runs alone, so no other test's dry run joins the count.
+    /// </summary>
+    [Collection(Nom.Api.Tests.Services.MealPlan.DietReadingRegisterTests.RunsAlone)]
+    public class RelinkUndoQueueTests
+    {
+        [Fact]
+        public async Task Two_dry_runs_called_together_run_one_after_the_other_and_the_second_says_it_waited()
+        {
+            var first = await RelinkUndoPartsTests.SceneAsync(300);
+            var second = await RelinkUndoPartsTests.SceneAsync(300);
+            var held = await RelinkUndoDryRun.QueueAsync();
+            Task<LineRelinkUndoResult[]> together;
+            try
+            {
+                RelinkUndoDryRun.ResetMostRunning();
+                RelinkUndoDryRun.Waiting.Should().Be(1, "no other dry run is queued while this test runs alone");
+                together = Task.WhenAll(
+                    Task.Run(() => new LineRelinkService(first.Db, new ReprocessUndoWorld.Admin()).UndoAsync(first.Started)),
+                    Task.Run(() => new LineRelinkService(second.Db, new ReprocessUndoWorld.Admin()).UndoAsync(second.Started)));
+                var deadline = DateTime.UtcNow.AddMinutes(2);
+                while (RelinkUndoDryRun.Waiting < 3 && DateTime.UtcNow < deadline) await Task.Delay(10);
+                RelinkUndoDryRun.Waiting.Should().Be(3, "both runs wait behind the turn the test holds");
+                await Task.Delay(200);
+            }
+            finally
+            {
+                await held.DisposeAsync();
+            }
+
+            var results = await together;
+
+            RelinkUndoDryRun.MostRunning.Should().Be(1, "staging checkpoint 6, R15: T1 and T7 took turns part by part and took 636 s and 425 s; whole runs now queue");
+            results.Select(r => r.QueuedBehind).Should().BeEquivalentTo(new[] { 1, 2 }, "each run is told the runs ahead of it: the test's turn, and for the later one the other run too");
+            var later = results.Single(r => r.QueuedBehind == 2);
+            later.QueuedSeconds.Should().BeGreaterThan(results.Single(r => r.QueuedBehind == 1).QueuedSeconds, "it waited for the whole of the other run");
+            RelinkUndoPartsTests.Counts(results[0]).Should().Be(RelinkUndoPartsTests.Counts(results[1]), "both scenes are built alike");
+            RelinkUndoDryRun.Waiting.Should().Be(0);
         }
     }
 }

@@ -122,7 +122,7 @@ namespace Nom.Api.Tests.Services
             (await rig.Db.AuditLogEntries.CountAsync()).Should().Be(0);
             var decisions = await rig.Db.LaneDecisions.ToListAsync();
             decisions.Should().HaveCount(2).And.OnlyContain(d => d.Writes && !d.Written && d.Decision == ProseLaneService.RewriteDecision && d.SignatureHash == Models.Version);
-            decisions.Should().OnlyContain(d => d.SignalsJson!.Contains("Whisk the butter through the sauce"));
+            decisions.Should().OnlyContain(d => d.SignalsJson!.Contains("the butter gets whisked through the sauce"));
         }
 
         [Fact]
@@ -155,7 +155,7 @@ namespace Nom.Api.Tests.Services
         }
 
         [Fact]
-        public async Task A_recipe_withheld_for_its_copied_sentences_has_only_those_reworded_and_live_the_rewording_is_written_journaled_shown_and_clears_its_count()
+        public async Task A_recipe_withheld_with_copied_sentences_is_reworded_as_a_whole_and_none_of_its_old_sentences_is_kept()
         {
             var rig = NewRig();
             var shownSteps = new[]
@@ -175,13 +175,30 @@ namespace Nom.Api.Tests.Services
             var result = await rig.Lane.SweepAsync(LaneMode.Live, Models, writer, new FakeJudge(), 25);
 
             result.Rewritten.Should().Be(1);
-            writer.Reworded.Should().ContainSingle().Which.Step.Should().Be(2);
+            writer.Reworded.Select(r => r.Step).Should().Equal(1, 2, 3, 4);
             var written = await RecipeAsync(rig.Db, id);
             written.ProseCopiedSentences.Should().Be(0);
             written.ProseWithheld.Should().BeFalse();
-            written.RecipeSteps!.OrderBy(s => s.StepNumber).Select(s => s.Description).Should().Equal(shownSteps[0], GarlicSauce.Reworded[GarlicSauce.Method[1]], shownSteps[2], shownSteps[3]);
-            (await rig.Db.LaneDecisions.SingleAsync()).Stratum.Should().Be("repair");
-            (await rig.Db.AuditLogEntries.CountAsync(a => a.EntityId == id && a.ChangeType == ProseRecheckService.RewriteChangeType)).Should().BeGreaterThan(0, "every old text is journaled, so the lane's undo can put it back");
+            written.RecipeSteps!.OrderBy(s => s.StepNumber).Select(s => s.Description).Should().Equal(GarlicSauce.Method.Select(m => GarlicSauce.Reworded[m]));
+            (await rig.Db.LaneDecisions.SingleAsync()).Stratum.Should().Be("withheld-approved");
+        }
+
+        [Fact]
+        public async Task Among_approved_withheld_recipes_the_most_copied_goes_first()
+        {
+            var rig = NewRig();
+            var little = await SeedAsync(rig.Db);
+            var much = await SeedAsync(rig.Db);
+            var other = await SeedAsync(rig.Db, approved: false);
+            foreach (var recipe in await rig.Db.Recipes.ToListAsync())
+                recipe.ProseCopiedSentences = recipe.Id == little ? 1 : recipe.Id == much ? 3 : 9;
+            await rig.Db.SaveChangesAsync();
+            rig.Db.ChangeTracker.Clear();
+
+            await rig.Lane.SweepAsync(LaneMode.Shadow, Models, new FakeWriter(), new FakeJudge(), 25);
+
+            (await rig.Db.LaneDecisions.OrderBy(d => d.Id).Select(d => d.Subject).ToListAsync())
+                .Should().Equal(ProseLaneService.Subject(much), ProseLaneService.Subject(little), ProseLaneService.Subject(other));
         }
 
         [Fact]
@@ -339,7 +356,7 @@ namespace Nom.Api.Tests.Services
             var rig = NewRig();
             await SeedAsync(rig.Db);
             await rig.Lane.SweepAsync(LaneMode.Shadow, Models, new FakeWriter(), new FakeJudge { Confirms = _ => false }, 25);
-            var auditor = new FakeJudge { Model = "phi4", Faithful = (_, _) => false, Confirms = _ => true };
+            var auditor = new FakeAuditor { Faithful = _ => false, Confirms = _ => true };
             var audit = new ProseLaneAudit(rig.Db, auditor);
 
             var pass = await rig.Frame.AuditAsync(ProseLaneService.Lane, ProseLaneService.Tier, DateTime.UtcNow.AddDays(-1), new LaneSamplePlan(1, 1), audit, audit);
@@ -438,7 +455,7 @@ namespace Nom.Api.Tests.Services
         {
             var rig = NewRig();
 
-            var verdict = await rig.Lane.MeasureAsync(LaneMode.Shadow, Models, new FakeJudge { Model = "phi4" });
+            var verdict = await rig.Lane.MeasureAsync(LaneMode.Shadow, Models, new FakeAuditor());
 
             verdict.Mode.Should().Be(LaneMode.Shadow);
             verdict.Figures.GoldenProblem.Should().Contain("prose-rewrite has no committed golden score record").And.Contain("prose-judge has no committed golden score record");
@@ -455,7 +472,7 @@ namespace Nom.Api.Tests.Services
             (await RecipeAsync(rig.Db, id)).ProseWithheld.Should().BeFalse();
 
             await rig.Lane.RunCanariesAsync(Models, new FakeJudge());
-            var verdict = await rig.Lane.MeasureAsync(LaneMode.Live, Models, new FakeJudge { Model = "phi4" });
+            var verdict = await rig.Lane.MeasureAsync(LaneMode.Live, Models, new FakeAuditor());
 
             verdict.Mode.Should().Be(LaneMode.Paused);
             verdict.Undo.Should().BeTrue();

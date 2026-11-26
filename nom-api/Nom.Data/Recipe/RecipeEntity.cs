@@ -126,11 +126,11 @@ namespace Nom.Data.Recipe
         public bool ProseUnsure { get; set; }
 
         /// <summary>
-        /// How many sentences of the shown description and steps the prose check (from check v7, sentence
-        /// by sentence) read as copies of the source while the recipe is shown: the rewrite lane's work
-        /// list, whose sentences it rewords. 0 when none is, when the recipe is withheld as a whole, or when
-        /// it was not read. Set by the journaled re-check and restored by its undo; cleared by a person's own
-        /// method, by a withhold and by a rewrite the lane writes.
+        /// The queue figure of a withheld earlier paraphrase: how many sentences of its description and steps
+        /// the prose check (sentence by sentence) reads as copies of the source or kept nearly word for word.
+        /// It only orders the rewrite lane's queue (most first, after the approved recipes); it shows or
+        /// withholds nothing. 0 when none is or when it was not read. Set by the journaled re-check and
+        /// restored by its undo; cleared by a person's own method and by a rewrite the lane writes.
         /// </summary>
         public int ProseCopiedSentences { get; set; }
 

@@ -22,6 +22,7 @@ namespace Nom.Orch.Services.Support
         public const string Released = "released";
         public const string Rebuilt = "rebuilt";
         public const string Undone = "undone";
+        public const string LineOperation = "line-operation";
 
         /// <summary>One held line: the stored row and the rebuilt row, the source line and the guard's reason.</summary>
         public sealed record Held(

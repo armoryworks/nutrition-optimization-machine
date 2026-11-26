@@ -24,7 +24,11 @@ namespace Nom.Orch.Services.Support
     /// alone (<see cref="RecheckDietGuard.ReadsAsDrink"/>), whose own words keep the drink's flags (R16). No USDA target is
     /// trusted for its description any more: "Franco-American spaghetti" off canned pasta with tomato sauce onto Spaghetti
     /// lowered Nightshade Sensitivity and Interstitial Cystitis, and "mayonnaise dressing" off Mayonnaise lowered Soy
-    /// Allergy, because the old guard read the foods by their names and the gate does not. A link's merge that would make
+    /// Allergy, because the old guard read the foods by their names and the gate does not. A food marked of unknown
+    /// contents (<see cref="RecheckDietGuard.UnknownContentsContext"/>) flags every type, as a set that holds unknowns
+    /// reads it, so a move off it to a food that does not flag a type is held too, and so does a made product whose brands
+    /// are split on what a severe type restricts (<see cref="DietFoodReader.Decision.Split"/>), which the store holds as
+    /// unknown. A link's merge that would make
     /// its target newly flag a type (the wording's name kept on the target as an alias, R17's grape tomatoes on Coconut
     /// Milk) is a raise (<see cref="RaisedAsync"/>) and is held too. Foods are read from the database the guard was loaded
     /// from, so a dry run on a scratch copy decides as the apply does.
@@ -48,6 +52,9 @@ namespace Nom.Orch.Services.Support
         private readonly Dictionary<string, LineView> _lines = new(StringComparer.Ordinal);
         private readonly Dictionary<(long From, long To), IReadOnlyList<string>> _byFoods = new();
         private readonly List<LineMoveHold> _holds = new();
+        private readonly List<LineMoveHold> _restored = new();
+        private readonly Dictionary<long, (string? Name, bool Live)> _expected = new();
+        private readonly HashSet<string> _dropped = new(StringComparer.Ordinal);
 
         private LineMoveDietGuard(ApplicationDbContext? db, IReadOnlyList<Reading> readings, IReadOnlyList<long> nutrientIds, DietLineRules.Matcher? matcher)
         {
@@ -126,6 +133,41 @@ namespace Nom.Orch.Services.Support
         public IReadOnlyList<LineMoveHold> Holds => _holds;
 
         /// <summary>
+        /// Whether a move that would lower a flag goes through instead of being held, counted in <see cref="Restored"/> and
+        /// kept in <see cref="RestoredMoves"/>: an operator's explicit choice, for an undo only, to put lines back to the exact
+        /// journaled earlier state, which may lower flags a forward move raised (staging checkpoint 7, S9). Never on by default.
+        /// </summary>
+        public bool Restores { get; set; }
+
+        /// <summary>
+        /// Reads <paramref name="foodId"/> as an undo will leave it, whatever the database holds while the undo runs: with
+        /// the name <paramref name="name"/> it takes back (null: as it is), live when <paramref name="live"/> (a retired food
+        /// the undo brings back), and with no food reading an alias of the context <paramref name="droppedAliasContext"/> (the
+        /// aliases a retirement left on the food the lines went to, which the undo removes). The undo's dry run and its apply
+        /// then read every food alike, whichever step runs first (staging checkpoint 7, S10: a dry run read a retired food as
+        /// dead and held 48 moves more than the apply).
+        /// </summary>
+        public void Expect(long foodId, string? name, bool live, string? droppedAliasContext)
+        {
+            _expected[foodId] = _expected.TryGetValue(foodId, out var was) ? (name ?? was.Name, live || was.Live) : (name, live);
+            if (droppedAliasContext != null) _dropped.Add(droppedAliasContext);
+            _foods.Clear();
+            _byFoods.Clear();
+        }
+
+        /// <summary>Moves that would have been held and went through because <see cref="Restores"/> is on.</summary>
+        public int Restored => _restored.Count;
+
+        /// <summary>Every move that went through because <see cref="Restores"/> is on, with the types it lowers.</summary>
+        public IReadOnlyList<LineMoveHold> RestoredMoves => _restored;
+
+        /// <summary>Forgets the moves kept in <see cref="RestoredMoves"/> after the first <paramref name="count"/>: the writer did not make them (the line or the food it would go back to is gone), so they lowered nothing.</summary>
+        public void DropRestored(int count)
+        {
+            if (count < _restored.Count) _restored.RemoveRange(count, _restored.Count - count);
+        }
+
+        /// <summary>
         /// The restriction types a move of a line with the text <paramref name="rawLine"/> (none: the foods alone) from
         /// <paramref name="fromId"/> to <paramref name="toId"/> would lower, read as the gate reads both; none when either
         /// food is unknown or the line reads as a drink alone. Counts nothing.
@@ -135,6 +177,26 @@ namespace Nom.Orch.Services.Support
             if (_db == null || fromId == toId) return Array.Empty<string>();
             if (await FoodAsync(fromId) is not { } from || await FoodAsync(toId) is not { } to) return Array.Empty<string>();
             return Lowering(from, to, Line(rawLine));
+        }
+
+        /// <summary>
+        /// The restriction types with a severe reading (criteria of severity 4 and 5) that a take-back of a line with the text
+        /// <paramref name="rawLine"/> from <paramref name="fromId"/> to a food named <paramref name="name"/> would lower, both
+        /// read as the gate reads them (a read statement, a nutrient, a category, a name, an alias); none when the name reads
+        /// as a plain drink (<see cref="RecheckDietGuard.ReadsAsDrink"/>), whose own name accounts for every type. Counts nothing.
+        /// </summary>
+        public async Task<IReadOnlyList<string>> SevereLoweredToNameAsync(long fromId, string name, string? rawLine)
+        {
+            if (_db == null) return Array.Empty<string>();
+            if (await FoodAsync(fromId) is not { } from) return Array.Empty<string>();
+            if (RecheckDietGuard.ReadsAsDrink(name, from.Name)) return Array.Empty<string>();
+            var to = Named(name);
+            var line = Line(rawLine);
+            var lowered = new List<string>();
+            for (var i = 0; i < _readings.Count; i++)
+                if (_readings[i].Criteria.All(c => c.Severity >= RecheckDietGuard.SevereFrom) && Flags(i, from, line) && !Flags(i, to, line) && !lowered.Contains(_readings[i].Type))
+                    lowered.Add(_readings[i].Type);
+            return lowered;
         }
 
         /// <summary>
@@ -199,6 +261,11 @@ namespace Nom.Orch.Services.Support
         private bool Count(long recipeId, long fromId, int sortOrder, long toId, IReadOnlyList<string> lowered)
         {
             if (lowered.Count == 0) return false;
+            if (Restores)
+            {
+                _restored.Add(new LineMoveHold(recipeId, fromId, sortOrder, toId, lowered));
+                return false;
+            }
             Held++;
             if (_holds.Count < HoldsKept) _holds.Add(new LineMoveHold(recipeId, fromId, sortOrder, toId, lowered));
             return true;
@@ -217,7 +284,7 @@ namespace Nom.Orch.Services.Support
         {
             var reading = _readings[index];
             var verdict = food.Verdicts[index];
-            if (verdict == DietVerdict.Contains) return true;
+            if (verdict is DietVerdict.Contains or DietVerdict.Unknown) return true;
             if (line.Rules.Any(reading.LineKeys.ContainsKey)) return true;
             if (verdict == DietVerdict.AliasOnly && line.Rules.Any(reading.AllKeys.ContainsKey)) return true;
             if (reading.Drinks && line.Drink) return true;
@@ -258,6 +325,14 @@ namespace Nom.Orch.Services.Support
             if (_foods.TryGetValue(id, out var known)) return known;
             var catalog = await DietFoodCatalog.LoadAsync(_db!, _nutrientIds, foodIds: new[] { id });
             if (!catalog.Foods.ContainsKey(id)) return _foods[id] = null;
+            if (_expected.TryGetValue(id, out var expected) || _dropped.Count > 0)
+            {
+                var food = catalog.Foods[id];
+                if (expected != default) food = food with { Name = expected.Name ?? food.Name, Live = food.Live || expected.Live };
+                var aliases = (catalog.Aliases.TryGetValue(id, out var have) ? have : Array.Empty<DietFoodCatalog.Alias>())
+                    .Where(a => a.Context == null || !_dropped.Contains(a.Context));
+                catalog = DietFoodCatalog.Of(new[] { food }, aliases, catalog.Nutrients, catalog.Statements);
+            }
             await catalog.LoadStatementsAsync(_db!, new[] { id });
             return _foods[id] = View(catalog, id);
         }
@@ -279,7 +354,9 @@ namespace Nom.Orch.Services.Support
             for (var i = 0; i < _readings.Count; i++)
             {
                 var decision = DietFoodReader.Decide(reading, _readings[i].Criteria);
-                verdicts[i] = decision.Foods.Values.Any(f => f.Contains(id)) ? DietVerdict.Contains : decision.AliasOnly.Contains(id) ? DietVerdict.AliasOnly : null;
+                verdicts[i] = decision.Foods.Values.Any(f => f.Contains(id)) ? DietVerdict.Contains
+                    : decision.Unknown.Contains(id) || decision.Split.Contains(id) ? DietVerdict.Unknown
+                    : decision.AliasOnly.Contains(id) ? DietVerdict.AliasOnly : null;
                 alcohol[i] = _readings[i].CappedNutrient is { } capped && nutrients != null && nutrients.TryGetValue(capped, out var amount) && amount > DietCriteriaMatcher.PresencePer100g;
             }
             return new FoodView(catalog.Foods[id].Name + " " + string.Join(" ", catalog.Aliases.TryGetValue(id, out var a) ? a.Where(x => x.Context == IngredientLinkService.UsdaDescriptionContext).Select(x => x.Text) : Array.Empty<string>()), verdicts, alcohol);

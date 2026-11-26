@@ -87,9 +87,9 @@ namespace Nom.Api.Services
                         foreach (var set in report.Built)
                             _logger.LogInformation("Diet gate build {BuildId}: set {SetId} (type {TypeId}, {Reading}{Severe}) built: {Foods} foods in {FoodSeconds:F1} s, {Containing} recipes containing and {Unknown} unknown in {RecipeSeconds:F1} s",
                                 report.BuildId, set.SetId, set.TypeId, set.Reading, set.Severe ? ", severe" : string.Empty, set.Foods, set.FoodSeconds, set.RecipesContaining, set.RecipesUnknown, set.RecipeSeconds);
-                        _logger.LogInformation("Diet gate build {BuildId} ({Version}) {State}{Switched}, {Kind} cycle: {Sets} sets; foods {FoodsDecided} of {Foods} decided in {FoodSeconds:F1} s; recipes {RecipesDecided} of {Recipes} decided in {RecipeSeconds:F1} s, {RecipesLate} written while read left for the next cycle; cycle {Seconds:F1} s",
+                        _logger.LogInformation("Diet gate build {BuildId} ({Version}) {State}{Switched}, {Kind} cycle: {Sets} sets; foods {FoodsDecided} of {Foods} decided in {FoodSeconds:F1} s, {FoodsMoved} moved a decision; recipes {RecipesDecided} of {Recipes} decided in {RecipeSeconds:F1} s{Windowed}, {RecipesConfirmed} held by a food write released unread, {RecipesLate} written while read left for the next cycle; cycle {Seconds:F1} s",
                             report.BuildId, report.Version, report.State, report.Switched ? " (switched)" : string.Empty, whole ? "whole" : "changes", report.Sets, report.FoodsDecided, report.Foods,
-                            report.FoodSeconds, report.RecipesDecided, report.Recipes, report.RecipeSeconds, report.RecipesLate, report.Seconds);
+                            report.FoodSeconds, report.FoodsMoved, report.RecipesDecided, report.Recipes, report.RecipeSeconds, report.Windowed ? " (read in windows)" : string.Empty, report.RecipesConfirmed, report.RecipesLate, report.Seconds);
                     }
                     catch (OperationCanceledException) when (stoppingToken.IsCancellationRequested)
                     {

@@ -7,8 +7,12 @@ using FluentAssertions;
 using Microsoft.AspNetCore.Http;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.Logging.Abstractions;
+using Moq;
 using Nom.Data;
+using Nom.Data.Recipe;
 using Nom.Orch.Extensions;
+using Nom.Orch.Interfaces;
+using Nom.Orch.Models.MealPlan;
 using Nom.Orch.Models.Recipe;
 using Nom.Orch.Services;
 using Nom.Orch.Services.Support;
@@ -101,6 +105,7 @@ namespace Nom.Api.Tests.Services.MealPlan
         {
             await using var connection = new NpgsqlConnection(ConnectionString);
             await connection.OpenAsync();
+            await ExecAsync(connection, $"INSERT INTO plan.\"Household\" (\"Id\", \"Name\", \"HouseholdGroupId\", \"CreatedDate\") SELECT {HouseholdId}, 'diet store perf', min(g.\"Id\"), now() FROM plan.\"HouseholdGroup\" g ON CONFLICT (\"Id\") DO NOTHING");
             if (await ScalarAsync(connection, "SELECT count(*) FROM recipe.\"Recipe\"") >= RecipeCount) return;
             var clock = Stopwatch.StartNew();
             await ExecAsync(connection, "SET session_replication_role = replica");
@@ -347,7 +352,7 @@ namespace Nom.Api.Tests.Services.MealPlan
             long food;
             await using (var db = NewContext())
             {
-                food = await db.RecipeIngredients.Where(ri => ri.RawLine.Contains("rice") && !ri.RawLine.Contains("vinegar")).Select(ri => ri.IngredientId).FirstAsync();
+                food = await db.RecipeIngredients.Where(ri => ri.RawLine.Contains("rice") && !ri.RawLine.Contains("vinegar") && ri.Ingredient.CurationStatusId != (long)CurationStatusEnum.Curated).Select(ri => ri.IngredientId).FirstAsync();
                 var entity = await db.Ingredients.SingleAsync(i => i.Id == food);
                 entity.Name = "Wheat berries " + DateTime.UtcNow.Ticks;
                 await db.SaveChangesAsync();
@@ -356,7 +361,7 @@ namespace Nom.Api.Tests.Services.MealPlan
             await using (var db = NewContext()) change = await builder.RunAsync(db);
             _output.WriteLine($"one food changed: cycle {change.Seconds:F1} s, {change.FoodsDecided} food and {change.RecipesDecided} recipes decided");
             change.FoodsDecided.Should().Be(1);
-            TimeSpan.FromSeconds(change.Seconds).Should().BeLessThan(TimeSpan.FromSeconds(45), "with the 15 s poll a one-food change shows within a minute");
+            TimeSpan.FromSeconds(change.Seconds).Should().BeLessThan(TimeSpan.FromSeconds(45), "with the 15 s poll a one-food change shows within a minute (a curated food's new name moves the reading of words and is a whole cycle, held in the catalog-wide test)");
             await using (var db = NewContext())
             {
                 var celiac = await db.DietGateSets.Where(s => s.Criteria.Contains("%wheat%")).Select(s => s.Id).ToListAsync();
@@ -414,6 +419,155 @@ namespace Nom.Api.Tests.Services.MealPlan
             slowestShuffle.Should().BeLessThan(TimeSpan.FromSeconds(1), "the gate's part of a shuffle answers under a second");
         }
 
+        private static async Task<bool> StandingAsync(long build, long recipe)
+        {
+            await using var db = NewContext();
+            return await db.DietRecipeStates.Standing(db).AnyAsync(s => s.BuildId == build && s.RecipeId == recipe);
+        }
+
+        private static async Task<int> StandingCountAsync(long build, IReadOnlyCollection<long> recipes)
+        {
+            await using var db = NewContext();
+            var count = 0;
+            foreach (var chunk in recipes.Chunk(5000))
+                count += await db.DietRecipeStates.Standing(db).CountAsync(s => s.BuildId == build && chunk.Contains(s.RecipeId));
+            return count;
+        }
+
+        [DietStorePostgresFact]
+        [Trait("Category", "Performance")]
+        public async Task A_catalog_wide_food_write_is_decided_within_a_whole_cycles_time_and_one_that_moves_no_decision_releases_its_recipes_unread()
+        {
+            await SeedAsync();
+            var build = await ActiveBuildAsync();
+            var builder = new DietGateStoreBuilder();
+            await using (var db = NewContext()) await builder.RunAsync(db);
+            await using var connection = new NpgsqlConnection(ConnectionString);
+            await connection.OpenAsync();
+            var live = await ScalarAsync(connection, "SELECT count(*) FROM recipe.\"Recipe\" WHERE NOT \"IsDeleted\"");
+
+            var recipesOf = new Dictionary<long, List<long>>();
+            await using (var command = new NpgsqlCommand("SELECT DISTINCT \"IngredientId\", \"RecipeId\" FROM recipe.\"RecipeIngredient\" WHERE NOT \"IsDeleted\"", connection))
+            await using (var reader = await command.ExecuteReaderAsync())
+                while (await reader.ReadAsync())
+                {
+                    if (!recipesOf.TryGetValue(reader.GetInt64(0), out var on)) recipesOf[reader.GetInt64(0)] = on = new List<long>();
+                    on.Add(reader.GetInt64(1));
+                }
+            var foods = new List<long>();
+            var covered = new HashSet<long>();
+            foreach (var (food, on) in recipesOf.OrderByDescending(f => f.Value.Count).ThenBy(f => f.Key))
+            {
+                if (covered.Count >= live * 0.95) break;
+                foods.Add(food);
+                covered.UnionWith(on);
+            }
+            var list = string.Join(",", foods);
+            var held = covered.ToList();
+            _output.WriteLine($"{foods.Count:N0} foods with lines in {held.Count:N0} of {live:N0} recipes");
+            held.Count.Should().BeGreaterThan((int)(live * 0.9), "the write covers what staging's admission covered (95 % of recipes)");
+
+            await ExecAsync(connection, "DELETE FROM plan.\"DietRecipeState\"");
+            await ExecAsync(connection, "DELETE FROM plan.\"DietFoodState\"");
+            DietGateStoreBuilder.CycleReport whole;
+            await using (var db = NewContext()) whole = await new DietGateStoreBuilder().RunAsync(db);
+            _output.WriteLine($"whole cycle deciding every food and recipe again: {whole.Seconds:F1} s ({whole.FoodsDecided:N0} foods, {whole.RecipesDecided:N0} recipes)");
+            await using (var db = NewContext()) await builder.RunAsync(db);
+
+            var clock = Stopwatch.StartNew();
+            await ExecAsync(connection, $"INSERT INTO recipe.\"IngredientAlias\" (\"IngredientId\", \"AliasName\", \"SourceContext\", \"CreatedDate\") SELECT id, 'of the ' || id, 'admin:ck16', now() FROM unnest(ARRAY[{list}]::bigint[]) id");
+            _output.WriteLine($"alias write committed in {clock.Elapsed.TotalSeconds:F1} s");
+            (await StandingCountAsync(build, held)).Should().Be(0, "from the commit every recipe on a written food is held, never served from the food's old facts");
+            DietGateStoreBuilder.CycleReport quiet;
+            await using (var db = NewContext()) quiet = await builder.RunChangesAsync(db);
+            _output.WriteLine($"alias on {foods.Count:N0} foods: cycle {quiet.Seconds:F1} s, foods {quiet.FoodsDecided:N0} decided in {quiet.FoodSeconds:F1} s ({quiet.FoodsMoved} moved), recipes {quiet.RecipesDecided:N0} decided, {quiet.RecipesConfirmed:N0} released unread");
+            (quiet.FoodsDecided, quiet.FoodsMoved, quiet.RecipesDecided).Should().Be((foods.Count, 0, 0), "an alias no pattern reads and that names no food word moves no decision and no word of the reading, so no recipe is read again");
+            quiet.RecipesConfirmed.Should().Be(held.Count);
+            (await StandingCountAsync(build, held)).Should().Be(held.Count, "the cycle released every recipe it held");
+            quiet.Seconds.Should().BeLessThan(whole.Seconds, "a write that changes no verdict is released faster than a whole cycle decides");
+
+            var curatedFoods = new HashSet<long>();
+            await using (var command = new NpgsqlCommand($"SELECT \"Id\" FROM recipe.\"Ingredient\" WHERE \"CurationStatusId\" = 9003 AND \"Id\" IN ({list})", connection))
+            await using (var reader = await command.ExecuteReaderAsync())
+                while (await reader.ReadAsync()) curatedFoods.Add(reader.GetInt64(0));
+            var pending = foods.Where(f => !curatedFoods.Contains(f)).ToList();
+            var heldPending = pending.SelectMany(f => recipesOf[f]).ToHashSet().ToList();
+            _output.WriteLine($"{pending.Count:N0} of the foods are not curated, with lines in {heldPending.Count:N0} recipes");
+            heldPending.Count.Should().BeGreaterThan(DietGateStoreBuilder.LargeScope);
+
+            await ExecAsync(connection, $"UPDATE recipe.\"Ingredient\" SET \"Name\" = \"Name\" || ' wheat' WHERE \"Id\" IN ({string.Join(",", pending)})");
+            (await StandingCountAsync(build, heldPending)).Should().Be(0);
+            DietGateStoreBuilder.CycleReport moved;
+            await using (var db = NewContext()) moved = await builder.RunChangesAsync(db);
+            _output.WriteLine($"rename of {pending.Count:N0} foods no curated food is: cycle {moved.Seconds:F1} s (foods {moved.FoodSeconds:F1} s, recipes {moved.RecipeSeconds:F1} s{(moved.Windowed ? ", read in windows" : string.Empty)}), {moved.FoodsMoved:N0} foods moved, {moved.RecipesDecided:N0} recipes decided; whole cycle {whole.Seconds:F1} s");
+            moved.Windowed.Should().BeTrue("a write that leaves the reading of words as it was is decided by the cycle over the changes");
+            moved.RecipesDecided.Should().BeGreaterThanOrEqualTo(heldPending.Count - moved.RecipesLate);
+            moved.Seconds.Should().BeLessThanOrEqualTo(whole.Seconds * 1.2 + 5, "a catalog-wide write is decided no slower than a whole cycle that decides everything (staging checkpoint 7, S2: the cycle over the changes was five times slower per recipe)");
+            (await StandingCountAsync(build, heldPending)).Should().Be(heldPending.Count);
+            await using (var db = NewContext())
+            {
+                var celiac = await db.DietGateSets.Where(s => s.Criteria.Contains("%wheat%")).Select(s => s.Id).ToListAsync();
+                (await db.DietRecipeFlags.Where(f => celiac.Contains(f.SetId)).Select(f => f.RecipeId).Distinct().CountAsync()).Should().BeGreaterThan((int)(heldPending.Count * 0.9));
+            }
+
+            await ExecAsync(connection, $"UPDATE recipe.\"Ingredient\" SET \"Name\" = \"Name\" || ' wheat' WHERE \"Id\" IN ({string.Join(",", curatedFoods)})");
+            var heldCurated = curatedFoods.SelectMany(f => recipesOf[f]).ToHashSet().ToList();
+            (await StandingCountAsync(build, heldCurated)).Should().Be(0);
+            DietGateStoreBuilder.CycleReport renamed;
+            await using (var db = NewContext()) renamed = await builder.RunChangesAsync(db);
+            _output.WriteLine($"rename of {curatedFoods.Count:N0} curated foods: cycle {renamed.Seconds:F1} s{(renamed.Windowed ? ", read in windows" : ", a whole cycle")}, {renamed.FoodsMoved:N0} foods moved, {renamed.RecipesDecided:N0} recipes decided");
+            renamed.Windowed.Should().BeFalse("a curated food's new name moves the reading of words, so every recipe is decided again in a whole cycle");
+            renamed.Seconds.Should().BeLessThanOrEqualTo(whole.Seconds * 1.2 + 5);
+            (await StandingCountAsync(build, held)).Should().Be(held.Count);
+
+            await ExecAsync(connection, $"UPDATE recipe.\"Ingredient\" SET \"Name\" = left(\"Name\", length(\"Name\") - 6) WHERE \"Id\" IN ({list})");
+            await ExecAsync(connection, "DELETE FROM recipe.\"IngredientAlias\" WHERE \"SourceContext\" = 'admin:ck16'");
+            await using (var db = NewContext()) await builder.RunChangesAsync(db);
+        }
+
+        [DietStorePostgresFact]
+        [Trait("Category", "Performance")]
+        public async Task A_whole_shuffle_with_any_one_restriction_answers_under_a_second()
+        {
+            await SeedAsync();
+            await ActiveBuildAsync();
+            await using (var db = NewContext()) await new DietGateStoreBuilder().RunChangesAsync(db);
+            List<long> typeIds;
+            await using (var db = NewContext()) typeIds = await db.Set<Nom.Data.Plan.RestrictionCriterionEntity>().Select(c => c.RestrictionTypeId).Distinct().OrderBy(id => id).ToListAsync();
+            var start = DateOnly.FromDateTime(DateTime.UtcNow.Date).AddDays(400);
+            async Task<TimeSpan> ShuffleAsync()
+            {
+                var times = new List<TimeSpan>();
+                for (var i = 0; i < 3; i++)
+                {
+                    await using var db = NewContext();
+                    var service = new MealPlanOrchestrationService(db, Mock.Of<IPolicyEnforcementService>());
+                    var clock = Stopwatch.StartNew();
+                    await service.ShuffleMealPlansAsync(new MealPlanShuffleModel { HouseholdId = HouseholdId, StartDate = start, EndDate = start.AddDays(2), ReplaceExisting = true }, PersonId);
+                    times.Add(clock.Elapsed);
+                }
+                return times.OrderBy(t => t).ElementAt(1);
+            }
+            await SetRestrictionAsync(null);
+            var none = await ShuffleAsync();
+            var rows = new List<(long Type, TimeSpan Time)>();
+            foreach (var typeId in typeIds)
+            {
+                await SetRestrictionAsync(typeId);
+                rows.Add((typeId, await ShuffleAsync()));
+            }
+            await SetRestrictionAsync(null);
+            await using (var connection = new NpgsqlConnection(ConnectionString))
+            {
+                await connection.OpenAsync();
+                await ExecAsync(connection, $"DELETE FROM plan.\"MealPlan\" WHERE \"HouseholdId\" = {HouseholdId}");
+            }
+            var sorted = rows.OrderBy(r => r.Time).ToList();
+            _output.WriteLine($"shuffle of three days without a restriction: {none.TotalMilliseconds:F0} ms; with one, median {sorted[sorted.Count / 2].Time.TotalMilliseconds:F0} ms, slowest {sorted[^1].Time.TotalMilliseconds:F0} ms (type {sorted[^1].Type})");
+            foreach (var (type, time) in rows) _output.WriteLine($"{type}\t{time.TotalMilliseconds:F0}");
+            sorted[^1].Time.Should().BeLessThan(TimeSpan.FromSeconds(1), "a shuffle answers under a second with any one restriction (staging checkpoint 7, S6)");
+        }
+
         private static async Task<long> ActiveBuildAsync()
         {
             await using (var db = NewContext())
@@ -462,7 +616,7 @@ namespace Nom.Api.Tests.Services.MealPlan
             (await Decided(ids[4])).Should().Be(0, "changed servings");
             (await Decided(ids[5])).Should().Be(1, "a recipe column the gate does not read");
             (await FoodDecided(renamed)).Should().Be(0, "a renamed food");
-            (await Decided(ids[6])).Should().Be(0, "a recipe on the renamed food");
+            (await StandingAsync(build, ids[6])).Should().BeFalse("a recipe on the renamed food is held from the write's commit by its row in the write log; its state stays for the cycle to release or decide again (staging checkpoint 7, S2)");
             (await FoodDecided(aliased)).Should().Be(0, "a food that gained an alias");
 
             await using (var transaction = await connection.BeginTransactionAsync())
@@ -487,6 +641,12 @@ namespace Nom.Api.Tests.Services.MealPlan
             DietGateStoreBuilder.CycleReport idle;
             await using (var db = NewContext()) idle = await builder.RunChangesAsync(db);
             (idle.FoodsDecided, idle.RecipesDecided).Should().Be((0, 0));
+
+            await ExecAsync(connection, $"UPDATE recipe.\"Recipe\" SET \"SourceAttribution\" = coalesce(\"SourceAttribution\", '') || ' ck17' WHERE \"Id\" = {ids[5]}");
+            (await Decided(ids[5])).Should().Be(0, "a recipe's book, which the consommé hold reads (review ck17dpr-2)");
+            await ExecAsync(connection, $"UPDATE recipe.\"Recipe\" SET \"SourceAttribution\" = nullif(left(\"SourceAttribution\", length(\"SourceAttribution\") - 5), '') WHERE \"Id\" = {ids[5]}");
+            await using (var db = NewContext()) await builder.RunChangesAsync(db);
+            (await Decided(ids[5])).Should().Be(1);
 
             var line = await ScalarAsync(connection, $"SELECT min(\"SortOrder\") FROM recipe.\"RecipeIngredient\" WHERE \"RecipeId\" = {ids[5]} AND NOT \"IsDeleted\"");
             var unitWas = await ScalarAsync(connection, $"SELECT \"MeasurementId\" FROM recipe.\"RecipeIngredient\" WHERE \"RecipeId\" = {ids[5]} AND \"SortOrder\" = {line}");

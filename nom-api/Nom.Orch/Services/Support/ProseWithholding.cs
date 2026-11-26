@@ -75,6 +75,27 @@ namespace Nom.Orch.Services.Support
             return string.Join(' ', words);
         }
 
+        private static readonly Regex ClosingPurpose = new(@"\s+(?:for|to)\s+\p{L}.*$", RegexOptions.Compiled | RegexOptions.CultureInvariant | RegexOptions.IgnoreCase);
+
+        private static readonly Regex Alternative = new(@"\s+or\s+.*$", RegexOptions.Compiled | RegexOptions.CultureInvariant | RegexOptions.IgnoreCase);
+
+        /// <summary>
+        /// The food words of a line read more loosely, where <see cref="FoodWords"/> finds none: its preparation words
+        /// (<see cref="IngredientNameNormalizer.Bare"/>), a closing purpose ("avocado and cilantro for topping") and every
+        /// alternative after the first ("zest of one lemon or orange" is lemon zest) taken off; null when that leaves no food
+        /// words either. For naming a household's shopping item or food by NOM's words (staging checkpoint 7, S18).
+        /// </summary>
+        public static string? PlainFoodWords(string? text)
+        {
+            if (FoodWords(text) is { } plain) return plain;
+            if (string.IsNullOrWhiteSpace(text)) return null;
+            var bare = IngredientNameNormalizer.Bare(text);
+            var cut = ClosingPurpose.Replace(bare, string.Empty);
+            if (FoodWords(cut) is { } withoutPurpose) return withoutPurpose;
+            var first = Alternative.Replace(cut, string.Empty);
+            return FoodWords(IngredientNameNormalizer.Bare(first));
+        }
+
         /// <summary>
         /// The food name a response shows for one ingredient line: the food's own name, except for a line of a facts-only recipe
         /// whose food is not a catalog food (<see cref="CatalogFood(long, string?)"/>), which is shown under its own food words

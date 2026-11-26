@@ -39,6 +39,9 @@ namespace Nom.Orch.Services.Support
 
         public bool HasUncounted => Drinks.Any(d => d.Retained == null);
 
+        /// <summary>Whether the retained alcohol is an upper bound: a counted drink line's retention is read "up to" (<see cref="AlcoholRetention.UpTo"/>), so the steps do not determine a single value.</summary>
+        public bool UpperBound => Drinks.Any(d => d.Retained != null && AlcoholRetention.ReadBasis(d.RetentionBasis)?.Kind == AlcoholRetention.UpTo);
+
         public bool Any => Drinks.Count > 0 || Flavourings.Count > 0;
 
         /// <summary>Whether a household whose limit is <paramref name="maxPerServing"/> grams of retained alcohol per serving must not be offered the recipe.</summary>
@@ -81,7 +84,7 @@ namespace Nom.Orch.Services.Support
                     retained += grams * factor;
                     drinks.Add(new AlcoholDrinkLine(line.IngredientId, line.RawLine, line.FoodName, grams, grams * factor, line.Retention, line.RetentionBasis, line.Label));
                 }
-                else if (AlcoholLineContext.CountsForDiet(reading))
+                else if (DietCriteriaMatcher.LineCounts(line.RawLine))
                 {
                     drinks.Add(new AlcoholDrinkLine(line.IngredientId, line.RawLine, line.FoodName, null, null, line.Retention, line.RetentionBasis, line.Label));
                 }

@@ -32,8 +32,12 @@ namespace Nom.Orch.Interfaces
         /// </summary>
         Task<LinkRecheckResult?> RunAsync(string set, bool apply = false, int max = 2000, int sampleSize = 50, CancellationToken cancellationToken = default);
 
-        /// <summary>Takes back one run by its stamp; a dry run counts what it would take back.</summary>
-        Task<LinkRecheckUndoResult> UndoAsync(DateTime stamp, bool apply = false, CancellationToken cancellationToken = default);
+        /// <summary>
+        /// Takes back one run by its stamp; a dry run counts what it would take back. With <paramref name="restoreLowered"/>,
+        /// an operator's explicit choice, lines whose way back would lower a recipe's diet flags go back too (listed by the
+        /// dry run, journaled by the apply), so the undo restores the exact earlier state (staging checkpoint 7, S9).
+        /// </summary>
+        Task<LinkRecheckUndoResult> UndoAsync(DateTime stamp, bool apply = false, CancellationToken cancellationToken = default, bool restoreLowered = false);
 
         /// <summary>Lists curated foods whose name their USDA entry contradicts and renames those the fixed table names, journaled under one stamp.</summary>
         Task<LinkRecheckNameResult> CheckNamesAsync(bool apply = false, CancellationToken cancellationToken = default);

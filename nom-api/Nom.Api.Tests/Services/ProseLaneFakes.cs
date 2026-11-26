@@ -28,13 +28,13 @@ namespace Nom.Api.Tests.Services
             "Let the sauce stand for a half hour before serving.",
         };
 
-        /// <summary>Each sentence of the method reworded from its meaning, as a reword writer that keeps to the rules would answer.</summary>
+        /// <summary>Each sentence of the method reworded from its meaning and clearly rebuilt, as a reword writer that keeps to the rules would answer.</summary>
         public static readonly IReadOnlyDictionary<string, string> Reworded = new Dictionary<string, string>
         {
-            [Method[0]] = "Over medium heat, warm ½ tablespoon of the olive oil in a small saucepan, then cook the garlic in it for a minute or two until you can smell it.",
-            [Method[1]] = "Pour ¾ cup cream into the pan along with ¾ teaspoon salt and let the mixture simmer for 7 to 10 minutes, until it has thickened slightly.",
-            [Method[2]] = "Whisk the butter through the sauce once you have lifted the pan off the heat.",
-            [Method[3]] = "Before you serve it, leave the sauce to stand for a half hour.",
+            [Method[0]] = "Heat ½ tablespoon of olive oil, using a small saucepan over medium heat, and give the garlic a minute or two to cook in it so that it turns fragrant.",
+            [Method[1]] = "With ¾ cup cream and ¾ teaspoon salt poured into the pan, let it all simmer for 7 to 10 minutes so the sauce gets a little thicker.",
+            [Method[2]] = "Once the pan is away from the heat, the butter gets whisked through the sauce.",
+            [Method[3]] = "Set the sauce aside to stand for a half hour, and only then take it to the table to serve.",
         };
 
         public static readonly string[] Written =
@@ -125,6 +125,30 @@ namespace Nom.Api.Tests.Services
         }
 
         public Task<bool?> ConfirmAsync(IReadOnlyList<string> original, IReadOnlyList<string> rewrite, int step, CancellationToken cancellationToken) =>
+            Task.FromResult(Confirms(step));
+    }
+
+    /// <summary>An auditor that finds every rewrite faithful unless told otherwise, recording each pair it read.</summary>
+    internal sealed class FakeAuditor : IProseAuditor
+    {
+        public string Model { get; init; } = "phi4";
+        public Func<ProseAuditPair, bool?> Faithful { get; set; } = _ => true;
+        public Func<int, bool?> Confirms { get; set; } = _ => true;
+        public List<ProseAuditPair> Read { get; } = new();
+
+        public Task<ProseAuditVerdict?> AuditAsync(ProseAuditPair pair, CancellationToken cancellationToken)
+        {
+            Read.Add(pair);
+            var faithful = Faithful(pair);
+            return Task.FromResult(faithful switch
+            {
+                null => null,
+                true => ProseAuditVerdict.Same,
+                false => new ProseAuditVerdict(new[] { 1 }, false, "step 1: left out"),
+            });
+        }
+
+        public Task<bool?> ConfirmAsync(ProseAuditPair pair, int step, CancellationToken cancellationToken) =>
             Task.FromResult(Confirms(step));
     }
 }

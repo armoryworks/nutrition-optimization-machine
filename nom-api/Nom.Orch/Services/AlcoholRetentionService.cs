@@ -92,6 +92,7 @@ namespace Nom.Orch.Services
                     .ToListAsync(cancellationToken);
 
                 var touched = new HashSet<long>();
+                var bounded = new HashSet<long>();
                 var ordered = lines.OrderBy(l => l.RecipeId).ThenBy(l => l.SortOrder).ToList();
                 var readings = ordered.GroupBy(l => l.RecipeId)
                     .SelectMany(g => g.Zip(AlcoholRetention.ReadRecipe(steps.GetValueOrDefault(g.Key), g.Select(l => l.RawLine).ToList())))
@@ -102,6 +103,13 @@ namespace Nom.Orch.Services
                     result.ByKind[reading.Kind] = result.ByKind.GetValueOrDefault(reading.Kind) + 1;
                     if (reading.Estimated) result.Estimated++;
                     if (reading.Unnamed) result.Unnamed++;
+                    if (reading.UpTo)
+                    {
+                        result.UpperBound++;
+                        bounded.Add(line.RecipeId);
+                        var reason = reading.Reason ?? "time";
+                        result.ByReason[reason] = result.ByReason.GetValueOrDefault(reason) + 1;
+                    }
                     if (line.AlcoholRetention == reading.Factor && line.AlcoholRetentionBasis == reading.Basis) continue;
 
                     result.Changed++;
@@ -120,6 +128,7 @@ namespace Nom.Orch.Services
                             UsdaCode = reading.Code,
                             Estimated = reading.Estimated,
                             Unnamed = reading.Unnamed,
+                            Reason = reading.UpTo ? reading.Reason ?? "time" : null,
                         });
                     }
                     if (!apply) continue;
@@ -142,6 +151,7 @@ namespace Nom.Orch.Services
                     touched.Add(line.RecipeId);
                 }
 
+                result.RecipesUpperBound += bounded.Count;
                 if (apply && touched.Count > 0)
                 {
                     await _db.SaveChangesAsync(cancellationToken);
@@ -155,8 +165,8 @@ namespace Nom.Orch.Services
                 _db.ChangeTracker.Clear();
             }
 
-            _logger.LogInformation("Alcohol retention ({Version}): {Lines} lines in {Recipes} recipes read, {Estimated} estimated ({Unnamed} with the drink named in no step), {Changed} changed, {Recalculated} recipes recalculated{DryRun}",
-                AlcoholRetention.Version, result.Lines, result.Recipes, result.Estimated, result.Unnamed, result.Changed, result.RecipesRecalculated, apply ? string.Empty : " (dry run)");
+            _logger.LogInformation("Alcohol retention ({Version}): {Lines} lines in {Recipes} recipes read, {Estimated} estimated ({Unnamed} with the drink named in no step), {UpperBound} upper bounds in {RecipesUpperBound} recipes, {Changed} changed, {Recalculated} recipes recalculated{DryRun}",
+                AlcoholRetention.Version, result.Lines, result.Recipes, result.Estimated, result.Unnamed, result.UpperBound, result.RecipesUpperBound, result.Changed, result.RecipesRecalculated, apply ? string.Empty : " (dry run)");
             return result;
         }
 

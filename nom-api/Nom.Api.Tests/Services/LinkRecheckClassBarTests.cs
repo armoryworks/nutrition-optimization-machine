@@ -279,7 +279,7 @@ namespace Nom.Api.Tests.Services
             var first = await service.RunAsync(LinkRecheckRules.Prepared, apply: true);
             var applied = await AliasRowsAsync(db);
             first!.AliasesRemoved.Should().Be(2, "every alias of the wording a model or no one gave goes with the lines (one of them alone went on staging: the run kept the aliases it had taken by an id the alias table does not have)");
-            await service.UndoAsync(first.Stamp!.Value, apply: true);
+            await service.UndoAsync(first.Stamp!.Value, apply: true, restoreLowered: true);
             (await AliasRowsAsync(db)).Should().Equal(before);
             var second = await service.RunAsync(LinkRecheckRules.Prepared, apply: true);
             (await AliasRowsAsync(db)).Should().Equal(applied, "the same aliases are taken each time");

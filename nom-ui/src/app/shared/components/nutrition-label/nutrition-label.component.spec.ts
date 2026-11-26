@@ -176,6 +176,19 @@ describe('NutritionLabel', () => {
     expect(el.querySelector('[data-testid="nutrition-alcohol-note-cooking"]')?.textContent).toContain('Not cooked after the alcohol is added, so all of it stays.');
   });
 
+  it('marks a retention the steps do not determine as an upper bound with its reason', () => {
+    let el = renderAlcohol({ ...wine, basis: 'up-to', method: 'no-heat', minutes: null, retainedPercent: 100, retainedGrams: 3.04, upTo: true, reason: 'parts' });
+    expect(el.querySelector('[data-testid="nutrition-alcohol-note-cooking"]')?.textContent)
+      .toContain('The recipe has more than one part, and the steps do not make clear that the part with the alcohol is the one cooked, so up to 100% may stay (USDA retention table): up to 3 g per serving. This is an upper bound');
+
+    el = renderAlcohol({ ...wine, basis: 'up-to', method: 'flamed', minutes: null, retainedPercent: 85, retainedGrams: 2.58, upTo: true, reason: 'flamed' });
+    expect(el.querySelector('[data-testid="nutrition-alcohol-note-cooking"]')?.textContent).toContain('Flamed, and how long it burns is not stated, so up to 85% may stay');
+
+    el = renderAlcohol({ ...wine, upTo: true, reason: null });
+    expect(el.querySelector('[data-testid="nutrition-alcohol-note-cooking"]')?.textContent).toContain('Simmered about 30 minutes, so about 35% stays');
+    expect(el.querySelector('[data-testid="nutrition-alcohol-note-cooking"]')?.textContent).toContain('Another drink line can only be bounded, so in all up to 1.1 g per serving may stay.');
+  });
+
   it('gives a flavouring only a note and names a drink line it cannot count', () => {
     const el = renderAlcohol({ ...wine, drinks: [], asWrittenGrams: 0, retainedGrams: 0, flavourings: ['Vanilla Extract'], flavouringGrams: 0.2, uncounted: ['a glass of sherry'], basis: null, retainedPercent: null });
 

@@ -496,6 +496,13 @@ namespace Nom.Orch.Services.Support
         /// <summary>Whether a text carries a marker of <see cref="FreeMarkers"/>.</summary>
         public static bool HasFreeMarker(string? text) => !string.IsNullOrEmpty(text) && FreeMarkers.Any(m => m.Pattern.IsMatch(text));
 
+        /// <summary>The restriction types the markers of <see cref="FreeMarkers"/> in a wording's first item name, the item cut as <see cref="FreeOfHold"/> cuts it ("vegan butter": Vegan; "butter or vegan butter": none).</summary>
+        public static IReadOnlyList<string> FreeMarkedTypes(string? wording)
+        {
+            var first = FirstItemEnd.Split(wording ?? string.Empty)[0];
+            return FreeMarkers.Where(m => m.Pattern.IsMatch(first)).SelectMany(m => m.Types).Distinct(StringComparer.OrdinalIgnoreCase).ToList();
+        }
+
         /// <summary>
         /// The <see cref="FreeOf"/> hold of a wording on a food: the wording's first item (before a bracket, a comma, a
         /// semicolon or colon, an "or", a slash or a spaced dash) carries a marker of <see cref="FreeMarkers"/>, the food's own

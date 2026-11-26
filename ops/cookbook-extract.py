@@ -22,7 +22,16 @@ RULES
    number (number words included) and every word of the step, so the method a rebuild fills
    amounts from states no amount the book does not. Every ingredient line of the recipe's
    ingredient list (a paragraph of short lines that states amounts) must be extracted. A record
-   that fails is dropped and written to --rejects with its reason, never to --out.
+   that fails is dropped and written to --rejects with its reason, never to --out. A line that
+   the book wraps (an entry of a list set over several lines, a word broken at a line end) is
+   found joined. A mixed number is one number however its fraction is set ("1¼", "1 ¼", "1 1/4").
+3a. Readability (the hand import of OCR'd books, which passes a word list): every ingredient line
+   and step must read as English: three in four of its letter tokens known words (SCOWL's
+   american-english, lower-case entries, and a short list of old cookery words), no token that
+   mixes figures and letters other than an ordinal or a unit glued to its number, and a known word
+   that names something. OCR garbage copied verbatim passes the fidelity check; it fails this one.
+   The same test marks a recipe whose short lines are mostly unreadable, so it is never sent to
+   the model (read_by_rule).
 4. Translation (--translate, for Artusi's "La scienza in cucina"): the model writes English and
    quotes, for each ingredient line and step, the Italian it translates. The quote must lie in the
    recipe and name a food, not only an amount; every number and unit of the English must equal one
@@ -171,11 +180,17 @@ def _split(text: str, start: int, end: int, hard: int) -> list[Chunk]:
 
 
 QUOTES = str.maketrans({"‘": "'", "’": "'", "“": '"', "”": '"', "–": "-", "—": "-", "⁄": "/"})
+VULGAR = "½¼¾⅓⅔⅛⅜⅝⅞⅕⅖⅗⅘⅙⅚"
 
 
 def normalize(text: str) -> str:
-    """Entities decoded, compatibility forms folded (½ is 1/2), quotes and dashes plain, case and spacing ignored."""
-    text = unicodedata.normalize("NFKC", html.unescape(text or "")).translate(QUOTES).lower()
+    """Entities decoded, compatibility forms folded (½ is 1/2), quotes and dashes plain, case and spacing ignored. A
+    fraction sign after a whole number is a mixed number whatever stands between ("1¼", "1 ¼" with a no-break space and
+    "1 1/4" are all 1 1/4: staging checkpoint 7, S23, "1¼" read as 11/4 against the model's 5/4), and a fraction set
+    with raised figures ("¹/ 8") is closed up."""
+    text = re.sub(rf"(\d)[\s   ]*([{VULGAR}])", r"\1 \2", html.unescape(text or ""))
+    text = unicodedata.normalize("NFKC", text).translate(QUOTES).lower()
+    text = re.sub(r"(\d)\s*/\s*(\d)", r"\1/\2", text)
     return re.sub(r"\s+", " ", text).strip().strip(".,;:")
 
 
@@ -245,23 +260,50 @@ def content_words(text: str) -> list[str]:
     return [w for w in re.findall(r"[^\W\d_]{3,}", normalize(text))]
 
 
+LIST_START = re.compile(r"^\s*(?:[\d½¼¾⅓⅔⅛⅜⅝⅞]|(?:a|an|one|two|three|four|five|six|seven|eight|nine|ten|twelve|half|pinch|dash)\b)", re.I)
+
+
+DANGLING_END = re.compile(r"(?:\b(?:into|or|and|to|about|of|with|for|plus|from)|[-–(,])\s*$", re.I)
+
+
+def wrapped_entries(source: str) -> list[str]:
+    """The entries of the text's lists with their wrapped lines joined: inside a paragraph a line that starts no amount
+    continues the line before ("1½ tablespoon" / "Hot 'n Spicy Seasoning" / "(see recipe on page 19)": staging
+    checkpoint 7, S23, a record dropped because its line is set over three lines of a narrow column), and so does any
+    line after one that cannot end an entry ("boned, and cut into" / "1-inch strips")."""
+    out = []
+    for paragraph in re.split(r"\n\s*\n", source):
+        lines = [line.strip() for line in paragraph.split("\n") if line.strip()]
+        entries: list[str] = []
+        for line in lines:
+            if entries and (not LIST_START.match(line) or DANGLING_END.search(entries[-1])):
+                entries[-1] = f"{entries[-1]} {line}"
+            else:
+                entries.append(line)
+        out.extend(entry for entry in entries if entry not in lines)
+    return out
+
+
 def pieces(source: str) -> list[str]:
-    """The lines and sentences of a recipe's text, normalized: each line, and each sentence or clause of each
-    paragraph of prose (one with a line longer than a list line)."""
+    """The lines and sentences of a recipe's text, normalized: each line, each list entry with its wrapped lines, and
+    each sentence or clause of each paragraph of prose (one with a line longer than a list line)."""
     out = [normalize(line) for line in source.split("\n")]
+    out.extend(normalize(entry) for entry in wrapped_entries(source))
     for paragraph in re.split(r"\n\s*\n", source):
         if any(len(line.strip()) > 60 for line in paragraph.split("\n")):
             out.extend(re.split(r"(?<=[.;:!?])\s+", normalize(paragraph)))
     return [p for p in out if p]
 
 
-def fidelity(line: str, source: str, number_words: bool = False) -> str | None:
-    """Why an extracted line is not faithful to its source text, or None: it appears in the source after
-    normalization, or one line or sentence of the source holds each of its numbers and each of its words."""
-    n_line, n_source = normalize(line), normalize(source)
+LINE_END_BREAK = re.compile(r"(?<=[^\W\d_])-[ \t]*\n[ \t]*(?=[^\W\d_])")
+INNER_HYPHEN = re.compile(r"(?<=[^\W\d_])-(?=[^\W\d_])")
+
+
+def _fidelity(line: str, source: str, number_words: bool) -> str | None:
+    n_line = normalize(line)
     if not n_line:
         return "empty line"
-    if n_line in n_source:
+    if n_line in normalize(source):
         return None
     wanted = numbers(line, words=number_words)
     missing_numbers = wanted - numbers(source, words=number_words)
@@ -276,6 +318,113 @@ def fidelity(line: str, source: str, number_words: bool = False) -> str | None:
         if not wanted - numbers(piece, words=number_words) and words <= set(content_words(piece)):
             return None
     return "no line or sentence of the recipe holds its numbers and words together"
+
+
+def fidelity(line: str, source: str, number_words: bool = False) -> str | None:
+    """Why an extracted line is not faithful to its source text, or None: it appears in the source after
+    normalization, or one line, list entry or sentence of the source holds each of its numbers and each of its words.
+    A word the book breaks at a line end is found joined, with or without its hyphen ("beat-" / "en" is "beaten",
+    "well-" / "beaten" is "well-beaten"): where the source breaks a word, the line and the source are compared again
+    with the breaks joined and the hyphens inside words left out."""
+    problem = _fidelity(line, source, number_words)
+    if problem is None or not LINE_END_BREAK.search(source):
+        return problem
+    joined = INNER_HYPHEN.sub("", LINE_END_BREAK.sub("", source))
+    return None if _fidelity(INNER_HYPHEN.sub("", line), joined, number_words) is None else problem
+
+
+WORD_LISTS = ("/usr/share/dict/american-english", "/usr/share/dict/words")
+COOKERY_MEASURES = frozenset("""
+a i n s qt qts pt pts lb lbs oz tsp tsps tbsp tbsps doz gal gals pk pkg bbl cupful cupfuls spoonful spoonfuls teaspoonfuls
+tablespoonfuls saltspoon saltspoonful saltspoonfuls dessertspoonful gill gills
+""".split())
+COOKERY_WORDS = COOKERY_MEASURES | frozenset("""
+saleratus pearlash graham sweetbreads
+cornstarch cornmeal shortening oleo oleomargarine crisco cottolene sifted unsifted scant heaping rounded level stoned
+seeded blanched dredge dredged lard suet citron mace allspice nutmeg cloves zwieback farina tapioca sago gelatine
+isinglass rennet junket pimento pimentos pimientos catsup ketchup worcestershire paprika cayenne tabasco bouillon
+consomme croutons sippets forcemeat giblets chitterlings scrapple hominy samp succotash johnnycake jonnycake flapjacks
+griddle griddlecakes doughnuts crullers jumbles snaps wafers biscuit biscuits rusk rusks gems muffins popovers
+""".split())
+NOT_WORD_SYMBOLS = re.compile(r"[|\\{}<>~^_=#@¥§¢£€]")
+UNREAD = "{unread}"
+ORDINAL = re.compile(r"^\d+(?:st|nd|rd|th|d)$", re.I)
+NUMBERISH = re.compile(r"^\d+(?:[/.,:]\d+)*$")
+UNIT_AFTER_NUMBER = re.compile(r"^\d+(?:\.\d+)?(?:in|oz|lb|lbs|qt|qts|pt|pts|g|mg|mcg|kg|ml|x|f|c)$", re.I)
+NOT_CONTENT = frozenset("""
+a an and are as at be but by for from in into is it its of on or so the then this to up with when until till cup cups pint
+pints quart quarts pound pounds ounce ounces teaspoon teaspoons tablespoon tablespoons spoon spoons gill gills dozen
+""".split()) | COOKERY_MEASURES
+
+
+def load_words(paths: Iterable[str] | None = None) -> frozenset[str] | None:
+    """The English words the readability test knows: the first word list found (SCOWL's american-english, Debian's
+    wamerican, in the nom-hand-import image), its lower-case entries only, so a name ("Eli", "Cecil") is no word, and a
+    short list of old cookery words; None when no list is found."""
+    for path in WORD_LISTS if paths is None else paths:
+        if path and os.path.exists(path):
+            with open(path, encoding="utf-8", errors="replace") as handle:
+                found = {w.strip() for w in handle if w.strip() and w.strip().islower() and "'" not in w}
+            return frozenset(found) | COOKERY_WORDS
+    return None
+
+
+def known_word(word: str, words: frozenset[str] | set[str]) -> bool:
+    """Whether a lower-case word is in the list, as it stands, as a plural, with "un" before a known word ("unpeeled"),
+    or as two known words of three letters or more run together ("cornflake", "dillweed")."""
+    if word in words or (len(word) > 3 and word.endswith("s") and word[:-1] in words):
+        return True
+    if len(word) > 4 and word.startswith("un") and word[2:] in words:
+        return True
+    return len(word) >= 6 and any(word[:i] in words and word[i:] in words for i in range(3, len(word) - 2))
+
+
+def unreadable(text: str, words: frozenset[str] | set[str], ingredient: bool = False) -> str | None:
+    """Why a line of OCR text is not readable English, or None (staging checkpoint 7, S22: the Library's OCR of a
+    dot-leader list, "ELI aa a as I pint", passed the number check because the record copied it). Dot leaders and
+    numbers aside, at least three in four of its letter tokens must be known words (a lone letter only "a", "I", "n");
+    a token that mixes figures and letters ("0Ut", "1ae") other than an ordinal or a unit glued to its number, and a
+    stray symbol ("|", "§"), count as unknown; and it must hold a known word of three letters or more that is not a
+    measure (for an ingredient line: one that names something besides the amount)."""
+    cleaned = re.sub(r"(?:[.·…_-]\s*){3,}", " ", unicodedata.normalize("NFKC", text).replace("°", " "))
+    known, unknown, content = 0, 0, 0
+    unknown += len(NOT_WORD_SYMBOLS.findall(cleaned))
+    for raw in re.split(r"[\s\-–—/⁄]+", cleaned):
+        token = raw.strip("\"'‘’“”.,;:!?()[]*%™®©")
+        token = re.sub(r"['’]s$", "", token)
+        if not token or NUMBERISH.match(token):
+            continue
+        if re.search(r"\d", token):
+            if ORDINAL.match(token) or UNIT_AFTER_NUMBER.match(token):
+                known += 1
+            else:
+                unknown += 1
+            continue
+        letters = token.lower().strip("'’")
+        if not re.fullmatch(r"[^\W\d_]+(?:['’][^\W\d_]+)?", letters):
+            unknown += 1
+            continue
+        plain = re.sub(r"['’]", "", letters)
+        if known_word(letters, words) or known_word(plain, words):
+            known += 1
+            if len(plain) >= 3 and plain not in NOT_CONTENT:
+                content += 1
+        else:
+            unknown += 1
+    total = known + unknown
+    if total == 0:
+        return None if not ingredient else "no word"
+    if known < 0.75 * total and not (total <= 4 and unknown == 1 and known >= 2):
+        return f"unreadable text: {known} of {total} words known"
+    if content == 0 and (ingredient or total >= 3):
+        return "unreadable text: no known word that names anything"
+    return None
+
+
+def unreadable_share(text: str, words: frozenset[str] | set[str]) -> tuple[int, int]:
+    """The lines of a page that hold letters, and how many of them are not readable."""
+    lines = [line for line in text.split("\n") if re.search(r"[^\W\d_]", line)]
+    return len(lines), sum(1 for line in lines if unreadable(line, words))
 
 
 def listed_lines(source: str, translate: bool) -> list[str]:
@@ -463,7 +612,7 @@ def resumable(ask: Ask, checkpoint: str | None, retries: int = 2, wait: float = 
                     answers[row["key"]] = row["answer"]
 
     def call(system: str, user: str) -> str:
-        key = hashlib.sha256((model + "\0" + system + "\0" + user).encode("utf-8")).hexdigest()
+        key = answer_key(model, system, user)
         if key in answers:
             return answers[key]
         problem = None
@@ -500,8 +649,22 @@ def _pairs(items) -> list[tuple[str, str | None]]:
     return out
 
 
-def check_record(recipe: dict, chunk: Chunk, translate: bool) -> tuple[dict | None, str | None]:
-    """The scraper record of one model answer, or why it is dropped (rules 3 and 4)."""
+def readability_check(ingredients: Iterable[str], steps: Iterable[str], words: frozenset[str] | set[str]) -> str | None:
+    """Why a record's text is not readable English, or None: every ingredient line and every step must pass the
+    readability test (rule 3a)."""
+    for text in ingredients:
+        problem = unreadable(text, words, ingredient=True)
+        if problem:
+            return f"{problem}: {text[:60]}"
+    for text in steps:
+        problem = unreadable(text, words)
+        if problem:
+            return f"{problem}: {text[:60]}"
+    return None
+
+
+def check_record(recipe: dict, chunk: Chunk, translate: bool, words: frozenset[str] | set[str] | None = None) -> tuple[dict | None, str | None]:
+    """The scraper record of one model answer, or why it is dropped (rules 3 and 4; with a word list, also rule 3a)."""
     name = recipe.get("name") if isinstance(recipe.get("name"), str) else None
     ingredients = _pairs(recipe.get("ingredients"))
     steps = _pairs(recipe.get("steps"))
@@ -546,6 +709,10 @@ def check_record(recipe: dict, chunk: Chunk, translate: bool) -> tuple[dict | No
             folded, stated = normalize(line), numbers(line, words=False)
             if not any((e in folded or folded in e) and numbers(e, words=False) == stated for e in extracted):
                 return None, f"an ingredient line not extracted: {line[:60]}"
+        if words is not None:
+            problem = readability_check((t for t, _ in ingredients), (t for t, _ in steps), words)
+            if problem:
+                return None, problem
     record = {
         "name": name.strip(),
         "publicDomain": True,
@@ -557,6 +724,223 @@ def check_record(recipe: dict, chunk: Chunk, translate: bool) -> tuple[dict | No
     if chunk.split:
         record["split"] = True
     return record, None
+
+
+LEADER_ROW = re.compile(r"^(?P<name>[^\d½¼¾⅓⅔⅛⅜⅝⅞.]*[^\W\d_][^\d½¼¾⅓⅔⅛⅜⅝⅞.]*?)\s*,?\s*(?:[.·…_]\s*){2,}(?P<amount>\S.*)$")
+AMOUNT_TEXT = re.compile(rf"^(?:[\d{VULGAR}]|(?:a|an|one|two|three|four|five|six|seven|eight|nine|ten|twelve|half)\b)", re.I)
+
+
+def leader_row(line: str) -> str | None:
+    """A row of an ingredient table set with dot leaders ("Corn meal . . . . . . 1 pint"), as an ingredient line with
+    its amount first ("1 pint Corn meal"), or None."""
+    m = LEADER_ROW.match(line.strip())
+    if not m:
+        return None
+    name, amount = m.group("name").strip(" ,"), m.group("amount").strip()
+    if not name or not AMOUNT_TEXT.match(amount):
+        return None
+    return f"{amount.rstrip('.')} {name}"
+
+
+def list_line(line: str) -> str | None:
+    """An ingredient line as the book lists it, or None: a short line that starts with an amount and holds no sentence,
+    or a dot-leader row."""
+    text = line.strip()
+    row = leader_row(text)
+    if row:
+        return row
+    if len(text) <= 60 and LIST_START.match(text) and not SENTENCE_END.search(text):
+        return re.sub(r"(?<![A-Z])\.$", "", text)
+    return None
+
+
+def join_lines(lines: list[str], words: frozenset[str] | set[str] | None) -> str:
+    """Lines of prose joined into one paragraph; a word broken at a line end is joined, without its hyphen when the
+    joined word is a known word ("beat-" / "en" is "beaten"), with it otherwise ("well-" / "beaten")."""
+    out = ""
+    for line in (line.strip() for line in lines):
+        if not line:
+            continue
+        broken = re.search(r"([^\W\d_]+)-$", out)
+        start = re.match(r"[^\W\d_]+", line)
+        if broken and start and line[0].islower():
+            joined = (broken.group(1) + start.group(0)).lower()
+            whole = joined in words or (joined.endswith("s") and joined[:-1] in words) if words is not None else False
+            out = out[:-1] + line if whole else out + line
+        else:
+            out = f"{out} {line}" if out else line
+    return out
+
+
+def unreadable_block(text: str, words: frozenset[str] | set[str]) -> bool:
+    """Whether a recipe's text is too damaged to read: three or more of its short lines, and three in ten or more of
+    them, fail the readability test (an OCR'd ingredient table, staging checkpoint 7, S22)."""
+    short = [line for line in text.split("\n") if line.strip() and len(line.strip()) <= 60 and re.search(r"[^\W\d_]", line)]
+    bad = sum(1 for line in short if unreadable(line, words))
+    return bad >= 3 and bad * 10 >= len(short) * 3
+
+
+def index_block(text: str) -> bool:
+    """Whether a block is an index or a table of contents: five or more dot-leader rows, nearly all ending in a bare
+    page number, and no sentence."""
+    rows = [m for m in (LEADER_ROW.match(line.strip()) for line in text.split("\n")) if m]
+    numbered = sum(1 for m in rows if re.fullmatch(r"\d{1,4}\.?", m.group("amount").strip()))
+    prose = any(len(line.strip()) > 60 and SENTENCE_END.search(line) for line in text.split("\n"))
+    return numbered >= 5 and numbered * 10 >= len(rows) * 9 and not prose
+
+
+@dataclass
+class Block:
+    start: int
+    end: int
+    text: str
+    title: str | None
+    outcome: str
+    record: dict | None = None
+    reason: str = ""
+
+
+def rule_record(text: str, title: str, words: frozenset[str] | set[str] | None) -> tuple[dict | None, str]:
+    """A recipe read by rule from the regular shape of old cookbooks: its title line, then its ingredient list (lines
+    that start with an amount, or dot-leader rows; a line in lower case or a bracket continues the line before), then
+    its method in prose, one step per paragraph. None with the reason when the recipe is not in that shape: no list or
+    no method, a list inside the method, or a method with no sentence."""
+    lines = text.split("\n")
+    at = next((i for i, line in enumerate(lines) if line.strip()), None)
+    if at is None:
+        return None, "empty"
+    ingredients: list[str] = []
+    method: list[str] = []
+    in_method = False
+    run = 0
+    for line in lines[at + 1:]:
+        stripped = line.strip()
+        if not in_method:
+            if not stripped:
+                continue
+            item = list_line(stripped)
+            if item:
+                ingredients.append(item)
+                continue
+            if ingredients and len(stripped) <= 60 and (stripped[0].islower() or stripped[0] == "("):
+                ingredients[-1] = f"{ingredients[-1]} {stripped}"
+                continue
+            in_method = True
+        if stripped and (leader_row(stripped) or (len(stripped) <= 40 and LIST_START.match(stripped) and not SENTENCE_END.search(stripped))):
+            run += 1
+            if run >= 2 or leader_row(stripped):
+                return None, "a list inside the method"
+        elif stripped:
+            run = 0
+        method.append(line)
+    if len(ingredients) < 2:
+        return None, "no ingredient list of two or more lines"
+    paragraphs = [p for p in re.split(r"\n\s*\n", "\n".join(method)) if p.strip()]
+    steps = [join_lines(p.split("\n"), words) for p in paragraphs]
+    if not steps or not any(len(re.findall(r"[^\W\d_]", s)) >= 20 and re.search(r"[.!?;]", s) for s in steps):
+        return None, "no method in prose"
+    name = re.sub(r"\s*[.:]$", "", title.strip())
+    return {"name": name, "ingredients": ingredients, "steps": steps}, "rule"
+
+
+def blocks(text: str, words: frozenset[str] | set[str] | None = None) -> list[tuple[int, int, str | None]]:
+    """The text cut at its recipe titles: each block's start, end and title (None for the text before the first title).
+    With a word list, a line that only looks like a title and is not readable (an OCR'd table row) is no title."""
+    titled = set(title_offsets(text))
+    if words is not None:
+        titled = {at for at in titled if not unreadable(text[at:].split("\n", 1)[0], words)}
+    starts = sorted(titled | {0})
+    out = []
+    for start, end in zip(starts, starts[1:] + [len(text)]):
+        if not text[start:end].strip():
+            continue
+        title = text[start:end].strip().split("\n", 1)[0].strip() if start in titled else None
+        out.append((start, end, title))
+    return out
+
+
+def read_by_rule(text: str, words: frozenset[str] | set[str]) -> list[Block]:
+    """Each recipe of a book read by rule where its shape allows (outcome "rule", with its checked record), marked
+    "unreadable" where its text fails the readability test (no model is asked to read it; its pages want the page image)
+    or holds the unread mark (UNREAD: a page image read where an amount was not read with confidence),
+    "model" where only the model can split it (prose recipes, mixed shapes), and "none" where it holds no recipe at all
+    (no line that starts with an amount, no measure named)."""
+    out = []
+    for start, end, title in blocks(text, words):
+        piece = text[start:end]
+        if index_block(piece):
+            out.append(Block(start, end, piece, title, "none", reason="no recipe: an index or a table of contents"))
+            continue
+        if UNREAD in piece:
+            out.append(Block(start, end, piece, title, "unreadable", reason="unreadable text: the page image was read, but not every "
+                                                                            "amount with confidence"))
+            continue
+        if unreadable_block(piece, words):
+            out.append(Block(start, end, piece, title, "unreadable", reason="unreadable text: the page image is needed"))
+            continue
+        if title is not None:
+            recipe, why = rule_record(piece, title, words)
+            if recipe is not None:
+                record, problem = check_record(recipe, Chunk(start, end, piece), translate=False, words=words)
+                if record is not None:
+                    out.append(Block(start, end, piece, title, "rule", record=record, reason="rule"))
+                    continue
+                why = problem or why
+        else:
+            why = "no title"
+        has_list = any(list_line(line) for line in piece.split("\n"))
+        if not has_list and not units(piece):
+            out.append(Block(start, end, piece, title, "none", reason="no recipe: no amount and no measure"))
+            continue
+        out.append(Block(start, end, piece, title, "model", reason=why))
+    return out
+
+
+def model_chunks(found: list[Block], limit: int = DEFAULT_LIMIT, hard: int = HARD_LIMIT) -> list[Chunk]:
+    """The chunks the model is asked: runs of neighbouring blocks only the model can read, at most `limit` characters
+    each unless one recipe is longer, a recipe longer than `hard` cut at paragraph ends (rule 2)."""
+    out: list[Chunk] = []
+    current: list[Block] = []
+
+    def flush():
+        if current:
+            s, e = current[0].start, current[-1].end
+            out.append(Chunk(s, e, "".join(b.text for b in current)))
+            current.clear()
+    for block in found:
+        if block.outcome != "model":
+            flush()
+            continue
+        if block.end - block.start > hard:
+            flush()
+            whole = block.text
+            out.extend(Chunk(block.start + c.start, block.start + c.end, c.text, split=True) for c in _split(whole, 0, len(whole), hard))
+            continue
+        if current and block.end - current[0].start > limit:
+            flush()
+        current.append(block)
+    flush()
+    return out
+
+
+def answer_key(model: str, system: str, user: str) -> str:
+    """The key of a model answer in a checkpoint file (rule 6)."""
+    return hashlib.sha256((model + "\0" + system + "\0" + user).encode("utf-8")).hexdigest()
+
+
+def answered_keys(checkpoint: str) -> set[str]:
+    """The keys of the readable answers a checkpoint file holds."""
+    keys: set[str] = set()
+    if checkpoint and os.path.exists(checkpoint):
+        with open(checkpoint, encoding="utf-8") as handle:
+            for text in handle:
+                try:
+                    row = json.loads(text)
+                except json.JSONDecodeError:
+                    continue
+                if isinstance(row, dict) and isinstance(row.get("key"), str) and isinstance(row.get("answer"), str) and readable(row["answer"]):
+                    keys.add(row["key"])
+    return keys
 
 
 def extract(text: str, ask: Ask, translate: bool = False, limit: int = DEFAULT_LIMIT, hard: int = HARD_LIMIT) -> Result:

@@ -210,11 +210,12 @@ namespace Nom.Api.Tests.Services.MealPlan
             celiac.RecipesByTitle.Should().Be(1);
             celiac.RecipesByMethod.Should().Be(1);
             celiac.RecipesNoLine.Should().Be(1, "only the buns, which have no line at all");
-            celiac.RecipesUnknown.Should().Be(celiac.RecipesByTitle + celiac.RecipesByMethod + celiac.RecipesNoLine + celiac.RecipesUnknownFood);
+            celiac.RecipesUnknown.Should().Be(celiac.RecipesByTitle + celiac.RecipesByMethod + celiac.RecipesNoLine + celiac.RecipesUnknownFood + celiac.RecipesUnknownWord);
 
             var page = new RecipeOrchestrationService(db, new HttpContextAccessor(), new Mock<ICurrentUserService>().Object,
                 new Mock<Nom.Orch.UtilityInterfaces.IMediaStorageService>().Object, new Mock<IRecipeNutritionService>().Object);
-            (await page.GetDietMatchesAsync(sandwich.Id, PersonId)).Should().ContainSingle(m => m.IngredientName == "Named in the title" && m.Notes!.Contains("\"sandwich\""));
+            (await page.GetDietMatchesAsync(sandwich.Id, PersonId)).Should().ContainSingle(m => m.IngredientName == "Named in the title" && (m.Notes!.Contains("\"sandwich\"") || m.Notes.Contains("\"bread\"")),
+                "a sandwich is made of bread, and a bread whose lines name no flour lost it (staging checkpoint 7, S4)");
             (await page.GetDietMatchesAsync(scones.Id, PersonId)).Should().ContainSingle(m => m.IngredientName == "Named in the method" && m.Notes!.Contains("\"flour\""));
             (await page.GetDietMatchesAsync(chickenRice.Id, PersonId)).Should().BeEmpty();
         }
@@ -527,7 +528,8 @@ namespace Nom.Api.Tests.Services.MealPlan
                     var probe = (await DietCriteriaMatcher.ProbeAsync(db, list))[type.Key];
                     var decision = DietFoodReader.Decide(reading, list);
                     foreach (var c in list)
-                        (decision.Foods.GetValueOrDefault(c.Id) ?? new HashSet<long>()).Should().BeEquivalentTo(probe.Foods.GetValueOrDefault(c.Id) ?? new HashSet<long>(),
+                        (decision.Foods.GetValueOrDefault(c.Id) ?? new HashSet<long>()).Where(f => decision.Sources.GetValueOrDefault((c.Id, f)) != BrandedConsensus.FactSource)
+                            .Should().BeEquivalentTo(probe.Foods.GetValueOrDefault(c.Id) ?? new HashSet<long>(),
                             $"{c.TypeName} {c.LikePattern ?? c.WordPattern ?? c.NutrientName} counts the foods the probe counts");
                     decision.AliasOnly.Should().BeEquivalentTo(probe.AliasOnly, $"{type.First().TypeName} reads the same aliases as not counting");
                     compared++;

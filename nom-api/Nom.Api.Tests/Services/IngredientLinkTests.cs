@@ -400,6 +400,41 @@ namespace Nom.Api.Tests.Services
         }
 
         [Fact]
+        public async Task A_same_the_judges_rules_refuse_is_not_a_verification()
+        {
+            using var db = NewContext();
+            var light = new IngredientEntity { Name = "Butter, light, stick, without salt", FdcId = "173431", FdcDataType = "sr_legacy_food", CurationStatusId = 9001 };
+            db.Ingredients.Add(light);
+            await db.SaveChangesAsync();
+            var butter = await UsedIngredientAsync(db, "unsalted butter", 2);
+            var proposal = await AiPickAsync(db, butter, light, 0.95m);
+            var verifier = new FakeVerifier();
+            var linker = Linker(db, new FakeMatcher(), verifier);
+
+            (await linker.VerifyPendingAiAsync(10, 0.85m)).Should().Be(new IngredientLinkVerifyResult(1, 0, false));
+
+            verifier.Asked.Should().ContainSingle();
+            proposal.Reason.Should().Contain("refused by " + LinkVerifyRules.Version).And.NotContain(IngredientLinkService.VerifiedMark);
+            (await linker.PendingVerifiedAsync(10, Array.Empty<long>())).Should().BeEmpty();
+        }
+
+        [Fact]
+        public async Task A_pick_for_a_wording_of_two_foods_is_not_verified_and_never_sent_to_the_judge()
+        {
+            using var db = NewContext();
+            var (_, salted, _) = await SeedFoodsAsync(db);
+            var wording = await UsedIngredientAsync(db, "salted butter or lard", 2);
+            var proposal = await AiPickAsync(db, wording, salted, 0.95m);
+            var verifier = new FakeVerifier();
+            var linker = Linker(db, new FakeMatcher(), verifier);
+
+            (await linker.VerifyPendingAiAsync(10, 0.85m)).Should().Be(new IngredientLinkVerifyResult(1, 0, false));
+
+            verifier.Asked.Should().BeEmpty();
+            proposal.Reason.Should().Contain($"not verified — {LinkVerifyRules.Version} judges it more than one food");
+        }
+
+        [Fact]
         public async Task An_unreadable_second_opinion_is_not_a_verification()
         {
             using var db = NewContext();

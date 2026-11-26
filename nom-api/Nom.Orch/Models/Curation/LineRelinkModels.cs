@@ -105,6 +105,12 @@ namespace Nom.Orch.Models.Curation
         public int HeldByDiet { get; set; }
         /// <summary>The first moves the diet guard held, with the restriction types each keeps.</summary>
         public List<Nom.Orch.Services.Support.LineMoveHold> DietHolds { get; set; } = new();
+        /// <summary>Whether the operator chose to restore the exact journaled earlier state, lowering diet flags where the way back lowers them (never by default).</summary>
+        public bool RestoreLowered { get; set; }
+        /// <summary>With <see cref="RestoreLowered"/>: the lines put back (or, in a dry run, that would be) although their way back lowers a recipe's diet flags; each is journaled on the apply.</summary>
+        public int RestoredLowering { get; set; }
+        /// <summary>With <see cref="RestoreLowered"/>: the first such moves, with the restriction types each lowers.</summary>
+        public List<Nom.Orch.Services.Support.LineMoveHold> LoweringMoves { get; set; } = new();
         /// <summary>A dry run: the dry runs already running or waiting when it was called; it ran after them (<see cref="Nom.Orch.Services.Support.RelinkUndoDryRun.QueueAsync"/>).</summary>
         public int QueuedBehind { get; set; }
         /// <summary>A dry run: the seconds it waited for the dry runs ahead of it before it started.</summary>

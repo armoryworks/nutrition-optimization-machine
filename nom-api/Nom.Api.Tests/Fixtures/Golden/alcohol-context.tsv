@@ -252,3 +252,31 @@ ac-ck12a-05	quart of White wine Vineger	-	-	no	vinegar	-	174837	ok	rule:construc
 ac-ck12a-06	a porter-house steak	-	-	no	other	-	168746	ok	rule:construction	ck12 fresh draw 2, R13: a porterhouse is a cut of beef, not porter
 ac-ck12a-07	two tablespoonfuls of brandy coloring	-	-	no	other	-	174815	ok	rule:construction	ck12 fresh draw 2, R13: brandy colouring is burnt sugar used to colour, not brandy
 ac-ck12a-08	scotch pea pulp	-	-	no	other	-	174819	ok	rule:construction	ck12 fresh draw 3, R13: Scotch pea pulp is the pea, not whisky
+ac-ck16-01	a pint of Scotch ale	-	-	no	beer	168746	174819	ok	rule:construction	checkpoint 7, S13 (#219279): Scotch ale is a beer, not whisky
+ac-ck16-02	kirsch ice	-	-	no	dish	-	174815	ok	rule:construction	checkpoint 7, S13 (#267467): a drink word before ice, sorbet or sherbet names a dessert
+ac-ck16-03	1 quart champagne sherbet	-	-	no	dish	-	174837	ok	rule:construction	checkpoint 7, S13: a drink word before a frozen dessert names the dessert
+ac-ck16-04	2 oz Scotch	-	-	no	whiskey	174819	-	ok	rule:construction	checkpoint 7, S13: bare Scotch stays whisky
+ac-ck16-05	peppered red wine Salame	-	-	no	dish	-	173190	ok	rule:construction	checkpoint 7, S13, ck16 fresh draws: a drink word before salame or salami names the sausage (draw 1)
+ac-ck16-06	Court-bouillon with red wine	-	-	no	dish	-	173190	ok	rule:construction	checkpoint 7, S13, ck16 fresh draws: a court-bouillon, sauce or stock with a drink is the dish (draw 1, a reference line)
+ac-ck16-07	half-glaze with Madeira	-	-	no	dish	-	175112	ok	rule:construction	checkpoint 7, S13, ck16 fresh draws: a half-glaze with Madeira is a sauce (draw 1)
+ac-ck16-08	two stout common red herrings	-	-	no	other	-	168746	ok	rule:construction	checkpoint 7, S13, ck16 fresh draws: stout before a fish or fowl means plump (draw 1)
+ac-ck16-09	butter-scotch patties	-	-	no	other	-	174819	ok	rule:construction	checkpoint 7, S13, ck16 fresh draws: butterscotch is a sweet, not whisky (draw 1)
+ac-ck16-10	half an ounce spirits ammonia	-	-	no	not-food	-	174815	ok	rule:construction	checkpoint 7, S13, ck16 fresh draws: spirits of ammonia, with or without of, is not food (draw 1)
+ac-ck16-11	vino bianco o marsala	-	-	no	list	-	175098	ok	rule:construction	checkpoint 7, S13, ck16 fresh draws: Italian o is or: alternatives, each read on its own (draw 1)
+ac-ck16-12	two ounces of gelatine, ten ounces of sugar, a pint and a quarter of water, the juice of a lemon, a gill of sherry, a sherry-glass of brandy	-	-	no	list	-	175098	ok	rule:construction	checkpoint 7, S13, ck16 fresh draws: several foods run into one line are a list (draw 2)
+ac-ck16-13	Dates, White-wine	-	-	no	list	-	175098	ok	rule:construction	checkpoint 7, S13, ck16 fresh draws: a plain food word beside the drink makes a list (draw 3)
+ac-ck16-14	two Gallons of Ale Wort	-	-	no	other	-	168746	ok	rule:construction	checkpoint 7, S13, ck16 fresh draws: wort is malt liquor before it ferments (draw 3)
+ac-ck16-15	hard cheese: merlot soaked parmesan	-	-	no	dish	-	173190	ok	rule:construction	checkpoint 7, S13, ck16 fresh draws: a grape name before soaked names the soaked food (draw 4)
+ac-ck16-16	Italian meringue with kirsch	-	-	no	dish	-	174815	ok	rule:construction	checkpoint 7, S13, ck16 fresh draws: a meringue, cream or cake with a drink is the dish (draw 4, a reference line)
+ac-ck16-17	1/2 Jigger Sloe Gin	-	-	no	liqueur	-	174815	ok	rule:construction	checkpoint 7, S13, ck16 fresh draws: sloe gin is a sweetened liqueur USDA has no food for (draw 4)
+ac-ck16-18	whiskey BBQ ketchup	-	-	no	dish	-	174819	ok	rule:construction	checkpoint 7, S13, ck16 fresh draws: a drink word before ketchup or barbecue names the sauce (draw 5)
+ac-ck16-19	a thin muslin sack	-	-	no	other	-	175112	ok	rule:construction	checkpoint 7, S13, ck16 fresh draws: a muslin, linen or cloth sack is a bag (draw 5)
+ac-ck16-20	a spoonful and half of yeast of small beer	-	-	no	yeast	-	168746	ok	rule:construction	checkpoint 7, S13, ck16 fresh draws: yeast of small beer is yeast (draw 5)
+ac-ck16-21	filleted herrings marinaded in white wine	-	-	no	dish	-	174837	ok	rule:construction	checkpoint 7, S13, ck16 fresh draws: marinaded in names the fish (draw 6)
+ac-ck16-22	fine chicken's liver sautéd with Madeira	-	-	no	dish	-	175112	ok	rule:construction	checkpoint 7, S13, ck16 fresh draws: sautéd, cooked or braised with a drink names the food (draw 6)
+ac-ck16-23	one quart each of green tea, Jamaica rum, brandy, claret	-	-	no	list	-	175098	ok	rule:construction	checkpoint 7, S13, ck16 fresh draws: two or more drink parts that are no example are a list (draw 4)
+ac-ck16-24	1 bottle Champagne, chilled (I like qbaror Champagne, but if you like qlivor Champagne, that qtobur, too)	-	-	no	wine-white	174837	-	ok	rule:construction	checkpoint 7, S13, ck16 fresh draws: a cook's note in brackets makes no list
+ac-ck16-25	1/4 cup dry white wine, such as Pinot Grigio	-	-	no	wine-white	174837	-	ok	rule:construction	checkpoint 7, S13, ck16 fresh draws: an example after such as makes no list
+ac-ck16-26	brandy, a pint	-	-	no	spirit	174815	-	ok	rule:construction	checkpoint 7, S13, ck16 fresh draws: an amount after a comma makes no list
+ac-ck16-27	8 ounces stout beer, (like guinness)	-	-	no	beer	168746	-	ok	rule:construction	checkpoint 7, S13, ck16 fresh draws: an example in brackets makes no list
+ac-ck16-28	red wine, a wineglassful and a half	-	-	no	wine-red	173190	-	ok	rule:construction	checkpoint 7, S13, ck16 fresh draws: a measure after a comma makes no list

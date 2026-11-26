@@ -25,9 +25,27 @@ RULES
    nor tesseract; a page the Library's text leaves blank is counted as blank. A plain page is read
    from its HTML. Nothing but open-source tools runs. A PDF page with no text layer where tesseract
    is not installed stops the run (exit 3) with a message naming the nom-hand-import image, and its
-   document is not extracted: it is never only counted.
-4. Extraction: VA recipe cards and NHLBI pages are read by rule; books (NCI, the Library of
-   Congress) by ops/cookbook-extract.py's model extraction. Every record then passes the cookbook
+   document is not extracted: it is never only counted. With the word list (SCOWL's american-english,
+   Debian's wamerican, in the image) each Library page is read for readability; a page whose own text
+   fails it (an OCR'd dot-leader table) is marked needsImage, and the images step fetches its page
+   image within the tile.loc.gov page-image determination of 2026-11-25: only for an item taken under
+   the Library rule, only a page whose Library text fails the readability test (tested again), only
+   from tile.loc.gov (image_hosts in sources.csv), under robots.txt as read in the run and the 6 s
+   pacing shared with www.loc.gov; anything else is refused and named. The next text run, in the
+   image, reads it with tesseract for its words, boxes and confidence and sets its ingredient tables
+   back row by row (an amount not read with confidence carries the unread mark, and its recipe is
+   never kept or sent to the model), keeps the more readable of the two texts, stores the image's
+   reading on the page and deletes the image. A page image is read for its text only: never kept,
+   served or sent anywhere.
+4. Extraction: VA recipe cards and NHLBI pages are read by rule; Library of Congress books first by
+   rule (title, ingredient list or dot-leader table, method in prose: ops/cookbook-extract.py's
+   read_by_rule), a recipe whose text fails the readability test is never sent to the model, and
+   only what the rules cannot split goes to the model; NCI page by page by the model, its name the
+   title the page prints (letter-spaced titles closed up by rule) and its yield the page's "Makes"
+   line. Books run in the order the rules read them best (the plan step prints that order and the
+   model calls each book needs and still needs), resumable per book across days (--max-calls, a
+   status file per book), and runs on one work folder take turns on the model (a lock file in the
+   work folder). Every model record must also pass the readability test. Every record then passes the cookbook
    extraction's number check against its own page text: every ingredient line and step, and the
    yield and times, must be found there with every number. A record that fails is dropped and
    counted with its reason; nothing repairs it. A model call that fails is asked again
@@ -62,8 +80,10 @@ environment; staging first. Run directly, the commands are:
 
     ./ops/hand-import.py fetch --out ~/hand-import [--source va] [--limit 5]
     ./ops/hand-import.py links --out ~/hand-import --source va > va-links.csv
-    ./ops/hand-import.py text --out ~/hand-import
-    ./ops/hand-import.py extract --out ~/hand-import [--host http://<model host>:11434 --model qwen2.5:14b-instruct] [--wait-limit 120]
+    ./ops/hand-import.py text --out ~/hand-import [--words <word list>]
+    ./ops/hand-import.py images --out ~/hand-import --source loc [--limit 200]
+    ./ops/hand-import.py plan --out ~/hand-import --source loc --model qwen2.5:14b-instruct
+    ./ops/hand-import.py extract --out ~/hand-import [--host http://<model host>:11434 --model qwen2.5:14b-instruct] [--wait-limit 120] [--max-calls 1500]
     ./ops/hand-import.py sample --out ~/hand-import --per-source 20 > judged-sample.csv
     NOM_API=... NOM_API_KEY=... ./ops/hand-import.py sources [--apply]
     NOM_API=... NOM_API_KEY=... ./ops/hand-import.py stage --out ~/hand-import --source-id va=31 ... [--apply]
@@ -78,6 +98,7 @@ import hashlib
 import html
 import html.parser
 import importlib.util
+import io
 import json
 import os
 import random
@@ -87,6 +108,8 @@ import subprocess
 import sys
 import tempfile
 import time
+import unicodedata
+import uuid
 import urllib.error
 import urllib.parse
 import urllib.request
@@ -142,6 +165,7 @@ class Source:
     licence_found_at: str
     min_delay: float
     site: str
+    image_hosts: tuple[str, ...] = ()
 
 
 @dataclass
@@ -156,14 +180,16 @@ class Book:
 
 
 def load_sources(path: str = SOURCES_CSV) -> dict[str, Source]:
-    """The hand sources: domain, the hosts their documents may be fetched from, licence facts and delay."""
+    """The hand sources: domain, the hosts their documents may be fetched from, licence facts and delay, and the hosts
+    whose page images may be fetched for OCR (image_hosts, empty until a determination covers them)."""
     out = {}
     with open(path, encoding="utf-8", newline="") as handle:
         for row in csv.DictReader(handle):
             out[row["source"]] = Source(
                 source=row["source"], domain=row["domain"], hosts=tuple(h.strip().lower() for h in row["hosts"].split() if h.strip()),
                 title=row["title"], licence_kind=row["licence_kind"], licence_statement=row["licence_statement"],
-                licence_found_at=row["licence_found_at"], min_delay=float(row["min_delay_seconds"]), site=row["site"])
+                licence_found_at=row["licence_found_at"], min_delay=float(row["min_delay_seconds"]), site=row["site"],
+                image_hosts=tuple(h.strip().lower() for h in (row.get("image_hosts") or "").split() if h.strip()))
     return out
 
 
@@ -329,14 +355,25 @@ class Fetcher:
             raise Refused(f"{final}: HTTP {answer.status}")
         return b"".join(answer.body)
 
-    def download(self, url: str, target: str, hosts: Iterable[str] | None = None) -> dict:
-        """The document saved at target, resumed from target.part when the host serves ranges, and verified."""
+    def download(self, url: str, target: str, hosts: Iterable[str] | None = None, resume: bool = True) -> dict:
+        """The document saved at target, resumed from target.part when the host serves ranges, and verified; with resume
+        off, target.part is never kept: deleted before the request and whenever the download fails."""
         part = target + ".part"
+        if not resume and os.path.exists(part):
+            os.remove(part)
+        try:
+            return self._download(url, target, part, hosts, resume)
+        except BaseException:
+            if not resume and os.path.exists(part):
+                os.remove(part)
+            raise
+
+    def _download(self, url: str, target: str, part: str, hosts: Iterable[str] | None, resume: bool) -> dict:
         have = os.path.getsize(part) if os.path.exists(part) else 0
         answer, final = self.get(url, {"Range": f"bytes={have}-"} if have else {}, hosts)
         if answer.status == 416 and have:
             os.remove(part)
-            return self.download(url, target, hosts)
+            return self._download(url, target, part, hosts, resume)
         if answer.status not in (200, 206):
             raise Refused(f"{final}: HTTP {answer.status}")
         mode = "ab" if answer.status == 206 and have else "wb"
@@ -352,7 +389,8 @@ class Fetcher:
                 handle.write(block)
         size = os.path.getsize(part)
         if expected is not None and size != expected:
-            raise Refused(f"{final}: {size} bytes of {expected}; the partial file is kept and the next run resumes it")
+            raise Refused(f"{final}: {size} bytes of {expected}; " +
+                          ("the partial file is kept and the next run resumes it" if resume else "the partial file is deleted"))
         kind = verify_file(part, answer.headers.get("content-type", ""))
         os.replace(part, target)
         return {"url": url, "finalUrl": final, "size": size, "type": kind, "sha256": sha256_file(target)}
@@ -369,6 +407,12 @@ def verify_file(path: str, content_type: str) -> str:
         if b"%%EOF" not in tail:
             raise Refused(f"{path}: the PDF has no end marker (truncated)")
         return "pdf"
+    if head.startswith(b"\xff\xd8\xff"):
+        if not tail.rstrip(b"\x00").endswith(b"\xff\xd9"):
+            raise Refused(f"{path}: the JPEG image has no end marker (truncated)")
+        return "jpeg"
+    if head.startswith(b"\x00\x00\x00\x0cjP  \r\n\x87\n"):
+        return "jp2"
     stripped = head.lstrip()
     if stripped[:1] in (b"{", b"["):
         try:
@@ -407,7 +451,10 @@ class Store:
                 for line in handle:
                     if line.strip():
                         entry = json.loads(line)
-                        self.entries[entry["file"]] = entry
+                        if entry.get("deleted"):
+                            self.entries.pop(entry["file"], None)
+                        else:
+                            self.entries[entry["file"]] = entry
 
     def path(self, name: str) -> str:
         return os.path.join(self.out, "docs", name)
@@ -422,12 +469,24 @@ class Store:
     def add(self, name: str, entry: dict) -> dict:
         entry = {"file": name, **entry, "fetchedAt": datetime.now(timezone.utc).isoformat(timespec="seconds")}
         self.entries[name] = entry
+        self._log(entry)
+        return entry
+
+    def delete(self, name: str, reason: str) -> None:
+        """Deletes a fetched file and takes it off SHA256SUMS; manifest.jsonl records the deletion with its sum and the
+        reason, so a later run never takes the file as fetched."""
+        entry = self.entries.pop(name, None)
+        if os.path.exists(self.path(name)):
+            os.remove(self.path(name))
+        self._log({"file": name, "deleted": True, "sha256": (entry or {}).get("sha256"), "reason": reason,
+                   "deletedAt": datetime.now(timezone.utc).isoformat(timespec="seconds")})
+
+    def _log(self, line: dict) -> None:
         with open(self.manifest_path, "a", encoding="utf-8") as handle:
-            handle.write(json.dumps(entry, ensure_ascii=False) + "\n")
+            handle.write(json.dumps(line, ensure_ascii=False) + "\n")
         with open(os.path.join(self.out, "SHA256SUMS"), "w", encoding="utf-8") as handle:
             for file in sorted(self.entries):
                 handle.write(f"{self.entries[file]['sha256']}  docs/{file}\n")
-        return entry
 
 
 def loc_item_problem(item: dict) -> str | None:
@@ -494,6 +553,156 @@ def fetch(books: list[Book], sources: dict[str, Source], store: Store, fetcher: 
             refused.append({"doc": book.doc_id, "reason": str(exc)})
             log(f"refused: {exc}")
     return {"counts": dict(counts), "requests": fetcher.requests, "refused": refused}
+
+
+IMAGE_KINDS = {"image/jpeg": "jpg", "image/jp2": "jp2"}
+OCR_WIDTH = 1500
+
+
+def loc_page_images(item: dict) -> dict[int, str]:
+    """The page image of each page of a Library of Congress item, by page sequence number, from its JSON record's
+    files (resources[0].files: one list of variants per page): the largest JPEG when it is at least 1,500 pixels wide
+    (enough for tesseract), else the JPEG 2000 master, else the largest JPEG."""
+    resources = item.get("resources") or []
+    files = resources[0].get("files") if resources and isinstance(resources[0], dict) else None
+    out = {}
+    for number, variants in enumerate(files or [], start=1):
+        best = None
+        for variant in variants if isinstance(variants, list) else []:
+            if not isinstance(variant, dict) or variant.get("mimetype") not in IMAGE_KINDS or not variant.get("url"):
+                continue
+            width = int(variant.get("width") or 0) if str(variant.get("width") or "0").isdigit() else 0
+            jpeg = variant["mimetype"] == "image/jpeg"
+            rank = (2 if jpeg and width >= OCR_WIDTH else 1 if not jpeg else 0, width)
+            if best is None or rank > best[0]:
+                best = (rank, variant["url"])
+        if best:
+            out[number] = best[1]
+    return out
+
+
+def image_hosts(source: Source) -> tuple[str, ...]:
+    """The hosts a source's page images may come from: those of its image_hosts that are also hosts of the source."""
+    return tuple(h for h in source.image_hosts if h in source.hosts)
+
+
+def images(books: list[Book], sources: dict[str, Source], store: Store, fetcher: Fetcher, text_dir: str, limit: int = 0,
+           words: frozenset[str] | set[str] | None = None) -> dict:
+    """Fetches the page image of a Library page within the limits of the tile.loc.gov page-image determination
+    (docs/architecture/crosscheck-sources.md, 2026-11-25); anything outside them is refused and named:
+    - only an item already taken under the Library rule: its JSON record and OCR text fetched and verified, and the
+      record read again here (rights field states the public domain, dated 1930 or earlier, English);
+    - only a page whose Library text fails the readability test, tested here again on the Library's own text with the
+      word list (no word list, no image), and never a page whose image was already read (its text is stored);
+    - only from a host of the book's own source that is also one of its image_hosts, a redirect included, under
+      robots.txt as read in this run and the source's pacing, shared by both Library hosts (fetcher_for);
+    - each image verified (a JPEG or JPEG 2000) and listed with its sum until the text step has read it, which then
+      deletes it (delete_read_images); part of an image is never kept or resumed, and one left by a run that stopped
+      is deleted first (delete_partial_images). An image is read for its text only: never kept, served or sent anywhere."""
+    counts: Counter = Counter(partialDeleted=delete_partial_images(store))
+    refused: list[dict] = []
+    fetched = 0
+    for book in books:
+        if book.kind != "loc-item":
+            continue
+        source = sources[book.source]
+        path = os.path.join(text_dir, f"{book.doc_id}.pages.json")
+        item_name, text_name = doc_files(book)
+        if not store.verified(item_name) or not store.verified(text_name):
+            counts["refused"] += 1
+            refused.append({"doc": book.doc_id, "reason": "the item is not taken: its record and OCR text are not fetched and verified"})
+            continue
+        with open(store.path(item_name), encoding="utf-8") as handle:
+            item = json.load(handle)
+        problem = loc_item_problem(item)
+        if problem:
+            counts["refused"] += 1
+            refused.append({"doc": book.doc_id, "reason": f"the item is not taken under the Library rule: {problem}"})
+            continue
+        if words is None:
+            counts["refused"] += 1
+            refused.append({"doc": book.doc_id, "reason": "no word list: only a page whose Library text fails the readability test may "
+                                                          f"have its image fetched; run images in the {IMAGE} image or give --words"})
+            continue
+        if not os.path.exists(path):
+            counts["noText"] += 1
+            continue
+        with open(path, encoding="utf-8") as handle:
+            stored = {p["n"]: p for p in json.load(handle)["pages"]}
+        failing = {p["n"] for p in loc_pages(store.path(text_name), words)[0] if p.get("needsImage")}
+        urls = loc_page_images(item)
+        for number in sorted(failing | {n for n, p in stored.items() if p.get("needsImage")}):
+            if number not in failing:
+                counts["refused"] += 1
+                refused.append({"doc": book.doc_id, "page": number, "reason": "its Library text passes the readability test"})
+                continue
+            if "imageText" in stored.get(number, {}):
+                counts["alreadyRead"] += 1
+                continue
+            url = urls.get(number)
+            if not url:
+                counts["noImage"] += 1
+                refused.append({"doc": book.doc_id, "page": number, "reason": "the item's record lists no page image for this page"})
+                continue
+            name = f"{book.doc_id}.p{number:04d}.{'jp2' if url.lower().split('?')[0].endswith('.jp2') else 'jpg'}"
+            if store.verified(name):
+                counts["verified"] += 1
+                continue
+            if limit and fetched >= limit:
+                counts["leftForNextRun"] += 1
+                continue
+            host = host_of(url)
+            if host not in image_hosts(source):
+                counts["refused"] += 1
+                refused.append({"doc": book.doc_id, "page": number, "reason": f"{url}: host {host or '(none)'} has no determination "
+                                f"in docs/architecture/crosscheck-sources.md that covers page images for {book.source} (image_hosts "
+                                f"in ops/hand-import/sources.csv); record one before fetching"})
+                continue
+            fetched += 1
+            try:
+                entry = fetcher.download(url, store.path(name), image_hosts(source), resume=False)
+                if entry["type"] not in ("jpeg", "jp2"):
+                    os.remove(store.path(name))
+                    raise Refused(f"{url}: expected a page image, got {entry['type']}")
+                store.add(name, {**entry, "page": number})
+                counts["fetched"] += 1
+            except Refused as exc:
+                counts["refused"] += 1
+                refused.append({"doc": book.doc_id, "page": number, "reason": str(exc)})
+                log(f"refused: {exc}")
+    return {"counts": {k: v for k, v in counts.items() if v}, "requests": fetcher.requests, "refused": refused}
+
+
+PARTIAL_IMAGE = re.compile(r".+\.p\d{4,}\.(?:jpg|jp2)\.part")
+
+
+def delete_partial_images(store: Store) -> int:
+    """Deletes every part of a page image left in the download folder by a run that stopped, whatever its book.
+    Returns how many were deleted."""
+    deleted = 0
+    for name in sorted(os.listdir(os.path.join(store.out, "docs"))):
+        if PARTIAL_IMAGE.fullmatch(name):
+            os.remove(store.path(name))
+            deleted += 1
+    return deleted
+
+
+def delete_read_images(book: Book, store: Store, doc: dict) -> int:
+    """Deletes each page image of a book whose text the page now stores (imageText), once its pages are written; an
+    image not read here (no tesseract) stays for a run in the image. Returns how many were deleted."""
+    read = {p["n"] for p in doc.get("pages") or [] if "imageText" in p}
+    deleted = 0
+    for number, path in sorted(page_images(book, store).items()):
+        if number in read:
+            store.delete(os.path.basename(path), "read for its text, which the page stores")
+            deleted += 1
+    return deleted
+
+
+def fetcher_for(sources: dict[str, Source]) -> Fetcher:
+    """One fetcher for the hand sources' hosts, the hosts of one source paced as one (www.loc.gov and tile.loc.gov)."""
+    return Fetcher({host: s.min_delay for s in sources.values() for host in s.hosts},
+                   groups={host: s.source for s in sources.values() for host in s.hosts})
 
 
 def loc_json_url(url: str) -> str:
@@ -767,43 +976,251 @@ def tesseract_page(path: str, number: int, runner: Runner = run) -> str | None:
         return runner(["tesseract", prefix + ".png", "stdout", "-l", "eng"])
 
 
-def loc_pages(path: str) -> list[dict]:
-    """The pages of a Library of Congress OCR text file (text.json), keyed by their sequence number. The Library's own OCR
-    is the text, so no page of a book needs tesseract; a page the file leaves blank (a plate, a blank leaf) is marked
-    loc-blank, not needs-ocr (staging checkpoints 3 to 6 skipped the books for a tesseract they do not use)."""
+def tesseract_image(path: str, runner: Runner = run, words: frozenset[str] | set[str] | None = None) -> str | None:
+    """A page image read by tesseract for its words, their boxes and confidence (sparse text, --psm 11, as TSV) and set
+    back into lines by table_text, its ingredient tables row by row; None when tesseract is not installed."""
+    if not have("tesseract"):
+        return None
+    return table_text(tsv_words(runner(["tesseract", path, "stdout", "-l", "eng", "--psm", "11", "tsv"])), dictionary=words)
+
+
+OCR_BAR = 90
+AMOUNT_CELL = re.compile(rf"(?:\d{{1,3}}(?:\s?[{cookbook.VULGAR}])?|[{cookbook.VULGAR}]|\d{{1,2}}/\d{{1,2}})(?:\s+[^\W\d_]{{1,12}}\.?)?")
+
+
+@dataclass
+class Word:
+    left: int
+    top: int
+    width: int
+    height: int
+    conf: float
+    text: str
+
+
+def tsv_words(tsv: str) -> list[Word]:
+    """The words of tesseract's TSV output with their boxes and confidence."""
+    out = []
+    for row in csv.DictReader(io.StringIO(tsv or ""), delimiter="\t", quoting=csv.QUOTE_NONE):
+        text = (row.get("text") or "").strip()
+        if row.get("level") == "5" and text:
+            out.append(Word(int(row["left"]), int(row["top"]), int(row["width"]), int(row["height"]), float(row["conf"]), text))
+    return out
+
+
+def _rows(words: list[Word], height: float) -> list[list[Word]]:
+    rows: list[tuple[float, list[Word]]] = []
+    for word in sorted(words, key=lambda w: w.top + w.height / 2):
+        centre = word.top + word.height / 2
+        if rows and abs(centre - rows[-1][0]) <= height / 2:
+            row = rows[-1][1] + [word]
+            rows[-1] = (sum(w.top + w.height / 2 for w in row) / len(row), row)
+        else:
+            rows.append((centre, [word]))
+    return [sorted(row, key=lambda w: w.left) for _, row in rows]
+
+
+LEADER = re.compile(r"[.·…_]{2,}")
+
+
+def _name_run(row: list[Word], bar: float) -> int:
+    named = 0
+    while named < len(row) and row[named].conf >= bar and re.search(r"[^\W\d_]", row[named].text) and not LEADER.search(row[named].text):
+        named += 1
+    return named
+
+
+def table_row(row: list[Word], height: float, edge: float, middle: float, bar: float = OCR_BAR,
+              dictionary: frozenset[str] | set[str] | None = None) -> str | None:
+    """A row of an ingredient table set with dot leaders, as "name . . . . . . amount", or None when the row is not one.
+    The name is the row's first run of words read with confidence at the bar or above. A row is a table row when it
+    starts in the left quarter of the text (a centred title does not) and reaches past the middle, and after its name come either at most three words beyond a
+    gap wider than two letters (leaders tesseract did not read), or words read with confidence below the bar (leaders
+    read as dots, figures and stray letters) followed by at most three confident words (the amount); a line of prose
+    goes on with confident words and is no table row. The amount is the row's last run of confident words, at most
+    three, right of the middle. Name and amount are kept only when the amount is one number (a whole number, a fraction
+    sign or both) and at most one word, the word after the name is no known word cut by the leaders ("crumbs...."), and
+    no confident word lies between them; otherwise the unread mark stands in place of what was not read, so the recipe
+    is never kept by rule or sent to the model, and a number the page does not hold (a fraction read as "%", a figure
+    below the bar) is never written."""
+    if len(row) < 2 or row[0].left - edge >= (middle - edge) / 2 or row[-1].left + row[-1].width <= middle:
+        return None
+    named = _name_run(row, bar)
+    after = row[named:]
+    doubtful = [i for i, w in enumerate(after) if w.conf < bar]
+    if doubtful:
+        if sum(1 for w in after[doubtful[0]:] if w.conf >= bar) > 3:
+            return None
+    elif not (named and 0 < len(after) <= 3 and after[0].left - (row[named - 1].left + row[named - 1].width) > 2 * height):
+        return None
+    amount_at = len(row)
+    while amount_at > named and len(row) - amount_at < 3 and row[amount_at - 1].conf >= bar and not LEADER.search(row[amount_at - 1].text):
+        amount_at -= 1
+    name_text = " ".join(w.text for w in row[:named]).strip(" ,")
+    amount_text = " ".join(w.text for w in row[amount_at:]).rstrip(".")
+    between = row[named:amount_at]
+    first = re.match(r"[^\W\d_]{3,}", between[0].text) if between else None
+    cut = bool(first) and dictionary is not None and cookbook.known_word(first.group(0).lower(), dictionary)
+    sure_name = bool(name_text) and not cut and not any(w.conf >= bar and re.fullmatch(r"[^\W\d_]{3,}", w.text) for w in between)
+    sure_amount = bool(amount_text) and row[amount_at].left >= middle and bool(AMOUNT_CELL.fullmatch(amount_text))
+    return f"{name_text if sure_name else cookbook.UNREAD} . . . . . . {amount_text if sure_name and sure_amount else cookbook.UNREAD}"
+
+
+FIGURE = re.compile(rf"[\d{cookbook.VULGAR}]")
+SIGN = re.compile(r"[^\w\s.,;:!?'\"()\-–—’‘“”]")
+
+
+def _unsure(row: list[Word], i: int, bar: float) -> bool:
+    word = row[i]
+    if word.conf >= bar:
+        return False
+    beside = [row[j].text for j in (i - 1, i + 1) if 0 <= j < len(row)]
+    return i == 0 or bool(FIGURE.search(word.text) or SIGN.search(word.text) or any(FIGURE.search(b) for b in beside))
+
+
+def table_text(words: list[Word], bar: float = OCR_BAR, dictionary: frozenset[str] | set[str] | None = None) -> str:
+    """A page's words set back into lines, top to bottom: a row of an ingredient table as one line (table_row), any
+    other line as its words, a word read with confidence below the bar replaced by the unread mark where it may be or
+    cut an amount: one that holds a figure or a sign that is no letter or punctuation (a fraction read as "%" or "Y%"),
+    stands next to a word with a figure, or starts the line. A short line that
+    starts where a neighbouring table row starts and ends left of the middle, between two table rows or beside one with
+    no sentence end, is a table row whose amount was not read at all, and gets the unread mark as its amount. A blank
+    line goes before a centred line (a title) and after it, before an indented line that is not a table row (a
+    paragraph's first line) and at a wide gap."""
+    if not words:
+        return ""
+    lettered = [w.height for w in words if re.search(r"[^\W\d_]{2,}", w.text) and w.conf >= bar] or [w.height for w in words]
+    height = sorted(lettered)[len(lettered) // 2]
+    left, right = min(w.left for w in words), max(w.left + w.width for w in words)
+    middle = left + (right - left) / 2
+    rows = _rows(words, height)
+    tabled = [table_row(row, height, left, middle, bar, dictionary) for row in rows]
+    for i, row in enumerate(rows):
+        if tabled[i] is not None or row[-1].left + row[-1].width >= middle:
+            continue
+        beside = [j for j in (i - 1, i + 1) if 0 <= j < len(rows) and tabled[j] is not None and abs(rows[j][0].left - row[0].left) <= height]
+        if beside and (len(beside) == 2 or not re.search(r"[.!?;:]$", row[-1].text)):
+            named = _name_run(row, bar)
+            tabled[i] = f"{' '.join(w.text for w in row[:named]).strip(' ,') or cookbook.UNREAD} . . . . . . {cookbook.UNREAD}"
+    centres = [sum(w.top + w.height / 2 for w in row) / len(row) for row in rows]
+    gaps = sorted(b - a for a, b in zip(centres, centres[1:])) or [height * 1.5]
+    pitch = gaps[len(gaps) // 2]
+    lines: list[str] = []
+    previous = None
+    for row, centre, table in zip(rows, centres, tabled):
+        start, end = row[0].left, row[-1].left + row[-1].width
+        centred = table is None and start - left > 2 * height and right - end > 2 * height and abs((start - left) - (right - end)) < 2 * height
+        indented = table is None and not centred and start - left > height
+        wide = previous is not None and centre - previous > 1.6 * pitch
+        if lines and lines[-1] and (centred or indented or wide):
+            lines.append("")
+        lines.append(table if table is not None else
+                     " ".join(cookbook.UNREAD if _unsure(row, i, bar) else w.text for i, w in enumerate(row)))
+        if centred:
+            lines.append("")
+        previous = centre
+    return "\n".join(lines).strip("\n") + "\n"
+
+
+def page_reading(text: str, words: frozenset[str] | set[str]) -> dict:
+    """How readable a page's text is: its short lines with letters and how many fail the readability test."""
+    short = [line for line in text.split("\n") if line.strip() and len(line.strip()) <= 60 and re.search(r"[^\W\d_]", line)]
+    return {"shortLines": len(short), "unreadable": sum(1 for line in short if cookbook.unreadable(line, words))}
+
+
+def loc_pages(path: str, words: frozenset[str] | set[str] | None = None, images: dict[int, str] | None = None,
+              ocr: Callable[[str], str | None] | None = None, earlier: dict[int, dict] | None = None) -> tuple[list[dict], list[int]]:
+    """The pages of a Library of Congress OCR text file (text.json), keyed by their sequence number, and the pages whose
+    page image is fetched but could not be read here (no tesseract). The Library's own OCR is the text; a page the file
+    leaves blank (a plate, a blank leaf) is marked loc-blank, not needs-ocr (staging checkpoints 3 to 6 skipped the books
+    for a tesseract they do not use). With a word list each page is read for readability, and a page whose text fails
+    it (three or more of its short lines, and three in ten or more, unreadable: an OCR'd ingredient table, staging
+    checkpoint 7, S22) is marked needsImage. Where its page image was fetched (the images step), it is read by
+    tesseract (tesseract_image) and the page stores that reading as imageText, so the image can be deleted; a page
+    whose image is gone takes its stored reading (earlier, the page as the earlier text step wrote it) instead. The
+    more readable of the two texts is the page's: loc-image-ocr when the image's reading has fewer unreadable short
+    lines, the Library's otherwise; both readings' counts are kept on the page. A stored reading always stays on its
+    page, so the image is never fetched again: with no word list the page keeps the earlier step's choice, and a page
+    that no longer fails the test keeps the reading beside the Library's text."""
     with open(path, encoding="utf-8") as handle:
         data = json.load(handle)
-    pages = []
+    images = images or {}
+    earlier = earlier or {}
+    ocr = ocr if ocr is not None else tesseract_image
+    pages, unread = [], []
     for key in sorted(data, key=lambda k: int(k) if str(k).isdigit() else 0):
         if not str(key).isdigit():
             continue
         text = (data[key] or {}).get("fulltext") or ""
-        pages.append({"n": int(key), "method": "loc-ocr" if text.strip() else "loc-blank", "text": text})
-    return pages
+        page = {"n": int(key), "method": "loc-ocr" if text.strip() else "loc-blank", "text": text}
+        before = earlier.get(page["n"]) or {}
+        stored = before["imageText"] if isinstance(before.get("imageText"), str) else None
+        if words is None and stored is not None:
+            page["imageText"] = stored
+            if before.get("method") == "loc-image-ocr" and text.strip():
+                page.update(method="loc-image-ocr", text=stored)
+        elif words is not None and text.strip():
+            library = page_reading(text, words)
+            page["libraryReading"] = library
+            page["needsImage"] = cookbook.unreadable_block(text, words)
+            if page["needsImage"] and (page["n"] in images or stored is not None):
+                read = ocr(images[page["n"]]) if page["n"] in images else stored
+                if read is None:
+                    unread.append(page["n"])
+                else:
+                    image = page_reading(read, words)
+                    page["imageReading"] = image
+                    page["imageText"] = read
+                    if read.strip() and image["unreadable"] < library["unreadable"]:
+                        page.update(method="loc-image-ocr", text=read, needsImage=cookbook.unreadable_block(read, words))
+        if stored is not None and "imageText" not in page:
+            page["imageText"] = stored
+        pages.append(page)
+    return pages, unread
 
 
-def text_document(book: Book, store: Store, runner: Runner = run, ocr=None) -> dict | None:
-    """The page texts of one fetched document, or None when it is not fetched and verified."""
+def page_images(book: Book, store: Store) -> dict[int, str]:
+    """The page images of a book fetched and verified by the images step, by page sequence number."""
+    out = {}
+    for name in store.entries:
+        found = re.fullmatch(re.escape(book.doc_id) + r"\.p(\d{4,})\.(?:jpg|jp2)", name)
+        if found and store.verified(name):
+            out[int(found.group(1))] = store.path(name)
+    return out
+
+
+def text_document(book: Book, store: Store, runner: Runner = run, ocr=None, words: frozenset[str] | set[str] | None = None,
+                  image_ocr: Callable[[str], str | None] | None = None, earlier: dict | None = None) -> dict | None:
+    """The page texts of one fetched document, or None when it is not fetched and verified. A Library book's pages are
+    read for readability with the word list, and its fetched page images are read where its own text fails, a page whose
+    image is already read and deleted keeping the reading the earlier text step stored (earlier, its pages.json)
+    (loc_pages); the pages whose image could not be read here are listed as imageUnread."""
     names = doc_files(book)
     entries = [store.verified(n) for n in names]
     if not all(entries):
         return None
     entry = entries[-1]
     title = book.title
+    unread: list[int] = []
     if book.kind == "html":
         with open(store.path(names[0]), encoding="utf-8", errors="replace") as handle:
             found, text = html_page(handle.read())
         title = found or title
         pages = [{"n": 1, "method": "html", "text": text}]
     elif book.kind == "loc-item":
-        pages = loc_pages(store.path(names[1]))
+        stored = {p["n"]: p for p in (earlier or {}).get("pages") or [] if isinstance(p.get("imageText"), str)}
+        pages, unread = loc_pages(store.path(names[1]), words, page_images(book, store),
+                                  image_ocr if image_ocr is not None else (lambda p: tesseract_image(p, runner, words)), stored)
     else:
         pages = pdf_pages(store.path(names[0]), book.layout, runner, ocr)
     if book.layout in ("book", "pages"):
         for page, text in zip(pages, strip_running_heads([p["text"] for p in pages])):
             page["text"] = text
-    return {"doc": book.doc_id, "source": book.source, "url": book.url, "resourceUrl": entry.get("resourceUrl"),
-            "title": title, "sha256": entry["sha256"], "layout": book.layout, "pages": pages}
+    doc = {"doc": book.doc_id, "source": book.source, "url": book.url, "resourceUrl": entry.get("resourceUrl"),
+           "title": title, "sha256": entry["sha256"], "layout": book.layout, "pages": pages}
+    if unread:
+        doc["imageUnread"] = unread
+    return doc
 
 
 AMOUNT_START = re.compile(r"^\s*(?:[\d½¼¾⅓⅔⅛⅜⅝⅞]|(?:a|an|one|two|three|four|five|six|half|pinch|dash)\b)", re.I)
@@ -1097,6 +1514,15 @@ class Extraction:
     unparsed: list[dict] = field(default_factory=list)
     needs_ocr: int = 0
     pages: int = 0
+    by_rule: int = 0
+    model_blocks: int = 0
+    unreadable_blocks: int = 0
+    model_calls: int = 0
+    model_left: int = 0
+    unreadable_pages: list[int] = field(default_factory=list)
+
+
+LEFT_REASONS = ("model host busy", "model call budget spent", "model call failed", "model call timed out", "model call left", "unreadable answer")
 
 
 def page_at(offsets: list[tuple[int, int]], at: int) -> int:
@@ -1108,26 +1534,54 @@ def page_at(offsets: list[tuple[int, int]], at: int) -> int:
     return number
 
 
-def paged_record(recipe: dict, page: str) -> tuple[dict | None, str | None]:
+def name_problem(name: str, page: str) -> str | None:
+    """Why a returned name is not the page's, or None: each of its words must stand on the page, letters closed up
+    (a word the model made up, "DEGREE" in MIXED GREENS, is not there)."""
+    closed = re.sub(r"[^a-z]", "", page.lower())
+    page_words = set(cookbook.content_words(page))
+    missing = [w for w in cookbook.content_words(name) if w not in page_words and re.sub(r"[^a-z]", "", w) not in closed]
+    return f"a word of the name not on the page: {', '.join(missing[:3])}" if missing else None
+
+
+def paged_record(recipe: dict, page: str, words: frozenset[str] | set[str] | None = None) -> tuple[dict | None, str | None]:
     """The record of a model answer for a page that holds one recipe, or why it is dropped: the number check on every
-    line and step against the page, and every line of the page that starts with an amount (a bare step number aside)
-    must lie inside one of the record's ingredient lines (or a step that states it), so a wrapped line ("10-ounce baby lima" / "beans (frozen)")
-    counts once and no listed ingredient is left out."""
+    line and step against the page, and every line of the page that starts with an amount (a bare step number and the
+    title's own lines aside) must lie inside one of the record's ingredient lines (or a step that states it), so a
+    wrapped line ("10-ounce baby lima" / "beans (frozen)") counts once and no listed ingredient is left out. The name is
+    the title the page prints, read by rule (page_heading), when it can be read, else the model's with each word on the
+    page; the yield is the page's "Makes ..." line, and a step that is only that sentence is no step; with a word list,
+    every line and step must be readable (staging checkpoint 7, S23)."""
     name = recipe.get("name") if isinstance(recipe.get("name"), str) else None
     ingredients = [i for i in recipe.get("ingredients") or [] if isinstance(i, str) and i.strip()]
     steps = [s for s in recipe.get("steps") or [] if isinstance(s, str) and s.strip()]
     if not name or not ingredients:
         return None, "no name or no ingredient line"
-    record = {"name": despaced(name.strip(), page), "ingredients": [{"rawLine": i.strip()} for i in ingredients],
+    title, title_lines = page_heading(page, words)
+    if title is None:
+        name = despaced(name.strip(), page)
+        problem = name_problem(name, page)
+        if problem:
+            return None, problem
+    steps = [rest for rest in (_after_yield(s) for s in steps) if rest]
+    record = {"name": title or name, "ingredients": [{"rawLine": i.strip()} for i in ingredients],
               "steps": [{"order": n + 1, "instruction": s.strip()} for n, s in enumerate(steps)]}
+    printed = page_yield(page)
+    if printed:
+        record["recipeYield"] = printed
+        if re.search(r"\bserv", printed, re.I) and servings(printed) is not None:
+            record["recipeServings"] = servings(printed)
     problem = number_check(record, page)
     if problem:
         return None, problem
+    if words is not None:
+        problem = cookbook.readability_check(ingredients, steps, words)
+        if problem:
+            return None, problem
     extracted = [cookbook.normalize(i) for i in ingredients]
     said = [cookbook.normalize(s) for s in steps]
     for line in page.split("\n"):
         text = line.strip()
-        if re.fullmatch(r"\d{1,2}[.)]?", text) or not cookbook.INGREDIENT_START.match(text):
+        if re.fullmatch(r"\d{1,2}[.)]?", text) or not cookbook.INGREDIENT_START.match(text) or text in title_lines:
             continue
         folded = cookbook.normalize(text)
         if folded and not any(folded in e for e in extracted) and not any(folded in s for s in said):
@@ -1169,6 +1623,162 @@ def despaced(name: str, page: str = "") -> str:
     return " ".join(out)
 
 
+PAGE_HEADINGS = {"INGREDIENTS", "NUTRITIONCONTENT", "NUTRITIONFACTS", "DIRECTIONS", "METHOD", "PERSERVING"}
+YIELD_LINE = re.compile(r"^\s*(?:makes|serves|yields?:?)\s+(?P<amount>.*?\S)\s*\.?\s*$", re.I)
+
+
+TITLE_JOINERS = {"and", "with", "or", "of", "n", "in", "a", "the"}
+
+
+def _title_line(line: str) -> bool:
+    text = line.strip()
+    letters = [ch for ch in text if ch.isalpha()]
+    upper = "".join(t for t in re.findall(r"[^\W\d_]+", text) if t not in TITLE_JOINERS)
+    return (0 < len(text) <= 40 and len(letters) >= 2 and bool(upper) and upper.isupper()
+            and "".join(letters).upper() not in PAGE_HEADINGS and not re.match(r"with\s", text))
+
+
+def _spaced(lines: list[str]) -> bool:
+    return any(sum(1 for t in line.split() if len(t) <= 2) >= 3 or len(re.sub(r"\W", "", line)) <= 3 for line in lines)
+
+
+def _merge_fragments(fragments: list[str], overlap: bool) -> str:
+    merged = ""
+    for frag in fragments:
+        if not merged:
+            merged = frag
+            continue
+        if len(frag) <= 3 and frag in merged[-12:]:
+            continue
+        k = next((k for k in range(min(len(frag), len(merged)) - 1, 0, -1) if merged.endswith(frag[:k])), 0) if overlap else 0
+        merged += frag[k:]
+    return merged
+
+
+def _segment_all(text: str, words: set[str], lenient: bool = False) -> str | None:
+    out, last_alpha = "", False
+    for part in re.findall(r"[A-Za-z]+|[^A-Za-z]+", text):
+        if not part[0].isalpha():
+            out += part
+            last_alpha = False
+            continue
+        pieces = _segment(part, words)
+        if len(pieces) == 1 and pieces[0].lower() not in words:
+            if not lenient or len(part) > 12 or not re.search(r"[AEIOUY]", part, re.I):
+                return None
+        if out.endswith(("’", "'")) and len(pieces[0]) > 1:
+            out += " "
+        out += (" " if last_alpha else "") + " ".join(pieces)
+        last_alpha = True
+    return out
+
+
+def _title_runs(lines: list[str]) -> list[tuple[list[str], int]]:
+    runs: list[tuple[list[str], int]] = []
+    run: list[str] = []
+    end = 0
+    for at, line in enumerate(lines):
+        if not line.strip():
+            continue
+        if _title_line(line):
+            run.append(line.strip())
+            end = at
+            continue
+        if run:
+            runs.append((run, end))
+            run = []
+    if run:
+        runs.append((run, end))
+    return runs
+
+
+def _close_up(run: list[str], words: set[str]) -> str | None:
+    fragments = [re.sub(r"\s+", "", line) for line in run]
+    candidates = []
+    for overlap in (True, False):
+        merged = _merge_fragments(fragments, overlap)
+        candidates.append(merged)
+        candidates.extend(merged[:at] + merged[at + 1:] for at in range(len(merged) - 1)
+                          if merged[at] == merged[at + 1] and merged[at].isalpha())
+    for lenient in (False, True):
+        read = [t for t in (_segment_all(c, words, lenient) for c in candidates) if t is not None]
+        if read:
+            return min(read, key=lambda t: len(t.split()))
+    return None
+
+
+def page_heading(page: str, dictionary: frozenset[str] | set[str] | None = None) -> tuple[str | None, list[str]]:
+    """The recipe title a page prints, read by rule, with the lines it is read from; (None, []) when the page prints
+    none. The title is a run of short lines in capitals (the page's INGREDIENTS and NUTRITION CONTENT headings aside; a
+    run followed by an ingredient line is a heading of the list, "DRESSING", "TOPPING"; a run in spaced letters before
+    any other), with the line after it when that starts with "with" ("BAKED FRIED CHICKEN BREAST with MIXED
+    VEGETABLES"). A title set in spaced letters comes through the text layer cut into overlapping pieces ("M I XE" /
+    "XED" / "D G R E E N S"): the pieces are closed up, their overlaps taken once, and the letters cut into the fewest
+    words of the page's own text (its title lines aside), the cookbook title words and the word list, a letter the layer
+    doubles taken once ("SKIIL LET" is SKILLET); a title that cannot be cut into known words is not read (staging
+    checkpoint 7, S23: the model read MIXED GREENS as "MIXED DEGREE GREENS" and lost "Breast" on page 13)."""
+    lines = page.split("\n")
+    runs = []
+    for run, end in _title_runs(lines):
+        following = next((line.strip() for line in lines[end + 1:] if line.strip()), "")
+        if AMOUNT_START.match(following) and not re.match(r"\d{1,2}$", following):
+            continue
+        runs.append((run, end, following))
+    if not runs:
+        return None, []
+    run, end, following = next((r for r in runs if _spaced(r[0])), runs[0])
+    if _spaced(run):
+        own = {w.lower() for line in run for w in re.findall(r"[A-Za-z]{2,}", line)}
+        page_words = {w.lower() for w in re.findall(r"[A-Za-z]{2,}", "\n".join(line for line in lines if line.strip() not in run))}
+        words = {w.lower() for w in TITLE_WORDS} | (page_words - own) | {w for w in dictionary or () if len(w) >= 3}
+        title = _close_up(run, words)
+        if title is None:
+            return None, []
+    else:
+        title = " ".join(run)
+    used = list(run)
+    if re.match(r"with\s", following, re.I) and len(following) <= 60:
+        title = f"{title} {following}"
+        used.append(following)
+    return re.sub(r"\s+", " ", title).strip(), used
+
+
+def page_title(page: str, dictionary: frozenset[str] | set[str] | None = None) -> str | None:
+    """The recipe title a page prints, read by rule (page_heading), or None."""
+    return page_heading(page, dictionary)[0]
+
+
+def _yield_sentence(line: str) -> tuple[str, str] | None:
+    found = YIELD_LINE.match(line)
+    if not found:
+        return None
+    amount = found.group("amount")
+    cut = re.search(r"\.\s+(?=[A-Z])", amount)
+    rest = line[found.start("amount") + cut.end():].strip() if cut else ""
+    amount = amount[:cut.start()] if cut else amount
+    if not re.search(r"\d", unicodedata.normalize("NFKC", amount)):
+        return None
+    return amount, rest
+
+
+def page_yield(page: str) -> str | None:
+    """The yield a page prints ("Makes 6 servings", "Makes about ⅓ cup."), as its amount ("6 servings"), or None. The
+    amount ends with its sentence: in "Makes 12 muffins. Bake 20 minutes." it is "12 muffins" (review of
+    ck16-hand-import, CK16-R3)."""
+    for line in page.split("\n"):
+        found = _yield_sentence(line)
+        if found:
+            return found[0]
+    return None
+
+
+def _after_yield(step: str) -> str:
+    """A step without a yield sentence it opens with: empty when the step is only that sentence, the rest of the step
+    when more follows ("Makes 12 muffins. Bake 20 minutes." is "Bake 20 minutes.")."""
+    found = _yield_sentence(" ".join(step.split()))
+    return step if found is None else found[1]
+
+
 def _segment(letters: str, words: frozenset[str] | set[str]) -> list[str]:
     best: list[list[str] | None] = [[]] + [None] * len(letters)
     for end in range(1, len(letters) + 1):
@@ -1179,21 +1789,35 @@ def _segment(letters: str, words: frozenset[str] | set[str]) -> list[str]:
     return best[-1] or [letters]
 
 
-def book_records(doc: dict, ask, paged: bool) -> tuple[list[tuple[dict, list[int]]], list[dict]]:
-    """Records of a book by the cookbook extraction: page by page (one recipe to a page) or in chunks cut at recipe
-    titles across pages, each record checked by its rules against its own recipe text and given the pages it spans."""
+def _span(offsets: list[tuple[int, int]], begin: int, length: int) -> list[int]:
+    span = sorted({page_at(offsets, begin), page_at(offsets, begin + max(0, length - 1))})
+    return list(range(span[0], span[-1] + 1))
+
+
+def book_records(doc: dict, ask, paged: bool, words: frozenset[str] | set[str] | None = None,
+                 result: Extraction | None = None) -> tuple[list[tuple[dict, list[int]]], list[dict]]:
+    """Records of a book: page by page by the model (one recipe to a page), or across pages first by rule and then by
+    the model for what the rules cannot split. In a book the recipes whose shape the rules read (title, ingredient
+    list, method) are kept by rule with the same checks a model's record passes; a recipe whose text fails the
+    readability test is not sent to the model and its pages are listed for the page image; only the rest goes to the
+    model, in chunks cut at recipe titles (staging checkpoint 7, S22: about 13,000 chunks for 98 books). Each record is
+    checked against its own recipe text and given the pages it spans. With result, the counts of rule records, model
+    calls, calls still to make and unreadable pages are added to it."""
     kept, rejects = [], []
+    stats = result if result is not None else Extraction()
     pages = [p for p in doc["pages"] if p["text"].strip()]
     if not pages:
         return kept, rejects
     if paged:
         for page in pages:
             chunk = cookbook.Chunk(0, len(page["text"]), page["text"], split=True)
+            stats.model_calls += 1
             for recipe, reason in _ask(ask, chunk):
                 if recipe is None:
                     rejects.append({"page": page["n"], **reason})
+                    stats.model_left += reason["reason"].startswith(LEFT_REASONS)
                     continue
-                record, why = paged_record(recipe, page["text"])
+                record, why = paged_record(recipe, page["text"], words)
                 if record is None:
                     rejects.append({"page": page["n"], "name": recipe.get("name"), "reason": why})
                 else:
@@ -1203,21 +1827,38 @@ def book_records(doc: dict, ask, paged: bool) -> tuple[list[tuple[dict, list[int
     for page in pages:
         offsets.append((len(text), page["n"]))
         text += page["text"].strip("\n") + "\n\n"
-    for chunk in cookbook.chunks(text):
+    found = cookbook.read_by_rule(text, words if words is not None else frozenset())
+    unreadable_pages: set[int] = set()
+    for block in found:
+        if block.outcome == "rule":
+            record = dict(block.record)
+            record.pop("split", None)
+            kept.append((record, _span(offsets, block.start, len(block.text.rstrip()))))
+            stats.by_rule += 1
+        elif block.outcome == "unreadable":
+            pages_of = _span(offsets, block.start, len(block.text.rstrip()))
+            unreadable_pages.update(pages_of)
+            stats.unreadable_blocks += 1
+            rejects.append({"page": pages_of[0], "name": block.title, "reason": block.reason})
+        elif block.outcome == "model":
+            stats.model_blocks += 1
+    stats.unreadable_pages = sorted(set(stats.unreadable_pages) | unreadable_pages)
+    for chunk in cookbook.model_chunks(found):
+        stats.model_calls += 1
         for recipe, reason in _ask(ask, chunk):
             if recipe is None:
                 rejects.append({"page": page_at(offsets, chunk.start), **reason})
+                stats.model_left += reason["reason"].startswith(LEFT_REASONS)
                 continue
-            record, why = cookbook.check_record(recipe, chunk, translate=False)
+            record, why = cookbook.check_record(recipe, chunk, translate=False, words=words)
             first = page_at(offsets, chunk.start)
             if record is None:
                 rejects.append({"page": first, "name": recipe.get("name"), "reason": why})
                 continue
             own = cookbook.recipe_text(chunk, record["name"]) or chunk.text
             begin = chunk.start + max(0, chunk.text.find(own))
-            span = sorted({page_at(offsets, begin), page_at(offsets, begin + max(0, len(own.rstrip()) - 1))})
             record.pop("split", None)
-            kept.append((record, list(range(span[0], span[-1] + 1))))
+            kept.append((record, _span(offsets, begin, len(own.rstrip()))))
     return kept, rejects
 
 
@@ -1227,6 +1868,10 @@ def _ask(ask, chunk) -> list[tuple[dict | None, dict | None]]:
         recipes = answer.get("recipes") if isinstance(answer, dict) else None
         if not isinstance(recipes, list):
             raise ValueError("no recipes list")
+    except CallBudgetSpent as exc:
+        return [(None, {"name": None, "reason": f"model call budget spent: {exc}; asked on the next run"})]
+    except NotAsked as exc:
+        return [(None, {"name": None, "reason": f"model call left: {exc}"})]
     except ModelHostBusy as exc:
         return [(None, {"name": None, "reason": f"model host busy: {exc}; not asked this run, asked on the next"})]
     except cookbook.ModelCallTimedOut as exc:
@@ -1234,12 +1879,139 @@ def _ask(ask, chunk) -> list[tuple[dict | None, dict | None]]:
     except cookbook.ModelCallFailed as exc:
         return [(None, {"name": None, "reason": f"model call failed: {exc}; asked again on the next run"})]
     except (ValueError, json.JSONDecodeError) as exc:
-        return [(None, {"name": None, "reason": f"unreadable answer: {exc}"})]
+        return [(None, {"name": None, "reason": f"unreadable answer: {exc}; never kept, asked again on the next run"})]
     return [(r, None) for r in recipes if isinstance(r, dict)]
 
 
 class ModelHostBusy(Exception):
     """The model host stayed in use by another job past the run's wait limit; nothing more is asked this run."""
+
+
+class CallBudgetSpent(ModelHostBusy):
+    """The run made its --max-calls model calls; nothing more is asked this run."""
+
+
+class NotAsked(ModelHostBusy):
+    """A call the plan counts and does not make."""
+
+
+class CallBudget:
+    """Model calls up to a budget for the run (--max-calls; 0 is no budget), so a long book run is cut into runs a day
+    apart: past the budget every call raises CallBudgetSpent, every answer kept stays, and the next run asks only what
+    is still missing (staging checkpoint 7, correction 2: the Library's extraction is a multi-day run)."""
+
+    def __init__(self, ask, limit: int):
+        self.ask = ask
+        self.limit = limit
+        self.made = 0
+        self.spent = False
+
+    def __call__(self, system: str, user: str) -> str:
+        if self.limit and self.made >= self.limit:
+            self.spent = True
+            raise CallBudgetSpent(f"{self.limit} calls made this run")
+        self.made += 1
+        return self.ask(system, user)
+
+
+class ModelQueue:
+    """One model step at a time per work folder: an extract run takes its turn on a lock file before it asks the model
+    and gives the turn to a run that waits for it after `turn` calls or at the end of a document, so NCI and the
+    Library of Congress take turns on the shared model host instead of asking it side by side (staging checkpoint 7,
+    correction 1: the two runs waited on each other's calls). A run that waits leaves a marker beside the lock and holds
+    a lock on it while it waits; the run holding the turn gives it up only when such a marker is there and held, and
+    waits until the other run has taken it. A marker no run holds was left by a run that was killed while it waited
+    (docker stop on PID 1 ends in SIGKILL, and no finally runs): it is no waiting run and is removed (review of
+    ck16-hand-import, CK16-R2)."""
+
+    def __init__(self, path: str, turn: int = 20, poll: float = 0.5, sleep: Callable[[float], None] = time.sleep,
+                 handover: float = 120.0):
+        self.path = path
+        self.turn = turn
+        self.poll = poll
+        self.sleep = sleep
+        self.handover = handover
+        self.handle = None
+        self.calls = 0
+        self.marker = f"{path}.waiting.{os.getpid()}.{uuid.uuid4().hex}"
+
+    @staticmethod
+    def _held(marker: str) -> bool:
+        import fcntl
+        try:
+            handle = open(marker, "r")
+        except FileNotFoundError:
+            return False
+        with handle:
+            try:
+                fcntl.flock(handle, fcntl.LOCK_EX | fcntl.LOCK_NB)
+            except BlockingIOError:
+                return True
+            try:
+                os.remove(marker)
+                log(f"removed a waiting marker no run holds ({marker}): its run was stopped while it waited")
+            except FileNotFoundError:
+                pass
+            return False
+
+    def _others(self) -> list[str]:
+        folder, base = os.path.split(self.path)
+        return [os.path.join(folder, n) for n in os.listdir(folder or ".")
+                if n.startswith(base + ".waiting.") and not n.endswith(".new") and os.path.join(folder, n) != self.marker
+                and self._held(os.path.join(folder, n))]
+
+    def acquire(self) -> None:
+        if self.handle is not None:
+            return
+        import fcntl
+        handle = open(self.path, "a+")
+        try:
+            fcntl.flock(handle, fcntl.LOCK_EX | fcntl.LOCK_NB)
+        except BlockingIOError:
+            mark = open(self.marker + ".new", "w")
+            fcntl.flock(mark, fcntl.LOCK_EX)
+            mark.write(str(os.getpid()))
+            mark.flush()
+            os.replace(self.marker + ".new", self.marker)
+            log(f"another extract run has the model turn ({self.path}); waiting for it")
+            try:
+                fcntl.flock(handle, fcntl.LOCK_EX)
+            finally:
+                try:
+                    os.remove(self.marker)
+                except FileNotFoundError:
+                    pass
+                mark.close()
+        self.handle = handle
+        self.calls = 0
+
+    def release(self) -> None:
+        if self.handle is None:
+            return
+        import fcntl
+        fcntl.flock(self.handle, fcntl.LOCK_UN)
+        self.handle.close()
+        self.handle = None
+
+    def turn_over(self) -> None:
+        """Gives the turn to a waiting run, if there is one, and waits until it has taken it."""
+        waiting = self._others()
+        if self.handle is None or not waiting:
+            return
+        self.release()
+        waited = 0.0
+        while waited < self.handover and any(self._held(m) for m in waiting):
+            self.sleep(self.poll)
+            waited += self.poll
+
+    def wrap(self, ask):
+        def call(system: str, user: str) -> str:
+            if self.handle is not None and self.calls >= self.turn:
+                self.turn_over()
+            self.acquire()
+            self.calls += 1
+            return ask(system, user)
+        return call
 
 
 def ollama_ps(host: str, timeout: int = 30) -> list[dict]:
@@ -1336,14 +2108,25 @@ def ocr_missing(missing: dict[str, int]) -> str:
             f"extract in the {IMAGE} image (ops/hand-import.Dockerfile, through ops/hand-import-box.sh), which has tesseract.")
 
 
-def extract_document(doc: dict, source: Source, ask=None) -> Extraction:
+def _no_host(system: str, user: str) -> str:
+    raise NotAsked("no model host given")
+
+
+def extract_document(doc: dict, source: Source, ask=None, words: frozenset[str] | set[str] | None = None) -> Extraction:
     """The records of one document, each checked against its page text and given its source link. A document with a page
-    that still needs OCR is not extracted: it is counted unparsed with the image that reads it."""
+    that still needs OCR is not extracted: it is counted unparsed with the image that reads it. A book is read with the
+    word list (the readability test); without one it is not extracted. Without a model host a book keeps what the rules
+    read, and the rest is counted as model calls left."""
     result = Extraction(pages=len(doc["pages"]))
     result.needs_ocr = sum(1 for p in doc["pages"] if p["method"] == "needs-ocr")
     if result.needs_ocr:
         result.unparsed.append({"doc": doc["doc"], "reason": f"needs OCR: {result.needs_ocr} pages have no text layer; run text in the {IMAGE} image"})
         return result
+    if doc["layout"] in ("book", "pages") and words is None:
+        words = cookbook.load_words()
+        if words is None:
+            result.unparsed.append({"doc": doc["doc"], "reason": f"no word list for the readability test (wamerican); run extract in the {IMAGE} image or give --words"})
+            return result
     found: list[tuple[dict, list[int]]] = []
     if doc["layout"] in ("card", "html"):
         text = "\n\n".join(p["text"] for p in doc["pages"])
@@ -1358,10 +2141,13 @@ def extract_document(doc: dict, source: Source, ask=None) -> Extraction:
             return result
         found.append((record, [p["n"] for p in doc["pages"] if p["text"].strip()][:1] or [1]))
     else:
-        if ask is None:
+        if ask is None and doc["layout"] == "pages":
             result.unparsed.append({"doc": doc["doc"], "reason": "a book needs the model host (--host, --model)"})
             return result
-        kept, rejects = book_records(doc, ask, paged=doc["layout"] == "pages")
+        kept, rejects = book_records(doc, ask or _no_host, paged=doc["layout"] == "pages", words=words, result=result)
+        if ask is None and result.model_calls:
+            result.unparsed.append({"doc": doc["doc"], "reason": "a book needs the model host (--host, --model)"})
+            rejects = [r for r in rejects if not r["reason"].startswith("model call left")]
         found.extend(kept)
         result.rejects.extend({"doc": doc["doc"], **r} for r in rejects)
     doc = {**doc, "multi": doc["layout"] in ("book", "pages")}
@@ -1404,7 +2190,49 @@ def summarize(results: dict[str, list[tuple[str, Extraction]]]) -> dict:
             "kept": sum(len(r.kept) for _, r in items), "dropped": sum(len(r.rejects) for _, r in items),
             "droppedByReason": dict(sorted(reasons.items())), "unparsedDocuments": sum(len(r.unparsed) for _, r in items),
         }
+        if any(r.model_calls or r.by_rule for _, r in items):
+            out[source].update({
+                "keptByRule": sum(r.by_rule for _, r in items), "modelCalls": sum(r.model_calls for _, r in items),
+                "modelCallsLeft": sum(r.model_left for _, r in items),
+                "unreadablePages": sum(len(r.unreadable_pages) for _, r in items),
+            })
+            left = {doc: r.model_left for doc, r in items if r.model_left}
+            if left:
+                out[source]["modelCallsLeftByDocument"] = left
     return out
+
+
+def rule_share(result: Extraction) -> float:
+    """How well the rules read a book: the share of its recipes read by rule, of those read by rule, left to the model
+    and too damaged to read."""
+    found = result.by_rule + result.model_blocks + result.unreadable_blocks
+    return result.by_rule / found if found else 0.0
+
+
+def status_row(doc_id: str, result: Extraction) -> dict:
+    """A book's state after a run: what the rules kept, the model calls made and still to make, its unreadable pages."""
+    return {"doc": doc_id, "ruleShare": round(rule_share(result), 3), "keptByRule": result.by_rule, "kept": len(result.kept),
+            "dropped": len(result.rejects), "modelCalls": result.model_calls, "modelCallsLeft": result.model_left,
+            "unreadablePages": result.unreadable_pages, "done": result.model_left == 0 and not result.unparsed,
+            "at": datetime.now(timezone.utc).isoformat(timespec="seconds")}
+
+
+def answered_only(checkpoint: str, model: str):
+    """A model call that only reads the answers a checkpoint file holds (the plan): a chunk not answered yet is counted
+    as a call left, never asked."""
+    def nothing(system: str, user: str) -> str:
+        raise NotAsked("not asked by the plan")
+    return cookbook.resumable(nothing, checkpoint, retries=0, model=model or "")
+
+
+def plan_rows(docs: list[dict], sources: dict[str, Source], words, model: str, out_dir: str) -> list[dict]:
+    """Every book of the run with what the rules read, the model calls it needs and the calls still left with --model,
+    in the order the extraction takes them: the books the rules read best first, then the fewest calls left."""
+    rows = []
+    for doc in docs:
+        result = extract_document(doc, sources[doc["source"]], answered_only(os.path.join(out_dir, f"{doc['doc']}.answers.jsonl"), model), words)
+        rows.append(status_row(doc["doc"], result))
+    return sorted(rows, key=lambda r: (-r["ruleShare"], r["modelCallsLeft"], r["doc"]))
 
 
 def hand_bodies(sources: dict[str, Source]) -> list[dict]:
@@ -1467,20 +2295,37 @@ def api(args):
     return attach.paced(client.post, attach.Pacer(per_minute=args.per_minute, per_hour=args.per_hour))
 
 
+def queue_path(out: str) -> str:
+    """The model queue's lock file: in the image's work folder (/work) when --out is in it, so every run on that folder
+    shares it, else in --out."""
+    real = os.path.realpath(out)
+    if real == "/work" or real.startswith("/work/"):
+        return "/work/model-queue.lock"
+    return os.path.join(out, "model-queue.lock")
+
+
 def main(argv: list[str] | None = None) -> int:
     parser = argparse.ArgumentParser(description="Hand import of the approved PDF and scanned recipe sources (see the module docstring).")
     sub = parser.add_subparsers(dest="command", required=True)
-    for name in ("fetch", "links", "text", "extract", "sample", "stage"):
+    for name in ("fetch", "links", "text", "images", "plan", "extract", "sample", "stage"):
         p = sub.add_parser(name)
         p.add_argument("--out", required=True, help="the download folder, outside the repository")
         p.add_argument("--source", choices=None)
         p.add_argument("--books", default=BOOKS_CSV)
         p.add_argument("--sources", default=SOURCES_CSV)
-        if name == "fetch":
+        if name in ("fetch", "images"):
             p.add_argument("--limit", type=int, default=0)
+        if name in ("text", "images", "plan", "extract"):
+            p.add_argument("--words", help="the word list of the readability test (default: SCOWL's american-english from wamerican)")
+        if name in ("plan", "extract"):
+            p.add_argument("--model")
         if name == "extract":
             p.add_argument("--host")
-            p.add_argument("--model")
+            p.add_argument("--max-calls", type=int, default=0, help="model calls this run may make (default 0: no budget); past it the "
+                                                                    "run stops and keeps every answer, and the next run goes on")
+            p.add_argument("--queue", help="the lock file runs on one work folder take turns on for the model (default: "
+                                           "model-queue.lock in /work, or in --out outside the image)")
+            p.add_argument("--turn", type=int, default=20, help="model calls a run makes before it gives the turn to a waiting run (default 20)")
             p.add_argument("--timeout", type=int, default=600, help="seconds one model call may take (default 600)")
             p.add_argument("--retries", type=int, default=2, help="times a failed model call is asked again (default 2); in pages mode a "
                                                                    "call that times out is not asked again in the run")
@@ -1530,8 +2375,7 @@ def main(argv: list[str] | None = None) -> int:
 
     books = [b for b in load_books(args.books, sources) if not args.source or b.source == args.source]
     if args.command in ("fetch", "links"):
-        allowed = {host: s.min_delay for s in sources.values() for host in s.hosts}
-        fetcher = Fetcher(allowed, groups={host: s.source for s in sources.values() for host in s.hosts})
+        fetcher = fetcher_for(sources)
         if args.command == "links":
             rows = links(books, sources, fetcher, args.source)
             writer = csv.DictWriter(sys.stdout, fieldnames=["doc_id", "source", "kind", "url", "layout", "title", "attribution"])
@@ -1548,52 +2392,96 @@ def main(argv: list[str] | None = None) -> int:
     store = Store(args.out)
     text_dir = os.path.join(args.out, "text")
     os.makedirs(text_dir, exist_ok=True)
+    words = cookbook.load_words([args.words] if getattr(args, "words", None) else None) if args.command in ("text", "images", "plan", "extract") else None
     if args.command == "text":
         if any(b.kind == "pdf" for b in books) and not have("pdftotext"):
             raise SystemExit(f"pdftotext (poppler-utils) is not installed: run the PDF sources in the {IMAGE} image (ops/hand-import-box.sh)")
-        counts: Counter = Counter()
+        if words is None and any(b.kind == "loc-item" for b in books):
+            log(f"no word list (wamerican): the Library's pages are not read for readability; run text in the {IMAGE} image or give --words")
+        counts: Counter = Counter(partialImagesDeleted=delete_partial_images(store))
         missing: dict[str, int] = {}
+        image_unread: dict[str, int] = {}
         for book in books:
             if book.kind == "index":
                 continue
-            doc = text_document(book, store)
+            pages_path = os.path.join(text_dir, f"{book.doc_id}.pages.json")
+            earlier = None
+            if book.kind == "loc-item" and os.path.exists(pages_path):
+                with open(pages_path, encoding="utf-8") as handle:
+                    earlier = json.load(handle)
+            doc = text_document(book, store, words=words, earlier=earlier)
             if doc is None:
                 counts["notFetched"] += 1
                 continue
-            with open(os.path.join(text_dir, f"{book.doc_id}.pages.json"), "w", encoding="utf-8") as handle:
+            with open(pages_path, "w", encoding="utf-8") as handle:
                 json.dump(doc, handle, ensure_ascii=False)
+            if book.kind == "loc-item":
+                counts["imagesDeleted"] += delete_read_images(book, store, doc)
             counts["documents"] += 1
             counts.update(p["method"] for p in doc["pages"])
+            counts["pagesNeedingImage"] += sum(1 for p in doc["pages"] if p.get("needsImage") and p["method"] == "loc-ocr")
             unread = sum(1 for p in doc["pages"] if p["method"] == "needs-ocr")
             if unread:
                 missing[book.doc_id] = unread
-        print(json.dumps(dict(counts), indent=2))
+            if doc.get("imageUnread"):
+                image_unread[book.doc_id] = len(doc["imageUnread"])
+        print(json.dumps({k: v for k, v in counts.items() if v or k not in ("pagesNeedingImage", "imagesDeleted", "partialImagesDeleted")}, indent=2))
         if missing:
             log(ocr_missing(missing))
-            return STOPPED
-        return 0
+        if image_unread:
+            log(f"{sum(image_unread.values())} page images were fetched and not read, tesseract is not installed here: "
+                f"{', '.join(f'{d} ({n})' for d, n in sorted(image_unread.items()))}. Run text in the {IMAGE} image.")
+        return STOPPED if missing or image_unread else 0
+    if args.command == "images":
+        report = images(books, sources, store, fetcher_for(sources), text_dir, args.limit, words)
+        print(json.dumps(report, indent=2, ensure_ascii=False))
+        return 2 if report["refused"] else 0
 
     out_dir = os.path.join(args.out, "records")
     os.makedirs(out_dir, exist_ok=True)
     by_id = {b.doc_id: b for b in books}
+    texts: dict[str, dict] = {}
+    for book in books:
+        path = os.path.join(text_dir, f"{book.doc_id}.pages.json")
+        if book.kind != "index" and os.path.exists(path):
+            with open(path, encoding="utf-8") as handle:
+                texts[book.doc_id] = json.load(handle)
+    if args.command == "plan":
+        rows = plan_rows([texts[b.doc_id] for b in books if b.doc_id in texts and b.layout == "book"], sources, words, args.model, out_dir)
+        with open(os.path.join(args.out, "extract-plan.json"), "w", encoding="utf-8") as handle:
+            json.dump(rows, handle, indent=2)
+        print(json.dumps({"books": len(rows), "keptByRule": sum(r["keptByRule"] for r in rows),
+                          "modelCalls": sum(r["modelCalls"] for r in rows), "modelCallsLeft": sum(r["modelCallsLeft"] for r in rows),
+                          "unreadablePages": sum(len(r["unreadablePages"]) for r in rows), "order": rows}, indent=2))
+        return 0
     if args.command == "extract":
         model = cookbook.ollama(args.host, args.model, timeout=args.timeout) if args.host and args.model else None
         gate = HostGate(model, lambda: host_in_use(lambda: ollama_ps(args.host), args.probe,
                                                    answers=lambda: ollama_answers(args.host, args.model, args.answer_within)),
                         args.wait_limit * 60, args.wait_poll) if model else None
+        queue = ModelQueue(args.queue or queue_path(args.out), turn=args.turn) if model else None
+        budget = CallBudget(queue.wrap(gate), args.max_calls) if model else None
+        order = {r["doc"]: i for i, r in enumerate(plan_rows([texts[b.doc_id] for b in books if b.doc_id in texts and b.layout == "book"],
+                                                            sources, words, args.model, out_dir))}
+        ordered = sorted((b for b in books if b.doc_id in texts), key=lambda b: (b.layout == "book", order.get(b.doc_id, 0)))
         results: dict[str, list[tuple[str, Extraction]]] = defaultdict(list)
-        for book in books:
-            path = os.path.join(text_dir, f"{book.doc_id}.pages.json")
-            if book.kind == "index" or not os.path.exists(path):
-                continue
-            with open(path, encoding="utf-8") as handle:
-                doc = json.load(handle)
-            ask = cookbook.resumable(gate, os.path.join(out_dir, f"{book.doc_id}.answers.jsonl"), retries=args.retries, model=args.model,
-                                     retry_timeouts=book.layout != "pages") if model else None
-            result = extract_document(doc, sources[book.source], ask)
-            results[book.source].append((book.doc_id, result))
-            write_jsonl(os.path.join(out_dir, f"{book.doc_id}.records.jsonl"), result.kept)
-            write_jsonl(os.path.join(out_dir, f"{book.doc_id}.rejects.jsonl"), result.rejects + result.unparsed)
+        try:
+            for book in ordered:
+                doc = texts[book.doc_id]
+                ask = cookbook.resumable(budget, os.path.join(out_dir, f"{book.doc_id}.answers.jsonl"), retries=args.retries, model=args.model,
+                                         retry_timeouts=book.layout != "pages") if model else None
+                result = extract_document(doc, sources[book.source], ask, words)
+                results[book.source].append((book.doc_id, result))
+                write_jsonl(os.path.join(out_dir, f"{book.doc_id}.records.jsonl"), result.kept)
+                write_jsonl(os.path.join(out_dir, f"{book.doc_id}.rejects.jsonl"), result.rejects + result.unparsed)
+                if book.layout in ("book", "pages"):
+                    with open(os.path.join(out_dir, f"{book.doc_id}.status.json"), "w", encoding="utf-8") as handle:
+                        json.dump(status_row(book.doc_id, result), handle, indent=2)
+                if queue is not None:
+                    queue.turn_over()
+        finally:
+            if queue is not None:
+                queue.release()
         summary = summarize(results)
         with open(os.path.join(args.out, "extract-summary.json"), "w", encoding="utf-8") as handle:
             json.dump(summary, handle, indent=2)
@@ -1604,16 +2492,13 @@ def main(argv: list[str] | None = None) -> int:
         if gate is not None and gate.exhausted:
             log(f"the model host at {args.host} stayed in use by another job past --wait-limit {args.wait_limit:g} minutes: the pages and "
                 f"chunks not asked are counted as 'model host busy'; every answer is kept, so run extract again to ask only those")
-        return STOPPED if missing or (gate is not None and gate.exhausted) else 0
+        if budget is not None and budget.spent:
+            log(f"the run made its --max-calls {args.max_calls} model calls: the chunks not asked are counted as 'model call budget spent'; "
+                f"every answer is kept, so run extract again (another day) to go on")
+        return STOPPED if missing or (gate is not None and gate.exhausted) or (budget is not None and budget.spent) else 0
 
     records = [row for book in books for row in read_jsonl(os.path.join(out_dir, f"{book.doc_id}.records.jsonl"))]
     if args.command == "sample":
-        texts = {}
-        for book in books:
-            path = os.path.join(text_dir, f"{book.doc_id}.pages.json")
-            if os.path.exists(path):
-                with open(path, encoding="utf-8") as handle:
-                    texts[book.doc_id] = json.load(handle)
         rows = judged_sample(records, texts, args.per_source, args.seed)
         writer = csv.DictWriter(sys.stdout, fieldnames=list(rows[0]) if rows else ["source"])
         writer.writeheader()

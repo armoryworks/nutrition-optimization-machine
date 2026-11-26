@@ -2,6 +2,7 @@ using System;
 using System.Collections.Generic;
 using System.Globalization;
 using System.Linq;
+using System.Threading;
 using System.Threading.Tasks;
 using FluentAssertions;
 using Microsoft.EntityFrameworkCore;
@@ -173,6 +174,140 @@ namespace Nom.Api.Tests.Services
             await Wordings(db).LoadAsync(new[] { Row("franco-american spaghetti", k.Sauce) }, Batch, apply: true);
             await Relink(db).LinkVerifiedWordingsAsync(apply: true, batch: Batch);
             (await LinesAsync(db)).Should().Be(before, "the round trip leaves every line where it was");
+        }
+
+        [Fact]
+        public async Task An_undo_puts_back_a_move_that_raised_flags_only_by_the_operators_explicit_choice_listed_by_its_dry_run_and_journaled()
+        {
+            using var db = NewContext();
+            var since = DateTime.UtcNow.AddSeconds(-1);
+            var k = await LoadedAsync(db);
+
+            var held = await Relink(db).UndoAsync(since, apply: false);
+            (held.HeldByDiet, held.RestoredLowering, held.RestoreLowered).Should().Be((1, 0, false), "by default the way back that lowers the tomato flag is held");
+            var dry = await Relink(db).UndoAsync(since, apply: false, restoreLowered: true);
+            (dry.HeldByDiet, dry.RestoredLowering, dry.RestoreLowered).Should().Be((0, 1, true));
+            dry.LoweringMoves.Should().ContainSingle(m => m.RecipeId == k.Supper.Id && m.FromId == k.Sauce.Id && m.ToId == k.Franco.Id && m.Types.Contains("Nightshade Sensitivity"),
+                "the dry run lists every move the operator's choice would let lower a flag");
+            (await FoodOfAsync(db, k.Supper.Id)).Should().Be(k.Sauce.Id, "a dry run writes nothing");
+
+            var applied = await Relink(db).UndoAsync(since, apply: true, restoreLowered: true);
+
+            (applied.Restored, applied.RestoredLowering, applied.HeldByDiet).Should().Be((1, 1, 0));
+            (await FoodOfAsync(db, k.Supper.Id)).Should().Be(k.Franco.Id, "staging checkpoint 7, S9: the undo restores the exact journaled earlier state when the operator chooses it");
+            var journal = await db.AuditLogEntries.AsNoTracking().SingleAsync(a => a.ChangeType == LineRelinkService.LoweredByUndoChangeType);
+            (journal.EntityType, journal.EntityId, journal.OldValue).Should().Be((LineRelinkService.LoweredByUndoEntityType, k.Supper.Id, LineRelinkService.Place(k.Sauce.Id, 0)));
+            journal.NewValue.Should().Contain("Nightshade Sensitivity");
+        }
+
+        [Fact]
+        public async Task An_undo_that_chose_to_restore_journals_no_lowering_for_a_move_the_writer_could_not_make()
+        {
+            using var db = NewContext();
+            var since = DateTime.UtcNow.AddSeconds(-1);
+            var k = await LoadedAsync(db);
+            db.Ingredients.Add(Uncurated("franco-american spaghetti"));
+            await db.SaveChangesAsync();
+
+            var applied = await Relink(db).UndoAsync(since, apply: true, restoreLowered: true);
+
+            (await FoodOfAsync(db, k.Supper.Id)).Should().Be(k.Sauce.Id, "the retired food cannot come back under a name another food took, so the line has nowhere to go");
+            (applied.Restored, applied.RestoredLowering).Should().Be((0, 0), "a move the writer did not make lowered nothing (review ck16-r3)");
+            applied.LoweringMoves.Should().BeEmpty();
+            (await db.AuditLogEntries.AsNoTracking().AnyAsync(a => a.ChangeType == LineRelinkService.LoweredByUndoChangeType)).Should().BeFalse();
+        }
+
+        private sealed class StopOnLine : SaveChangesInterceptor
+        {
+            public long? Recipe { get; set; }
+
+            public override ValueTask<InterceptionResult<int>> SavingChangesAsync(DbContextEventData eventData, InterceptionResult<int> result, CancellationToken cancellationToken = default)
+            {
+                if (Recipe is { } id && eventData.Context!.ChangeTracker.Entries<RecipeIngredientEntity>().Any(e => e.State == EntityState.Added && e.Entity.RecipeId == id))
+                    throw new InvalidOperationException("the process stops");
+                return base.SavingChangesAsync(eventData, result, cancellationToken);
+            }
+        }
+
+        [Fact]
+        public async Task An_undo_that_restores_lowering_moves_journals_each_with_its_move_so_a_stop_part_way_leaves_none_unjournaled()
+        {
+            var stop = new StopOnLine();
+            using var db = new ApplicationDbContext(new DbContextOptionsBuilder<ApplicationDbContext>()
+                .UseInMemoryDatabase(Guid.NewGuid().ToString())
+                .ConfigureWarnings(w => w.Ignore(InMemoryEventId.TransactionIgnoredWarning))
+                .AddInterceptors(stop)
+                .Options);
+            var since = DateTime.UtcNow.AddSeconds(-1);
+            var sauce = Curated("Pasta with tomato sauce, no meat, canned");
+            var franco = Uncurated("franco-american spaghetti");
+            db.Ingredients.AddRange(sauce, franco);
+            await db.SaveChangesAsync();
+            db.Recipes.AddRange(Enumerable.Range(0, 510).Select(i => Scraped("Supper " + i, (franco, Franco))));
+            await db.SaveChangesAsync();
+            await Wordings(db).LoadAsync(new[] { Row("franco-american spaghetti", sauce) }, Batch, apply: true);
+            (await Relink(db).LinkVerifiedWordingsAsync(apply: true, batch: Batch)).Moved.Should().Be(510);
+            stop.Recipe = await db.AuditLogEntries.AsNoTracking()
+                .Where(a => a.EntityType == LineRelinkService.RelinkEntityType && a.ChangeType == LineRelinkService.RelinkChangeType)
+                .OrderBy(a => a.Id).Select(a => a.EntityId).FirstAsync();
+            db.ChangeTracker.Clear();
+
+            await FluentActions.Awaiting(() => Relink(db).UndoAsync(since, apply: true, restoreLowered: true)).Should().ThrowAsync<InvalidOperationException>();
+
+            stop.Recipe = null;
+            db.ChangeTracker.Clear();
+            var back = await db.RecipeIngredients.AsNoTracking().CountAsync(ri => ri.IngredientId == franco.Id);
+            back.Should().BeGreaterThan(500, "the first chunk and part of the second were put back before the process stopped");
+            (await db.AuditLogEntries.AsNoTracking().CountAsync(a => a.ChangeType == LineRelinkService.LoweredByUndoChangeType)).Should().Be(back,
+                "every line put back with a lowered flag is journaled with its move, never after the whole sweep (review ck16-r2)");
+        }
+
+        [Fact]
+        public async Task A_take_back_of_a_plain_drink_lowers_no_severe_type_its_old_food_flags_by_a_statement()
+        {
+            using var db = NewContext();
+            var blend = new IngredientEntity { Name = "Evening Blend", CurationStatusId = (long)CurationStatusEnum.Curated, FdcCategoryId = 22 };
+            db.Ingredients.Add(blend);
+            await db.SaveChangesAsync();
+            await DefaultRestrictionCriteria.EnsureAsync(db);
+            await new PreparedContentsService(db).RecordAsync(new[] { new ContentsStatement(blend.Id, PreparedContentsService.FdcSource("100001"), "Irish whiskey, milk, sugar") }, "fdc-contents-test", apply: true);
+            (await db.Ingredients.SingleAsync(i => i.Id == blend.Id)).FdcCategoryId = 14;
+            await db.SaveChangesAsync();
+            db.ChangeTracker.Clear();
+            var guard = await LineMoveDietGuard.LoadAsync(db);
+
+            (await guard.SevereLoweredToNameAsync(blend.Id, "the blend", "1 cup of the blend")).Should().Contain("Milk Allergy", "the statement's milk is read from the food's data, not its name");
+            (await guard.SevereLoweredToNameAsync(blend.Id, "brandy", "1 cup brandy")).Should().BeEmpty("a plain drink's own name accounts for every type (review ck16-r4)");
+        }
+
+        [Fact]
+        public async Task An_unloads_dry_run_counts_what_its_apply_does_with_a_food_it_brings_back_and_a_landing_it_moves_back_onto_that_food()
+        {
+            using var db = NewContext();
+            var sauce = Curated("Tomato Sauce");
+            var mix = Uncurated("tomato soup mix");
+            db.Ingredients.AddRange(sauce, mix);
+            await db.SaveChangesAsync();
+            var soup = Scraped("Soup", (mix, "1 packet tomato soup mix"));
+            db.Recipes.Add(soup);
+            await db.SaveChangesAsync();
+            await Wordings(db).LoadAsync(new[] { Row("tomato soup mix", sauce) }, Batch, apply: true);
+            (await Relink(db).LinkVerifiedWordingsAsync(apply: true, batch: Batch)).Moved.Should().Be(1);
+            db.ChangeTracker.Clear();
+            (await db.Ingredients.IgnoreQueryFilters().AsNoTracking().SingleAsync(i => i.Id == mix.Id)).IsDeleted.Should().BeTrue("the relink retired the uncurated food of the wording");
+            var landed = await ImportAsync(db, "tomato soup mix", "1 packet tomato soup mix");
+            (await FoodOfAsync(db, landed.Id)).Should().Be(sauce.Id);
+
+            var dry = await Wordings(db).UnloadAsync(Batch, apply: false, withLines: true);
+            var applied = await Wordings(db).UnloadAsync(Batch, apply: true, withLines: true);
+
+            (applied.Lines!.Undone!.Restored, applied.Lines.HeldByDiet, applied.Lines.LandingsMovedBack).Should().Be((1, 0, 1),
+                "brought back, the uncurated food still names the tomato, so neither the move nor the landing lowers a flag");
+            (dry.Lines!.HeldByDiet, dry.Lines.LandingsMovedBack, dry.Lines.LandingsKept, dry.Lines.LandingsSkipped)
+                .Should().Be((applied.Lines.HeldByDiet, applied.Lines.LandingsMovedBack, applied.Lines.LandingsKept, applied.Lines.LandingsSkipped),
+                    "staging checkpoint 7, S10: the dry run read the retired food as dead and counted no landing moved back, so it differed from its apply");
+            (await FoodOfAsync(db, soup.Id)).Should().Be(mix.Id);
+            (await FoodOfAsync(db, landed.Id)).Should().Be(mix.Id);
         }
 
         [Fact]
@@ -432,6 +567,21 @@ namespace Nom.Api.Tests.Services
             (dry.Unsplit, dry.HeldByDiet, dry.Skipped).Should().Be((0, 1, 0));
             (undone.Unsplit, undone.HeldByDiet, undone.Skipped).Should().Be((0, 1, 0), "review CK10S-6: the unsplit passes the guard with the joined line it puts back");
             (await LinesAsync(db)).Should().Be(before);
+        }
+
+        [Fact]
+        public async Task The_guard_holds_a_move_off_a_made_product_whose_brands_are_split_as_the_store_holds_its_recipe_unknown()
+        {
+            using var db = NewContext();
+            var cubes = Curated("Chicken Bouillon Cubes", "171563");
+            var salt = Curated("Salt");
+            db.Ingredients.AddRange(cubes, salt);
+            await db.SaveChangesAsync();
+            BrandedConsensus.ForFood(cubes.Name, cubes.FdcId).Should().Contain(r => r.Class == "wheat" && r.Verdict == BrandedConsensus.Split);
+            var guard = await LineMoveDietGuard.LoadAsync(db);
+
+            (await guard.LoweredAsync(cubes.Id, salt.Id, "2 cubes")).Should().Contain("Wheat Allergy", "review ck18-guard-ignores-split: the store holds a recipe on a split food as unknown, so a move to a clear food lowers it");
+            (await guard.LoweredAsync(salt.Id, cubes.Id, "2 cubes")).Should().BeEmpty("a move onto the split food raises the hold");
         }
     }
 }

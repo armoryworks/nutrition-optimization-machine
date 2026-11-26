@@ -149,8 +149,84 @@ namespace Nom.Api.Tests.Golden
             working.Concat(heldOut).Should().BeEquivalentTo(ids);
             working.Select(ModelLanes.SplitRow).Should().NotIntersectWith(heldOut.Select(ModelLanes.SplitRow));
             ids.Should().OnlyContain(id => ModelLanes.InSplit(id, ModelLanes.SplitAll));
-            var other = () => ModelLanes.RunAsync(ModelLanes.LinkVerify, GoldenSet.Folder, null!, null!, null, _ => { }, split: ModelLanes.SplitWorking);
+            var other = () => ModelLanes.RunAsync(ModelLanes.LineClassify, GoldenSet.Folder, null!, null!, null, _ => { }, split: ModelLanes.SplitWorking);
             await other.Should().ThrowAsync<ArgumentException>();
+        }
+
+        [Fact]
+        public async Task The_link_pick_scorer_answers_by_rule_what_the_lane_answers_by_rule_and_asks_the_model_only_the_rest_of_its_half()
+        {
+            var handler = new NonePickHandler();
+            using var http = new HttpClient(handler);
+            var (_, staples) = ModelLanes.UsdaMatcher(GoldenSet.Folder);
+            var cases = ModelLanes.PickCases(GoldenSet.Folder).Where(c => ModelLanes.InSplit(c.Id, ModelLanes.SplitWorking)).ToList();
+            var none = cases.Where(c => Nom.Orch.Services.Support.LinkPickRules.RuleNone(c.Name) != null).Select(c => c.Id).ToHashSet();
+            var staple = cases.Where(c => !none.Contains(c.Id) && Nom.Orch.Services.Support.LinkPickRules.RuleTarget(c.Name, staples) != null).Select(c => c.Id).ToHashSet();
+
+            var results = await ModelLanes.RunAsync(ModelLanes.LinkPick, GoldenSet.Folder, http, ModelLanes.Config("http://model.invalid", "m"), null, _ => { }, split: ModelLanes.SplitWorking);
+
+            none.Should().NotBeEmpty();
+            staple.Should().NotBeEmpty();
+            results.Select(r => r.Id).Should().BeEquivalentTo(cases.Select(c => c.Id));
+            results.Where(r => none.Contains(r.Id)).Should().OnlyContain(r => r.Actual == "none");
+            results.Where(r => staple.Contains(r.Id)).Should().OnlyContain(r => r.Actual != "none");
+            handler.Asked.Should().HaveCount(cases.Count - none.Count - staple.Count);
+            handler.Asked.Should().NotContain(name => none.Contains("pick:" + name) || staple.Contains("pick:" + name));
+        }
+
+        [Fact]
+        public async Task The_link_verify_scorer_answers_by_rule_what_the_lane_answers_by_rule_and_asks_the_model_only_the_rest_of_its_half()
+        {
+            var handler = new SameVerifyHandler();
+            using var http = new HttpClient(handler);
+            var cases = ModelLanes.VerifyCases(GoldenSet.Folder).Where(c => ModelLanes.InSplit(c.Id, ModelLanes.SplitWorking)).ToList();
+            var several = cases.Where(c => Nom.Orch.Services.Support.LinkVerifyRules.Before(c.Wording) != null).Select(c => c.Id).ToHashSet();
+            var refused = cases.Where(c => !several.Contains(c.Id) && Nom.Orch.Services.Support.LinkVerifyRules.After(c.Wording, c.Description, Nom.Orch.Interfaces.LinkJudgement.Same) != Nom.Orch.Interfaces.LinkJudgement.Same).ToDictionary(c => c.Id, c => Nom.Orch.Services.Support.LinkVerifyRules.After(c.Wording, c.Description, Nom.Orch.Interfaces.LinkJudgement.Same).ToString());
+
+            var results = await ModelLanes.RunAsync(ModelLanes.LinkVerify, GoldenSet.Folder, http, ModelLanes.Config("http://model.invalid", "m"), null, _ => { }, split: ModelLanes.SplitWorking);
+
+            several.Should().NotBeEmpty();
+            refused.Should().NotBeEmpty();
+            results.Select(r => r.Id).Should().BeEquivalentTo(cases.Select(c => c.Id));
+            results.Where(r => several.Contains(r.Id)).Should().OnlyContain(r => r.Actual == nameof(Nom.Orch.Interfaces.LinkJudgement.MoreThanOneFood));
+            results.Where(r => refused.ContainsKey(r.Id)).Should().OnlyContain(r => r.Actual == refused[r.Id]);
+            results.Where(r => !several.Contains(r.Id) && !refused.ContainsKey(r.Id)).Should().OnlyContain(r => r.Actual == nameof(Nom.Orch.Interfaces.LinkJudgement.Same));
+            handler.Asked.Should().HaveCount(cases.Count - several.Count);
+            handler.Calls.Should().OnlyContain(n => n <= Nom.Orch.Services.IngredientLinkService.PairsPerVerifyCall, "the scorer asks as many pairs to a call as the lane");
+            ModelLanes.VerifyCases(GoldenSet.Folder).Should().NotContain(c => c.Wording == "teaspoonful of salt", "the judge is asked the wording as the lane normalises it");
+        }
+
+        private sealed class SameVerifyHandler : HttpMessageHandler
+        {
+            public List<string> Asked { get; } = new();
+            public List<int> Calls { get; } = new();
+
+            protected override async Task<HttpResponseMessage> SendAsync(HttpRequestMessage request, CancellationToken cancellationToken)
+            {
+                var messages = JsonDocument.Parse(await request.Content!.ReadAsStringAsync(cancellationToken)).RootElement.GetProperty("messages");
+                var user = messages.EnumerateArray().Last().GetProperty("content").GetString()!;
+                var names = System.Text.RegularExpressions.Regex.Matches(user, "^  ingredient: \"(.*)\"$", System.Text.RegularExpressions.RegexOptions.Multiline).Select(m => m.Groups[1].Value).ToList();
+                Asked.AddRange(names);
+                Calls.Add(names.Count);
+                var results = string.Join(",", names.Select((_, i) => $"{{\"n\":{i + 1},\"verdict\":\"same\"}}"));
+                var content = JsonSerializer.Serialize(new { message = new { content = $"{{\"results\":[{results}]}}" } });
+                return new HttpResponseMessage(HttpStatusCode.OK) { Content = new StringContent(content) };
+            }
+        }
+
+        private sealed class NonePickHandler : HttpMessageHandler
+        {
+            public List<string> Asked { get; } = new();
+
+            protected override async Task<HttpResponseMessage> SendAsync(HttpRequestMessage request, CancellationToken cancellationToken)
+            {
+                var prompt = JsonDocument.Parse(await request.Content!.ReadAsStringAsync(cancellationToken)).RootElement.GetProperty("prompt").GetString()!;
+                var names = System.Text.RegularExpressions.Regex.Matches(prompt, "^#\\d+ \"(.*)\"$", System.Text.RegularExpressions.RegexOptions.Multiline).Select(m => m.Groups[1].Value).ToList();
+                Asked.AddRange(names);
+                var answers = string.Join(",", names.Select((_, i) => $"{{\"n\":{i + 1},\"food\":\"x\",\"pick\":0,\"confidence\":0.5}}"));
+                var content = JsonSerializer.Serialize(new { response = $"{{\"answers\":[{answers}]}}" });
+                return new HttpResponseMessage(HttpStatusCode.OK) { Content = new StringContent(content) };
+            }
         }
 
         [Fact]

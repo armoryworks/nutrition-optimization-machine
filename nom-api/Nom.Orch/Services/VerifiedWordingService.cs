@@ -18,7 +18,8 @@ namespace Nom.Orch.Services
     /// <summary>
     /// Loads reviewed wording verdicts into recipe.IngredientWording. Each row added, changed or
     /// taken out is one audit entry (EntityType IngredientWording, ChangeType WordingVerify, old
-    /// and new value "verdict:foodId"); each food the load curates is one entry (EntityType
+    /// and new value "verdict:foodId"), with a second entry for the group of a category verdict
+    /// (PropertyName FdcCategoryId, "category|head"); each food the load curates is one entry (EntityType
     /// Ingredient, ChangeType WordingCurate) that an unload takes back. A retract takes one row out
     /// with its lines and keeps its verdict and food in recipe.IngredientWordingRejection (ChangeType
     /// WordingRetract on the row and on the rejection; WordingRejectionLift when a load lifts it).
@@ -31,15 +32,17 @@ namespace Nom.Orch.Services
         public const string CurateChangeType = "WordingCurate";
         public const string SourcePrefix = "verified:";
         public const string TsvHeader = "wording\tverdict\tfood_id\tfood_fdc_id\tfood_name\tlines_at_review\tbatch_row\treason";
-        public const string ExportHeader = "wording\tverdict\tfood_id\tfood_fdc_id\tfood_name\tbatch\treason";
+        public const string ExportHeader = "wording\tverdict\tfood_id\tfood_fdc_id\tfood_name\tbatch\treason\tcategory";
 
         public const string NotKeyForm = "wording is not in key form";
-        public const string UnknownVerdict = "verdict is not food, none or unclear";
+        public const string UnknownVerdict = "verdict is not food, category, none or unclear";
         public const string TargetMissing = "food not found";
         public const string TargetBranded = "food is branded";
         public const string TargetPrepared = "food is a prepared food";
         public const string TargetNoNutrition = "food has no nutrition";
         public const string TargetNotCurated = "food is not curated";
+        public const string CategoryMissing = "no live curated food is of the category and head";
+        public const string CategoryPrepared = "category is a prepared food category";
         public const string NamesCuratedFood = "wording is the name of a curated food";
         public const string ConflictingRows = "rows give the wording different verdicts or foods";
         public const string DuplicateRow = "row repeats an earlier row";
@@ -62,11 +65,15 @@ namespace Nom.Orch.Services
         }
 
         private sealed record Target(long Id, string Name, string? FdcId, string DataType, long Status, bool HasNutrition, string? AdmissionReason, bool Prepared);
-        private sealed record Accepted(VerifiedWordingRow Row, string Wording, string Verdict, Target? Food, IReadOnlyList<IngredientWordingRejectionEntity> Lifts);
+        private sealed record Accepted(VerifiedWordingRow Row, string Wording, string Verdict, Target? Food, IReadOnlyList<IngredientWordingRejectionEntity> Lifts, int? CategoryId = null, string? CategoryHead = null)
+        {
+            public string? Group => CategoryId is { } id ? WordingCategory.Text(id, CategoryHead) : null;
+        }
 
         /// <summary>
         /// Reads db/verified-wordings.tsv: a header naming its columns (wording and verdict
-        /// required; food_id, food_fdc_id, food_name, batch_row and reason read when present), then
+        /// required; food_id, food_fdc_id, food_name, category_id, category_head, batch_row and reason
+        /// read when present, any other column kept with the batch's evidence and not read), then
         /// one tab-separated row per wording. A line without the header's columns is reported.
         /// </summary>
         public static List<VerifiedWordingRow> ParseTsv(string tsv, ICollection<VerifiedWordingProblem> problems)
@@ -90,6 +97,8 @@ namespace Nom.Orch.Services
             var foodName = Column("food_name");
             var batchRow = Column("batch_row");
             var reason = Column("reason");
+            var categoryId = Column("category_id");
+            var categoryHead = Column("category_head");
             for (var i = 1; i < lines.Length; i++)
             {
                 if (lines[i].Trim().Length == 0) continue;
@@ -109,6 +118,8 @@ namespace Nom.Orch.Services
                     FoodId = long.TryParse(Field(foodId), NumberStyles.None, CultureInfo.InvariantCulture, out var id) ? id : null,
                     FoodFdcId = Field(fdcId),
                     FoodName = Field(foodName),
+                    CategoryId = int.TryParse(Field(categoryId), NumberStyles.None, CultureInfo.InvariantCulture, out var category) ? category : null,
+                    CategoryHead = Field(categoryHead),
                     Note = Field(reason),
                 });
             }
@@ -124,6 +135,7 @@ namespace Nom.Orch.Services
 
             var result = new VerifiedWordingLoadResult { Applied = apply, Rows = rows.Count };
             var targets = await TargetsAsync(rows);
+            var groups = await GroupsAsync(rows);
             var rowWordings = rows.Select(r => (r.Wording ?? string.Empty).Trim()).Distinct().ToList();
             var rejections = (await _db.IngredientWordingRejections
                     .Where(r => rowWordings.Contains(r.Wording))
@@ -157,7 +169,7 @@ namespace Nom.Orch.Services
                     continue;
                 }
 
-                if (verdict is not (IngredientWordingVerdict.Food or IngredientWordingVerdict.None or IngredientWordingVerdict.Unclear))
+                if (verdict is not (IngredientWordingVerdict.Food or IngredientWordingVerdict.Category or IngredientWordingVerdict.None or IngredientWordingVerdict.Unclear))
                 {
                     Refuse(row, UnknownVerdict);
                     continue;
@@ -180,6 +192,23 @@ namespace Nom.Orch.Services
                     }
                 }
 
+                int? categoryId = null;
+                string? categoryHead = null;
+                if (verdict == IngredientWordingVerdict.Category)
+                {
+                    categoryId = row.CategoryId;
+                    categoryHead = WordingCategory.Head(row.CategoryHead);
+                    var refusal = categoryId is not { } id || (categoryHead?.Length ?? 0) > WordingCategory.HeadLength ? CategoryMissing
+                        : PreparedFoods.CategoryIds.Contains(id) ? CategoryPrepared
+                        : !groups.Any(g => WordingCategory.Holds(id, categoryHead, g.CategoryId, g.Description, g.Name)) ? CategoryMissing
+                        : null;
+                    if (refusal != null)
+                    {
+                        Refuse(row, refusal);
+                        continue;
+                    }
+                }
+
                 if (curatedNames[wording].Any(id => id != food?.Id))
                 {
                     Refuse(row, NamesCuratedFood);
@@ -188,7 +217,8 @@ namespace Nom.Orch.Services
 
                 var evidence = string.IsNullOrWhiteSpace(row.EvidenceKey) ? null : row.EvidenceKey.Trim();
                 var retracted = rejections[wording]
-                    .Where(r => r.Verdict == verdict && r.IngredientId == food?.Id && (r.EvidenceKey == null || r.EvidenceKey == evidence))
+                    .Where(r => r.Verdict == verdict && r.IngredientId == food?.Id && r.FdcCategoryId == categoryId
+                        && string.Equals(r.CategoryHead, categoryHead, StringComparison.OrdinalIgnoreCase) && (r.EvidenceKey == null || r.EvidenceKey == evidence))
                     .ToList();
                 if (retracted.Count > 0 && !overrideRejections)
                 {
@@ -196,13 +226,13 @@ namespace Nom.Orch.Services
                     continue;
                 }
 
-                candidates.Add(new Accepted(row, wording, verdict, food, retracted));
+                candidates.Add(new Accepted(row, wording, verdict, food, retracted, categoryId, categoryHead));
             }
 
             var accepted = new List<Accepted>();
             foreach (var group in candidates.GroupBy(c => c.Wording, StringComparer.Ordinal))
             {
-                if (group.Select(c => (c.Verdict, c.Food?.Id)).Distinct().Count() > 1)
+                if (group.Select(c => (c.Verdict, c.Food?.Id, c.Group?.ToLowerInvariant())).Distinct().Count() > 1)
                 {
                     foreach (var c in group) Refuse(c.Row, ConflictingRows);
                     continue;
@@ -223,7 +253,7 @@ namespace Nom.Orch.Services
                 existing.TryGetValue(entry.Wording, out var row);
                 if (row is { IsDeleted: false })
                 {
-                    if (row.Verdict == entry.Verdict && row.IngredientId == entry.Food?.Id)
+                    if (row.Verdict == entry.Verdict && row.IngredientId == entry.Food?.Id && string.Equals(GroupOf(row), entry.Group, StringComparison.OrdinalIgnoreCase))
                     {
                         result.Unchanged++;
                         continue;
@@ -236,7 +266,7 @@ namespace Nom.Orch.Services
                     }
 
                     result.Changed++;
-                    writes.Add((entry, row, new Replaced(Value(row.Verdict, row.IngredientId), row.Batch, row.Note)));
+                    writes.Add((entry, row, new Replaced(Value(row.Verdict, row.IngredientId), row.Batch, row.Note, GroupOf(row))));
                     continue;
                 }
 
@@ -300,6 +330,8 @@ namespace Nom.Orch.Services
 
                 row.Verdict = entry.Verdict;
                 row.IngredientId = entry.Food?.Id;
+                row.FdcCategoryId = entry.CategoryId;
+                row.CategoryHead = entry.CategoryHead;
                 row.Batch = batch;
                 row.Source = Truncate(rowSource, 255);
                 row.Note = entry.Row.Note == null ? null : Truncate(entry.Row.Note.Trim(), 1023);
@@ -311,6 +343,8 @@ namespace Nom.Orch.Services
             {
                 _db.AuditLogEntries.Add(Journal(WordingEntityType, row.Id, VerifyChangeType, nameof(IngredientWordingEntity.IngredientId),
                     old?.Value, Value(row.Verdict, row.IngredientId), now, personId));
+                if (old?.Group != null || row.FdcCategoryId != null)
+                    _db.AuditLogEntries.Add(Journal(WordingEntityType, row.Id, VerifyChangeType, nameof(IngredientWordingEntity.FdcCategoryId), old?.Group, GroupOf(row), now, personId));
                 if (old == null) continue;
                 _db.AuditLogEntries.Add(Journal(WordingEntityType, row.Id, VerifyChangeType, nameof(IngredientWordingEntity.Batch), old.Batch, row.Batch, now, personId));
                 _db.AuditLogEntries.Add(Journal(WordingEntityType, row.Id, VerifyChangeType, nameof(IngredientWordingEntity.Note), old.Note, row.Note, now, personId));
@@ -360,8 +394,13 @@ namespace Nom.Orch.Services
                 {
                     _db.AuditLogEntries.Add(Journal(WordingEntityType, row.Id, VerifyChangeType, nameof(IngredientWordingEntity.IngredientId),
                         Value(row.Verdict, row.IngredientId), Value(back.Verdict, back.IngredientId), now, personId));
+                    if (row.FdcCategoryId != null || back.Group != null)
+                        _db.AuditLogEntries.Add(Journal(WordingEntityType, row.Id, VerifyChangeType, nameof(IngredientWordingEntity.FdcCategoryId), GroupOf(row), back.Group, now, personId));
                     row.Verdict = back.Verdict;
                     row.IngredientId = back.IngredientId;
+                    var earlierGroup = WordingCategory.Parse(back.Group);
+                    row.FdcCategoryId = earlierGroup?.CategoryId;
+                    row.CategoryHead = earlierGroup?.Head;
                     row.Batch = back.Batch;
                     row.Source = back.Batch == null ? row.Source : Truncate(SourcePrefix + back.Batch, 255);
                     row.Note = back.Note;
@@ -424,6 +463,8 @@ namespace Nom.Orch.Services
                 Wording = row.Wording,
                 Verdict = row.Verdict,
                 IngredientId = row.IngredientId,
+                FdcCategoryId = row.FdcCategoryId,
+                CategoryHead = row.CategoryHead,
                 Reason = reason,
                 Source = row.Source,
                 EvidenceKey = string.IsNullOrWhiteSpace(evidenceKey) ? null : Truncate(evidenceKey.Trim(), 128),
@@ -456,7 +497,7 @@ namespace Nom.Orch.Services
                     w.Wording, w.Verdict, w.IngredientId,
                     FdcId = w.Ingredient == null ? null : w.Ingredient.FdcId,
                     Name = w.Ingredient == null ? null : w.Ingredient.Name,
-                    w.Batch, w.Note,
+                    w.Batch, w.Note, w.FdcCategoryId, w.CategoryHead,
                 })
                 .ToListAsync();
 
@@ -465,7 +506,8 @@ namespace Nom.Orch.Services
             {
                 tsv.AppendJoin('\t', Cell(row.Wording), row.Verdict,
                         row.IngredientId?.ToString(CultureInfo.InvariantCulture) ?? string.Empty,
-                        Cell(row.FdcId), Cell(row.Name), Cell(row.Batch), Cell(row.Note))
+                        Cell(row.FdcId), Cell(row.Name), Cell(row.Batch), Cell(row.Note),
+                        Cell(row.FdcCategoryId is { } category ? WordingCategory.Text(category, row.CategoryHead) : null))
                     .Append('\n');
             }
 
@@ -509,9 +551,33 @@ namespace Nom.Orch.Services
             food.Status == (long)CurationStatusEnum.PendingCuration && food.FdcId != null && PromotableDataTypes.Contains(food.DataType)
             && food.AdmissionReason == null;
 
-        private sealed record Replaced(string Value, string? Batch, string? Note);
+        private sealed record Replaced(string Value, string? Batch, string? Note, string? Group = null);
 
-        private sealed record Earlier(string Verdict, long? IngredientId, string? Batch, string? Note);
+        private sealed record Earlier(string Verdict, long? IngredientId, string? Batch, string? Note, string? Group = null);
+
+        private static string? GroupOf(IngredientWordingEntity row) => row.FdcCategoryId is { } id ? WordingCategory.Text(id, row.CategoryHead) : null;
+
+        private sealed record GroupFood(int? CategoryId, string? Description, string Name);
+
+        /// <summary>The live curated foods of the categories the batch's category rows name, with their USDA descriptions, to find each row's group.</summary>
+        private async Task<List<GroupFood>> GroupsAsync(IReadOnlyCollection<VerifiedWordingRow> rows)
+        {
+            var categories = rows.Where(r => string.Equals((r.Verdict ?? string.Empty).Trim(), IngredientWordingVerdict.Category, StringComparison.OrdinalIgnoreCase) && r.CategoryId != null)
+                .Select(r => r.CategoryId!.Value).Distinct().ToList();
+            if (categories.Count == 0) return new List<GroupFood>();
+            var foods = await _db.Ingredients.AsNoTracking()
+                .Where(i => !i.IsDeleted && i.CurationStatusId == (long)CurationStatusEnum.Curated && i.FdcCategoryId != null && categories.Contains(i.FdcCategoryId.Value))
+                .Select(i => new { i.Id, i.Name, i.FdcCategoryId })
+                .ToListAsync();
+            var ids = foods.Select(f => f.Id).ToList();
+            var descriptions = (await _db.IngredientAliases.AsNoTracking()
+                    .Where(a => ids.Contains(a.IngredientId) && a.SourceContext == IngredientLinkService.UsdaDescriptionContext)
+                    .Select(a => new { a.IngredientId, a.AliasName })
+                    .ToListAsync())
+                .GroupBy(a => a.IngredientId)
+                .ToDictionary(g => g.Key, g => g.First().AliasName);
+            return foods.Select(f => new GroupFood(f.FdcCategoryId, descriptions.GetValueOrDefault(f.Id), f.Name)).ToList();
+        }
 
         /// <summary>
         /// For each row of the batch that the batch's load took over from an earlier verdict with
@@ -536,7 +602,8 @@ namespace Nom.Orch.Services
                 if (cut <= 0) continue;
                 long? food = long.TryParse(load.OldValue[(cut + 1)..], NumberStyles.None, CultureInfo.InvariantCulture, out var id) ? id : null;
                 var note = own.FirstOrDefault(a => a.PropertyName == nameof(IngredientWordingEntity.Note) && a.Timestamp == load.Timestamp);
-                earlier[row.Id] = new Earlier(load.OldValue[..cut], food, moved.OldValue, note?.OldValue);
+                var group = own.FirstOrDefault(a => a.PropertyName == nameof(IngredientWordingEntity.FdcCategoryId) && a.Timestamp == load.Timestamp);
+                earlier[row.Id] = new Earlier(load.OldValue[..cut], food, moved.OldValue, note?.OldValue, group?.OldValue);
             }
             return earlier;
         }

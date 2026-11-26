@@ -83,7 +83,7 @@ namespace Nom.Import.Golden
             Console.WriteLine($"Score {score.Score:P1} ({score.Passed}/{score.Cases}); floor {floor.MinScore:P1}");
             Console.WriteLine($"False accepts {score.FalseAccepts}/{score.FalseAcceptCases} ({score.FalseAcceptRate:P1}); ceiling {(floor.MaxFalseAcceptRate is { } max ? max.ToString("P1") : "none")}");
             if (ModelLanes.FalseRefusals(lane, results) is { } refusals)
-                Console.WriteLine($"False refusals {refusals.Refused}/{refusals.Faithful} faithful rewrites ({(refusals.Faithful == 0 ? 0 : (double)refusals.Refused / refusals.Faithful):P1}); not part of the floor");
+                Console.WriteLine($"{(lane == ModelLanes.ProseAuditLane ? "False alarms" : "False refusals")} {refusals.Refused}/{refusals.Faithful} faithful rewrites ({(refusals.Faithful == 0 ? 0 : (double)refusals.Refused / refusals.Faithful):P1}); not part of the floor");
             if (ModelLanes.RewriteFigures(lane, results) is { } rewrites)
                 Console.WriteLine($"Recipes {rewrites.Recipes}: through the gate at the first attempt {rewrites.FirstTry}, on the rule rendering {rewrites.RuleRendered}, given up {rewrites.GaveUp}; {rewrites.Seconds:0.0} s a recipe");
             if (score.Precision is { } precision)

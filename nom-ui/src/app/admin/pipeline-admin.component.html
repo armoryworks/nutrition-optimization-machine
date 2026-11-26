@@ -50,7 +50,7 @@
         <div><dt>Waiting, scraped without own image</dt><dd data-testid="pipeline-metric-recipes-waiting-without-image">{{ s.recipes.waitingScrapedWithoutOwnImage | number }}</dd></div>
         <div><dt>Waiting with source prose</dt><dd data-testid="pipeline-metric-recipes-waiting-source-prose">{{ s.recipes.waitingWithSourceProse | number }}</dd></div>
         <div><dt>Prose withheld (approved)</dt><dd data-testid="pipeline-metric-recipes-prose-withheld">{{ s.recipes.proseWithheld | number }} ({{ s.recipes.proseWithheldApproved | number }})</dd></div>
-        <div><dt>Withheld until the rewrite lane rewords their copied sentences (approved)</dt><dd data-testid="pipeline-metric-recipes-prose-repair">{{ s.recipes.proseRepair | number }} ({{ s.recipes.proseRepairApproved | number }})</dd></div>
+        <div><dt>Withheld with copied sentences, first in the rewrite lane's queue (approved)</dt><dd data-testid="pipeline-metric-recipes-prose-repair">{{ s.recipes.proseRepair | number }} ({{ s.recipes.proseRepairApproved | number }})</dd></div>
         <div><dt>Prose the check is unsure of on facts, shown (approved)</dt><dd data-testid="pipeline-metric-recipes-prose-unsure">{{ s.recipes.proseUnsure | number }} ({{ s.recipes.proseUnsureApproved | number }})</dd></div>
         <div><dt>Prose the rewrite lane gave up on</dt><dd data-testid="pipeline-metric-recipes-prose-gave-up">{{ s.recipes.proseGaveUp | number }}</dd></div>
         <div><dt>Revision: missing quantities</dt><dd data-testid="pipeline-metric-recipes-revision-quantities">{{ s.recipes.revisionMissingQuantities | number }}</dd></div>

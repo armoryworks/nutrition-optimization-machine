@@ -95,6 +95,38 @@ namespace Nom.Api.Tests.Services
         }
 
         [Fact]
+        public void Two_candidates_of_one_description_are_asked_once_as_the_foundation_food()
+        {
+            var legacy = new FoodCandidate(1, "169247", "Lettuce, cos or romaine, raw", "sr_legacy_food");
+            var foundation = new FoodCandidate(2, "327923", "Lettuce, cos or romaine, raw", "foundation_food");
+            var iceberg = new FoodCandidate(3, "2346388", "Lettuce, iceberg, raw", "foundation_food");
+            var twice = new FoodCandidate(4, "2346388", "Lettuce, iceberg, raw", "foundation_food");
+
+            OllamaIngredientLinkMatcher.Options(new[] { legacy, iceberg, foundation, twice }).Should().Equal(foundation, iceberg);
+            OllamaIngredientLinkMatcher.Options(new[] { iceberg, legacy }).Should().Equal(iceberg, legacy);
+        }
+
+        [Fact]
+        public async Task A_wording_of_two_foods_is_rejected_by_rule_and_never_asked()
+        {
+            using var db = NewContext();
+            await SeedFoodsAsync(db);
+            await UsedIngredientAsync(db, "butter or salt", 2);
+            await UsedIngredientAsync(db, "light or dark butter", 1);
+            var matcher = new FakeMatcher();
+            var linker = Linker(db, matcher);
+
+            var result = await linker.ProposeAsync(await linker.NextSourcesAsync(10));
+
+            result!.NoMatch.Should().Be(2);
+            matcher.Asked.Should().Equal("light or dark butter");
+            var ruled = await db.FoodCatalogProposals.SingleAsync(p => p.CurrentValue == "butter or salt");
+            ruled.Status.Should().Be(FoodProposalStatus.Rejected);
+            ruled.Source.Should().Be(IngredientLinkService.CompoundSource);
+            ruled.Reason.Should().StartWith(LinkPickRules.TwoFoods);
+        }
+
+        [Fact]
         public async Task A_new_prompt_version_asks_a_rejection_again_at_once_and_updates_its_row()
         {
             using var db = NewContext();

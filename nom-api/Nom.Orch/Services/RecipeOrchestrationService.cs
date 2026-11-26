@@ -846,7 +846,7 @@ namespace Nom.Orch.Services
                 foreach (var (recipeId, count) in alcohol.Where(a => a.Value.Excludes(capped.MaxAmountPerServing!.Value)))
                 {
                     var over = count.HasUncounted ? null : string.Create(System.Globalization.CultureInfo.InvariantCulture,
-                        $"About {Math.Round(count.RetainedPerServing, 1)} g of alcohol per {(count.ServingsKnown ? "serving" : "recipe")} stays after cooking, more than {capped.MaxAmountPerServing:0.##} g.");
+                        $"{(count.UpperBound ? "Up to" : "About")} {Math.Round(count.RetainedPerServing, 1)} g of alcohol per {(count.ServingsKnown ? "serving" : "recipe")} stays after cooking, more than {capped.MaxAmountPerServing:0.##} g.");
                     foreach (var drink in count.HasUncounted ? count.Uncounted : count.Drinks)
                     {
                         byRetained.Add((recipeId, new RecipeDietMatchModel
@@ -904,12 +904,20 @@ namespace Nom.Orch.Services
         /// <summary>The note a recipe page gives a severe restriction that could not decide the recipe.</summary>
         public const string DietUnknownNote = "The recipe has no ingredient list the diet check can read, or one of its foods is not checked yet, so it is kept out for this restriction.";
 
-        /// <summary>The name a recipe page gives a severe restriction that holds the recipe because its title or method names a food its ingredient lines do not list (staging checkpoint 6, R3).</summary>
-        public static string DietTextName(Nom.Data.Plan.DietFlagReason reason) => reason == Nom.Data.Plan.DietFlagReason.Title ? "Named in the title" : "Named in the method";
+        /// <summary>The name a recipe page gives a severe restriction that holds the recipe because its title or method names a food its ingredient lines do not list (staging checkpoint 6, R3), or a line names a word the check does not understand or knows only on foods the restriction keeps out (staging checkpoint 7, S3).</summary>
+        public static string DietTextName(Nom.Data.Plan.DietFlagReason reason) => reason switch
+        {
+            Nom.Data.Plan.DietFlagReason.Title => "Named in the title",
+            Nom.Data.Plan.DietFlagReason.UnknownWord => "Ingredient not understood",
+            Nom.Data.Plan.DietFlagReason.FoodWord => "Named by an ingredient",
+            _ => "Named in the method",
+        };
 
-        /// <summary>The note a recipe page gives a severe restriction that holds the recipe because its title or method names a food its ingredient lines do not list.</summary>
+        /// <summary>The note a recipe page gives a severe restriction that holds the recipe because its title or method names a food its ingredient lines do not list, or a line names a word not understood or such a food.</summary>
         public static string DietTextNote(Nom.Data.Plan.DietFlagReason reason, string? named) =>
-            "The recipe's " + (reason == Nom.Data.Plan.DietFlagReason.Title ? "title" : "method") + " names " + (string.IsNullOrWhiteSpace(named) ? "a food" : "\"" + named + "\"")
+            reason == Nom.Data.Plan.DietFlagReason.UnknownWord ? "An ingredient line names a food the diet check does not know yet, so the recipe is kept out for this restriction until that food is linked to a checked one."
+            : reason == Nom.Data.Plan.DietFlagReason.FoodWord ? "An ingredient line names a food that the checked foods know only as holding what this restriction keeps out, so the recipe is kept out for this restriction."
+            : "The recipe's " + (reason == Nom.Data.Plan.DietFlagReason.Title ? "title" : "method") + " names " + (string.IsNullOrWhiteSpace(named) ? "a food" : "\"" + named + "\"")
             + ", which this restriction keeps out, and its ingredient lines, read from an old book's text, do not list it, so the recipe is kept out for this restriction.";
 
         /// <summary>The audit change type that records, at a person's first edit of a recipe, its version and content before the edit.</summary>
@@ -959,10 +967,7 @@ namespace Nom.Orch.Services
             var linesBefore = LineFacts(existingIngredients.Values);
             await RefusePreparedFoodsAsync(model.Ingredients.Select(i => i.IngredientId),
                 existingIngredients.Values.Where(ri => !ri.IsDeleted).Select(ri => ri.IngredientId).ToHashSet());
-            var lines = model.Ingredients
-                .Where(i => i.IngredientId > 0 && i.MeasurementId > 0)
-                .Select((ingredient, sortOrder) => (Ingredient: ingredient, Key: (ingredient.IngredientId, sortOrder)))
-                .ToList();
+            var lines = LineKeys(model.Ingredients.Where(i => i.IngredientId > 0 && i.MeasurementId > 0).ToList(), existingIngredients.Values);
             var keptIngredients = lines.Select(l => l.Key).ToHashSet();
             var movedLines = existingIngredients.Values
                 .Where(ri => !ri.IsDeleted && !keptIngredients.Contains((ri.IngredientId, ri.SortOrder)))
@@ -1201,6 +1206,28 @@ namespace Nom.Orch.Services
         private static string RecipeFacts(RecipeEntity recipe) =>
             string.Join("\u001f", recipe.Name, recipe.Description ?? string.Empty, Number(recipe.Servings), Number(recipe.ServingQuantity),
                 recipe.ServingQuantityMeasurementId?.ToString(System.Globalization.CultureInfo.InvariantCulture) ?? string.Empty);
+
+        private static List<(RecipeIngredientModel Ingredient, (long IngredientId, int sortOrder) Key)> LineKeys(List<RecipeIngredientModel> edited, IEnumerable<RecipeIngredientEntity> stored)
+        {
+            var read = stored.Where(ri => !ri.IsDeleted).OrderBy(ri => ri.SortOrder).ThenBy(ri => ri.IngredientId).ToList();
+            var keys = new (long IngredientId, int sortOrder)?[edited.Count];
+            var taken = new HashSet<(long, int)>();
+            for (var i = 0; i < edited.Count && i < read.Count; i++)
+            {
+                if (read[i].IngredientId != edited[i].IngredientId) continue;
+                keys[i] = (read[i].IngredientId, read[i].SortOrder);
+                taken.Add(keys[i]!.Value);
+            }
+            var next = read.Count == 0 ? edited.Count : Math.Max(edited.Count, read.Max(ri => ri.SortOrder) + 1);
+            for (var i = 0; i < edited.Count; i++)
+            {
+                if (keys[i] != null) continue;
+                var key = (edited[i].IngredientId, i);
+                if (!taken.Add(key)) taken.Add(key = (edited[i].IngredientId, next++));
+                keys[i] = key;
+            }
+            return edited.Select((ingredient, i) => (ingredient, keys[i]!.Value)).ToList();
+        }
 
         private static List<string> LineFacts(IEnumerable<RecipeIngredientEntity> lines) =>
             lines.Where(ri => !ri.IsDeleted).OrderBy(ri => ri.SortOrder)

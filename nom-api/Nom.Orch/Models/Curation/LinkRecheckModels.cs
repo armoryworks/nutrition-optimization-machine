@@ -94,6 +94,10 @@ namespace Nom.Orch.Models.Curation
         public int LinesUnlinked { get; set; }
         public int LinesSkipped { get; set; }
         public int NoHome { get; set; }
+        /// <summary>Groups taken back to a wording food of unknown contents because the take-back would lower a flag its words do not account for (staging checkpoint 7, S15); counted in UnlinkGroups too.</summary>
+        public int UnknownGroups { get; set; }
+        /// <summary>Wording foods marked of unknown contents (<see cref="Nom.Orch.Services.Support.RecheckDietGuard.UnknownContentsContext"/>), or that a dry run would mark.</summary>
+        public int FoodsMarkedUnknown { get; set; }
         public int AliasesMoved { get; set; }
         public int AliasesUntrusted { get; set; }
         public int AliasesRemoved { get; set; }
@@ -159,9 +163,17 @@ namespace Nom.Orch.Models.Curation
         public int Skipped { get; set; }
         /// <summary>Lines left where the run put them because moving them back would lower a recipe's diet flags (<see cref="Nom.Orch.Services.Support.LineMoveDietGuard"/>); counted by a dry run too.</summary>
         public int HeldByDiet { get; set; }
+        /// <summary>Whether the operator chose to restore the exact journaled earlier state, lowering diet flags where the way back lowers them (never by default).</summary>
+        public bool RestoreLowered { get; set; }
+        /// <summary>With <see cref="RestoreLowered"/>: the lines put back (or, in a dry run, that would be) although their way back lowers a recipe's diet flags; each is journaled on the apply.</summary>
+        public int RestoredLowering { get; set; }
+        /// <summary>With <see cref="RestoreLowered"/>: the first such moves, with the restriction types each lowers.</summary>
+        public List<Nom.Orch.Services.Support.LineMoveHold> LoweringMoves { get; set; } = new();
         public int NamesRestored { get; set; }
         public int AliasEntries { get; set; }
         public int AliasesRestored { get; set; }
+        /// <summary>Marks of unknown contents kept with their journal entries because the undo left lines on their food (<see cref="HeldByDiet"/>): without the mark those lines would lower the flags the severe types hold them by (review ck16-r1).</summary>
+        public int MarksKept { get; set; }
         public int FoodsRemoved { get; set; }
         public int FoodsKept { get; set; }
         public int PickEntries { get; set; }

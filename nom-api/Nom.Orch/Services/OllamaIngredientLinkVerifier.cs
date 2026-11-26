@@ -22,7 +22,7 @@ namespace Nom.Orch.Services
     /// </summary>
     public class OllamaIngredientLinkVerifier : IIngredientLinkVerifier
     {
-        public const int CurrentPromptVersion = 2;
+        public const int CurrentPromptVersion = 3;
 
         private static readonly (string Word, LinkJudgement Judgement)[] Verdicts =
         {
@@ -34,15 +34,43 @@ namespace Nom.Orch.Services
         };
 
         private const string Instructions =
-            "You audit links between recipe ingredients and USDA food descriptions. Each numbered item gives a recipe ingredient " +
-            "and one USDA description. Say whether a home cook who buys the ingredient would buy the food the description names.\n" +
-            "Answer one word per item:\n" +
-            "  \"same\" - the same food, as bought (the plain, general-purpose entry counts as the same food when the ingredient names no form);\n" +
-            "  \"variety\" - the same kind of food but a variety, color, cut or form (dried, canned, cooked, frozen, ground, powdered) the ingredient rules out or does not name;\n" +
-            "  \"different\" - a different food, a dish or sauce made from it, or a product that merely contains it;\n" +
-            "  \"several\" - the ingredient names more than one food (for example 'salt and pepper', 'butter or margarine');\n" +
-            "  \"unsure\" - you cannot tell.\n" +
-            "Reply with STRICT JSON only: {\"results\":[{\"n\":1,\"verdict\":\"same\"}]} with one entry per item.";
+            "You check links between recipe ingredients and USDA foods for a nutrition database. Each numbered item gives an ingredient " +
+            "as a recipe names it (amounts already taken off) and one USDA description. Say whether the USDA food is what a home cook " +
+            "buys and uses for that ingredient, so that its nutrition stands for it.\n" +
+            "Read the ingredient first:\n" +
+            "- Sizes, praise, temperature and what the cook does to it (large, small, good, fresh, cold, boiling, melted, softened, " +
+            "chopped, sliced, diced, minced, grated, beaten, sifted, peeled, divided, for garnish) never change the food.\n" +
+            "- An ingredient that names no variety, colour or form means the food as it is usually sold, and the plain or the most common " +
+            "everyday entry is that food: any common onion for onion, ripe tomatoes for tomato, table salt for any cooking salt, tap water " +
+            "for water, granulated sugar for sugar, ordinary salted butter for butter, whole milk for milk, all-purpose flour for flour, the " +
+            "ground spice for a spice named alone or by its whole seed, bark, berry or blade.\n" +
+            "- Varieties a cook uses one for another are the same food: any onion, any apple, any potato, cherry or plum tomatoes, " +
+            "any cooking salt, any cucumber, any mushroom the ingredient does not name; and so are the forms a cook buys for it: bottled " +
+            "lemon or lime juice for the juice, canned or dried beans and chickpeas, whole or blanched nuts.\n" +
+            "Then read the description: its first words name the food, the words after the commas its variety, part, form and product.\n" +
+            "For each item write food: the ingredient as bought in a few words (without the cook's work), usda: the USDA food in a few " +
+            "plain words, then verdict, one of:\n" +
+            "  \"same\" - the USDA food is the ingredient, or the ordinary form of it as above;\n" +
+            "  \"variety\" - the same kind of food, but the description names something the ingredient does not ask for and that changes " +
+            "what it is: a light, reduced-fat, low-fat or nonfat product; low sodium, or without salt when the ingredient asks for salted; " +
+            "sweetened or unsweetened against the ingredient; cooked, roasted or fried when the ingredient is raw or names no cooking; " +
+            "dried, canned or frozen against fresh; a juice, extract, powder, paste or oil of a food named whole, or the whole food for one " +
+            "of those; one particular kind (a named cheese, a cut of meat, a regional preparation) when the ingredient names a different " +
+            "kind or leaves the kind open among foods that differ; a part (yolk, white, skin, juice) for the whole, or the whole for a part;\n" +
+            "  \"different\" - another food: another plant, animal or fruit with a similar name (sweet peppers are not hot chilies), " +
+            "a dish, sauce, drink, spread or mix made from it or containing it, or a seasoning blend for one spice;\n" +
+            "  \"several\" - the ingredient names more than one food;\n" +
+            "  \"unsure\" - you cannot tell what food the ingredient means.\n" +
+            "Say \"same\" only when you would put that USDA food in the cook's basket for the ingredient. A wrong \"same\" costs more " +
+            "than any other answer.\n" +
+            "Examples, not part of the task:\n" +
+            "- \"rutabaga, peeled and cubed\" / Rutabagas, raw: food rutabaga, usda raw rutabaga, same (the cook's work).\n" +
+            "- \"quail\" / Quail, meat only, raw: food quail, usda raw quail meat, same.\n" +
+            "- \"plantains\" / Plantains, yellow, fried: food plantains, usda fried plantains, variety (cooked; the ingredient names no cooking).\n" +
+            "- \"guava juice\" / Guavas, common, raw: food guava juice, usda raw guava, variety (the fruit, not its juice).\n" +
+            "- \"kumquat marmalade\" / Kumquats, raw: food kumquat marmalade, usda raw kumquats, different (a spread made from it).\n" +
+            "- \"kohlrabi\" / Cabbage, raw: food kohlrabi, usda raw cabbage, different (another vegetable).\n" +
+            "Reply with JSON only: {\"results\":[{\"n\":1,\"food\":\"...\",\"usda\":\"...\",\"verdict\":\"same\"}]} with one entry per item.";
 
         /// <summary>
         /// A hash of what decides the judge's answer apart from the model: its instructions, its
@@ -91,7 +119,7 @@ namespace Nom.Orch.Services
                 model = ModelName,
                 stream = false,
                 format = _strictSchema ? Schema(pairs.Count) : "json",
-                options = new { temperature = 0, num_ctx = 8192 },
+                options = new { temperature = 0, seed = 1, num_ctx = 8192 },
                 messages = new[]
                 {
                     new { role = "system", content = Instructions },
@@ -148,9 +176,11 @@ namespace Nom.Orch.Services
                         properties = new
                         {
                             n = new { type = "integer", minimum = 1, maximum = count },
+                            food = new { type = "string", maxLength = 60 },
+                            usda = new { type = "string", maxLength = 60 },
                             verdict = new { type = "string", @enum = Verdicts.Select(v => v.Word).ToArray() },
                         },
-                        required = new[] { "n", "verdict" },
+                        required = new[] { "n", "food", "usda", "verdict" },
                     },
                 },
             },

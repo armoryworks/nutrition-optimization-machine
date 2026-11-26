@@ -668,7 +668,7 @@ namespace Nom.Api.Tests.Services
         }
 
         [Fact]
-        public async Task A_facts_only_withhold_keeps_the_count_of_copied_sentences_an_earlier_check_left_so_its_undo_shows_the_recipe_with_its_work_list()
+        public async Task A_facts_only_withhold_keeps_the_queue_figure_an_earlier_check_left_and_its_undo_shows_the_recipe_for_the_next_recheck_to_withhold()
         {
             await using var db = NewContext();
             await SourceAsync(db, "facts.example", FactsOnlyReport("facts.example"));
@@ -685,8 +685,8 @@ namespace Nom.Api.Tests.Services
             db.ChangeTracker.Clear();
 
             (await db.Recipes.AsNoTracking().SingleAsync(r => r.Id == marked.Id)).Should().Match<RecipeEntity>(r => !r.ProseWithheld && r.ProseCopiedSentences == 2,
-                "the copied sentences are shown again, so they stay on the lane's work list");
-            (await ProseLaneService.EligibleQuery(db, "v-test").AnyAsync(r => r.Id == marked.Id)).Should().BeTrue();
+                "the figure stays for the lane's queue");
+            (await ProseLaneService.EligibleQuery(db, "v-test").AnyAsync(r => r.Id == marked.Id)).Should().BeFalse("a shown recipe is the lane's only once the re-check withholds it as an earlier paraphrase");
         }
 
         [Fact]

@@ -474,6 +474,36 @@ namespace Nom.Api.Tests.Services
         }
 
         [Fact]
+        public async Task A_hold_whose_recipe_a_journaled_line_move_takes_out_of_the_start_up_repair_is_resolved_not_left_open_unrefreshed()
+        {
+            using var db = await NewContextAsync();
+            var foods = await FoodsAsync(db, "Brine", "Pork");
+            var recipe = await RecipeAsync(db, foods, new[] { "Make a cup of brine and pour it over the pork." },
+                ("Brine", 0, 0m, Gram, "For the brine:", "note"), ("Pork", 1, 2m, Pound, "2 lb pork", null));
+            await RestartAsync(db, 1);
+            (await db.LineGuardHolds.AsNoTracking().SingleAsync()).ResolvedAt.Should().BeNull();
+
+            db.AuditLogEntries.Add(new Nom.Data.Audit.AuditLogEntryEntity
+            {
+                EntityType = ScrapedRecipeRepairService.LineEntityType,
+                EntityId = recipe,
+                ChangeType = LinkRecheckService.LineChangeType,
+                PropertyName = nameof(RecipeIngredientEntity.IngredientId),
+                OldValue = LineRelinkService.Place(foods["Pork"], 1),
+                NewValue = LineRelinkService.Place(foods["Pork"], 1),
+                Timestamp = DateTime.UtcNow,
+                ChangedByPersonId = SystemConstants.SystemPersonId,
+            });
+            await db.SaveChangesAsync();
+            db.ChangeTracker.Clear();
+            await RestartAsync(db, 2);
+
+            var hold = await db.LineGuardHolds.AsNoTracking().SingleAsync();
+            (hold.ResolvedAt != null, hold.Resolution).Should().Be((true, LineGuardHolds.LineOperation),
+                "staging checkpoint 7, S21: two start-up holds stayed open, no longer refreshed, after a journaled re-check move took their recipes out of the start-up repair");
+        }
+
+        [Fact]
         public async Task A_hold_follows_its_line_to_a_new_position_and_is_neither_released_nor_made_again()
         {
             using var db = await NewContextAsync();

@@ -34,8 +34,8 @@ namespace Nom.Orch.Interfaces
 
     /// <summary>
     /// A model that reads a rewrite against its original step by step with the lane's rubric: the
-    /// judge of every rewrite before it is written, and the auditor of a sample. Its answers are
-    /// verdicts only, never text that is shown.
+    /// judge of every rewrite before it is written. Its answers are verdicts only, never text that is
+    /// shown.
     /// </summary>
     public interface IProseJudge
     {
@@ -46,5 +46,22 @@ namespace Nom.Orch.Interfaces
 
         /// <summary>Whether step <paramref name="step"/> of the rewrite, which another reviewer flagged, is wrong; null when the answer cannot be read.</summary>
         Task<bool?> ConfirmAsync(IReadOnlyList<string> original, IReadOnlyList<string> rewrite, int step, CancellationToken cancellationToken);
+    }
+
+    /// <summary>
+    /// The auditor of a sample of the prose lane's rewrites (the roster's auditor, of neither the
+    /// writer's nor the judge's family): it reads a rewrite against its source with the recipe's own
+    /// ingredient lines, and re-reads a step it flagged blind. Its answers are verdicts only, never
+    /// text that is shown.
+    /// </summary>
+    public interface IProseAuditor
+    {
+        string Model { get; }
+
+        /// <summary>The steps of the rewrite it flags; null when an answer cannot be read.</summary>
+        Task<ProseAuditVerdict?> AuditAsync(ProseAuditPair pair, CancellationToken cancellationToken);
+
+        /// <summary>Whether step <paramref name="step"/> of the rewrite, which the audit flagged, is wrong on a blind re-read; null when the answer cannot be read.</summary>
+        Task<bool?> ConfirmAsync(ProseAuditPair pair, int step, CancellationToken cancellationToken);
     }
 }

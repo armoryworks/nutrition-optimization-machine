@@ -12,7 +12,7 @@ namespace Nom.Orch.Interfaces
         Task<bool> CanAccessListByIdAsync(long listId, long personId);
         Task<List<ShoppingListResponseModel>> GetAllShoppingListsAsync(long personId);
         Task<ShoppingListCreateResponseModel> CreateShoppingListAsync(ShoppingListCreateModel model, long authorId);
-        Task<ShoppingListResponseModel?> GetShoppingListAsync(long id, long personId);
+        Task<ShoppingListDetailResponseModel?> GetShoppingListAsync(long id, long personId);
         Task<ShoppingListResponseModel?> UpdateShoppingListAsync(long id, ShoppingListUpdateModel model, long personId);
         Task<bool> DeleteShoppingListAsync(long id, long personId);
         Task<ShoppingListItemResponseModel?> AddItemAsync(ShoppingListItemCreateModel model, long personId);

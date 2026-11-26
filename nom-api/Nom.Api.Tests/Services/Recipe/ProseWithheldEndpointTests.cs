@@ -108,6 +108,14 @@ namespace Nom.Api.Tests.Services.Recipe
 
         private static string Json(object? value) => JsonSerializer.Serialize(value);
 
+        private static IEnumerable<string> Texts(JsonElement element) => element.ValueKind switch
+        {
+            JsonValueKind.String => new[] { element.GetString()! },
+            JsonValueKind.Object => element.EnumerateObject().SelectMany(p => Texts(p.Value)),
+            JsonValueKind.Array => element.EnumerateArray().SelectMany(Texts),
+            _ => Array.Empty<string>(),
+        };
+
         private static void ServesNoWithheldProse(string served, bool shownToo = true)
         {
             served.Should().NotContain(WithheldText);
@@ -165,7 +173,11 @@ namespace Nom.Api.Tests.Services.Recipe
             try
             {
                 var text = await File.ReadAllTextAsync(path);
-                text.Should().Contain("bake 30 to 40 min").And.NotContain("425");
+                var recipe = JsonDocument.Parse(text).RootElement.GetProperty("recipes")[0];
+                recipe.GetProperty("keyFacts").EnumerateArray().Select(f => f.GetString())
+                    .Should().Equal("oven 350°F", "9 x 13-inch pan", "bake 30 to 40 min", "cool 30 min");
+                new[] { "name", "description", "ingredients", "steps" }.SelectMany(field => Texts(recipe.GetProperty(field)))
+                    .Should().NotContain(t => t.Contains("425") || t.Contains("12 min"), "no wording field carries the scraper record's oven or time");
             }
             finally
             {

@@ -203,9 +203,10 @@ namespace Nom.Api.Tests.Services.Recipe
             });
             db.ChangeTracker.Clear();
 
-            var lines = await LinesAsync(db, recipe.Id);
-            lines.Select(ri => (ri.IngredientId, ri.SortOrder, ri.LineKind)).Should().Equal(
-                (10L, 0, (string?)null), (11L, 1, RecipeIngredientLineKind.Note), (12L, 2, RecipeIngredientLineKind.Equipment));
+            var lines = await db.RecipeIngredients.IgnoreQueryFilters().Where(ri => ri.RecipeId == recipe.Id).OrderBy(ri => ri.SortOrder).ThenBy(ri => ri.IngredientId).ToListAsync();
+            lines.Select(ri => (ri.IngredientId, ri.SortOrder, ri.LineKind, ri.IsDeleted)).Should().Equal(
+                new[] { (10L, 0, (string?)null, false), (11L, 0, RecipeIngredientLineKind.Note, false), (12L, 0, RecipeIngredientLineKind.Equipment, false) },
+                "an edit that leaves the lines as they were keeps the stored rows, whose positions all read 0 on an old scraped recipe, instead of deleting them and adding copies at positions 1 and 2 (staging checkpoint 7, S8)");
             lines.Select(ri => ri.RawLine).Should().Equal("1 onion", "see note below", "a large stockpot");
         }
 

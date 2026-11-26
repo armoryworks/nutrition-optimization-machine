@@ -30,6 +30,7 @@ sys.modules["hand_import"] = hand
 _spec.loader.exec_module(hand)
 
 FIXTURES = os.path.join(os.path.dirname(__file__), "fixtures", "hand-import")
+hand.cookbook.WORD_LISTS = (os.path.join(FIXTURES, "words.txt"),)
 POPPLER = shutil.which("pdftotext") and shutil.which("pdftoppm")
 SOURCES = hand.load_sources()
 
@@ -563,7 +564,7 @@ class RecordTests(unittest.TestCase):
             ask = hand.cookbook.resumable(stuck_host, os.path.join(folder, "d1.answers.jsonl"), retries=2, wait=0, sleep=lambda s: None, retry_timeouts=False)
             result = hand.extract_document(doc("pages", pages), SOURCES["nci"], ask=ask)
         self.assertEqual(asked.count(pages[0][1]), 1, "staging checkpoint 4, P34: a page that never answers held the run for three long timeouts")
-        self.assertEqual([r["recipe"]["name"] for r in result.kept], ["Salt Rub"])
+        self.assertEqual([r["recipe"]["name"] for r in result.kept], ["SALT RUB"])
         self.assertEqual((result.rejects[0]["page"], result.rejects[0]["reason"].split(":")[0]), (20, "model call timed out"))
         self.assertEqual(hand.summarize({"nci": [("d1", result)]})["nci"]["droppedByReason"], {"model call timed out": 1})
 
@@ -603,10 +604,10 @@ class RecordTests(unittest.TestCase):
         with tempfile.TemporaryDirectory() as folder:
             checkpoint = os.path.join(folder, "d1.answers.jsonl")
             first = hand.extract_document(doc("pages", pages), SOURCES["nci"], ask=hand.cookbook.resumable(busy_host, checkpoint, retries=1, wait=0, sleep=lambda s: None))
-            self.assertEqual([r["recipe"]["name"] for r in first.kept], ["Pepper Rub"], "staging checkpoint 3, N31: a timeout ended the run and lost every record")
+            self.assertEqual([r["recipe"]["name"] for r in first.kept], ["PEPPER RUB"], "staging checkpoint 3, N31: a timeout ended the run and lost every record")
             self.assertTrue(first.rejects[0]["reason"].startswith("model call failed"))
             second = hand.extract_document(doc("pages", pages), SOURCES["nci"], ask=hand.cookbook.resumable(busy_host, checkpoint, retries=1, wait=0, sleep=lambda s: None))
-            self.assertEqual([r["recipe"]["name"] for r in second.kept], ["Pepper Rub", "Salt Rub"])
+            self.assertEqual([r["recipe"]["name"] for r in second.kept], ["PEPPER RUB", "SALT RUB"])
             self.assertEqual(asked.count(pages[0][1]), 1, "an answered page is read back from the checkpoint, never asked again")
 
     def test_a_recipe_page_is_read_from_its_html_without_its_nutrition_facts(self):
@@ -635,7 +636,7 @@ class RecordTests(unittest.TestCase):
         }
         result = hand.extract_document(doc("pages", pages), SOURCES["nci"], ask=lambda system, text: json.dumps(answers[text]))
         self.assertEqual([(r["recipe"]["name"], r["pages"], r["recipe"]["sourceUrl"]) for r in result.kept],
-                         [("Hot 'n Spicy Seasoning", [20], "https://www.cancer.gov/book.pdf#page=20&search=%22Hot%20%27n%20Spicy%20Seasoning%22")])
+                         [("HOT'N SPICY SEASONING", [20], "https://www.cancer.gov/book.pdf#page=20&search=%22HOT%27N%20SPICY%20SEASONING%22")])
         self.assertEqual(len(result.rejects), 1)
         self.assertTrue(result.rejects[0]["reason"].startswith("number check"))
         self.assertEqual(result.rejects[0]["page"], 21)
@@ -666,7 +667,7 @@ class RecordTests(unittest.TestCase):
         book = doc("book", pages, resourceUrl="https://www.loc.gov/resource/gdc.book1/")
         result = hand.extract_document(book, SOURCES["loc"], ask=ask)
         links = {r["recipe"]["name"]: (r["pages"], r["recipe"]["sourceUrl"]) for r in result.kept}
-        self.assertEqual(links["Sponge Cake"], ([51], "https://www.loc.gov/resource/gdc.book1/?sp=51&st=text&q=Sponge%20Cake"))
+        self.assertEqual(links["SPONGE CAKE"], ([51], "https://www.loc.gov/resource/gdc.book1/?sp=51&st=text&q=SPONGE%20CAKE"))
         self.assertEqual(links["Gingerbread"], ([50], "https://www.loc.gov/resource/gdc.book1/?sp=50&st=text&q=Gingerbread"))
         self.assertEqual(links["Corn Muffins"], ([50], "https://www.loc.gov/resource/gdc.book1/?sp=50&st=text&q=Corn%20Muffins"))
         self.assertEqual(result.rejects, [])
@@ -836,13 +837,13 @@ class ModelHostTests(unittest.TestCase):
             gate = hand.HostGate(host, in_use, limit=120, poll=60, sleep=lambda s: None)
             first = hand.extract_document(doc("pages", pages), SOURCES["nci"], ask=hand.cookbook.resumable(gate, checkpoint, wait=0, sleep=lambda s: None, retry_timeouts=False))
             self.assertTrue(gate.exhausted)
-            self.assertEqual([r["recipe"]["name"] for r in first.kept], ["Pepper Rub"], "staging checkpoint 6: NCI was given up whole on a busy host")
+            self.assertEqual([r["recipe"]["name"] for r in first.kept], ["PEPPER RUB"], "staging checkpoint 6: NCI was given up whole on a busy host")
             self.assertEqual([(r["page"], r["reason"].split(":")[0]) for r in first.rejects], [(21, "model host busy"), (22, "model host busy")])
             self.assertEqual(len(readings), 4, "one free reading, then three busy ones within the 120 s limit; page 22 is not waited for again")
             self.assertEqual(hand.summarize({"nci": [("d1", first)]})["nci"]["droppedByReason"], {"model host busy": 2})
             free = hand.HostGate(host, lambda: False, limit=120, poll=60, sleep=lambda s: None)
             second = hand.extract_document(doc("pages", pages), SOURCES["nci"], ask=hand.cookbook.resumable(free, checkpoint, wait=0, sleep=lambda s: None, retry_timeouts=False))
-        self.assertEqual([r["recipe"]["name"] for r in second.kept], ["Pepper Rub", "Salt Rub", "Sage Rub"])
+        self.assertEqual([r["recipe"]["name"] for r in second.kept], ["PEPPER RUB", "SALT RUB", "SAGE RUB"])
         self.assertEqual([asked.count(t) for _, t in pages], [1, 1, 1], "an answered page is never asked again")
 
 

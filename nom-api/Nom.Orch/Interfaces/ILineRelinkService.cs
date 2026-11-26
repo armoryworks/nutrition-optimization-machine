@@ -94,15 +94,18 @@ namespace Nom.Orch.Interfaces
         /// with the recipes whose lines name a food a retirement changes; every other recipe's line entries in
         /// parts of about 500), each given, chunk by chunk, the rows its entries can touch
         /// (<see cref="Nom.Orch.Services.Support.RelinkUndoDryRun"/>): the result is what the same call would do,
-        /// and the database is only read, so no row is locked.
+        /// and the database is only read, so no row is locked. With <paramref name="restoreLowered"/>, an operator's explicit
+        /// choice, a line whose way back would lower a recipe's diet flags goes back too, so the undo restores the exact
+        /// journaled earlier state; the dry run lists those moves and the apply journals each one (staging checkpoint 7, S9).
+        /// Without it they stay where they are, held.
         /// </summary>
-        Task<LineRelinkUndoResult> UndoAsync(DateTime sinceUtc, bool apply = false, System.Threading.CancellationToken cancellationToken = default);
+        Task<LineRelinkUndoResult> UndoAsync(DateTime sinceUtc, bool apply = false, System.Threading.CancellationToken cancellationToken = default, bool restoreLowered = false);
 
         /// <summary>
         /// Takes back the given journal entries alone (line moves, retirements and renames, withdrawn
         /// proposals and picks), as <see cref="UndoAsync"/> takes back a time window: newest first, a
         /// line entry of a recipe rebuilt after it stays, and each entry taken back is removed.
         /// </summary>
-        Task<LineRelinkUndoResult> UndoEntriesAsync(IReadOnlyCollection<long> entryIds);
+        Task<LineRelinkUndoResult> UndoEntriesAsync(IReadOnlyCollection<long> entryIds, bool restoreLowered = false);
     }
 }

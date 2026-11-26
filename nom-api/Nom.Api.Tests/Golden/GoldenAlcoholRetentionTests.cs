@@ -45,8 +45,10 @@ namespace Nom.Api.Tests.Golden
             kinds.Should().BeEquivalentTo(new[]
             {
                 AlcoholRetention.NoSteps, AlcoholRetention.NoHeat, AlcoholRetention.Overnight, AlcoholRetention.HotLiquid,
-                AlcoholRetention.Flamed, AlcoholRetention.Timed, AlcoholRetention.UpTo,
-            });
+                AlcoholRetention.Timed, AlcoholRetention.UpTo,
+            }, "a flaming is an upper bound since alcohol-retention/10, so the flamed kind is only read back from older stored bases");
+            rows.Where(r => r["status"] == GoldenSet.Ok).Select(r => AlcoholRetention.ReadBasis(r["expect"])!.Value.Reason).Where(reason => reason != null).ToHashSet()
+                .Should().BeEquivalentTo(AlcoholRetention.Reasons, "every reason an upper bound may carry has a rule-given row");
             var factors = AlcoholRetention.Rows.Select(r => r.Factor).Append(1m).ToHashSet();
             rows.Select(r => decimal.Parse(r["factor"], System.Globalization.CultureInfo.InvariantCulture)).Should().OnlyContain(f => factors.Contains(f));
             rows.Where(r => r["status"] == GoldenSet.Ok).Select(r => r["expect"]).Where(b => b.StartsWith(AlcoholRetention.Timed + ":", StringComparison.Ordinal))

@@ -65,6 +65,13 @@ namespace Nom.Api.Tests.Services
         [InlineData("1 cup dealcoholised red wine", "non-alcoholic")]
         [InlineData("2 cups bread crumbs", "none")]
         [InlineData("1 tbsp grated ginger root", "none")]
+        [InlineData("a pint of Scotch ale", "beer")]
+        [InlineData("1 bottle scotch beer", "beer")]
+        [InlineData("2 oz Scotch", "whiskey")]
+        [InlineData("kirsch ice", "dish")]
+        [InlineData("1 pint rum sherbet", "dish")]
+        [InlineData("a champagne ice", "dish")]
+        [InlineData("2 oz whiskey over ice", "whiskey")]
         public void Each_rule_reads_its_class(string line, string sense)
         {
             AlcoholLineContext.Read(line).Sense.Should().Be(sense);

@@ -1,10 +1,10 @@
 {
-  "checkVersion": 7,
+  "checkVersion": 8,
   "caseSet": "ec8463beddaac76c",
   "rows": 320,
   "bar": 0.95,
   "minimum": 40,
-  "scoredAtUtc": "2026-11-24T12:14:00.1843581Z",
+  "scoredAtUtc": "2026-11-24T22:11:33.5334365Z",
   "classes": [
     {
       "class": "changed-range",

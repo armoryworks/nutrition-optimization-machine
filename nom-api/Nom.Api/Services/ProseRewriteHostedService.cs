@@ -111,7 +111,7 @@ namespace Nom.Api.Services
             http.Timeout = TimeSpan.FromSeconds(600);
             var writer = new OllamaProseWriter(http, baseUrl, models.Writer);
             var judge = new OllamaProseStepJudge(http, baseUrl, models.Judge);
-            var auditor = new OllamaProseJudge(http, baseUrl, models.Auditor);
+            var auditor = new OllamaProseAuditor(http, baseUrl, models.Auditor);
 
             var mode = await _gate.WriteModeAsync(AiLanes.ProseRewrite, ProseLaneService.Tier, cancellationToken);
             using var scope = _scopeFactory.CreateScope();

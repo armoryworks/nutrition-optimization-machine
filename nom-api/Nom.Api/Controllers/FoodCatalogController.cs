@@ -154,11 +154,11 @@ namespace Nom.Api.Controllers
                 .Distinct()
                 .ToList();
 
-        /// <summary>Put back the lines moved, the foods retired, the proposals withdrawn, the rows unfolded and the compound lines split or moved at or after the given UTC time; a dry run (read-only, on a copy in memory) unless apply=true. Dry runs run one at a time, in the order called; a dry run called while others run or wait says how many were ahead and how long it waited (queuedBehind, queuedSeconds). A dry run stops when the caller goes away, waiting or running.</summary>
+        /// <summary>Put back the lines moved, the foods retired, the proposals withdrawn, the rows unfolded and the compound lines split or moved at or after the given UTC time; a dry run (read-only, on a copy in memory) unless apply=true. Dry runs run one at a time, in the order called; a dry run called while others run or wait says how many were ahead and how long it waited (queuedBehind, queuedSeconds). A dry run stops when the caller goes away, waiting or running. restoreLowered=true, an operator's explicit choice, also puts back the lines whose way back lowers a recipe's diet flags, so the undo restores the exact journaled earlier state (listed by the dry run, journaled by the apply).</summary>
         [HttpPost("relink/undo")]
-        public async Task<ActionResult<LineRelinkUndoResult>> RelinkUndo([FromQuery, Required] DateTime sinceUtc, [FromQuery] bool apply = false)
+        public async Task<ActionResult<LineRelinkUndoResult>> RelinkUndo([FromQuery, Required] DateTime sinceUtc, [FromQuery] bool apply = false, [FromQuery] bool restoreLowered = false)
         {
-            return Ok(await _relink.UndoAsync(DateTime.SpecifyKind(sinceUtc, DateTimeKind.Utc), apply, apply ? CancellationToken.None : HttpContext.RequestAborted));
+            return Ok(await _relink.UndoAsync(DateTime.SpecifyKind(sinceUtc, DateTimeKind.Utc), apply, apply ? CancellationToken.None : HttpContext.RequestAborted, restoreLowered));
         }
 
         /// <summary>The container sizes with their hold-out figures and status, paused and active first, and the container-sizes lane's mode.</summary>

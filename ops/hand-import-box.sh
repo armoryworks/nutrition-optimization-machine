@@ -6,10 +6,10 @@ IMAGE="${NOM_HAND_IMAGE:-nom-hand-import}"
 
 usage() {
   cat >&2 <<'EOF'
-Runs ops/hand-import.py in the nom-hand-import image (poppler, tesseract), on the application server.
+Runs ops/hand-import.py in the nom-hand-import image (poppler, tesseract, a word list), on the application server.
 
   ops/hand-import-box.sh build
-  ops/hand-import-box.sh <fetch|links|text|extract|sample|stage|sources|withhold|release> [hand-import.py arguments]
+  ops/hand-import-box.sh <fetch|links|text|images|plan|extract|sample|stage|sources|withhold|release> [hand-import.py arguments]
 
 Environment, read at run time (nothing is baked into the image):
   NOM_HAND_WORK          the work folder on this host, mounted at /work (required for every step with --out)
@@ -41,7 +41,7 @@ case "$step" in
     run docker build -f "$HERE/hand-import.Dockerfile" -t "$IMAGE" "$@" "$HERE"
     exit 0
     ;;
-  fetch|links|text|extract|sample|stage|sources|withhold|release) ;;
+  fetch|links|text|images|plan|extract|sample|stage|sources|withhold|release) ;;
   -h|--help|help) usage; exit 0 ;;
   *) echo "unknown step: $step" >&2; usage; exit 1 ;;
 esac
@@ -55,7 +55,7 @@ if [ -n "${NOM_HAND_NETWORK:-}" ]; then
 fi
 
 case "$step" in
-  fetch|links|text|extract|sample|stage)
+  fetch|links|text|images|plan|extract|sample|stage)
     if [ -z "${NOM_HAND_WORK:-}" ]; then
       echo "NOM_HAND_WORK is not set: name the work folder on this host (outside any checkout)" >&2
       exit 1
@@ -92,6 +92,16 @@ if [ "$step" = "extract" ] && [ -n "${NOM_HAND_MODEL_HOST:-}" ]; then
     esac
   done
   [ "$given_host" = "1" ] || args+=(--host "$NOM_HAND_MODEL_HOST")
+  [ "$given_model" = "1" ] || args+=(--model "${NOM_HAND_MODEL:-qwen2.5:14b-instruct}")
+fi
+
+if [ "$step" = "plan" ]; then
+  given_model=0
+  for arg in "${args[@]}"; do
+    case "$arg" in
+      --model|--model=*) given_model=1 ;;
+    esac
+  done
   [ "$given_model" = "1" ] || args+=(--model "${NOM_HAND_MODEL:-qwen2.5:14b-instruct}")
 fi
 

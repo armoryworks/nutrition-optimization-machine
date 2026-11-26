@@ -669,5 +669,309 @@ namespace Nom.Api.Tests.Services
             runs.Select(r => r.Kind).Should().Equal(RecipeRemovalService.PurgeKind, RecipeRemovalService.RetireKind);
             runs.Single(r => r.Kind == RecipeRemovalService.RetireKind).Undoable.Should().Be(0, "a purged recipe cannot be put back");
         }
+
+        private const string Own = "STEWONLY-WORDING";
+        private const string Shared = "SHARED-WORDING";
+
+        private sealed record Wordings(long OwnFood, long MergedFood, long HeldFood, long SharedFood, long OwnProposal, long MergedProposal, long LooseProposal, long SharedProposal, string MergedLine);
+
+        /// <summary>
+        /// Line wordings beside the seed (staging checkpoint 7, S20): a food named from a line only the stew uses, with an alias,
+        /// a link proposal on it and a journal row of it; a food merged away from a line the stew alone holds, now on the catalog
+        /// food, with its proposal and one keyed by the same wording and no food; a wording lane's decision about that line; a
+        /// food only the stew uses that a household plans; and a food the stew shares with the recipe not removed, with its proposal.
+        /// </summary>
+        private static async Task<Wordings> WordingsAsync(ApplicationDbContext db, World w)
+        {
+            var own = new IngredientEntity { Name = $"{Own} crumbs", CurationStatusId = (long)CurationStatusEnum.NonCurated, Description = $"{Own} crumbs, crushed" };
+            var mergedLine = $"{Own} zest of one lemon, finely grated";
+            var merged = new IngredientEntity { Name = mergedLine, CurationStatusId = (long)CurationStatusEnum.NonCurated, IsDeleted = true, DeletedAt = T0.AddDays(-9) };
+            var held = new IngredientEntity { Name = "avocado and cilantro for topping", CurationStatusId = (long)CurationStatusEnum.NonCurated };
+            var shared = new IngredientEntity { Name = $"{Shared} spice", CurationStatusId = (long)CurationStatusEnum.NonCurated };
+            db.Ingredients.AddRange(own, merged, held, shared);
+            await db.SaveChangesAsync();
+            db.IngredientAliases.Add(new IngredientAliasEntity { IngredientId = own.Id, AliasName = $"{Own.ToLowerInvariant()} crumbs" });
+            db.RecipeIngredients.AddRange(
+                new RecipeIngredientEntity { RecipeId = w.Stew, IngredientId = own.Id, RawLine = $"1 cup {Own} crumbs, crushed", Quantity = 1, SortOrder = 2 },
+                new RecipeIngredientEntity { RecipeId = w.Stew, IngredientId = w.CatalogFood, RawLine = mergedLine, Quantity = 0, SortOrder = 3 },
+                new RecipeIngredientEntity { RecipeId = w.Stew, IngredientId = held.Id, RawLine = "avocado and cilantro for topping", Quantity = 0, SortOrder = 4 },
+                new RecipeIngredientEntity { RecipeId = w.Stew, IngredientId = shared.Id, RawLine = $"1 tsp {Shared} spice", Quantity = 1, SortOrder = 5 },
+                new RecipeIngredientEntity { RecipeId = w.Open, IngredientId = shared.Id, RawLine = $"2 tsp {Shared} spice", Quantity = 2, SortOrder = 2 });
+            FoodCatalogProposalEntity Link(long? food, string current) => new()
+            {
+                Action = FoodProposalAction.Update, IngredientId = food, Field = FoodCatalogReviewService.FdcLinkField, CurrentValue = current, ProposedValue = w.CatalogFood.ToString(),
+                Reason = "→ Beef Stew Meat · used in 1 recipes", Source = "ai:qwen", Status = FoodProposalStatus.Pending,
+            };
+            var ownProposal = Link(own.Id, own.Name);
+            var mergedProposal = Link(merged.Id, merged.Name);
+            mergedProposal.Status = FoodProposalStatus.Applied;
+            var looseProposal = Link(null, mergedLine);
+            looseProposal.Reason = $"No USDA match for {mergedLine}";
+            var sharedProposal = Link(shared.Id, shared.Name);
+            db.FoodCatalogProposals.AddRange(ownProposal, mergedProposal, looseProposal, sharedProposal);
+            db.LaneDecisions.Add(new LaneDecisionEntity { Lane = "wording-tiers", Subject = WordingTierLaneService.Subject(IngredientNameNormalizer.WordingKey(mergedLine)), SignalsJson = $"{{\"lines\":[\"{mergedLine}\"]}}" });
+            db.MealPlans.Add(new MealPlanEntity { Id = 502, HouseholdId = HouseholdId, AuthorId = Member, Date = new DateOnly(2026, 11, 26), MealTypeId = 1102, IngredientId = held.Id, Title = "Topping" });
+            await db.SaveChangesAsync();
+            db.AuditLogEntries.Add(new AuditLogEntryEntity { EntityType = RecipeRemovalService.FoodEntityType, EntityId = own.Id, ChangeType = "LinkMerge", PropertyName = "Name", OldValue = own.Name, NewValue = "Beef Stew Meat", Timestamp = T0.AddDays(-3), ChangedByPersonId = 1 });
+            db.AuditLogEntries.Add(new AuditLogEntryEntity { EntityType = LineRelinkService.PickWithdrawEntityType, EntityId = mergedProposal.Id, ChangeType = "LinkApplyRemoved", PropertyName = "Proposal", OldValue = mergedLine, Timestamp = T0.AddDays(-3), ChangedByPersonId = 1 });
+            await db.SaveChangesAsync();
+            db.ChangeTracker.Clear();
+            return new Wordings(own.Id, merged.Id, held.Id, shared.Id, ownProposal.Id, mergedProposal.Id, looseProposal.Id, sharedProposal.Id, mergedLine);
+        }
+
+        /// <summary>Every text column of every row of the model holding <paramref name="text"/> (the removal row's title and address excepted), as "Type.Property #id".</summary>
+        private static List<string> RowsAnywhere(ApplicationDbContext db, string text)
+        {
+            var found = new List<string>();
+            var setMethod = typeof(DbContext).GetMethod(nameof(DbContext.Set), Type.EmptyTypes)!;
+            var ignore = typeof(EntityFrameworkQueryableExtensions).GetMethod(nameof(EntityFrameworkQueryableExtensions.IgnoreQueryFilters), new[] { typeof(IQueryable<>).MakeGenericType(Type.MakeGenericMethodParameter(0)) })!;
+            foreach (var type in db.Model.GetEntityTypes().Where(t => t.FindPrimaryKey() != null && !t.IsOwned() && !t.HasSharedClrType && t.BaseType == null && t.GetViewName() == null && t.GetTableName() != null))
+            {
+                var query = (IQueryable)ignore.MakeGenericMethod(type.ClrType).Invoke(null, new[] { setMethod.MakeGenericMethod(type.ClrType).Invoke(db, null) })!;
+                foreach (var row in query.Cast<object>().ToList())
+                    foreach (var property in row.GetType().GetProperties().Where(p => p.PropertyType == typeof(string)))
+                        if (property.GetValue(row) is string s && s.Contains(text, StringComparison.OrdinalIgnoreCase))
+                            found.Add($"{type.ClrType.Name}.{property.Name} #{type.ClrType.GetProperty("Id")?.GetValue(row)}");
+            }
+
+            return found;
+        }
+
+        [Fact]
+        public async Task The_retire_retires_the_foods_no_other_recipe_uses_journaled_and_its_undo_puts_them_back()
+        {
+            await using var db = NewContext();
+            var w = await SeedAsync(db);
+            await HoldAsync(db, w);
+            var x = await WordingsAsync(db, w);
+            var before = JsonSerializer.Serialize(await db.Ingredients.IgnoreQueryFilters().OrderBy(i => i.Id).Select(i => new { i.Id, i.Name, i.IsDeleted, i.DeletedAt, i.DeletedByPersonId }).ToListAsync());
+
+            var dry = await Removal(db).RetireAsync(null, apply: false, Admin, null);
+            var applied = await Removal(db, batch: 1).RetireAsync(null, apply: true, Admin, null);
+            db.ChangeTracker.Clear();
+
+            dry.Foods.Should().Be(1, "only the food named from a line the stew alone uses, that nothing else holds");
+            applied.Foods.Should().Be(dry.Foods, "the apply retires what its dry run counted");
+            var own = await db.Ingredients.IgnoreQueryFilters().SingleAsync(i => i.Id == x.OwnFood);
+            (own.IsDeleted, own.DeletedAt, own.DeletedByPersonId).Should().Be((true, (DateTime?)T0, (long?)Admin));
+            (await db.AuditLogEntries.SingleAsync(a => a.ChangeType == RecipeRemovalService.FoodRetireChangeType)).EntityId.Should().Be(x.OwnFood);
+            (await db.Ingredients.AnyAsync(i => i.Id == x.HeldFood)).Should().BeTrue("a household plans it");
+            (await db.Ingredients.AnyAsync(i => i.Id == x.SharedFood)).Should().BeTrue("the recipe not removed uses it");
+            (await db.Ingredients.AnyAsync(i => i.Id == w.LineFood)).Should().BeTrue("the recipes not removed use it");
+            (await db.Ingredients.AnyAsync(i => i.Id == w.CatalogFood)).Should().BeTrue("a catalog food is never retired");
+
+            var undoDry = await Removal(db).UndoRetireAsync(T0, apply: false, Admin);
+            undoDry.Foods.Should().Be(1);
+            var undo = await Removal(db).UndoRetireAsync(T0, apply: true, Admin);
+            undo.Foods.Should().Be(1);
+            db.ChangeTracker.Clear();
+            JsonSerializer.Serialize(await db.Ingredients.IgnoreQueryFilters().OrderBy(i => i.Id).Select(i => new { i.Id, i.Name, i.IsDeleted, i.DeletedAt, i.DeletedByPersonId }).ToListAsync())
+                .Should().Be(before, "the undo puts every retired food back as it was");
+        }
+
+        [Fact]
+        public async Task A_purge_follows_a_purged_recipes_wordings_into_link_proposals_and_wording_foods_no_other_recipe_uses()
+        {
+            await using var db = NewContext();
+            var w = await SeedAsync(db);
+            await HoldAsync(db, w);
+            var x = await WordingsAsync(db, w);
+            RowsAnywhere(db, Own).Should().Contain(new[] { $"IngredientEntity.Name #{x.OwnFood}", $"FoodCatalogProposalEntity.CurrentValue #{x.LooseProposal}" }, "the scan must find the wordings before the purge");
+            await Removal(db).RetireAsync(null, apply: true, Admin, null);
+            db.ChangeTracker.Clear();
+
+            var dry = await Removal(db).PurgeAsync(null, apply: false, backupTaken: false, Admin);
+            dry.Targets.Single(t => t.Table == "recipe.Ingredient").Rows.Should().Be(3, "the stew's own food, the food merged away from its line and the planned food");
+            dry.Targets.Single(t => t.Table == "curation.FoodCatalogProposal").Rows.Should().Be(3);
+            await Removal(db, batch: 1).PurgeAsync(null, apply: true, backupTaken: true, Admin);
+            db.ChangeTracker.Clear();
+
+            RowsAnywhere(db, Own).Should().BeEmpty("no wording of a purged recipe that no other recipe uses is left in any table (staging checkpoint 7, S20: 24 proposals and 13 food names)");
+            RowsAnywhere(db, "avocado and cilantro for topping").Should().BeEmpty();
+            var heldFood = await db.Ingredients.SingleAsync(i => i.Id == x.HeldFood);
+            heldFood.Name.Should().Be("avocado and cilantro", "a food a household holds keeps a name, by its food words");
+            (await db.Ingredients.IgnoreQueryFilters().SingleAsync(i => i.Id == x.OwnFood)).Name.Should().StartWith(RecipeRemovalService.PurgedValuePrefix);
+            (await db.IngredientAliases.IgnoreQueryFilters().AnyAsync(a => a.IngredientId == x.OwnFood)).Should().BeFalse();
+            (await db.FoodCatalogProposals.CountAsync(p => p.CurrentValue!.StartsWith(RecipeRemovalService.PurgedValuePrefix))).Should().Be(3);
+            var sharedProposal = await db.FoodCatalogProposals.SingleAsync(p => p.Id == x.SharedProposal);
+            sharedProposal.CurrentValue.Should().Be($"{Shared} spice", "a wording the recipe not removed still uses stays");
+            (await db.Ingredients.SingleAsync(i => i.Id == x.SharedFood)).Name.Should().Be($"{Shared} spice");
+            RowsAnywhere(db, Shared).Should().NotBeEmpty();
+            RowsAnywhere(db, Marker).Should().NotBeEmpty("the lines of the recipes not removed keep their own text");
+        }
+
+        [Fact]
+        public async Task A_purge_keeps_the_wording_lanes_decision_about_a_key_a_recipe_not_removed_still_uses()
+        {
+            await using var db = NewContext();
+            var w = await SeedAsync(db);
+            var stout = new IngredientEntity { Name = "stout beer", CurationStatusId = (long)CurationStatusEnum.NonCurated };
+            db.Ingredients.Add(stout);
+            await db.SaveChangesAsync();
+            db.RecipeIngredients.AddRange(
+                new RecipeIngredientEntity { RecipeId = w.Stew, IngredientId = stout.Id, RawLine = "1 cup stout beer", Quantity = 1, SortOrder = 2 },
+                new RecipeIngredientEntity { RecipeId = w.Open, IngredientId = stout.Id, RawLine = "2 cups stout beer, chilled", Quantity = 2, SortOrder = 2 });
+            IngredientNameNormalizer.WordingKey("1 cup stout beer").Should().Be("stout beer");
+            db.LaneDecisions.Add(new LaneDecisionEntity { Lane = "wording-tiers", Subject = WordingTierLaneService.Subject("stout beer"), SignalsJson = "{\"lines\":2}", AuditJson = "{\"written\":true}" });
+            await db.SaveChangesAsync();
+            await Removal(db).RetireAsync(null, apply: true, Admin, null);
+            db.ChangeTracker.Clear();
+
+            var dry = await Removal(db).PurgeAsync(null, apply: false, backupTaken: false, Admin);
+            await Removal(db).PurgeAsync(null, apply: true, backupTaken: true, Admin);
+            db.ChangeTracker.Clear();
+
+            dry.Targets.Single(t => t.Table == "curation.LaneDecision (wordings)").Rows.Should().Be(0);
+            var decision = await db.LaneDecisions.SingleAsync();
+            (decision.Subject, decision.SignalsJson, decision.AuditJson).Should().Be(("wording:stout beer", "{\"lines\":2}", "{\"written\":true}"),
+                "the line '1 cup stout beer' is the stew's alone, but its key is the wording the recipe not removed links to");
+            (await db.Ingredients.SingleAsync(i => i.Id == stout.Id)).Name.Should().Be("stout beer");
+        }
+
+        [Fact]
+        public async Task A_purge_follows_a_line_wording_into_a_food_merged_away_under_a_tombstoned_name_its_journal_and_the_alias_the_merge_left()
+        {
+            const string text = "TOMBSTONE-WORDING zest of one lemon or orange (preferably unsprayed)";
+            await using var db = NewContext();
+            var w = await SeedAsync(db);
+            var merged = new IngredientEntity { Name = text, CurationStatusId = (long)CurationStatusEnum.NonCurated, IsDeleted = true, DeletedAt = T0.AddDays(-9) };
+            db.Ingredients.Add(merged);
+            await db.SaveChangesAsync();
+            merged.Name = $"{text} (deleted #{merged.Id})";
+            db.RecipeIngredients.Add(new RecipeIngredientEntity { RecipeId = w.Stew, IngredientId = w.CatalogFood, RawLine = text, Quantity = 0, SortOrder = 2 });
+            db.AuditLogEntries.Add(new AuditLogEntryEntity { EntityType = LineRelinkService.RetireEntityType, EntityId = merged.Id, ChangeType = LineRelinkService.RetireChangeType, PropertyName = "IsDeleted", OldValue = text, NewValue = "1", Timestamp = T0.AddDays(-9), ChangedByPersonId = 1 });
+            db.IngredientAliases.Add(new IngredientAliasEntity { IngredientId = w.CatalogFood, AliasName = text, SourceContext = LineRelinkService.RetiredContextPrefix + merged.Id });
+            db.IngredientAliases.Add(new IngredientAliasEntity { IngredientId = w.CatalogFood, AliasName = "stew beef" });
+            await db.SaveChangesAsync();
+            await Removal(db).RetireAsync(null, apply: true, Admin, null);
+            db.ChangeTracker.Clear();
+            RowsAnywhere(db, "TOMBSTONE-WORDING").Should().HaveCount(4);
+
+            await Removal(db).PurgeAsync(null, apply: true, backupTaken: true, Admin);
+            db.ChangeTracker.Clear();
+
+            RowsAnywhere(db, "TOMBSTONE-WORDING").Should().BeEmpty("every merge and delete path names a retired food 'X (deleted #id)', so an exact name never finds it");
+            (await db.IngredientAliases.Where(a => a.IngredientId == w.CatalogFood).Select(a => a.AliasName).ToListAsync()).Should().Equal("stew beef");
+            (await db.Ingredients.SingleAsync(i => i.Id == w.CatalogFood)).Name.Should().Be("Beef Stew Meat");
+        }
+
+        [Fact]
+        public async Task The_undo_of_an_earlier_retire_brings_back_a_food_a_later_retire_took_when_it_retired_the_foods_last_live_line()
+        {
+            await using var db = NewContext();
+            var w = await SeedAsync(db);
+            var other = new ScrapingSourceEntity { Domain = "other.example", Status = ScrapingSourceStatusEnum.Approved, Kind = ScrapingSourceEntity.WebKind, CreatedDate = T0, RightsClass = SourceRightsRule.Forbidden };
+            var food = new IngredientEntity { Name = "SHARED-LATER smoked paprika", CurationStatusId = (long)CurationStatusEnum.NonCurated };
+            db.ScrapingSources.Add(other);
+            db.Ingredients.Add(food);
+            await db.SaveChangesAsync();
+            var b1 = new RecipeEntity
+            {
+                AuthorId = Admin, Name = "Goulash", SourceUrl = "https://other.example/goulash/", SourceSite = "other.example", CurationStatusId = (long)CurationStatusEnum.Curated, Visibility = RecipeVisibilityEnum.Public, Servings = 4,
+                RecipeIngredients = new List<RecipeIngredientEntity> { new() { IngredientId = food.Id, Quantity = 1, RawLine = "1 tbsp smoked paprika", SortOrder = 0 } },
+            };
+            db.Recipes.Add(b1);
+            db.RecipeIngredients.Add(new RecipeIngredientEntity { RecipeId = w.Stew, IngredientId = food.Id, RawLine = "2 tsp smoked paprika", Quantity = 2, SortOrder = 2 });
+            await db.SaveChangesAsync();
+            var later = T0.AddHours(1);
+
+            (await Removal(db).RetireAsync(w.ForbiddenSource, apply: true, Admin, null)).Foods.Should().Be(0, "the goulash still uses the food");
+            db.ChangeTracker.Clear();
+            var second = await new RecipeRemovalService(db, NullLogger<RecipeRemovalService>.Instance) { Now = () => later }.RetireAsync(other.Id, apply: true, Admin, null);
+            second.Foods.Should().Be(1);
+            db.ChangeTracker.Clear();
+
+            var undoDry = await Removal(db).UndoRetireAsync(T0, apply: false, Admin);
+            var undo = await Removal(db).UndoRetireAsync(T0, apply: true, Admin);
+            db.ChangeTracker.Clear();
+
+            (undoDry.Foods, undo.Foods).Should().Be((1, 1));
+            (await db.RecipeIngredients.AnyAsync(l => l.RecipeId == w.Stew && l.IngredientId == food.Id)).Should().BeTrue();
+            (await db.Ingredients.AnyAsync(i => i.Id == food.Id)).Should().BeTrue("the stew is live again, and its line must not name a retired food");
+            var laterUndo = await new RecipeRemovalService(db, NullLogger<RecipeRemovalService>.Instance) { Now = () => later.AddHours(1) }.UndoRetireAsync(later, apply: true, Admin);
+            laterUndo.Foods.Should().Be(0, "the food is live already");
+        }
+
+        [Fact]
+        public async Task A_purge_leaves_a_food_named_like_a_purged_line_that_was_never_named_from_it()
+        {
+            await using var db = NewContext();
+            var w = await SeedAsync(db);
+            var held = new IngredientEntity { Name = "clover honey", CurationStatusId = (long)CurationStatusEnum.NonCurated, Description = "a household's honey", PluralName = "clover honeys" };
+            var pending = new IngredientEntity { Name = "wildflower honey", CurationStatusId = (long)CurationStatusEnum.NonCurated, Description = "pending review" };
+            db.Ingredients.AddRange(held, pending);
+            await db.SaveChangesAsync();
+            db.IngredientAliases.Add(new IngredientAliasEntity { IngredientId = held.Id, AliasName = "trefoil honey" });
+            db.HouseholdIngredients.Add(new HouseholdIngredientEntity { HouseholdId = HouseholdId, IngredientId = held.Id });
+            db.RecipeIngredients.AddRange(
+                new RecipeIngredientEntity { RecipeId = w.Stew, IngredientId = w.CatalogFood, RawLine = "2 tbsp clover honey", Quantity = 2, SortOrder = 2 },
+                new RecipeIngredientEntity { RecipeId = w.Stew, IngredientId = w.CatalogFood, RawLine = "1 cup wildflower honey", Quantity = 1, SortOrder = 3 });
+            await db.SaveChangesAsync();
+            IngredientNameNormalizer.Normalize("2 tbsp clover honey").Should().Be("clover honey");
+            IngredientNameNormalizer.Normalize("1 cup wildflower honey").Should().Be("wildflower honey");
+            await Removal(db).RetireAsync(null, apply: true, Admin, null);
+            db.ChangeTracker.Clear();
+
+            await Removal(db).PurgeAsync(null, apply: true, backupTaken: true, Admin);
+            db.ChangeTracker.Clear();
+
+            var heldAfter = await db.Ingredients.SingleAsync(i => i.Id == held.Id);
+            (heldAfter.Name, heldAfter.Description, heldAfter.PluralName).Should().Be(("clover honey", "a household's honey", "clover honeys"));
+            (await db.IngredientAliases.CountAsync(a => a.IngredientId == held.Id)).Should().Be(1);
+            var pendingAfter = await db.Ingredients.IgnoreQueryFilters().SingleAsync(i => i.Id == pending.Id);
+            (pendingAfter.Name, pendingAfter.IsDeleted, pendingAfter.Description).Should().Be(("wildflower honey", false, "pending review"),
+                "a live food no purged line names was never named from the source");
+        }
+
+        [Fact]
+        public async Task The_purge_dry_run_counts_the_holdings_the_retire_dry_run_counts()
+        {
+            await using var db = NewContext();
+            var w = await SeedAsync(db);
+            await HoldAsync(db, w);
+            var retire = (await Removal(db).RetireAsync(null, apply: false, Admin, null)).Sources.Single();
+            await Removal(db).RetireAsync(null, apply: true, Admin, null);
+            db.ChangeTracker.Clear();
+
+            var purge = (await Removal(db).PurgeAsync(null, apply: false, backupTaken: false, Admin)).Sources.Single();
+
+            (purge.Recipes, purge.AlreadyDeleted, purge.Approved, purge.InMealPlans, purge.Favourited, purge.InCookbooks, purge.InShoppingLists)
+                .Should().Be((retire.Recipes, retire.AlreadyDeleted, retire.Approved, retire.InMealPlans, retire.Favourited, retire.InCookbooks, retire.InShoppingLists),
+                    "staging checkpoint 7, S19: the purge dry run read 0 for a retired recipe a household held");
+            (purge.InMealPlans, purge.Favourited, purge.InCookbooks, purge.InShoppingLists).Should().Be((1, 1, 1, 1));
+        }
+
+        [Fact]
+        public async Task The_plain_shopping_list_read_serves_each_item_with_the_removed_note()
+        {
+            await using var db = NewContext();
+            var w = await SeedAsync(db);
+            await HoldAsync(db, w);
+            var lists = new ShoppingListOrchestrationService(db);
+            var before = await lists.GetShoppingListAsync(701, Member);
+            before!.Items.Select(i => i.Note).Should().OnlyContain(n => n == ShoppingItemNote.ForRecipe("Beef Stew"));
+
+            await Removal(db).RetireAsync(null, apply: true, Admin, null);
+            db.ChangeTracker.Clear();
+
+            var after = await new ShoppingListOrchestrationService(db).GetShoppingListAsync(701, Member);
+            after!.Items.Should().HaveCount(2, "the household keeps its items");
+            after.Items.Should().OnlyContain(i => i.Note == $"From recipe: Beef Stew. {RecipeRemovalService.RemovedNote} Source: https://forbidden.example/stew/",
+                "staging checkpoint 7: the note was served only by the smart list and the grocery export, both off on staging");
+            JsonSerializer.Serialize(after).Should().NotContain(Marker);
+            (await new ShoppingListOrchestrationService(db).GetShoppingListAsync(701, Admin)).Should().BeNull("only the household reads its list");
+        }
+
+        [Theory]
+        [InlineData("Finely-grated zest of one lemon or orange (preferably unsprayed)", "Finely-grated zest of one lemon or orange", "lemon zest")]
+        [InlineData("avocado and cilantro for topping", "avocado and cilantro for topping", "avocado and cilantro")]
+        [InlineData("2 tablespoons red Thai curry paste", "red Thai curry paste", "red Thai curry paste")]
+        [InlineData("I love to use whatever my family likes best here", "I love to use whatever my family likes best here", "Ingredient")]
+        public void A_line_named_shopping_item_takes_its_food_words(string rawLine, string foodName, string expected)
+        {
+            var food = new IngredientEntity { Name = foodName, CurationStatusId = (long)CurationStatusEnum.NonCurated };
+            RecipeRemovalService.ItemName(food, rawLine).Should().Be(expected, "staging checkpoint 7, S18: two of four line-named items were renamed to the bare word");
+            RecipeRemovalService.ItemName(new IngredientEntity { Name = "Lemon Zest", CurationStatusId = (long)CurationStatusEnum.Curated }, rawLine).Should().Be("Lemon Zest");
+        }
     }
 }

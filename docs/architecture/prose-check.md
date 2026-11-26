@@ -1,4 +1,4 @@
-# Prose check v7
+# Prose check v8
 
 A scraped recipe's method and description are shown only in our own words. The prose check decides
 whether a text is our own: it compares a rewrite with the stored source (`recipe.ScrapedDocument`) by
@@ -17,6 +17,12 @@ copied sentences is withheld, one with some is withheld too until the rewrite la
 sentences, its work list (outcome **repair**), since a recipe is shown only when all its sentences pass;
 the copy-unsure band is gone; and an amount the recipe's own ingredient line contradicts
 (`contradicts-lines`) fails any shown text, description included, old paraphrases included.
+Version 8 (`ProseCheck.Version = 8`, `cleanup2/ck15-prose`, "Check v8" below) keeps v7's rules but stops
+sorting the earlier paraphrases by them: the re-check withholds every earlier paraphrase by its origin until the
+reword lane has reworded its whole method, the check's copy verdict on old text only orders the lane's queue, and
+the lane's own new text must also pass a strict copy check (`ProseRebuilt`) where a synonym swap in the source's
+frame is a copy. Where the sections below say a recipe with copied sentences is withheld for repair, v8 withholds
+every earlier paraphrase instead.
 The re-check and the rewrite lane call the same function, so they always agree. The re-check runs it
 (see "The withheld state" below), and so does the reword lane (prose lane v3, `prose-lane.md`) on every
 reworded sentence and on the whole text before its judge reads it.
@@ -447,6 +453,80 @@ and myplate included, so its total is larger than the analysis figure of about 3
 recipes, which counted only shown recipes of unknown licence; `stepsByLicence`, `recipesByLicence`,
 `stepsShownUnknownLicence` and `recipesShownUnknownLicence` split the count so the two can be
 compared.
+
+## Check v8 (2026-11-24, `cleanup2/ck15-prose`): old text withheld by origin, new text checked strictly
+
+The proof of check v7 (`cleanup2/ck12-prose-proof`) found that no word-order rule can tell an earlier paraphrase's
+light edit from a rebuilt sentence at the bars: v7 marks about 37 % of the copied sentences, and of 40 recipes it
+called clean, 15 held copied sentences. So the earlier paraphrases are no longer sorted by the check.
+
+**Old text, by origin (`ProseRecheckService`).** Every web recipe whose shown method is an earlier paraphrase of its
+stored source is withheld (`ProseWithheld`) until the reword lane has reworded its whole method. An earlier
+paraphrase is a scraped recipe of no clear licence (anything but `PublicDomain`, `CreativeCommons` or
+`UserSubmitted`), not quarantined, with a stored JSON-LD source, whose steps no person wrote or edited (and whose
+withhold no person ended), and whose text the reword lane did not write (its latest `ProseRewrite` state row, not
+undone, is tagged with a lane version starting `v4-`, `ProseLanePrompts.IsWholeMethodTag`). The rule:
+
+- The check still reads every earlier paraphrase, shown or already withheld, but its verdict (`mostly`, `some`,
+  `none`, or `check-error`) only orders the lane's queue: the count of sentences it reads as copied or kept nearly
+  word for word is stored as `Recipe.ProseCopiedSentences` (the queue figure, journaled as `ProseCopiedSentences`
+  "n | check 8 stock M: queue figure: ..."). The lane takes approved withheld recipes first, then the others, each
+  by that figure, most first. No showing decision depends on it, and the repair-by-sentence mode is gone. The figures
+  of recipes already withheld are set only by an apply that withholds every earlier paraphrase still shown, so a
+  trial apply of a batch writes no more than its batch.
+- The apply withholds approved recipes first, then the most copied, in batches of 500, each journaled as
+  `ProseWithhold` "check 8 stock M: earlier paraphrase, withheld until reworded as a whole: <verdict>: <finding>";
+  a withhold clears an unsure mark (journaled). The undo by stamp (`POST /api/ProseRewrite/recheck/undo`) releases
+  the recipes and puts every queue figure back.
+- The result names what is exempt and why: `exemptClearLicence`, `exemptLaneWritten`, `skippedEditedByPerson`,
+  `skippedNoSource`; `byCopy` gives the verdicts, `examinedWithheld` the already-withheld paraphrases read for their
+  figure, `queueFigures` the figures that change.
+- The version moved to 8 so the weekly job runs the new rule after a deploy (`Due`: the last run's check version
+  differs). The text rules are v7's; the v8 candidate of `cleanup2/ck12-prose-proof` (`fa19192d`) was never adopted.
+
+**On the staging copy** (read-only role, 2026-11-24): 122,213 scraped recipes not quarantined. Exempt: 100,836
+public domain (clear licence); among the 21,377 of unknown licence none has a step a person edited, none a withhold a
+person ended, none lacks a stored source, and none was written by the lane. So every one of the 21,377 is an earlier
+paraphrase: the 8,727 shown now (1,221 approved) are withheld by the apply, and the 12,650 already withheld (12,581
+facts-only, 69 permission-needed; 2,308 approved) get their queue figure. The check's verdict on them: shown 2,331
+mostly, 4,424 some, 1,972 none; already withheld 3,983 mostly, 5,431 some, 3,236 none. 610 quarantined recipes stay
+quarantined and are the lane's as before. 6,278 of the shown recipes are from the forbidden sources the forbidden-source
+removal takes out; if it runs first, the apply withholds 2,449.
+
+**New text, strictly (`ProseRebuilt`, `rebuilt/1`).** The lane's own reworded sentences pass only when clearly
+rebuilt, since a false copy verdict only costs a retry. Each sentence is set beside every source passage (one source
+sentence or two adjacent ones) with words in a plain form (`ProseRebuilt.Plain`: the closed list of equivalents and
+the stem of `fa19192d`, extended with a few pairs such as according/per, direction/instruction, ahead/advance). It is
+a copy when, beside some passage, half or more of its frame (every word but the facts: amounts, units, the words of
+the ingredient lines and the craft words) follows the passage in order; or, with two or more words of its own wording
+(the frame without function words), half or more of that wording follows in order; or, with three or more of its own
+words in the passage in any order, those are 60 % or more of its own wording. A sentence whose own wording is at most
+three words of the closed formula list (`ProseRebuilt.FormulaWord`) passes unless half or more of all its words follow
+a passage in order: a formula the lane rewords passes, a formula kept word for word does not.
+
+- **The line**, from the judged sentences of the two proof draws (144 recipes, 1,415 step sentences, 526 judged
+  copies; description sentences left out, since the lane's description is built by rule): no sentence judged a copy
+  passes. The price on old text: 828 of the 889 step sentences judged not copies are refused.
+- **On text it will really see** (`ck15-prose.md`): 21 staging methods rewritten by hand both ways. Every lightly
+  edited recipe is refused (148 of 149 light sentences refused; the one that passes is "Serve right away."). Of
+  109 sentences rebuilt by hand in a first round, 51 are refused (47 %); rewriting the refused ones again, 16 of 116
+  are refused in the second round and 8 in the third, so 14 of 21 recipes pass whole within the lane's three rounds.
+- `ProseReword.SentenceProblems` uses it for each reworded sentence (reason `copy`, "the wording follows the
+  published sentence too closely; rebuild it ..."), and the gate refuses a text with any sentence it reads as a copy.
+- The golden rows of `prose-check.tsv` hold it: every row judged to hold a copied sentence must be refused (all 450
+  are, including the rows judged to hold none: the retry cost on old text).
+
+**`contradicts-lines` on new text: not adopted.** The proof found that 14 of 20 right firings of a lines class were
+rewrite faults (1 tsp to 1 tbsp) that `contradicts-lines` misses, because an amount the source states anywhere
+exempts it. Narrowing the exemption to the same food or to an amount before no food fires on 71 more recipes of the
+staging copy. Judged: the 20 of the proof's 40 lines rows it fires on (16 right, 3 false, 1 doubtful) and a fresh 40 of
+the 71 (seed `ck15p-lines`, proof rows, judged draws and golden rows left out: 27 right, 12 false, 1 doubtful): 43 of
+60, 72 %, far under 95 %. The false firings are amounts per item ("a slice", "each", "per lemon", "on each salad",
+"half of the onions": 7), another food sharing the head word or the sentence ("lime juice" read as the orange juice
+line, sugar sprinkled "on the rhubarb", stock for the rice, yeast for the starter, apple cider mix as the apple line:
+6), a list "each of salt and pepper" read as the first food (1) and the source's own ambiguity (2 doubtful). So the
+exemption stays as v7 has it; the case where the source disagrees with its own lines stays out. The judge, which
+reads every reworded step, is what catches a changed amount in new text.
 
 ## Check v7
 

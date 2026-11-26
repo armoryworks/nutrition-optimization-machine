@@ -8,12 +8,12 @@ using Xunit;
 namespace Nom.Api.Tests.Services
 {
     /// <summary>
-    /// The reword lane (prose lane v3) on the garlic sauce of prose-judge.tsv: the writer is given the
-    /// whole method, the step and the sentences to reword; a recipe withheld as a whole has every
-    /// sentence reworded and a shown one only its copied sentences; a reworded sentence that loses a fact
-    /// or stays a copy is reworded again with what failed, up to the last round, after which the recipe is
-    /// given up; the whole must pass the prose check, a contradiction of the recipe's own lines included,
-    /// and the judge.
+    /// The reword lane (prose lane v4) on the garlic sauce of prose-judge.tsv: the writer is given the
+    /// whole method, the step and the sentences to reword; every recipe has every sentence of its method
+    /// reworded; a reworded sentence that loses a fact or is not clearly rebuilt (a synonym swap in the
+    /// source's frame included) is reworded again with what failed, up to the last round, after which the
+    /// recipe is given up; the whole must pass the prose check, a contradiction of the recipe's own lines
+    /// included, the strict copy check and the judge.
     /// </summary>
     public class ProseRewordTests
     {
@@ -27,7 +27,7 @@ namespace Nom.Api.Tests.Services
         {
             var writer = new FakeWriter { Reword = Reworded };
 
-            var outcome = await ProseReword.RunAsync(GarlicSauce.Input(), null, writer, new FakeJudge());
+            var outcome = await ProseReword.RunAsync(GarlicSauce.Input(), writer, new FakeJudge());
 
             outcome.Passed.Should().BeTrue(string.Join(" | ", outcome.Attempts.SelectMany(a => a.Reasons)) + " " + outcome.Finding);
             outcome.Rewrite!.Steps.Should().HaveCount(GarlicSauce.Method.Length);
@@ -36,6 +36,7 @@ namespace Nom.Api.Tests.Services
             writer.Reworded.Should().OnlyContain(r => r.Method.Count == GarlicSauce.Method.Length && r.Lines.Count == GarlicSauce.Lines.Length, "the writer reads the whole method and the recipe's lines");
             writer.Reworded[1].StepText.Should().Be(Key(GarlicSauce.Method[1]));
             ProseCheck.Check(GarlicSauce.Input().Source, outcome.Rewrite, GarlicSauce.Lines).Sentences.Copied.Should().Be(0);
+            ProseRebuilt.AllRebuilt(GarlicSauce.Input().Source, new RewriteFidelity.SourceText(string.Empty, outcome.Rewrite.Steps), GarlicSauce.Lines).Should().BeTrue("every reworded sentence is clearly rebuilt");
         }
 
         [Fact]
@@ -52,38 +53,41 @@ namespace Nom.Api.Tests.Services
                 },
             };
 
-            var outcome = await ProseReword.RunAsync(GarlicSauce.Input(), null, writer, new FakeJudge());
+            var outcome = await ProseReword.RunAsync(GarlicSauce.Input(), writer, new FakeJudge());
 
             outcome.Passed.Should().BeTrue();
             outcome.Attempts[0].Reasons.Should().Contain(ProseReword.FactReason);
             writer.Reworded.Last().Sentences.Single().Problem.Should().Contain("keep every fact");
 
             var stubborn = new FakeWriter { Reword = s => s };
-            var given = await ProseReword.RunAsync(GarlicSauce.Input(), null, stubborn, new FakeJudge());
+            var given = await ProseReword.RunAsync(GarlicSauce.Input(), stubborn, new FakeJudge());
             given.Passed.Should().BeFalse();
             given.Attempts.Count(a => a.Style == ProseReword.StyleReword).Should().Be(ProseLanePrompts.RewordRounds.Count);
             given.FailureClass.Should().Be(ProseReword.CopyReason);
         }
 
         [Fact]
-        public async Task A_shown_recipe_has_only_its_copied_sentences_reworded_and_its_own_sentences_kept()
+        public async Task A_synonym_swap_in_the_sources_frame_is_refused_as_a_copy_and_reworded_again()
         {
-            var shown = new RewriteFidelity.SourceText("Garlic cream sauce, made with olive oil, garlic and heavy cream.", new[]
+            var swap = "Remove the pan from the heat and whisk the butter in.";
+            ProseSentences.Read(GarlicSauce.Input().Source, new RewriteFidelity.SourceText(string.Empty, new[] { swap }), GarlicSauce.Lines).Kept.Should().Be(0, "the word-order rule of the old text reads no copy in it");
+            var calls = new Dictionary<string, int>();
+            var writer = new FakeWriter
             {
-                "Over medium heat, warm ½ tablespoon of the olive oil in a small saucepan, then cook the garlic in it for a minute or two until you can smell it.",
-                "Pour in ¾ cup cream and ¾ teaspoon salt, then simmer for 7 to 10 minutes until slightly thickened.",
-                "Whisk the butter through the sauce once you have lifted the pan off the heat.",
-                "Before you serve it, leave the sauce to stand for a half hour.",
-            }, GarlicSauce.Dish);
-            ProseCheck.Check(GarlicSauce.Input().Source, shown, GarlicSauce.Lines).Repair.Should().BeTrue();
-            var writer = new FakeWriter { Reword = Reworded };
+                Reword = s =>
+                {
+                    calls[s] = calls.GetValueOrDefault(s) + 1;
+                    return Key(s) == Key(GarlicSauce.Method[2]) && calls[s] == 1 ? swap : Reworded(s);
+                },
+            };
 
-            var outcome = await ProseReword.RunAsync(GarlicSauce.Input(), shown, writer, new FakeJudge());
+            var outcome = await ProseReword.RunAsync(GarlicSauce.Input(), writer, new FakeJudge());
 
             outcome.Passed.Should().BeTrue(string.Join(" | ", outcome.Attempts.SelectMany(a => a.Reasons)));
-            writer.Reworded.Should().ContainSingle().Which.Sentences.Select(s => s.Number).Should().Equal(1);
-            outcome.Rewrite!.Steps.Should().Equal(shown.Steps[0], GarlicSauce.Reworded[GarlicSauce.Method[1]], shown.Steps[2], shown.Steps[3]);
-            outcome.Rewrite.Description.Should().Be(shown.Description);
+            outcome.Attempts[0].Reasons.Should().Equal(ProseReword.CopyReason);
+            writer.Reworded.Last().Sentences.Single().Problem.Should().Contain("another frame");
+            outcome.Rewrite!.Steps[2].Should().Be(GarlicSauce.Reworded[GarlicSauce.Method[2]]);
+            ProseRebuilt.AllRebuilt(GarlicSauce.Input().Source, new RewriteFidelity.SourceText(string.Empty, outcome.Rewrite.Steps), GarlicSauce.Lines).Should().BeTrue();
         }
 
         [Fact]
@@ -93,9 +97,9 @@ namespace Nom.Api.Tests.Services
             {
                 Reword = s => Key(s) == Key(GarlicSauce.Method[2]) ? "Whisk 4 tablespoons butter through the sauce once you have lifted the pan off the heat." : Reworded(s),
             };
-            (await ProseReword.RunAsync(GarlicSauce.Input(), null, wrong, new FakeJudge())).Passed.Should().BeFalse("an amount the sentence does not state is a lost fact");
+            (await ProseReword.RunAsync(GarlicSauce.Input(), wrong, new FakeJudge())).Passed.Should().BeFalse("an amount the sentence does not state is a lost fact");
 
-            var refused = await ProseReword.RunAsync(GarlicSauce.Input(), null, new FakeWriter { Reword = Reworded }, new FakeJudge { Faithful = (_, _) => false });
+            var refused = await ProseReword.RunAsync(GarlicSauce.Input(), new FakeWriter { Reword = Reworded }, new FakeJudge { Faithful = (_, _) => false });
             refused.Passed.Should().BeFalse();
             refused.FailureClass.Should().StartWith(ProseCleanRoom.JudgeReason);
         }

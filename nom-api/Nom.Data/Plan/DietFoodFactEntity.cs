@@ -42,6 +42,12 @@ namespace Nom.Data.Plan
 
         /// <summary>The method of a recipe whose lines were read out of a book's text names what the set restricts, and no line does.</summary>
         Method = 9,
+
+        /// <summary>A line no curated food decides names a word the set does not understand: no curated food knows it, or the set flags some of the foods that know it and leaves others clear (a severe set only).</summary>
+        UnknownWord = 10,
+
+        /// <summary>A line no curated food decides names a word the curated catalog knows only on foods the set flags, or a line holds a processing kind of the set (the dried form of a fruit for Sulfite Sensitivity).</summary>
+        FoodWord = 11,
     }
 
     /// <summary>

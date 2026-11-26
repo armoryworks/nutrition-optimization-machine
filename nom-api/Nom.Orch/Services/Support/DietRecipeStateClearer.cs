@@ -34,7 +34,7 @@ namespace Nom.Orch.Services.Support
             return result;
         }
 
-        /// <summary>The recipes whose lines, steps, servings, title or source the context is about to write.</summary>
+        /// <summary>The recipes whose lines, steps, servings, title, source or book the context is about to write.</summary>
         internal static HashSet<long> Touched(ApplicationDbContext db)
         {
             var ids = new HashSet<long>();
@@ -52,7 +52,8 @@ namespace Nom.Orch.Services.Support
                 }
                 else if (entry.Entity is RecipeEntity recipe && entry.State == EntityState.Modified && recipe.Id > 0
                     && (entry.Property(nameof(RecipeEntity.Servings)).IsModified || entry.Property(nameof(RecipeEntity.RecipeServings)).IsModified || entry.Property(nameof(RecipeEntity.IsDeleted)).IsModified
-                        || entry.Property(nameof(RecipeEntity.Name)).IsModified || entry.Property(nameof(RecipeEntity.SourceUrl)).IsModified || entry.Property(nameof(RecipeEntity.ScrapedAtUtc)).IsModified))
+                        || entry.Property(nameof(RecipeEntity.Name)).IsModified || entry.Property(nameof(RecipeEntity.SourceUrl)).IsModified || entry.Property(nameof(RecipeEntity.ScrapedAtUtc)).IsModified
+                        || entry.Property(nameof(RecipeEntity.SourceAttribution)).IsModified))
                     ids.Add(recipe.Id);
             }
             return ids;

@@ -395,6 +395,240 @@ whose lines left out the crust. `diet-patterns/6`, `diet-dishes/1`, `diet-vocabu
   recipe); draw 18 found no miss and no over-flag of the reader's own, only two link errors and rows judged doubtful.
   The build report lists every draw and every link error found (links are listed, not patched).
 
+## Staging checkpoint 7: safe only when understood (cleanup2/ck16-diet-known)
+
+Four checkpoints failed diet coverage on words nobody had listed (checkpoint 7, S3: sponge-fingers, gaufrettes, a
+skillet brownie, lo mein, chocolate chip cookies, Spry, balsamic, dried currants, dried cranberries). Listing does not
+converge, so an unlisted word no longer means safe for a severe type. `diet-food-words/1`, `recipe-text/3`:
+
+- **Three values for every line no curated food decides (`DietFoodWords`).** A line on a curated food is decided by
+  that food, as before. A line on any other food (a wording food, a pending or retired food), or a line with no food,
+  is read by its food words: its words without amounts and measures (the parser's own measure and number words), the
+  grammar of English, and the line words of `Nom.Orch/Contents/diet-line-words.tsv` (chopped, divided, softened,
+  garnish, optional: derived from the corpus, words that stand beside a curated food's own name in the lines of at
+  least 20 curated foods, more often than they name one, that no severe criterion reads and that no 20 lines hold
+  alone). For each severe set, each word of the live curated foods' names and USDA descriptions is:
+  - **flagged** when the catalog knows it only on foods the set flags: on a flagged food whose name holds a term of
+    the set, the term's one-word term; on one whose name holds none (flagged by an alias, a category or its contents),
+    the words of its description's first part; and the one word of the second part of a description whose first part
+    is a term of the set, when no clear curated food holds it ("Vinegar, balsamic": balsamic; "Cookies, brownies":
+    brownie);
+  - **clear** when it is known only on plain curated foods the set leaves clear. Plain foods are those of the USDA
+    categories of single commodities (`DietFoodWords.PlainCategories`); a prepared mixture's clear verdict is no
+    knowledge of its words, since its name does not list what it holds ("Restaurant, Chinese, vegetable lo mein" is
+    clear only because its name says no noodle);
+  - **unknown** otherwise: known on both sides, known only on prepared mixtures, or not known at all (sponge-fingers,
+    gaufrettes, Spry).
+  A line is flagged when a word is flagged, unknown when a word is unknown or the line names no food word at all ("one
+  cupful of chopped", whose food the extraction lost), clear otherwise; a word that is a one-word term of the set is
+  left to the term's rule, which reads the line first (so "peanut butter" stays clear for Milk Allergy).
+- **Processing facts by kind.** The vocabulary's marker terms of two words give a kind: "dried apricot" (from
+  "Apricots, dried, sulfured") makes "dried" with a head word of any curated food of Fruits and Fruit Juices a flag for
+  Sulfite Sensitivity, on every line whatever its food, so dried currants linked to fresh currants and dried cranberries
+  on Dried Cranberries are held. The vinegar and wine words come by the flagged rule above.
+- **Severe types only.** A flagged word is a Contains verdict with its own reason (`DietFlagReason.FoodWord`); an
+  unknown word an Unknown verdict with its own reason (`DietFlagReason.UnknownWord`), held for a severe set only and
+  counted apart (`DietStoredTypeCount.RecipesUnknownWord`, `RecipesByFoodWord`; `ops/diet-gate-count.sql`
+  `unknown_word`, `by_food_word`). A diet of choice reads as before. The recipe page says "Ingredient not understood"
+  or "Named by an ingredient".
+- **The words follow the catalog.** Each cycle the build reads the live curated foods (name, USDA description and
+  trusted aliases) and builds every severe set's vocabulary from its stored facts; the signature of all of them is part
+  of every recipe's fingerprint, and a cycle over the changes that finds the signature moved (a food curated, a curated
+  food renamed or decided otherwise) runs a whole cycle, so every recipe is decided again under the new words. The
+  food write trigger (`plan."DietGateFoodsWritten"`) now also fires on a change of `CurationStatusId`.
+- **The recipe's own text follows the same rule (S4).** A book recipe whose method sends the cook to another recipe or
+  preparation ("make the same as vanilla", "use recipe for Calumet One-egg Cake", "as for pie crust", "see page 34",
+  "prepared as above", "according to directions previously given"), says it is incomplete anywhere, or breaks off
+  ("Beat sixteen eggs very well in"), or whose lines only change another recipe's amounts (a line "only 1/2 cup of
+  milk": 69144 Scones), builds on another and is unknown (`DietRecipeText.BuildsOnAnother`). A baked good of flour in
+  the title (the Baked Products heads of the wheat vocabulary: bread, cake, biscuit, muffin ...) is read when no line
+  names a flour, a meal or a starch ("Bread" whose lines are milk, sugar, nut meats and salt). A book method that names
+  a food no line carries holds the recipe as unknown (Method, review ck16-2 and ck16-5; `DietFoodWords.HoldsInMethod`):
+  - a word the catalog flags or knows on both sides, where it is what a flagged food is: the one word of its USDA
+    description's first part ("Wafers, vanilla": wafer; "Candies, ...": candy), not a word of a first part of more
+    words ("ice" of "Ice creams", "ring" of "Onion rings", "leavening" of "Leavening agents") or of the second part
+    ("evaporated" of "Milk, evaporated", "mince" of "Pie, mince"), which a method uses as a verb or a tool ("mince the
+    onion", "a buttered baking dish", "set on ice", "until evaporated", "a brick oven");
+  - such a qualifying word too when a food word the set does not read as clear follows it right after ("slices of
+    sponge cake", "hand sponge fingers with it", "dinner rolls"), and a second-part word that the corpus names as a food
+    at one tenth of its method uses ("add cider, scalding hot" for Sulfite Sensitivity);
+  - a word no curated food knows (or only a prepared mixture) that is the whole name of uncurated foods the corpus's
+    lines are linked to, in at least 2 recipes and at least one fifth of the recipes whose method names it
+    (`Nom.Orch/Contents/diet-method-foods.tsv`, derived, 1,216 words with the one-tenth rows: "rizotto" of 133979
+    Poularde Valencienne, "pullet", "forcemeat", "cocoanut"; a word methods use far more than lines list is a tool or
+    a thing the recipe makes, and is not read: pan, oven, cloth, paper, crust, icing, filling, stuffing, liquor,
+    dripping, ice).
+  The terms a method is not read for (`DietRecipeText.MethodSkips`) are left out of all three.
+- **Holds by title or method alone (S5).** The method is no longer read in an optional addition, and only there
+  (`DietRecipeText.WithoutOptional`, review ck16-1): what "if desired", "if liked" or "optional" follows is the phrase
+  back to the last break ("Sift the flour with the salt and add sugar if desired" still reads the flour), what it leads
+  is the phrase up to the next break ("Add, if liked, a little sherry and stir in the flour"), what "may be added" says
+  of is its clause, and a variant ("another sauce", "variations") is its whole sentence; nor in a use clause ("This sauce is used for boiled chicken or fish"), "pass separately", a
+  negation ("made without eggs") or a simile ("like a loaf of bread", "the size of a walnut", "come noci"), and an
+  accompaniment's "pour/strain/serve over the ..." is read as what it goes with.
+- **A statement that names its nut (R7).** A prepared meal's allergen that names a member of the tree nuts ("coconut",
+  "cashews") is no longer read by the class's words that name no member ("tree nut", "nuts"), so Peanut Allergy's
+  unnamed-nut term `% nut%` does not hold the six coconut and cashew meals (`IngredientStatementReader.GateWords`).
+- **A drink offered as an alternative (S12).** A line's bracketed alternative ("beef stock (or I used dry red wine)") is
+  read for drink alcohol (`DietCriteriaMatcher.LineCounts`), whatever the alias table holds.
+
+The price is large and measured, not barred: on the read-only staging copy of 2026-11-25 every severe type holds
+26,358 (Milk Allergy) to 50,430 (Sesame Allergy) recipes as unknown (Peanut Allergy 49,646, of them 43,265 by an
+unknown word and about 1,640 by a method that names a food no line carries), against 1,171 to 67,197 flagged. The
+work list of unknown words by frequency (`build/ck16-diet-known.unknown-words.tsv` in the audit evidence) is what the
+wording and link lanes shrink: a wording linked to a curated food is decided by that food.
+
+## Old cookbook words: the verified wording batch w02 (cleanup2/ck17-words)
+
+The price above is cut by the verified wording table, not by a diet-side word list. Batch `w02`
+(`nom-api/Nom.Api.Tests/Fixtures/VerifiedWordings/batch-w02.tsv`, old cookbook wordings only) gives each judged
+wording either the curated food it is (`food`: "treacle" is molasses, "eschalots" are shallots, "Zucchero" is sugar,
+"graham bread" is whole-wheat bread), whose lines `relink/verified` moves onto that food, or, when no single catalog
+food is it, the USDA category and description head of the foods it is one of (`category`, `diet-food-words/2`):
+
+- **What a category decides.** For each severe set, a group (the live curated foods of the category whose USDA
+  description starts with the head at a comma or its end, `WordingCategory`) reads as **flagged** when every one of its
+  curated foods is flagged, as **clear** when none is flagged, aliased or of unknown contents and the category is one
+  of single commodities (`DietFoodWords.PlainCategories`), and as **unknown** otherwise. "isinglass" (Webster 1913:
+  gelatin from the air bladders of sturgeon) is category 15, head "Fish": flagged for Fish Allergy, shown to Peanut
+  Allergy. A flagged group flags the line; a clear group clears it unless its words are flagged; an unknown group adds
+  nothing and the line is read by its words as before, so a group never holds a line its words understood ("chickens"
+  stays shown to Egg Allergy although a curated batter-fried chicken is in the Poultry group).
+- **Which lines.** Only a line on an uncurated row whose lower-cased name is the wording and whose own text names the
+  wording as the verified relink reads it (`LineRelinkService.NamesWording`); a stray line an import parked on the row
+  is still read by its words. A kind of the set ("dried" with a fruit) still flags such a line, and the line rules of
+  the set read its text first, as for every line. Nothing moves and no nutrition is claimed.
+- **Signature.** The category rows and every set's class of every group are part of the words signature, so loading,
+  unloading or retracting a category row makes the next cycle a whole cycle.
+- **What stays unknown.** A wording whose meaning the cookbooks leave open (stock, white stock, dripping, jelly, soup,
+  forcemeat, consomme, marrow, "two cloves"), a consommé or a fumet even with its qualifier ("chicken consommé" is
+  clarified with egg white, Escoffier's fish fumet is made with white wine, so the qualifier settles the meat or the fish
+  but not what the cookbook adds), a sauce or composite the cookbook makes from another recipe (drawn butter,
+  Espagnole, buttered crumbs), and things that are no food (saltpetre, alum, cochineal) get no row. Every row was judged
+  twice, each time on five lines whose own text names the wording (a stray line an import parked on the row does not
+  count), the second time from the definition and five other lines, and a row the two passes did not agree on was
+  dropped. Measured on the staging copy: see the build report `build/ck17-words.md` in the audit evidence.
+
+## The three-valued reading and its whole draws (cleanup2/ck17-diet-proof)
+
+Version `diet-food-words/3` (the words of a set) and `recipe-text/4` (the book text rules). Every rule below is derived
+from the catalog or the corpus, or is a kind a whole draw showed; no rule lists a food by hand.
+
+- **Shapes and dish forms never clear a line alone** (`DietFoodWords.FormKind`). A shape of the catalog ("patty",
+  "roll") is read as not understood when no other food word of the line is; a dish form is the whole first part of a
+  prepared mixture's USDA description outside the single-commodity categories ("pie", "sauce", "pudding") and is read as
+  not understood. Derived from the curated catalog when the words load.
+- **A method dish no line carries** (`Contents/diet-method-dishes.tsv`, derived from the corpus: a word that ends at
+  least 3 book titles that are two fifths of the book recipes whose method names it) holds the recipe as unknown when no
+  curated food holds the word and the recipe's own title does not name it ("a garnish of rizotto").
+- **Old spellings** (`Contents/diet-spellings.tsv`) map only by the derived rule: one letter from a curated catalog
+  word (inserted, dropped, changed, or two neighbours swapped), the same first letter, and at least half of the
+  spelling's lines on curated foods (at least 3) on foods that hold that word. Measured before adoption: it released
+  153 to 517 type-recipes per type, all of them by spellings. A spelling is written in its own case ("Prepare Cocoanut
+  Pudding." is read as "Prepare Coconut Pudding."), so the referral rules that need a capitalised recipe name still read
+  it (review ck17dpr-1; on the staging copy the case changed no verdict).
+- **The consommé of a clarifying book.** A line that names a consommé holds the recipe as unknown for a severe set that
+  flags egg white when the recipe's own book (`SourceAttribution`) has a consommé recipe whose lines or method clarify
+  it with egg white (`DietRecipeText.ConsommeClarifiers`). On the staging copy it holds 57 Egg Allergy recipes from 6
+  books; a book whose consommé is strong broth (Francatelli) is not held. A write of a recipe's `SourceAttribution` makes
+  it undecided, by the trigger and the EF clearer, since the hold reads it (review ck17dpr-2).
+- **A dough the lines lost.** A title whose last word is a dough dish (`DoughTerms` and the derived
+  `Contents/diet-dough-titles.tsv`, a word that ends at least 10 book titles of which nine tenths carry a dough line)
+  while no line names one; a title's number in a series is dropped first ("RHUBARB PIE No. 2"). A method that bakes, boils or wraps
+  the dish in a paste, a crust or a pastry, bakes it between two crusts, fills the lower crust or tops the pie "after the
+  pie is baked", while no line names a paste, a crust, a dough or a shell (`DietRecipeText.PasteLost`).
+- **A recipe built on another** (`DietRecipeText.BuildsOnAnother`) is held as having no readable ingredient list: a
+  method that sends the cook elsewhere ("the same as given under No. 38", "see No. 185", "as directed on page 168",
+  "Article 58", "as directed on package", "Prepare Duchess Potato.", "in a similar way to Cumberland pudding", "Make
+  exactly as you would a beef-steak pie"), only varies another recipe ("Use Champagne instead of Madeira wine"), ends
+  mid-sentence, begins by stirring something in ("Stir in the corn and bake"), or says it is incomplete; a line that is
+  another dish's base ("dressing (such as is used for turkey dressing)", "batter as for suet pudding"); and melted or
+  drawn butter measured by the pint, the gill or the boat, the English butter sauce of flour, butter and water ("three
+  parts of a pint of melted butter").
+- **A cake the method uses** ("spread between layers of cake", "dip small pieces of cake", "spread over hot cake") is
+  read as the food, though a method's "cake" is otherwise a shape ("make into flat cakes"): a filling or an icing spread
+  on a cake no line gives is unknown.
+- **A line that leaves its food to the cook** ("Fillings of your choice", `DietRecipeText.LeavesChoice`) is not
+  understood whatever food it is linked to.
+- **A one-line recipe** whose method names a flagged, mixed or dish-form word no line carries is unknown: its line list
+  is the dish's main food alone ("Layer sliced turnips with sauce and cheese, then bake").
+- **A method's food words** are paired with the head of the words right after them ("soy bean sauce"), and a run of
+  three words with no grammar is also read without its middle word.
+- **A size given by a food** ("a walnut-sized piece of butter", "butter the size of an egg") is dropped from the text
+  before it is read (`DietFoodWords.Respell`).
+
+**The proof.** Whole draws on a local copy of the staging snapshot with w02 applied (30 shown and 20 held per severe
+type, 10 of the shown weighted to recipes w02 releases, ids in no earlier sample, checkpoint, draw or fixture), read on
+both sides and fixed by kind. Draws 6 to 17 are logged in `build/ck17-diet-proof.draws.tsv` in the audit evidence;
+wrong flags stayed at 0 to 3 of 110 per draw. The stop rule (two consecutive whole draws with no miss among the shown)
+is not reached, so the reading is not proven and is not to be released as proven: every draw from 6 to 17 found one to
+five misses. Two known misses are catalog facts, not gate kinds, and are still shown: a curated condensed cream soup
+read as clear for wheat, and the book's Protose linked to Fresh Coconut Meat. Since `cleanup2/ck18-composites` both are
+held (next section).
+
+**Price after w02**, type-recipes shown, flagged, unknown, of 116,557 live recipes: Celiac 26,194 / 55,427 / 34,936;
+Milk 18,261 / 67,195 / 31,101; Peanut 50,701 / 2,984 / 62,872; Sesame 51,644 / 1,171 / 63,742; the build report has
+every type, before and after w02.
+
+## Made products by their brands' label statements (cleanup2/ck18-composites)
+
+Draws 6 to 17 left two kinds of miss that no word rule could close: a curated made product whose category and name do
+not say what it holds (`Condensed Cream Of Chicken Soup` read clear for Celiac Disease and Wheat Allergy), and a trade
+name a model pick linked to a food it is not ("Protose", the vegetarian books' wheat-gluten and nut meat, on
+`Fresh Coconut Meat`). Versions `diet-food-words/4` and `recipe-text/5`.
+
+- **The branded consensus** (`BrandedConsensus`, `Contents/diet-branded-consensus.tsv`, `branded-consensus/2`). A
+  curated food that is a made product (USDA categories Fats and Oils, Soups, Sauces and Gravies, Sausages and Luncheon
+  Meats, Breakfast Cereals, Baked Products, Sweets and Snacks; a food of no USDA category; or any other category but the
+  prepared and the American Indian/Alaska Native ones whose description holds a made marker: canned, dried, pickled,
+  cured, sauce, paste, spread, mix, dressing, meatless ...) is matched to the US branded foods of FoodData Central that
+  are the same kind. The rule: the product a branded description names (its first part, the flavour it repeats and an
+  addition "with ..." left out) holds every word of the food's key and ends with the key's head; it holds no form word
+  the food's description does not ("dried", "frozen", "instant", "pickled", "frosted" ...); the word before its head is
+  no other food's head ("rice cakes" are no corn cakes) and names no class of the vocabulary the food's own words do not
+  ("white clam sauce" is no white sauce, "cheddar popcorn" no popcorn; "mayo mayonnaise" stays); a later part of three or more words names no other food (a
+  pizza that names the cheese); and it is not of a whole-meal category. Only the branded categories that hold a fifth of
+  a food's matches count. A maker's own product (a description naming its brand in capitals) and a food with another
+  food in it ("milk chocolate, with almonds") are not matched. Measured on 60 matches read by hand, 52 are the same kind
+  (87 %; an earlier form of the rule 55 of 60; the class-word form of review ck18 again 52 of 60): the build report
+  lists every read.
+- **Foods made at home.** A food USDA describes as home-prepared, homemade, a home recipe, home preserved or prepared
+  from a recipe is matched as any other, but takes from its brands only a *usually* row (what the dish is made of: the
+  flour of a pie, the eggs of a sponge cake) and never the sulfite class. Where the brands are split, the split is what
+  each maker adds, and a home recipe's own choice is in its own lines; a sulfiting agent is a preservative a maker adds,
+  and a home kitchen does not (refrigerated mashed potatoes with sodium bisulfite are no home-prepared mashed potatoes).
+- **Stating.** Each matched statement is read by the prepared-contents reader and the label terms with no catalog, as
+  the gate reads a prepared meal's statement, against the default criteria of each vocabulary class's type; a "may
+  contain" warning is no statement of contents; a declared allergen states only its own class (a "Contains: tree nuts"
+  line is no statement of peanut); coconut does not state the tree nuts (the Tree Nut set does not read coconut); the
+  sulfite class is stated by the sulfiting agents a label names, not by vinegar or wine.
+- **The verdict per class.** From at least 10 read statements: three in four or more stating the class make the food
+  *usually contain* it; more than one in ten and fewer than three in four make its contents for the class *split*;
+  fewer leave it as its own data reads. Ten because below it one product moves the share by more than the whole clear
+  band; one in ten because at the measured match precision (about one match in eight is another kind) mismatches alone
+  can raise a clear kind toward a tenth, so a lower bar would hold foods on noise; three in four because the data is
+  bimodal for the large classes (wheat, gluten: most foods under 5 % or over 90 %) and a true 85 % kind stays above it
+  after that noise. No model reads or decides anything and no nutrition number is touched.
+- **What the gate does with it.** Only a severe criterion (severity 4 or 5) reads the rows: a criterion reads a class
+  when it names the class's probe word as a line would ("wheat"; "barley" for gluten, so Wheat Allergy does not read it;
+  "almond" for the tree nuts, so Peanut Allergy's unnamed nut does not). A usually-contains food is flagged
+  (`DietFoodFact.Source` `consensus`); a split food is unknown (`consensus-split`) for that set; a diet of choice reads
+  nothing. A row applies to a curated food by its name and FDC id (catalog ids differ between databases), and is part of
+  the food's fingerprint, so a changed file decides the food again. A consensus fact is no knowledge of a food's words:
+  "soup" in an old book's "soup stock" is not a can of condensed soup. The line-move guard reads a split food as
+  unknown, as the store does, so a relink, merge or undo that would move a line off it onto a clear food is held.
+- **Unproven links.** A line on a curated food whose wording an applied model pick linked there (`ai:` link proposals
+  not proven by a verified wording row) and whose every food word no curated food knows is read by its words, not as the
+  food: "Protose, ½ pound." on `Fresh Coconut Meat` is not understood. The set of such links is part of the words
+  signature. On the staging copy it held 49 to 134 type-recipes per type, where ck17's rule for every curated line held
+  523 to 1,725.
+- **Draw kinds.** A composite word (dressing, mayonnaise, margarine, sauce, catsup, gravy, mix ...) is not made clear by
+  a curated food of a single-commodity category ("salad dressing" read clear for Egg Allergy); a line read by its words
+  that carries a free-of marker ("Vegan Parmesan") is not understood; and the referrals of draws 18 to 21 (`BuildsOnAnother`).
+
+The draws 18 to 21 and the price are in the build report `build/ck18-composites.md`. The stop rule is not met: each of
+the four draws found four to six misses among the shown.
+
 ## Cost and cache
 
 The whole-catalog answer of each type (its foods, its alias-only foods and the recipes their lines
@@ -632,6 +866,8 @@ cycle failed:
 - a recipe the build has not decided yet (made since the last cycle, or its lines written since), which every set
   holds, severe or not;
 - a recipe with a line on a food the build has not decided;
+- a recipe with a line on a food of unknown contents (since `cleanup2/ck16-diet-store-moves`: a wording food the link
+  re-check took lines back to although the take-back would lower a flag, see "Catalog-wide writes");
 - a prepared meal the build has not decided.
 
 A set holds unknowns when one of its criteria is of severity 4 or 5, or when a household member holds the type at
@@ -701,12 +937,12 @@ now diffs standalone sequences, functions and triggers, so `apply.sh` and `--che
 | Table | Writes | Made undecided |
 |---|---|---|
 | `recipe."RecipeIngredient"` | insert, delete; an update that changes a line's food, order, text, amount, unit, kind, retention or liveness (a `LastModifiedDate`-only update does not) | the line's recipe (`DietRecipeState`) |
-| `recipe."Recipe"` | an update of `Servings`, `RecipeServings`, `IsDeleted`, or the title and source a book recipe is read by (`Name`, `SourceUrl`, `ScrapedAtUtc`) | the recipe |
+| `recipe."Recipe"` | an update of `Servings`, `RecipeServings`, `IsDeleted`, or the title and source a book recipe is read by (`Name`, `SourceUrl`, `ScrapedAtUtc`), or its book (`SourceAttribution`, which the consommé hold compares with the books that clarify their consommé with egg white: review ck17dpr-2) | the recipe |
 | `recipe."RecipeStep"` | insert, delete; an update of a step's text, number or liveness, on a recipe with a scrape time (a book recipe's method is read, `DietRecipeText`) | the recipe |
-| `recipe."Ingredient"` | delete; an update of name, liveness, USDA category or data type, or a weight | the food (`DietFoodState`) and every recipe with a line on it |
-| `recipe."IngredientAlias"` | insert, update, delete | the food and its recipes |
-| `nutrient."IngredientNutrient"` | a row of a nutrient some criterion reads | the food and its recipes |
-| `recipe."IngredientContents"` | a statement of no household | the food and its recipes |
+| `recipe."Ingredient"` | delete; an update of name, liveness, USDA category or data type, or a weight | the food (`DietFoodState`); every recipe with a line on it is held through the write log (since `cleanup2/ck16-diet-store-moves`, see "Catalog-wide writes") |
+| `recipe."IngredientAlias"` | insert, update, delete | the food; its recipes held through the write log |
+| `nutrient."IngredientNutrient"` | a row of a nutrient some criterion reads | the food; its recipes held through the write log |
+| `recipe."IngredientContents"` | a statement of no household | the food; its recipes held through the write log |
 | `plan."RestrictionCriterion"` | insert, update, delete | nothing (a log row, so the job sees the criteria) |
 | `measurement."Measurement"` | delete; an update of category, factor, container mark or liveness | every recipe with a line in that unit (retained alcohol weighs drinks by it) |
 
@@ -775,6 +1011,63 @@ The sweep stays as a backstop only (every table the gate reads has a trigger, th
 CK11-DM-4); at 900 s it reads the catalog four times an hour instead of twelve (and instead of every ~31 s while the
 API wrote). 900 s is the right interval: the sweep now catches only a write made with the triggers off, and raising it
 further gains little, since a whole cycle with nothing changed costs about 3 s.
+
+## Catalog-wide writes (staging checkpoint 7, S2, S6; `cleanup2/ck16-diet-store-moves`)
+
+Checkpoint 7 measured the cycle over the changes after each catalog-wide write (the admission, its undo and re-apply, the
+prepared contents, the alcohol re-check set with its 92 new foods and 245 alias rows, the w01 unload): `recipes 116639 of
+122580 decided in 315.9 s` where a whole cycle decides `122103 ... in 66.7 s`, so 58 to 95 % of recipes were held for
+every restricted household for 4 to 6 minutes after each write (never stale). Two causes, both fixed:
+
+- **One by one.** The cycle over the changes read its recipes one at a time; the whole cycle reads them on every core
+  (`Parallel.For`). The API ran at about 500 % CPU during the build, which is the factor of five. The cycle over the
+  changes now reads on every core too (`ReadScope`), and above `DietGateStoreBuilder.LargeScope` (5,000) recipes it reads
+  every line in windows of recipe ids as the whole cycle does (`windowed` in the report and `(read in windows)` in the
+  cycle line), so its cost is about a whole cycle's whatever the scope.
+- **Recipes read again for a food whose decision did not move.** A write to a food (`DietGateClearFoods`: a rename, an
+  alias, a criterion nutrient, a statement, a category, a weight) removed the state of every recipe with a line on it.
+  Now it removes the food's state and logs the food and, for each recipe with a line on it, a row with both ids
+  (`plan."DietGateWrite"` with `RecipeId` and `IngredientId`); the recipe's state stays. `DietGateStore.Standing` holds
+  such a recipe from the write's commit, as it holds any logged recipe, so nothing is served from the food's old facts.
+  The cycle decides the food first; only when its decision moved for some set (a fact changed, or for the first time),
+  or what weighs a drink's retained alcohol moved (the capped nutrient, a weight, its name, category or liveness), are
+  its recipes read again (`FoodsMoved`). Otherwise the cycle removes the log rows and the recipes stand again unread
+  (`RecipesConfirmed`, `N held by a food write released unread` in the cycle line). Which catalog writes change a diet
+  fact is measured by that line on every cycle, not assumed: the admission's 12,341 foods (energy check, categories,
+  descriptions) are expected to move few facts; the prepared contents and the re-check sets' new aliases move some.
+
+The cycle line now reads: `changes cycle: N sets; foods F of T decided in X s, M moved a decision; recipes R of T decided
+in Y s (read in windows), C held by a food write released unread, L written while read left for the next cycle`.
+
+**Measured** (`DietGateStorePostgresTests.A_catalog_wide_food_write_is_decided_within_a_whole_cycles_time_and_one_that_moves_no_decision_releases_its_recipes_unread`,
+the production-sized generated data): 12,000 foods carrying more than 90 % of the recipes are given an alias no pattern
+reads (every recipe on them held at the commit, released unread by the next cycle, faster than a whole cycle), then
+renamed with " wheat" (every recipe on them decided again, windowed, no slower than 1.2 times a whole cycle that decides
+every food and recipe, plus 5 s). The test could not run in the build of this branch (no Postgres was available to the
+builder); the operator runs it (operator steps below). Expected on staging: the admission apply, its undo and the
+re-apply each decided within about 2 minutes (a whole cycle's 124.5 s at most; far less where few facts move), and the
+alcohol set's alias rows within about 1 minute.
+
+**Shuffle with a restriction (S6).** The per-type round measured a shuffle median of 0.445 s with a restriction against
+0.10 s without (checkpoint 6: 0.120 s), Walnut Allergy once 1.07 s while the nutrition sweep rewrote labels. A shuffle
+runs one random draw per (recipe type, meal type) pool, and a second when the meal-affine draw is short; with a
+restriction each draw also evaluates the gate over every visible recipe (`ORDER BY random()` must see the whole filtered
+set): the anti-join on the set's flags, the semi-join on `DietRecipeState` with, since `cleanup2/ck12-links-small`, the
+anti-join on the write log inside it (`Standing`), and for a severe type the curated-only test over every line. Searches
+pay this once per call, a shuffle once per pool (six to twelve times), which is why search stayed at its old median and
+shuffle did not. A restricted pool is also smaller, so the second, fallback draw runs more often. Not changed here: the
+cost could not be measured on this branch (no Postgres), and every cheaper form found either serves a verdict read
+before the request's own snapshot (a list of held recipes read once per shuffle) or changes which recipes a shuffle
+draws. `DietGateStorePostgresTests.A_whole_shuffle_with_any_one_restriction_answers_under_a_second` measures the whole
+shuffle per type against one without a restriction; if it fails, the next step is one query that draws every pool's
+candidates at once.
+
+**A food of unknown contents (S15).** A food whose contents a rule marked not known (an alias of its own name with the
+context `deterministic:recheck:contents-unknown`, written by the link re-check) is decided `Unknown` for every set whose
+criteria do not count it; a recipe with a line on it is unknown (`UnknownFood`), held by every set that holds unknowns
+(a severe type, or a member at severity 4 or 5) and shown by a diet of choice, and the food-group top-up holds the food
+for such a set too. The move guard reads the mark the same way (`LineMoveDietGuard`): a move off such a food to one
+that does not flag a type is a lowering move and is held, by an undo too unless the operator chose `restoreLowered`.
 
 ## Golden set
 
@@ -992,3 +1285,71 @@ merge), twenty-two triggers (`DietGate*Inserted`,
    over an hour). The first sweep logs `N recipes recalculated, M unchanged by their inputs` with M large; later
    sweeps find only recipes whose inputs changed. `docker stats`: the API's memory after the build and at rest, and
    the count of `High memory usage detected` lines (at most one a minute).
+
+### Safe only when understood (since `cleanup2/ck16-diet-known`)
+
+1. `./db/apply.sh --dry-run`: the only delta is the body of `plan."DietGateFoodsWritten"` (it now compares
+   `CurationStatusId` too). Apply.
+2. The version moves (`diet-food-words/1`, `recipe-text/3`), so the first start builds every set beside the active
+   build. Then `GET /api/DietAdmin/gate-counts`: per severe set `recipesUnknownWord` and `recipesByFoodWord`
+   (`psql -f ops/diet-gate-count.sql`: `unknown_word`, `by_food_word`), against the build report's table.
+3. Curate or rename one curated food (or undo such an edit) and read the next cycle line: it is a whole cycle, since
+   the words moved.
+4. Walk on the recipe page (S23 viewport) one recipe held "Ingredient not understood" and one "Named by an ingredient"
+   for a severe restriction, and the same recipes for a diet of choice (shown).
+
+### Old cookbook words (since `cleanup2/ck17-words`)
+
+1. `./db/apply.sh --dry-run`: two nullable columns on each of `recipe."IngredientWording"` and
+   `recipe."IngredientWordingRejection"` (`FdcCategoryId`, `CategoryHead`). Apply. The version moves
+   (`diet-food-words/2`): the first start builds every set beside the active build.
+2. `POST api/FoodCatalog/wordings/load?batch=w02&apply=false` with the batch file's text: rows, added, unchanged and no
+   problem, against the build report. Then `apply=true`.
+3. `POST api/FoodCatalog/relink/verified?batch=w02&apply=false&maxLines=20000`: `remaining`, `heldByDiet`, `leftBehind`
+   against the build report; then `apply=true` until `remaining` is 0. Note the time `T0` before the first apply.
+4. After the next whole cycle, `GET /api/DietAdmin/gate-counts`: `recipesUnknownWord` falls per severe set as the report
+   says. Read one isinglass recipe for Fish Allergy (held, "Named by an ingredient") and for Peanut Allergy (shown).
+5. Undo: `relink/undo?sinceUtc=T0&apply=false`, then `apply=true` (lines back), then
+   `wordings/unload?batch=w02&apply=false` and `apply=true` (rows out, category rows included); one wording alone:
+   `wordings/{id}/retract`.
+
+### Made products by their brands (since `cleanup2/ck18-composites`)
+
+No schema change. The versions move (`diet-food-words/4`, `recipe-text/5`), so the first start builds every set beside
+the active build, a whole cycle.
+
+1. To derive the consensus again (after a new FDC branded release, or after curated foods were renamed): verify the
+   release's sums with `ops/fdc-releases.sha256`, then `dotnet run --project nom-api/Nom.Import --
+   --branded-consensus <fdc-branded-csv-dir> --out nom-api/Nom.Orch/Contents/diet-branded-consensus.tsv [--matches
+   <file>] [--tallies <file>]` against any copy of the catalog (it reads, it writes only files). Commit the file with
+   the counts it prints; read 60 random matches before adopting a changed matching rule.
+2. After the deploy, `GET /api/DietAdmin/gate-counts` per severe set against the build report's price table, within a
+   few hundred. Walk 124035 Curried Chicken Soup for Wheat Allergy (held, "Named by an ingredient") and 97533 PROTOSE
+   HASH for Peanut Allergy (held, "Ingredient not understood").
+
+### Catalog-wide writes and unknown contents (since `cleanup2/ck16-diet-store-moves`)
+
+The function `plan."DietGateClearFoods"` changes (no table, column or trigger): `./db/apply.sh --dry-run` shows one
+`CREATE OR REPLACE FUNCTION plan."DietGateClearFoods"`; apply; a second dry run says nothing to do. On staging first:
+
+1. With `NOM_DIET_STORE_PG` set to a throwaway `postgres:16` made from this `db/schema.sql` and `db/seed.sql`, run
+   `DietGateStorePostgresTests` (all eight): the new catalog-wide test prints the whole cycle, the alias cycle (no recipe
+   read) and the rename cycle (windowed, at most 1.2 times the whole cycle plus 5 s); the shuffle test prints the whole
+   shuffle per type (under 1 s). Keep the output under `staging/`.
+2. On staging, while sampling the touched recipes as in checkpoint 7 (`gsampler.sh`): run the admission apply, its undo
+   and the re-apply, the prepared contents and the alcohol re-check set. At each commit `DietRecipeState` keeps its rows
+   but `Standing` holds the recipes (`stale states served 0`); the next `changes cycle` line names `M moved a decision`
+   and `C held by a food write released unread`, and its recipes are decided or released within about 2 minutes
+   (checkpoint 7: 5 min 44 s to 6 min 10 s). Write down M for each write: it is the measure of which catalog writes
+   change a diet fact.
+3. The per-type round (`pertype.sh`) after the admission's cycle: shuffle median and slowest; compare with search.
+4. The link re-check sets (dry run first): `diet flags kept` no longer appears; `unknownGroups` and
+   `foodsMarkedUnknown` count the take-backs that go to a food of unknown contents (expect about checkpoint 7's 109
+   holds: alcohol 63, prepared 16, fresh-herb 1, free-of 29, plus the Spanish rice and other severe flags a dish name
+   used to account for). After the apply: `shaoxing wine` is off Red Wine Vinegar, the four Spanish rice lines of 40810,
+   80445, 90494, 90497 are on a food of unknown contents and Soy Allergy still holds those recipes (as unknown). The
+   run's undo by stamp now holds the lines on foods of unknown contents (`heldByDiet`, `marksKept`); the exact earlier
+   state takes `restoreLowered=true`, whose dry run lists the moves (`restoredLowering`).
+5. Before the first food write after the deploy: `SELECT count(*) FROM plan."DietRecipeState" WHERE "ReadXmin" IS NULL`.
+   Such states (stored before the column existed) are not removed by a food write any more; `Standing` holds them while
+   any write is logged for their recipe (review ck16-r5), so the count is for the record, not a blocker.

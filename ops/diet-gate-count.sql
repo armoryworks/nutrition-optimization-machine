@@ -49,7 +49,9 @@ flags AS (
            count(*) FILTER (WHERE f."Verdict" = 2 AND f."Reason" = 6) AS no_line,
            count(*) FILTER (WHERE f."Verdict" = 2 AND f."Reason" = 7) AS unknown_food,
            count(*) FILTER (WHERE f."Verdict" = 2 AND f."Reason" = 8) AS by_title,
-           count(*) FILTER (WHERE f."Verdict" = 2 AND f."Reason" = 9) AS by_method
+           count(*) FILTER (WHERE f."Verdict" = 2 AND f."Reason" = 9) AS by_method,
+           count(*) FILTER (WHERE f."Verdict" = 2 AND f."Reason" = 10) AS unknown_word,
+           count(*) FILTER (WHERE f."Verdict" = 1 AND f."Reason" = 11) AS by_food_word
     FROM plan."DietRecipeFlag" f
     JOIN recipe."Recipe" r ON r."Id" = f."RecipeId" AND NOT r."IsDeleted"
     JOIN plan."DietRecipeState" st ON st."RecipeId" = f."RecipeId" AND st."BuildId" = (SELECT "Id" FROM build)
@@ -68,6 +70,8 @@ counted AS (
            coalesce(fl.unknown_food, 0) AS unknown_food,
            coalesce(fl.by_title, 0) AS by_title,
            coalesce(fl.by_method, 0) AS by_method,
+           coalesce(fl.unknown_word, 0) AS unknown_word,
+           coalesce(fl.by_food_word, 0) AS by_food_word,
            (SELECT n FROM live) - (SELECT n FROM decided) AS not_decided,
            CASE WHEN s."Severe" THEN coalesce(fl.unknown, 0) ELSE 0 END + (SELECT n FROM live) - (SELECT n FROM decided) AS held_for_unknown
     FROM sets s
@@ -76,12 +80,12 @@ counted AS (
     LEFT JOIN flags fl ON fl."SetId" = s."Id"
 )
 SELECT 'build' AS kind, b."Id"::text AS type_name, b."Version" AS reading, NULL AS severe, NULL AS state, NULL AS foods, NULL AS by_food, NULL AS by_text,
-       NULL AS unknown, NULL AS no_line, NULL AS unknown_food, NULL AS by_title, NULL AS by_method, NULL AS not_decided, NULL AS held, NULL AS held_for_unknown,
+       NULL AS unknown, NULL AS no_line, NULL AS unknown_food, NULL AS by_title, NULL AS by_method, NULL AS unknown_word, NULL AS by_food_word, NULL AS not_decided, NULL AS held, NULL AS held_for_unknown,
        (SELECT n FROM live)::text AS recipes, b."LastCycleAt"::text AS held_pct
 FROM build b
 UNION ALL
 SELECT 'type', type_name || ' #' || type_id, reading, severe::text, state, foods::text, by_food::text, by_text::text, unknown::text,
-       no_line::text, unknown_food::text, by_title::text, by_method::text, not_decided::text,
+       no_line::text, unknown_food::text, by_title::text, by_method::text, unknown_word::text, by_food_word::text, not_decided::text,
        (by_food + by_text + held_for_unknown)::text, held_for_unknown::text, (SELECT n FROM live)::text,
        round(100.0 * (by_food + by_text + held_for_unknown) / greatest((SELECT n FROM live), 1), 1)::text
 FROM counted

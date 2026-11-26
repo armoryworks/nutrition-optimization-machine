@@ -27,7 +27,7 @@ namespace Nom.Orch.Services.Support
     /// it holds a copy and at least <see cref="MostlyCopied"/> of its sentences are copies or kept so, or
     /// when <see cref="MostlyVerbatimSentences"/> or more and at least <see cref="MostlyVerbatim"/> of them
     /// are kept so;
-    /// otherwise its copied sentences are the rewrite lane's work list. The lines are set on the judged rows
+    /// otherwise some or none of it is copied; the verdict orders the rewrite lane's queue. The lines are set on the judged rows
     /// of prose-check.tsv. Text only: no database and no model.
     /// </summary>
     public static class ProseSentences
@@ -99,7 +99,7 @@ namespace Nom.Orch.Services.Support
 
             public decimal KeptShare => Sentences.Count == 0 ? 0m : Math.Round((decimal)Kept / Sentences.Count, 3);
 
-            /// <summary>Mostly the source's sentences lightly edited or kept: withheld as a whole and reworded sentence by sentence.</summary>
+            /// <summary>Mostly the source's sentences lightly edited or kept: first in the rewrite lane's queue.</summary>
             public bool Mostly => (Copied > 0 && KeptShare >= MostlyCopied) || (NearVerbatim >= MostlyVerbatimSentences && VerbatimShare >= MostlyVerbatim);
 
             public decimal VerbatimShare => Sentences.Count == 0 ? 0m : Math.Round((decimal)NearVerbatim / Sentences.Count, 3);
@@ -198,7 +198,7 @@ namespace Nom.Orch.Services.Support
         }
 
         /// <summary>A longest common subsequence of two word lists as index pairs in order.</summary>
-        private static List<(int A, int B)> Align(List<string> a, List<string> b)
+        internal static List<(int A, int B)> Align(List<string> a, List<string> b)
         {
             var n = a.Count;
             var m = b.Count;

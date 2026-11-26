@@ -25,6 +25,13 @@ namespace Nom.Orch.Services
         public const string ExactSource = "deterministic:name-match";
         public const string StapleSource = "deterministic:staple";
         public const string NoCandidateSource = "deterministic:no-candidate";
+        public const string CompoundSource = "deterministic:compound";
+
+        /// <summary>How many link questions one model call asks.</summary>
+        public const int QuestionsPerCall = 6;
+
+        /// <summary>How many pairs one call of the second opinion judges.</summary>
+        public const int PairsPerVerifyCall = 6;
         public const string VerifiedWordingSource = "deterministic:verified-wording";
         public const decimal ExactConfidence = 0.95m;
         public const string TriangulationMark = " · triangulation: ";
@@ -39,7 +46,6 @@ namespace Nom.Orch.Services
         public const string GateLinkLaneSetting = "VerifiedWordings:GateLinkLane";
         public static readonly TimeSpan RejectionRetryAge = TimeSpan.FromDays(7);
         private const int JournalChunk = 500;
-        private const int ModelBatch = 6;
         private const int VerifierRankWindow = 1;
         private const int VerifyHeadSize = 2000;
         private const string AbstainedOutcome = "unsure";
@@ -134,6 +140,19 @@ namespace Nom.Orch.Services
                     continue;
                 }
 
+                if (LinkPickRules.RuleNone(name) is { } ruled)
+                {
+                    Propose(source, null, CompoundSource, null, FoodProposalStatus.Rejected, reason: $"{ruled} · used in {source.Uses} recipes");
+                    none++;
+                    continue;
+                }
+                if (LinkPickRules.RuleTarget(name, staples) is { } plain)
+                {
+                    Propose(source, plain.Food, plain.Source, ExactConfidence, FoodProposalStatus.Pending);
+                    exact++;
+                    continue;
+                }
+
                 var shortlist = matcher.Shortlist(name, 10, AlcoholLineContext.Read(source.Name));
                 if (shortlist.Count == 0)
                 {
@@ -163,7 +182,7 @@ namespace Nom.Orch.Services
 
             var unread = 0;
             var unreadCounts = UnreadCounts();
-            foreach (var chunk in ambiguous.Chunk(ModelBatch))
+            foreach (var chunk in ambiguous.Chunk(QuestionsPerCall))
             {
                 var answers = await AskAsync(chunk.Select(a => new LinkQuestion(a.Source.IngredientId, a.Source.Name, a.Candidates)).ToList(), cancellationToken);
                 if (answers == null)
@@ -184,6 +203,7 @@ namespace Nom.Orch.Services
                         continue;
                     }
                     unreadCounts.TryRemove(source.IngredientId, out _);
+                    if (answer.Choice is { } picked && LinkPickRules.Contradicts(asked.Name, picked) != null) answer = answer with { Choice = null };
                     if (answer.Choice is { } choice)
                     {
                         Propose(source, choice, "ai:" + _matcher.ModelName, answer.Confidence, FoodProposalStatus.Pending, askKey);
@@ -448,11 +468,17 @@ namespace Nom.Orch.Services
                     checkedCount++;
                     continue;
                 }
+                if (LinkVerifyRules.Before(name) is { } ruled)
+                {
+                    Mark(p, $"not verified — {LinkVerifyRules.Version} judges it {Describe(ruled)}");
+                    checkedCount++;
+                    continue;
+                }
                 ask.Add((p, new LinkPair(p.IngredientId!.Value, name, shortlist.First(c => c.FdcId == p.FdcId).Name)));
             }
 
             var by = $"{_verifier.ModelName} prompt {_verifier.PromptVersion}";
-            foreach (var chunk in ask.Chunk(ModelBatch))
+            foreach (var chunk in ask.Chunk(PairsPerVerifyCall))
             {
                 var verdicts = await SecondOpinionAsync(chunk.Select(a => a.Pair).ToList(), cancellationToken);
                 if (verdicts == null)
@@ -468,6 +494,11 @@ namespace Nom.Orch.Services
                     if (!verdicts.TryGetValue(pair.IngredientId, out var verdict))
                     {
                         Mark(p, $"not verified — {by} gave no readable answer");
+                    }
+                    else if (verdict.Judgement == LinkJudgement.Same && LinkVerifyRules.After(pair.Wording, pair.Description, verdict.Judgement) is var ruled && ruled != LinkJudgement.Same)
+                    {
+                        Mark(p, $"not verified — {by} judges it the same food, refused by {LinkVerifyRules.Version}: " +
+                            (LinkVerifyRules.Refuses(pair.Wording, pair.Description) ?? "the wording and the food share no word"));
                     }
                     else if (verdict.Judgement == LinkJudgement.Same)
                     {

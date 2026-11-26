@@ -1,9 +1,8 @@
-# Prose lane v3: rewording read in context
+# Prose lane v4: the whole method reworded, read in context
 
 A scraped recipe's method and description are shown only in our own words. Recipes whose stored
-prose is the source's (quarantined, `ContainsSourceProse`), failed the prose check (withheld,
-`ProseWithheld`), or holds some copied sentences (withheld too, marked `ProseCopiedSentences`, see
-`prose-check.md`, check v7) are reworded by this lane. Withheld is a holding state, never an end: the
+prose is the source's (quarantined, `ContainsSourceProse`) or an earlier paraphrase of it (withheld by
+origin, `ProseWithheld`, see `prose-check.md`, check v8) are reworded by this lane, every one as a whole. Withheld is a holding state, never an end: the
 lane works every withheld recipe off, approved ones first, and a recipe it cannot reword is reported by
 the cause that held it, so the engine is fixed rather than the recipe left behind.
 
@@ -12,6 +11,32 @@ Code: `ProseReword`, `ProseSentences`, `ProseLanePrompts`, `ProseDescription`, `
 `ProseCleanRoom` (Nom.Orch `Services/Support`); `ProseLaneService`, `ProseRewriteUndoService`,
 `OllamaProseWriter` (`IProseRewriter`), `OllamaProseStepJudge`, `OllamaProseJudge` (Nom.Orch
 `Services`), `ProseJudgeRules`; `ProseRewriteHostedService` (Nom.Api) runs it.
+
+## Version 4 (2026-11-24, `cleanup2/ck15-prose`): the whole method, and a strict copy check
+
+The lead's note of 2026-11-24, after the proof of check v7: no word-order rule can sort the earlier paraphrases
+at the bars, so they are withheld by origin and the lane rewords their whole method; the copy check is used on
+the lane's own new text, where it can be strict because a false copy verdict only costs a retry.
+
+- **Whole method only.** The repair-by-sentence mode is gone: `ProseReword.RunAsync(input, writer, judge)` rewords
+  every sentence of the source method, after the writer has read the whole method, the step and the sentence; it
+  sees the source. The description is built by rule. `ProseCopiedSentences` is only the queue figure: the lane takes
+  approved withheld recipes first, then other withheld ones, each most copied first, then quarantined imports.
+- **Strict copy check** (`ProseRebuilt`, `prose-check.md` "Check v8"): each reworded sentence passes only when it is
+  clearly rebuilt; a synonym swap, drop or move in the source's frame is refused with reason `copy` and reworded
+  again. The gate refuses a text with any sentence it reads as a copy, after the prose check and before the judge.
+  The writer's prompt says so ("swapping words for synonyms while the sentence keeps its shape is copying too").
+- **The retry cost.** On 21 staging methods rewritten by hand, 47 % of the first-round rebuilt sentences were refused,
+  14 % in a second round and 7 % in a third; 14 of 21 recipes passed whole within three rounds. The lane's give-ups
+  will be mostly `copy` until its writer rebuilds as strictly; the next prompt round measures it.
+- **The judge's model is a setting:** `Ai:ProseJudgeModel` (else the roster's reader B), so the next prompt round can
+  try `mistral-small:24b`; the lane refuses a judge outside the OSI-licensed families or of the writer's family.
+  The scorer's judge is `--check-model`, else `Ai:ProseJudgeModel`, else reader B.
+- **Version** `v4-…` (`ProseLanePrompts.LaneVersionPrefix`): every recipe given up under v3 is eligible again, and the
+  re-check reads a method whose latest lane rewrite carries a `v4-` tag as the lane's own (exempt).
+- **Ships paused.** The lane has no golden record under its new signature, so the frame keeps it in shadow (it writes
+  nothing) and it cannot qualify; it is journaled and undone by `ProseRewriteUndoService` as before, and stops on
+  `ai-pause-prose-rewrite`.
 
 ## Version 3 (2026-11-24, `cleanup2/ck11-prose`): the writer reads the source
 
@@ -179,12 +204,13 @@ the queue, uncharged.
 ## Models
 
 Writer: `Ai:RewriteModel` when set, else the roster's reader A (`qwen2.5:14b-instruct`). Judge:
-reader B (`mistral-nemo`). Auditor: the roster's auditor (`phi4`). The lane refuses to run (and says
+`Ai:ProseJudgeModel` when set (a prompt round may try `mistral-small:24b`), else reader B (`mistral-nemo`). Auditor: the roster's auditor (`phi4`). The lane refuses to run (and says
 why on the Pipeline page) when the judge is of the writer's family or the auditor of either.
 
 A recipe whose source reserves its content against AI use (`Recipe.SourceAiReserved`, see
 `source-rights.md`) never reaches the models: the lane takes the model-free path
-(`ProseCleanRoom.RunRuleOnly`: rule sheets, rule rendering, form rules and check v2, no judge), records
+(`ProseCleanRoom.RunRuleOnly`: rule sheets, rule rendering, form rules, the prose check and the strict
+copy check of new text, `ProseRebuilt`, in every sentence; no judge), records
 the decision in the `rule-only` tier and writes the rendering only while that tier is live, or leaves the
 recipe withheld with its key facts and link. The `rule-only` tier has its own mode on the frame: every
 decision is audited by rule (`ProseRuleOnlyAudit`, the rendering read back against the stored source; no
@@ -211,15 +237,28 @@ of 100 audited writes is above 5 %.
 
 **Audit.** When enough unaudited rewrites are waiting, the frame audits a stratified sample (strata:
 withheld approved, withheld, quarantined): a quarter while in shadow or on probation, a twentieth while
-live, at least 30. The auditor reads each sampled rewrite against its source with a step rubric of its own;
-the auditor's rubric is the one-call step rubric the judge used before judge prompt version 2
-(`ProseLanePrompts.Audit`), so the audit does not share the judge's method; a flag counts as an error only when the auditor, asked again blind about the flagged step with the
-confirmation prompt, agrees (`ProseLaneAudit`). The judge never confirms: every rewrite in the sample
+live, at least 30. The auditor reads each sampled rewrite against its source and the recipe's own
+ingredient lines (`OllamaProseAuditor`, `ProseAudit`). Rules decide first: the prose check of the pair
+run with the lines, so a text that disagrees with its lines (`contradicts-lines`) or fails another fact
+rule is flagged, and a step count, heat or oven changed or left out (`ProseJudgeRules.Before`); no
+model is asked then and the flag needs no re-read. Otherwise the auditor reads each changed step pair
+in a call of its own (`ProseLanePrompts.AuditStep`) with the dish, the lines, the whole source method
+for context and the rules' notes on that step (amounts one step states and the other does not,
+`ProseAuditEvidence`, and the check's weak signals; hints, never verdicts), lists each difference
+(left out, changed, added) before its verdict; temperature 0 and a fixed seed. Its rubric is its own:
+it lists differences, where the judge lists every fact of the step and then asks again about each it
+does not find. A flag of the model counts as an error only when the auditor, asked again blind with
+the confirmation prompt about one of the steps it flagged (in order, at most three), agrees
+(`ProseLaneAudit`). The judge never confirms: every rewrite in the sample
 already passed it, so a fault it misses it misses again, and a check it confirms would find almost no
 error whatever the lane's real error. The check's sensitivity and false-flag rate come from the
 `prose-audit` record (below), scored with the same two auditor reads, and the frame corrects the error
 with them. What remains is a shift of population: the sample holds faults the judge missed, which may
-be harder for the auditor too than the planted faults it is scored on. The auditor is of a third
+be harder for the auditor too than the planted faults it is scored on. Its rules are the gate's own
+(the gate runs the check with the lines and the judge runs the same rules first), so on the sample,
+which passed the gate, they find nothing, while on the golden rows they decide many planted faults:
+the record's sensitivity is higher than the model part's alone, which is what finds errors in the
+sample. The auditor is of a third
 family, so its misses are not the judge's by construction; the staging proof's reading of 40 rewrites
 by the operator is the check on that.
 
@@ -288,9 +327,15 @@ rule rendering, 16 given up, about 98 s a recipe; below its floor, so no record 
 with the evidence). The no-source writer is no longer the design (the owner's answer of 2026-11-23:
 the writer reads the method, the step and the sentence before it rewords); the fact-sheet heats,
 measures and timings, the heat form rules and the measure repair stand for the writer that replaces
-it. `prose-audit` keeps its rubric
-and signature, but its case set grew with the planted rows: phi4 scores 74.6 % (97/130) on it,
-below its floor, so no audit record is committed.
+it. `prose-audit` (rules with the lines, then phi4 step by step, `audit-rules/1`, check v7) scores
+87.8 % (202/230) on phi4, over its floor: every one of the 164 faults flagged (on the working half, 33 of 82 by rule), and 28
+of the 66 faithful rewrites flagged as well (42 %; the score counts them). Its signature holds the
+prose check version, so its record is made again after each new check version and is committed only
+once the check stands; until then it is kept with the evidence.
+
+From v4 the `prose-rewrite` cases are each recipe of the file reworded as a whole (`prose-rewrite:recipe:<key>`)
+and each planted fault put through the facts gate (the check, then the judge; the strict copy check is not part of
+it, so a fault is refused for its fault and not for its wording); the repair cases of v3 are gone.
 
 Floors (`model-lanes.json`): `prose-rewrite` 95 % end to end and 0 planted faults let through;
 `prose-judge` 95 % with at most 2 % false accepts; `prose-audit` 75 %. Commit the three records under
@@ -300,7 +345,7 @@ signature and needs new records.
 
 ## Settings
 
-`Ai:BatchOllamaUrl` (on/off), `Ai:RewriteModel`, `Ai:Roster:*`, `ProseRewrite:IntervalMinutes` (10),
+`Ai:BatchOllamaUrl` (on/off), `Ai:RewriteModel`, `Ai:ProseJudgeModel`, `Ai:Roster:*`, `ProseRewrite:IntervalMinutes` (10),
 `ProseRewrite:BatchSize` (25), `ProseRewrite:DrainWhileFull`, `ProseRewrite:PauseSeconds` (5),
 `Ai:Lanes:prose-rewrite:MaxItemsPerDay` (`AI_PROSE_REWRITE_MAX_PER_DAY`). The pause switches
 `ai-pause-all` and `ai-pause-prose-rewrite` stop it before a sweep. `ProseRewrite:CheckFidelity` and

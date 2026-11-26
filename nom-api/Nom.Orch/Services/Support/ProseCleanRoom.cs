@@ -248,8 +248,9 @@ namespace Nom.Orch.Services.Support
         /// The model-free path, for a recipe whose source reserves its content against AI use: no model
         /// reads the source's method or description. The masked method's sheets are built by rule
         /// (<see cref="RuleSheets"/>), rendered by rule (<see cref="ProseFactSheet.Render"/>), and the
-        /// rendering is written only when it passes the form rules and the check with no fault at all,
-        /// not even an unsure one; no judge reads it, because the judge is a model. Otherwise the recipe keeps no method and its link.
+        /// rendering is written only when it passes the form rules, the check with no fault at all,
+        /// not even an unsure one, and the strict copy check of new text (<see cref="ProseRebuilt"/>) in
+        /// every sentence; no judge reads it, because the judge is a model. Otherwise the recipe keeps no method and its link.
         /// </summary>
         public static ProseLaneOutcome RunRuleOnly(ProseLaneInput input, ProseVerbLexicon? verbs = null)
         {
@@ -269,9 +270,13 @@ namespace Nom.Orch.Services.Support
             var steps = written.Select(w => Tidy(method.Unmask(w))).ToList();
             var rewrite = new RewriteFidelity.SourceText(ProseDescription.Build(input.Dish, method.Lines), steps, input.Dish);
             var finding = ProseCheck.Check(input.Source, rewrite, input.Lines, input.Stock, verbs);
-            return finding.Passed
+            if (!finding.Passed)
+                return new ProseLaneOutcome(null, new[] { new ProseAttempt(1, RuleOnlyStyle, finding.Reasons.ToList()) }, true, finding, null, method.Steps.Count);
+
+            var copied = ProseRebuilt.Read(input.Source, rewrite, input.Lines).Where(s => s.Copy).Select(s => ProseReword.CopyReason + ": " + s.Label).ToList();
+            return copied.Count == 0
                 ? new ProseLaneOutcome(rewrite, new[] { new ProseAttempt(1, RuleOnlyStyle, Array.Empty<string>()) }, true, finding, null, method.Steps.Count)
-                : new ProseLaneOutcome(null, new[] { new ProseAttempt(1, RuleOnlyStyle, finding.Reasons.ToList()) }, true, finding, null, method.Steps.Count);
+                : new ProseLaneOutcome(null, new[] { new ProseAttempt(1, RuleOnlyStyle, new[] { ProseReword.CopyReason }.Concat(copied).ToList()) }, true, finding, null, method.Steps.Count);
         }
 
         public const string RuleOnlyStyle = "rule-only";

@@ -117,6 +117,23 @@ namespace Nom.Api.Tests.Services
             MethodAmountFinder.Find(line, new[] { method }).Should().Be(new ParsedQuantity((decimal)quantity, measurement));
         }
 
+        [Theory]
+        [InlineData("rib roast of beef", "Have a rib roast of beef cut standing.")]
+        [InlineData("rib-roast of beef", "Have a rib-roast of beef cut standing and roast it.")]
+        [InlineData("rib of beef", "Bone a rib of beef and roll it.")]
+        public void A_rib_of_meat_is_no_stalk(string line, string method)
+        {
+            var found = MethodAmountFinder.Find(line, new[] { method }, countedInPieces: false);
+            found.Should().BeNull("staging checkpoint 7, S1: \"rib roast of beef\" was filled as 1 Stalk; a rib of meat is part of its name and beef is not counted in pieces");
+        }
+
+        [Fact]
+        public void A_rib_of_celery_is_still_a_stalk()
+        {
+            MethodAmountFinder.Find("rib of celery", new[] { "Add a rib of celery and simmer." }).Should().Be(new ParsedQuantity(1m, "Stalk"));
+            MethodAmountFinder.Find("stalk of celery", new[] { "Put in a stalk of celery." }).Should().Be(new ParsedQuantity(1m, "Stalk"));
+        }
+
         [Fact]
         public void A_count_of_pieces_is_not_read_for_a_food_not_counted_in_pieces()
         {

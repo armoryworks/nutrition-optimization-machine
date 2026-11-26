@@ -74,6 +74,15 @@ namespace Nom.Api.Tests.Services
         [InlineData("una cipolla di mediocre grandezza", 1, "Piece")]
         [InlineData("otto cucchiaiate o più di olio d'oliva", 8, "Tablespoon")]
         [InlineData("un pizzico di parmigiano", 1, "Pinch")]
+        [InlineData("2 ribs celery, chopped", 2, "Stalk")]
+        [InlineData("1 rib of celery", 1, "Stalk")]
+        [InlineData("3 ribs fresh celery", 3, "Stalk")]
+        [InlineData("2 stalks celery", 2, "Stalk")]
+        [InlineData("a rib roast of beef", 1, "Piece")]
+        [InlineData("1 rib of beef", 1, "Piece")]
+        [InlineData("1 rib-roast of beef", 1, "Piece")]
+        [InlineData("2 rib chops", 2, "Piece")]
+        [InlineData("4 rib-eye steaks", 4, "Piece")]
         public void Recovers_quantity_and_measurement(string line, double quantity, string measurement)
         {
             var parsed = IngredientLineParser.Parse(line);

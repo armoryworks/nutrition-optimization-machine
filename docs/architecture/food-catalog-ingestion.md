@@ -26,6 +26,10 @@ governed by the same operator-scraper model as recipe import
      free key). Confirmed at <https://fdc.nal.usda.gov/download-datasets/>.
    - Caveat: manufacturer data is unverified and the Label Insight branded feed
      stopped updating 2023-11-16 — records can be stale/noisy (see quality gate).
+   - The branded ingredient statements are also read, by rule and never as numbers, for
+     what the generic curated made products usually contain (`Nom.Import --branded-consensus`,
+     `Contents/diet-branded-consensus.tsv`): an allergen fact for the severe diet sets only
+     (`diet-gate.md`, *Made products by their brands' label statements*).
 
 2. **Local AI enrichment (Ollama).** Normalizes/dedupes names. Food groups and the
    whole-food flag come from the USDA category only (see *Catalog admission*), never
@@ -1583,6 +1587,7 @@ preparation-word folding):
 |---|---|---|
 | `food` | the wording names this one live, curated, non-branded food with nutrition | imports land on it; `relink/verified` moves existing lines to it |
 | `none` | the catalog has no such food yet (white wine, brandy, sherry) | the link lane stops asking the model; the worklist for a USDA import |
+| `category` | the wording is a food of one USDA category (and, when given, of the foods whose USDA description starts with a head: "Fish", "Veal, variety meats and by-products") that no single catalog food is: isinglass, calf's head, citron, partridges | no line moves and no nutrition is claimed; the diet gate decides the wording's lines by what the group's curated foods agree on (`diet-gate.md`, "Old cookbook words"); the link lane stops asking the model |
 | `unclear` | names no single food ("kosher salt and pepper", "cream or milk") | the link lane stops asking the model |
 
 It is a table and not alias rows because a map from wording to food has to be a function (an
@@ -1593,7 +1598,14 @@ say "no such food". Aliases with no `SourceContext` are not a trusted source for
 `wording verdict food_id food_fdc_id food_name lines_at_review batch_row reason`.
 `db/verified-wordings.tsv` in the repository holds that header only, as the template: each reviewed
 batch is its own file (the first, `w01`, 233 rows, is kept with the staging evidence, outside the
-repository), and every load names that batch file, never the template. The food is
+repository; the second, `w02`, old cookbook words, is
+`nom-api/Nom.Api.Tests/Fixtures/VerifiedWordings/batch-w02.tsv`), and every load names that batch file, never the
+template. A category row gives `category_id` (the USDA FoodData Central food category) and, when it narrows it,
+`category_head` (the leading part of the USDA description, up to a comma or its end); a load refuses one with no
+category, a prepared food category (`category is a prepared food category`) or no live curated food of that category
+and head (`no live curated food is of the category and head`), journals the group as a second `WordingVerify` entry
+(`PropertyName` `FdcCategoryId`, `category|head`), and an unload, a retract and the rejection memory carry the group
+as they carry the food. Other columns (`status`, `basis`) are the batch's evidence and are not read. The food is
 found by `food_fdc_id` when given (ids differ between staging and production), otherwise by
 `food_id` together with the exact `food_name` (seed foods have no FdcId). Candidates come from
 `ops/verified-wording-candidates.sql` (read-only; `psql -v limit=2000 -f ...`), which ranks

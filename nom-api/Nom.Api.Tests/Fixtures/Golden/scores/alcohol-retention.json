@@ -1,16 +1,16 @@
 {
   "lane": "alcohol-retention",
-  "model": "alcohol-retention/9",
+  "model": "alcohol-retention/10",
   "checkModel": null,
   "host": "none",
-  "signature": "557993ab8a5ba82c",
-  "scoredAtUtc": "2026-11-24T19:10:20.1675435Z",
-  "caseSet": "e2e7c4362dda32f2",
-  "cases": 189,
-  "passed": 189,
+  "signature": "adf7fdeb30dcc7fc",
+  "scoredAtUtc": "2026-11-25T09:40:52.1372447Z",
+  "caseSet": "05403ba0b8635c64",
+  "cases": 248,
+  "passed": 248,
   "score": 1,
   "falseAccepts": 0,
-  "falseAcceptCases": 189,
+  "falseAcceptCases": 248,
   "falseAcceptRate": 0,
   "accepted": null,
   "precision": null,
@@ -23,9 +23,13 @@
       18,
       18
     ],
+    "agent-review-alcohol-retention-2026-11-24-ck15": [
+      32,
+      32
+    ],
     "rule:alcohol-retention": [
-      162,
-      162
+      189,
+      189
     ]
   },
   "failed": [],
