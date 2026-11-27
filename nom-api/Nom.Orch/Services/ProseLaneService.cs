@@ -39,6 +39,8 @@ namespace Nom.Orch.Services
     /// of its own on the frame: it writes only while that tier is live, every one of its decisions is
     /// audited by rule (<see cref="ProseRuleOnlyAudit"/>), and the frame qualifies, pauses and undoes it on
     /// that audit alone, whatever the model tier's mode.
+    /// A recipe of a source whose class is permission-needed or forbidden is never taken (<see cref="KeptOutClasses"/>): it stays
+    /// withheld until the owner decides that source.
     /// A facts-only recipe (<see cref="RecipeEntity.SourceRights"/>) never takes the description-only path
     /// for a method a person edited: its whole method is rewritten clean-room, so no untouched publisher
     /// step is shown again.
@@ -98,12 +100,7 @@ namespace Nom.Orch.Services
             var stock = await _stock.LoadAsync(cancellationToken);
             var live = mode == LaneMode.Live;
             var ruleMode = await _frame.ModeAsync(Lane, RuleOnlyTier, cancellationToken);
-            var ids = await EligibleQuery(_db, version, live, ruleMode == LaneMode.Live)
-                .OrderBy(r => r.ProseWithheld ? (r.CurationStatusId == (long)CurationStatusEnum.Curated ? 0 : 1) : 2)
-                .ThenByDescending(r => r.ProseWithheld ? r.ProseCopiedSentences : 0)
-                .ThenBy(r => r.ProseRewriteAttemptedAt == null ? 0 : 1)
-                .ThenBy(r => r.ProseRewriteAttemptedAt)
-                .ThenBy(r => r.Id)
+            var ids = await Ordered(EligibleQuery(_db, version, live, ruleMode == LaneMode.Live))
                 .Select(r => r.Id)
                 .Take(Math.Clamp(batchSize, 1, 500))
                 .ToListAsync(cancellationToken);
@@ -219,9 +216,65 @@ namespace Nom.Orch.Services
             return result;
         }
 
+        /// <summary>The order the lane takes its queue in: approved withheld first, then other withheld, each by the queue figure, most copied first, then quarantined; never tried before tried, oldest try first.</summary>
+        public static IOrderedQueryable<RecipeEntity> Ordered(IQueryable<RecipeEntity> recipes) =>
+            recipes
+                .OrderBy(r => r.ProseWithheld ? (r.CurationStatusId == (long)CurationStatusEnum.Curated ? 0 : 1) : 2)
+                .ThenByDescending(r => r.ProseWithheld ? r.ProseCopiedSentences : 0)
+                .ThenBy(r => r.ProseRewriteAttemptedAt == null ? 0 : 1)
+                .ThenBy(r => r.ProseRewriteAttemptedAt)
+                .ThenBy(r => r.Id);
+
+        /// <summary>The source classes whose recipes the lane never takes: they stay withheld until the owner decides those sources (staging checkpoint 8).</summary>
+        public static readonly string[] KeptOutClasses = { SourceRightsRule.PermissionNeeded, SourceRightsRule.Forbidden };
+
         /// <summary>
-        /// The recipes the lane may take under <paramref name="version"/>: withheld or quarantined, and not
-        /// given up under this version. A quarantined recipe with a step a person edited is never
+        /// The queue the lane takes under <paramref name="version"/> as a live lane with a live rule-only tier would, in its
+        /// order: counts by tier, by source class and by approval, the recipes kept out by their source's class, and the
+        /// first <paramref name="sample"/> recipes. Reads only.
+        /// </summary>
+        public async Task<ProseQueueResult> QueueAsync(string version, int sample = 50, CancellationToken cancellationToken = default)
+        {
+            var queue = EligibleQuery(_db, version, live: true, ruleLive: true);
+            var rows = await queue
+                .Select(r => new { Withheld = r.ProseWithheld, Approved = r.CurationStatusId == (long)CurationStatusEnum.Curated, r.SourceRights, r.SourceAiReserved })
+                .ToListAsync(cancellationToken);
+            var result = new ProseQueueResult
+            {
+                LaneVersion = version,
+                Order = "approved withheld, then other withheld, each by the queue figure (most copied first), then quarantined; never tried first, then oldest try",
+                Total = rows.Count,
+                AiReserved = rows.Count(r => r.SourceAiReserved),
+            };
+            foreach (var row in rows)
+            {
+                Count(result.ByTier, row.Withheld ? row.Approved ? "approved-withheld" : "withheld" : "quarantined");
+                Count(result.BySourceClass, row.SourceRights ?? "none");
+                Count(result.ByApproved, row.Approved ? "approved" : "not-approved");
+            }
+            foreach (var kept in await _db.Recipes.AsNoTracking()
+                .Where(r => (r.ProseWithheld || r.ContainsSourceProse) && r.SourceRights != null && KeptOutClasses.Contains(r.SourceRights))
+                .GroupBy(r => r.SourceRights!)
+                .Select(g => new { Class = g.Key, Recipes = g.Count() })
+                .ToListAsync(cancellationToken))
+                result.KeptOutByClass[kept.Class] = kept.Recipes;
+
+            var first = await Ordered(queue).Take(Math.Clamp(sample, 0, 500))
+                .Select(r => new { r.Id, r.SourceSite, r.SourceRights, Approved = r.CurationStatusId == (long)CurationStatusEnum.Curated, r.ProseWithheld, r.ProseCopiedSentences, r.SourceAiReserved })
+                .ToListAsync(cancellationToken);
+            result.First = first.Select((r, i) => new ProseQueueEntry
+            {
+                Position = i + 1, RecipeId = r.Id, Host = r.SourceSite, SourceClass = r.SourceRights ?? "none", Approved = r.Approved,
+                State = r.ProseWithheld ? "withheld" : "quarantined", CopiedSentences = r.ProseWithheld ? r.ProseCopiedSentences : 0, AiReserved = r.SourceAiReserved,
+            }).ToList();
+            return result;
+
+            static void Count(Dictionary<string, int> counts, string key) => counts[key] = counts.GetValueOrDefault(key) + 1;
+        }
+
+        /// <summary>
+        /// The recipes the lane may take under <paramref name="version"/>: withheld or quarantined, of no source whose class is
+        /// permission-needed or forbidden (<see cref="KeptOutClasses"/>), and not given up under this version. A quarantined recipe with a step a person edited is never
         /// taken, unless it is a withheld facts-only recipe. While the lane is not <paramref name="live"/>,
         /// a recipe already decided under this version is not taken again, so every decision it records
         /// is of a different recipe, and a withheld recipe whose method a person wrote waits for the live
@@ -231,6 +284,7 @@ namespace Nom.Orch.Services
         public static IQueryable<RecipeEntity> EligibleQuery(ApplicationDbContext db, string version, bool live = true, bool ruleLive = false) =>
             db.Recipes.AsNoTracking()
                 .Where(r => r.ProseWithheld || r.ContainsSourceProse)
+                .Where(r => r.SourceRights == null || !KeptOutClasses.Contains(r.SourceRights))
                 .Where(r => !(r.ProseLaneVersion == version && r.ProseAttempts >= ProseCleanRoom.AttemptCount))
                 .Where(r => (r.SourceAiReserved ? ruleLive : live) || r.ProseLaneVersion != version)
                 .Where(r => !r.RecipeSteps!.Any(s => s.LastModifiedByPersonId != null && s.LastModifiedByPersonId != SystemConstants.SystemPersonId)

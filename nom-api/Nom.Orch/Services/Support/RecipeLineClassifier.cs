@@ -54,7 +54,7 @@ namespace Nom.Orch.Services.Support
 
         private static readonly Regex Equipment = new(
             @"^[\W_]*(?:(?:a|an|the|one)\s+)?(?:(?:large|small|deep|shallow|buttered|well[\s-]buttered|greased|clean|wet|hot|round|square|flat|fireproof|earthenware|china|copper|wooden|cake|pie|pudding|jelly|baking|frying|roasting|stew|sauce|white|kitchen)[\s-]+)*" +
-            @"(?:bain[\s-]?marie|saucepans?|stew[\s-]?pans?|frying[\s-]?pans?|pans?|skillets?|moulds?|molds?|sieves?|tamm(?:y|ies)|cloths?|napkins?|skewers?|twine|string|basins?|tins?|ovens?|thermometers?|larding[\s-]needles?|jelly[\s-]bags?|paper)" +
+            @"(?:bain[\s-]?marie|saucepans?|stew[\s-]?pans?|frying[\s-]?pans?|pans?|skillets?|moulds?|molds?|sieves?|tamm(?:y|ies)|cloths?|napkins?|skewers?|twine|string|basins?|tins?|(?:tin\s+)?(?:covers?|lids?)|ovens?|thermometers?|larding[\s-]needles?|jelly[\s-]bags?|paper)" +
             @"[\W_]*$",
             RegexOptions.Compiled | RegexOptions.IgnoreCase | RegexOptions.CultureInvariant);
     }

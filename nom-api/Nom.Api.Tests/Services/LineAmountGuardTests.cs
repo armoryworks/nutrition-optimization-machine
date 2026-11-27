@@ -41,6 +41,23 @@ namespace Nom.Api.Tests.Services
             LineAmountGuard.Decide(line, A((decimal)quantity, unit, food, grams: 100), A(0, null, food), method).Should().Be(step == null ? Verdict.Keep : Verdict.Hold);
         }
 
+        [Theory]
+        [InlineData("ingredients mentioned in No. 218", 218)]
+        [InlineData("the same stock as No. 184", 184)]
+        [InlineData("apple marmalade made by recipe No. 1395", 1395)]
+        [InlineData("Marzapane descritto al N. 579", 579)]
+        public void A_stored_amount_that_is_only_the_number_of_a_referred_recipe_is_emptied(string line, double quantity)
+        {
+            LineAmountGuard.Judge(line, A((decimal)quantity, "Piece", null), A(0, null, null), Array.Empty<string>())
+                .Should().Be(new Decision(Verdict.Replace, Reasons.Referral), "staging checkpoint 8, T11: the rebuild kept these as stored-grounded");
+        }
+
+        [Fact]
+        public void A_stated_amount_beside_a_referred_recipe_is_still_never_emptied()
+        {
+            LineAmountGuard.Judge("2 cups sauce No. 2", A(2, "Cup", "sauce"), A(0, null, "sauce"), Array.Empty<string>()).Verdict.Should().Be(Verdict.Keep);
+        }
+
         [Fact]
         public void A_grounded_stored_amount_in_an_odd_unit_is_still_never_emptied()
         {
@@ -79,7 +96,6 @@ namespace Nom.Api.Tests.Services
 
         [Theory]
         [InlineData("a very little water", 1, "Piece")]
-        [InlineData("Marzapane descritto al N. 579", 579, "Piece")]
         [InlineData("twenty cents' worth chicken gizzards", 20, "Piece")]
         [InlineData("Sack", 0.5, "Pound")]
         public void A_rebuilt_row_with_no_amount_never_replaces_a_stored_amount_even_one_the_source_does_not_ground(string line, double stored, string storedUnit)

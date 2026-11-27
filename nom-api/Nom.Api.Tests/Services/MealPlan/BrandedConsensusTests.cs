@@ -123,9 +123,9 @@ namespace Nom.Api.Tests.Services.MealPlan
 
             var rows = BrandedConsensus.Rows(new[] { home, store }, tallies);
 
-            rows.Where(r => r.Name == home.Name).Select(r => (r.Class, r.Verdict)).Should().BeEquivalentTo(new[] { ("milk", BrandedConsensus.Usually) },
+            rows.Where(r => r.Name == home.Name && r.Class != BrandedConsensus.AnyClass).Select(r => (r.Class, r.Verdict)).Should().BeEquivalentTo(new[] { ("milk", BrandedConsensus.Usually) },
                 "review ck18-homemade-matched-to-commercial: a home kitchen adds no bisulfite, and the makers' split is their own additions");
-            rows.Where(r => r.Name == store.Name).Select(r => (r.Class, r.Verdict)).Should().BeEquivalentTo(new[]
+            rows.Where(r => r.Name == store.Name && r.Class != BrandedConsensus.AnyClass).Select(r => (r.Class, r.Verdict)).Should().BeEquivalentTo(new[]
             {
                 ("milk", BrandedConsensus.Usually), ("soy", BrandedConsensus.Split), ("sulfite", BrandedConsensus.Usually),
             });
@@ -165,8 +165,9 @@ namespace Nom.Api.Tests.Services.MealPlan
         {
             var rows = BrandedConsensus.All;
             rows.Should().NotBeEmpty();
-            rows.Should().OnlyContain(r => BrandedConsensus.Probes.ContainsKey(r.Class) && (r.Verdict == BrandedConsensus.Usually || r.Verdict == BrandedConsensus.Split));
-            rows.Should().OnlyContain(r => r.Products >= BrandedConsensus.MinProducts && r.Examples.Count <= 3 && r.Examples.Count == Math.Min(3, r.Stating));
+            rows.Should().OnlyContain(r => (BrandedConsensus.Probes.ContainsKey(r.Class) && (r.Verdict == BrandedConsensus.Usually || r.Verdict == BrandedConsensus.Split)) || (r.Class == BrandedConsensus.AnyClass && r.Verdict == BrandedConsensus.Read));
+            rows.Where(r => r.Class != BrandedConsensus.AnyClass).Should().OnlyContain(r => rows.Any(x => x.Class == BrandedConsensus.AnyClass && x.Fdc == r.Fdc && x.Name == r.Name), "every food with a verdict was read");
+            rows.Should().OnlyContain(r => (r.Products >= BrandedConsensus.MinProducts || (r.Products >= BrandedConsensus.MinSingle && (r.Class == BrandedConsensus.AnyClass || r.Verdict == BrandedConsensus.Split))) && r.Examples.Count <= 3 && r.Examples.Count == Math.Min(3, r.Stating));
             foreach (var soup in new[] { "Condensed Cream Of Chicken Soup", "Condensed Mushroom Soup" })
                 foreach (var cls in new[] { "wheat", "gluten" })
                     rows.Should().Contain(r => r.Name == soup && r.Class == cls && r.Verdict == BrandedConsensus.Usually, $"{soup} is thickened with wheat flour in nearly every brand");
@@ -225,12 +226,12 @@ namespace Nom.Api.Tests.Services.MealPlan
         }
 
         [Fact]
-        public void A_diet_of_choice_an_uncurated_food_or_a_renamed_food_reads_no_consensus()
+        public void A_diet_of_choice_reads_only_what_the_brands_usually_state_and_an_uncurated_food_or_a_renamed_food_reads_no_consensus()
         {
             var diet = Catalog();
             var choice = DietFoodReader.Decide(DietFoodReader.Read(diet, diet.Foods.Keys.ToList()), new[] { Criterion(1, "%wheat%", 3, "Gluten-Free") });
-            choice.Foods[1].Should().NotContain(1, "a diet of severity 3 is not a severe criterion");
-            choice.Split.Should().BeEmpty();
+            choice.Foods[1].Should().Contain(1, "staging checkpoint 8, T10: what nearly every maker puts in a made product (the milk of caramel for a Vegan household) holds for a diet of choice too");
+            choice.Split.Should().BeEmpty("a split or an unread food is unknown only for a severe set");
 
             var uncurated = Catalog(curated: false);
             var u = DietFoodReader.Decide(DietFoodReader.Read(uncurated, uncurated.Foods.Keys.ToList()), WheatAllergy);

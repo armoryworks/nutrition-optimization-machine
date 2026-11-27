@@ -439,19 +439,26 @@ namespace Nom.Orch.Services
         /// <summary>The diet guard over the default restriction types and every stored type's pattern criteria (<see cref="RecheckDietGuard"/>).</summary>
         private Task<RecheckDietGuard> DietGuardAsync(CancellationToken cancellationToken) => LineMoveDietGuard.RecheckGuardAsync(_db, cancellationToken);
 
-        /// <summary>The line entries whose undo the diet guard would hold (<see cref="LineMoveDietGuard"/>): what the apply's undo sweep holds, read without writing.</summary>
-        private async Task<HashSet<long>> HeldTakingBackAsync(LineMoveDietGuard guard, List<AuditLogEntryEntity> entries)
+        /// <summary>The line entries whose undo the diet guard would hold (<see cref="LineMoveDietGuard"/>) and those it cannot follow to their line, which it skips: what the apply's undo sweep leaves in the journal, read without writing.</summary>
+        private async Task<(HashSet<long> Held, HashSet<long> Skipped)> HeldTakingBackAsync(LineMoveDietGuard guard, List<AuditLogEntryEntity> entries)
         {
             var held = new HashSet<long>();
-            if (entries.Count == 0) return held;
+            var skipped = new HashSet<long>();
+            if (entries.Count == 0) return (held, skipped);
             var trail = await RecipeOrderTrail.LoadAsync(_db, entries.Select(a => a.EntityId).Distinct());
             foreach (var entry in entries)
             {
                 if (LineRelinkService.ReadPlace(entry.OldValue) is not { } was || LineRelinkService.ReadPlace(entry.NewValue) is not { } now
-                    || trail.Follow(entry.EntityId, now.IngredientId, now.SortOrder, entry.Timestamp) is not { } from) continue;
+                    || trail.Follow(entry.EntityId, now.IngredientId, now.SortOrder, entry.Timestamp) is not { } from)
+                {
+                    skipped.Add(entry.Id);
+                    continue;
+                }
                 if (await guard.HoldsAsync(_db, entry.EntityId, now.IngredientId, from, was.IngredientId)) held.Add(entry.Id);
+                else if (!await _db.RecipeIngredients.IgnoreQueryFilters().AnyAsync(ri => ri.RecipeId == entry.EntityId && ri.IngredientId == now.IngredientId && ri.SortOrder == from)
+                    || !await _db.Ingredients.IgnoreQueryFilters().AnyAsync(i => i.Id == was.IngredientId && !i.IsDeleted)) skipped.Add(entry.Id);
             }
-            return held;
+            return (held, skipped);
         }
 
         private static void Tally(LinkRecheckResult result, List<Decided> decisions, int sampleSize)
@@ -1229,15 +1236,16 @@ namespace Nom.Orch.Services
 
             var personId = _currentUser.PersonIdOrSystem;
             var held = new HashSet<long>();
+            var unfollowed = new HashSet<long>();
             if (!apply)
             {
                 var guard = await LineMoveDietGuard.LoadAsync(_db, cancellationToken);
                 guard.Restores = restoreLowered;
-                held = await HeldTakingBackAsync(guard, lineEntries.Where(a => a.ChangeType == LineChangeType && !(rebuilt.TryGetValue(a.EntityId, out var at) && at > a.Timestamp)).ToList());
+                (held, unfollowed) = await HeldTakingBackAsync(guard, lineEntries.Where(a => a.ChangeType == LineChangeType && !(rebuilt.TryGetValue(a.EntityId, out var at) && at > a.Timestamp)).ToList());
                 result.HeldByDiet = held.Count;
                 result.RestoredLowering = guard.Restored;
                 result.LoweringMoves = guard.RestoredMoves.Take(200).ToList();
-                result.LinesRestored = result.LineEntries - result.OnRebuiltRecipes - held.Count;
+                result.LinesRestored = result.LineEntries - result.OnRebuiltRecipes - held.Count - unfollowed.Count;
                 result.NamesRestored = lineEntries.Count(a => a.ChangeType == LineRelinkService.RetireChangeType);
             }
             else if (lineEntries.Count > 0)
@@ -1254,8 +1262,17 @@ namespace Nom.Orch.Services
                 _db.ChangeTracker.Clear();
             }
 
-            var restoredLines = lineEntries.Where(a => a.ChangeType == LineChangeType && !(rebuilt.TryGetValue(a.EntityId, out var at) && at > a.Timestamp) && !held.Contains(a.Id))
+            var restoredLines = lineEntries.Where(a => a.ChangeType == LineChangeType && !(rebuilt.TryGetValue(a.EntityId, out var at) && at > a.Timestamp) && !held.Contains(a.Id) && !unfollowed.Contains(a.Id))
                 .Select(a => LineRelinkService.ReadPlace(a.NewValue)).Where(p => p != null).GroupBy(p => p!.Value.IngredientId).ToDictionary(g => g.Key, g => g.Count());
+            var moveIds = lineEntries.Where(a => a.ChangeType == LineChangeType).Select(a => a.Id).ToList();
+            var notTakenBack = apply
+                ? (await _db.AuditLogEntries.AsNoTracking().Where(a => moveIds.Contains(a.Id)).Select(a => a.Id).ToListAsync(cancellationToken)).ToHashSet()
+                : lineEntries.Where(a => a.ChangeType == LineChangeType && ((rebuilt.TryGetValue(a.EntityId, out var at) && at > a.Timestamp) || held.Contains(a.Id) || unfollowed.Contains(a.Id))).Select(a => a.Id).ToHashSet();
+            var stillHolding = new HashSet<long>();
+            foreach (var place in lineEntries.Where(a => notTakenBack.Contains(a.Id)).Select(a => (Recipe: a.EntityId, Food: LineRelinkService.ReadPlace(a.NewValue)?.IngredientId)).Distinct())
+                if (place.Food is { } food && !stillHolding.Contains(food)
+                    && await _db.RecipeIngredients.IgnoreQueryFilters().AnyAsync(ri => ri.RecipeId == place.Recipe && ri.IngredientId == food && !ri.IsDeleted, cancellationToken))
+                    stillHolding.Add(food);
 
             await using (var tx = apply && _db.Database.IsRelational() ? await _db.Database.BeginTransactionAsync(cancellationToken) : null)
             {
@@ -1271,7 +1288,9 @@ namespace Nom.Orch.Services
                         continue;
                     }
                     if (before == null && after.Context == RecheckDietGuard.UnknownContentsContext
-                        && await _db.RecipeIngredients.IgnoreQueryFilters().CountAsync(ri => ri.IngredientId == entry.EntityId && !ri.IsDeleted, cancellationToken) > (apply ? 0 : restoredLines.GetValueOrDefault(entry.EntityId)))
+                        && (restoreLowered
+                            ? stillHolding.Contains(entry.EntityId)
+                            : await _db.RecipeIngredients.IgnoreQueryFilters().CountAsync(ri => ri.IngredientId == entry.EntityId && !ri.IsDeleted, cancellationToken) > (apply ? 0 : restoredLines.GetValueOrDefault(entry.EntityId))))
                     {
                         result.MarksKept++;
                         continue;

@@ -21,10 +21,10 @@ namespace Nom.Api.Controllers
 
         public AlcoholRetentionController(IAlcoholRetentionService retention) => _retention = retention;
 
-        /// <summary>Read every alcohol line of up to maxRecipes recipes after afterRecipeId and store the retention where it changes; a dry run unless apply=true.</summary>
+        /// <summary>Read every alcohol line of up to maxRecipes recipes after afterRecipeId and store the retention where it changes, a batch of recipes at a time; a dry run unless apply=true. resume=true goes on with the latest run that did not finish.</summary>
         [HttpPost]
-        public async Task<ActionResult<AlcoholRetentionRunResult>> Run([FromQuery] bool apply = false, [FromQuery] int maxRecipes = 20000, [FromQuery] long afterRecipeId = 0, [FromQuery] int sampleSize = 50) =>
-            Ok(await _retention.RunAsync(apply, maxRecipes, afterRecipeId, sampleSize, HttpContext.RequestAborted));
+        public async Task<ActionResult<AlcoholRetentionRunResult>> Run([FromQuery] bool apply = false, [FromQuery] int maxRecipes = 20000, [FromQuery] long afterRecipeId = 0, [FromQuery] int sampleSize = 50, [FromQuery] bool resume = false) =>
+            Ok(await _retention.RunAsync(apply, maxRecipes, afterRecipeId, sampleSize, resume, HttpContext.RequestAborted));
 
         /// <summary>Give back the retention each line had before a run at or after the given UTC time and recalculate its recipe; a dry run unless apply=true.</summary>
         [HttpPost("undo")]

@@ -106,8 +106,11 @@ namespace Nom.Import.Golden
         public const string CheckModelKey = "Golden:CheckModel";
         public const string AuditModelKey = "Golden:AuditModel";
 
-        /// <summary>The file a prose-rewrite run on the working half writes each recipe's sheets and refused steps to (--trace); never written for the held-out half or all rows.</summary>
+        /// <summary>The file a prose-rewrite run on the working half writes each recipe's sheets and refused steps to, and a prose-audit run on it each difference the auditor lists (--trace); never written for the held-out half or all rows.</summary>
         public const string TraceKey = "Golden:Trace";
+
+        /// <summary>A prose-rewrite run on one half that rewords its recipes only and leaves out the planted faults (--recipes-only), whose verdicts are the gate's and the judge's and do not move with the writer; never with --record.</summary>
+        public const string RecipesOnlyKey = "Golden:RecipesOnly";
         public const string FloorsFile = "model-lanes.json";
         public const string ScoresFolder = "scores";
         public const int PickBatch = IngredientLinkService.QuestionsPerCall;
@@ -126,9 +129,9 @@ namespace Nom.Import.Golden
         public static readonly IReadOnlyList<string> Splits = new[] { SplitAll, SplitWorking, SplitHeldOut };
 
         /// <summary>The lanes a run may score on one half of their golden rows (--split working or held-out).</summary>
-        public static readonly IReadOnlyList<string> Splittable = new[] { LinkPick, LinkVerify, LineJudge, ProseJudgeLane, ProseRewriteLane, ProseAuditLane };
+        public static readonly IReadOnlyList<string> Splittable = new[] { LinkPick, LinkVerify, LineJudge, ProseJudgeLane, ProseRewriteLane, ProseAuditLane, DietSecondReaderLane };
 
-        public static readonly IReadOnlyList<string> Scored = new[] { LinkPick, LinkVerify, LineClassify, LinkGateLane, AlcoholContextLane, AlcoholRetentionLane, WordingTiersLane, LineJudge, ProseRewriteLane, ProseJudgeLane, ProseAuditLane, WordingReadLane, WordingLexiconLane, AlcoholReadingLane, LinkAuditLane };
+        public static readonly IReadOnlyList<string> Scored = new[] { LinkPick, LinkVerify, LineClassify, LinkGateLane, AlcoholContextLane, AlcoholRetentionLane, WordingTiersLane, LineJudge, ProseRewriteLane, ProseJudgeLane, ProseAuditLane, WordingReadLane, WordingLexiconLane, AlcoholReadingLane, LinkAuditLane, DietSecondReaderLane };
 
         /// <summary>The prose lanes, scored on prose-judge.tsv; their signatures are <see cref="ProseLaneGolden.Signature"/>.</summary>
         public static readonly IReadOnlyList<string> Prose = new[] { ProseRewriteLane, ProseJudgeLane, ProseAuditLane };
@@ -149,12 +152,13 @@ namespace Nom.Import.Golden
 
         private static readonly JsonSerializerOptions Json = new() { WriteIndented = true, PropertyNamingPolicy = JsonNamingPolicy.CamelCase };
 
-        public static IConfiguration Config(string host, string model, string? checkModel = null, string? auditModel = null, string? trace = null) => new ConfigurationBuilder()
+        public static IConfiguration Config(string host, string model, string? checkModel = null, string? auditModel = null, string? trace = null, bool recipesOnly = false) => new ConfigurationBuilder()
             .AddInMemoryCollection(new Dictionary<string, string?>
             {
                 [CheckModelKey] = checkModel,
                 [AuditModelKey] = auditModel,
                 [TraceKey] = trace,
+                [RecipesOnlyKey] = recipesOnly ? "true" : null,
                 ["Ai:BatchOllamaUrl"] = host,
                 ["Ai:LinkModel"] = model,
                 ["Ai:RepairModel"] = model,
@@ -170,6 +174,7 @@ namespace Nom.Import.Golden
             if (lane == AlcoholRetentionLane) return AlcoholRetention.Signature;
             if (lane == WordingTiersLane) return WordingTiers.Signature;
             if (lane == LineJudge) return OllamaLineJudge.Signature;
+            if (lane == DietSecondReaderLane) return OllamaDietSecondReader.Signature;
             if (Prose.Contains(lane)) return ProseLaneGolden.Signature(lane);
             if (Readers.Contains(lane)) return WordingReaderRecords.ScorerSignature(lane);
             var capture = new CapturingHandler();
@@ -360,6 +365,8 @@ namespace Nom.Import.Golden
                 case AlcoholReadingLane:
                 case LinkAuditLane:
                     return await ReaderResultsAsync(lane, goldenDir, http, config, limit, progress, cancellationToken);
+                case DietSecondReaderLane:
+                    return DietReaderResults(await DietReaderRunAsync(goldenDir, http, config["Ai:BatchOllamaUrl"] ?? string.Empty, config["Ai:LinkModel"] ?? string.Empty, limit, progress, cancellationToken, split));
                 case AlcoholContextLane:
                 {
                     var cases = AlcoholCases(goldenDir).Take(limit ?? int.MaxValue).ToList();
@@ -512,7 +519,7 @@ namespace Nom.Import.Golden
                     var judge = new OllamaProseStepJudge(http, host, model);
                     foreach (var c in cases.Take(limit ?? int.MaxValue))
                     {
-                        var verdict = await AskAsync(() => judge.JudgeAsync(c.Method.Select(ProseQuantities.Prepare).ToList(), c.Rewrite, cancellationToken), progress, cancellationToken);
+                        var verdict = await AskAsync(() => judge.JudgeAsync(c.Method.Select(ProseQuantities.Prepare).ToList(), c.Rewrite, cancellationToken, c.Title), progress, cancellationToken);
                         var faithful = verdict?.Faithful;
                         results.Add(new LaneCaseResult($"{lane}:{c.Id}", faithful == c.Faithful, !c.Faithful && faithful == true, !c.Faithful,
                             c.Faithful ? "faithful" : "fault " + c.Fault, faithful == null ? "no readable answer" : faithful.Value ? "faithful" : $"fault: step {verdict!.FirstFlagged?.Number} {verdict.FirstFlagged?.Note}", c.Source));
@@ -522,9 +529,14 @@ namespace Nom.Import.Golden
                 }
                 case ProseAuditLane:
                 {
-                    var auditor = new OllamaProseAuditor(http, host, model);
+                    string? current = null;
+                    Action<string>? trace = config[TraceKey] is { Length: > 0 } tracePath && split == SplitWorking
+                        ? line => File.AppendAllText(tracePath, $"{current}\t{line}\n")
+                        : null;
+                    var auditor = new OllamaProseAuditor(http, host, model, trace);
                     foreach (var c in cases.Take(limit ?? int.MaxValue))
                     {
+                        current = c.Id;
                         var pair = new ProseAuditPair(c.Title, c.Lines, c.Method.Select(ProseQuantities.Prepare).ToList(), c.Rewrite, c.RewriteDescription);
                         var verdict = await AskAsync(() => auditor.AuditAsync(pair, cancellationToken), progress, cancellationToken);
                         var flagged = verdict is { Faithful: false } && await AskAsync(() => Nom.Orch.Services.ProseLaneAudit.ConfirmAsync(auditor, pair, verdict, cancellationToken), progress, cancellationToken) == true;
@@ -553,15 +565,16 @@ namespace Nom.Import.Golden
                             Action<string>? trace = config[TraceKey] is { Length: > 0 } tracePath && split == SplitWorking
                                 ? line => File.AppendAllText(tracePath, $"{recipe.Key}\t{line}\n")
                                 : null;
-                            var outcome = await AskAsync(() => ProseReword.RunAsync(first.Input(stock), writer, judge, cancellationToken), progress, cancellationToken);
+                            var outcome = await AskAsync(() => ProseReword.RunAsync(first.Input(stock), writer, judge, cancellationToken, trace), progress, cancellationToken);
                             trace?.Invoke(string.Join(" | ", outcome.Attempts.Select(a => $"{a.Number} {a.Style}: {string.Join(", ", a.Reasons)}")));
+                            if (outcome.Rewrite != null) trace?.Invoke("written: " + string.Join(" ¦ ", outcome.Rewrite.Steps));
                             var result = new LaneCaseResult(RecipeCase(lane, recipe.Key), outcome.Passed, false, false, "a rewrite through the gate",
                                 RewriteActual(outcome, clock.Elapsed.TotalSeconds), "rule:end-to-end");
                             results.Add(result);
                             progress($"{result.Id}: {result.Actual}");
                         }
 
-                        foreach (var c in recipe.Where(c => !c.Faithful && InSplit(c.Id, split)))
+                        foreach (var c in recipe.Where(c => !c.Faithful && InSplit(c.Id, split) && !(split != SplitAll && config[RecipesOnlyKey] == "true")))
                         {
                             var reasons = await AskAsync(() => ProseCleanRoom.GateAsync(c.Input(stock), c.RewriteText, judge, cancellationToken), progress, cancellationToken);
                             results.Add(new LaneCaseResult($"{lane}:{c.Id}", reasons.Count > 0, reasons.Count == 0, true, "refused",
@@ -577,7 +590,7 @@ namespace Nom.Import.Golden
 
         /// <summary>
         /// The prose writer's end-to-end figures over the recipes of a run: recipes, those the first
-        /// writer attempt got through the gate, those that ended on the rule rendering, those given
+        /// reword round got through the gate, those that ended on the rule rendering, those given
         /// up, and the mean seconds a recipe took; null for another lane or a run with no recipe.
         /// </summary>
         public static (int Recipes, int FirstTry, int RuleRendered, int GaveUp, double Seconds)? RewriteFigures(string lane, IReadOnlyList<LaneCaseResult> results)
@@ -588,7 +601,7 @@ namespace Nom.Import.Golden
             var seconds = recipes.Select(r => System.Text.RegularExpressions.Regex.Match(r.Actual, @", (\d+) s\b")).Where(m => m.Success)
                 .Select(m => double.Parse(m.Groups[1].Value, System.Globalization.CultureInfo.InvariantCulture)).DefaultIfEmpty(0).Average();
             return (recipes.Count,
-                recipes.Count(r => r.Pass && r.Actual.StartsWith("rewritten in attempt 1 (", StringComparison.Ordinal)),
+                recipes.Count(r => r.Pass && r.Actual.StartsWith("rewritten in round 1,", StringComparison.Ordinal)),
                 recipes.Count(r => r.Pass && r.Actual.Contains($"({ProseLanePrompts.RuleAttempt}", StringComparison.Ordinal)),
                 recipes.Count(r => !r.Pass),
                 Math.Round(seconds, 1));
@@ -598,8 +611,8 @@ namespace Nom.Import.Golden
         public static string RecipeCase(string lane, string recipe) => $"{lane}:recipe:{recipe}";
 
         /// <summary>
-        /// What the clean-room pipeline made of one recipe, as a case's actual text: the attempt that
-        /// passed and its style (the rule rendering or a writer attempt), or the failure class and the
+        /// What the clean-room pipeline made of one recipe, as a case's actual text: the reword rounds it
+        /// took, the attempt that passed and its style, or the failure class and the
         /// reasons of every attempt, each in the lane's own words, and the seconds the recipe took.
         /// </summary>
         public static string RewriteActual(ProseLaneOutcome outcome, double seconds)
@@ -611,7 +624,7 @@ namespace Nom.Import.Golden
             if (outcome.Passed)
             {
                 var last = outcome.Attempts[^1];
-                return $"rewritten in attempt {last.Number} ({last.Style}{sheets}), {time}{(tried.Length == 0 ? string.Empty : "; refused before: " + tried)}";
+                return $"rewritten in round {outcome.Attempts.Count(a => a.Style == ProseReword.StyleReword)}, attempt {last.Number} ({last.Style}{sheets}), {time}{(tried.Length == 0 ? string.Empty : "; refused before: " + tried)}";
             }
 
             return $"gave up: {outcome.FailureClass}{sheets}, {time}{(tried.Length == 0 ? string.Empty : "; " + tried)}";

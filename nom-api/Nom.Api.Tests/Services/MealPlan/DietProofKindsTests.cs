@@ -312,6 +312,100 @@ namespace Nom.Api.Tests.Services.MealPlan
         }
     
         [Fact]
+        public async Task A_title_nut_no_line_names_and_a_line_that_refers_to_another_recipe_hold_a_severe_set()
+        {
+            using var db = NewContext();
+            const long PeanutRef = 60840, TreeNutRef = 60845, VegetarianRef = 60850;
+            foreach (var (household, person, type, typeId) in new[] { (7L, 70L, "Peanut Allergy", PeanutRef), (9L, 90L, "Tree Nut Allergy", TreeNutRef), (11L, 110L, "Vegetarian", VegetarianRef) })
+            {
+                db.HouseholdMembers.Add(new HouseholdMemberEntity { HouseholdId = household, PersonId = person, IsActive = true });
+                db.Set<ReferenceEntity>().Add(new ReferenceEntity { Id = typeId, Name = type });
+                db.Restrictions.Add(new RestrictionEntity { PersonId = person, Name = type, RestrictionTypeId = typeId });
+            }
+            var asparagus = Curated("Asparagus", 11, "Asparagus, raw");
+            var water = Curated("Water", 14, "Water, tap");
+            var salt = Curated("Salt", 2, "Salt, table");
+            db.Ingredients.AddRange(asparagus, water, salt);
+            await db.SaveChangesAsync();
+            const string method = "Cook till asparagus is very tender; put through a sieve; add stock and salt; reheat, and serve.";
+            var soup = Book("Nut and Asparagus Soup", method, (asparagus.Id, "Finely cut asparagus, 4 cups", null), (water.Id, "Vegetable soup stock, 4 cups", null), (salt.Id, "Salt", null));
+            var plain = Book("Asparagus Soup", method, (asparagus.Id, "Finely cut asparagus, 4 cups", null), (water.Id, "Vegetable soup stock, 4 cups", null), (salt.Id, "Salt", null));
+            var referred = Book("Asparagus Salad", "Dress the asparagus and serve.", (asparagus.Id, "Finely cut asparagus, 4 cups", null), (salt.Id, "salt, as in recipe No. 12", null));
+            db.Recipes.AddRange(soup, plain, referred);
+            await db.SaveChangesAsync();
+            await DefaultRestrictionCriteria.EnsureAsync(db);
+            await new DietGateStoreBuilder().RunAsync(db);
+
+            foreach (var person in new[] { 70L, 90L })
+            {
+                var severe = await new HouseholdRestrictionResolver(db).ResolveSevereForPersonAsync(person);
+                var offered = (await db.Recipes.WithoutHeld(db, severe).Select(r => r.Id).ToListAsync()).ToHashSet();
+                offered.Should().Contain(plain.Id);
+                offered.Should().NotContain(new[] { soup.Id, referred.Id });
+                var flags = await db.DietRecipeFlags.Where(f => severe.Stored!.SetIds.Contains(f.SetId)).ToListAsync();
+                flags.Should().Contain(f => f.RecipeId == soup.Id && f.Verdict == DietVerdict.Unknown && f.Reason == DietFlagReason.Title,
+                    "97393: the title's nut is not named, so it may be a peanut or a tree nut, as \"nuts\" in a line is (lead answer, wave 31)");
+                flags.Should().Contain(f => f.RecipeId == referred.Id && f.Verdict == DietVerdict.Unknown && f.Reason == DietFlagReason.Referral,
+                    "staging checkpoint 8, T11: what recipe No. 12 holds is not in these lines (IngredientLineParser.HasReferral)");
+            }
+            var vegetarian = await new HouseholdRestrictionResolver(db).ResolveAsync(11);
+            (await db.Recipes.WithoutHeld(db, vegetarian).Select(r => r.Id).ToListAsync()).Should().Contain(new[] { soup.Id, referred.Id }, "only a severe set holds an incomplete recipe");
+            RecipeOrchestrationService.DietTextName(DietFlagReason.Referral).Should().Be("Refers to another recipe");
+            DietRecipeText.LostNuts("Nut and Asparagus Soup", new[] { "1 cup chopped walnuts" }).Should().BeEmpty("a line names the nut");
+            DietRecipeText.LostNuts("Hickory Nut Cake", new[] { "2 cups sugar" }).Should().Equal("Hickory Nut");
+            DietRecipeText.LostNuts("Dough Nuts", new[] { "2 cups sugar" }).Should().BeEmpty("a dough nut is no nut");
+        }
+
+        [Fact]
+        public async Task A_title_butter_nut_is_the_butternut_and_a_line_word_that_only_looks_like_a_nut_does_not_stand_for_the_titles_nut()
+        {
+            using var db = NewContext();
+            const long PeanutRef = 60840, TreeNutRef = 60845;
+            foreach (var (household, person, type, typeId) in new[] { (7L, 70L, "Peanut Allergy", PeanutRef), (9L, 90L, "Tree Nut Allergy", TreeNutRef) })
+            {
+                db.HouseholdMembers.Add(new HouseholdMemberEntity { HouseholdId = household, PersonId = person, IsActive = true });
+                db.Set<ReferenceEntity>().Add(new ReferenceEntity { Id = typeId, Name = type });
+                db.Restrictions.Add(new RestrictionEntity { PersonId = person, Name = type, RestrictionTypeId = typeId });
+            }
+            var flour = Curated("Flour", 20, "Wheat flour, white, all-purpose, enriched, bleached");
+            var sugar = Curated("Sugar", 19, "Sugars, granulated");
+            var water = Curated("Water", 14, "Water, tap");
+            var coconut = Curated("Shredded Coconut", 12, "Nuts, coconut meat, dried (desiccated), sweetened, shredded");
+            db.Ingredients.AddRange(flour, sugar, water, coconut);
+            await db.SaveChangesAsync();
+            const string method = "Mix all together, spread in a buttered tin and bake in a moderate oven.";
+            var cake = Book("Butter Nut Cake", method, (flour.Id, "2 cups flour", null), (sugar.Id, "1 cup sugar", null), (water.Id, "1/2 cup water", null));
+            var taffy = Book("Butter-Nut Taffy", "Boil till brittle and pour on a buttered dish.", (sugar.Id, "2 cups sugar", null), (water.Id, "1/2 cup water", null));
+            var bars = Book("Nut and Cocoanut Bars", method, (flour.Id, "2 cups flour", null), (sugar.Id, "1 cup sugar", null), (coconut.Id, "1 cup shredded cocoanut", null));
+            var squash = Book("Butternut Squash Soup", "Boil the squash, sieve it and add the water.", (water.Id, "1 quart water", null));
+            db.Recipes.AddRange(cake, taffy, bars, squash);
+            await db.SaveChangesAsync();
+            await DefaultRestrictionCriteria.EnsureAsync(db);
+            await new DietGateStoreBuilder().RunAsync(db);
+
+            var treeNut = await new HouseholdRestrictionResolver(db).ResolveSevereForPersonAsync(90);
+            var offeredTreeNut = (await db.Recipes.WithoutHeld(db, treeNut).Select(r => r.Id).ToListAsync()).ToHashSet();
+            offeredTreeNut.Should().NotContain(new[] { cake.Id, taffy.Id }, "a butter nut of the old American books is the butternut, a tree nut, as \"butter-nuts\" in a line is (review ck19w31-1)");
+            offeredTreeNut.Should().NotContain(bars.Id);
+            offeredTreeNut.Should().Contain(squash.Id, "a butternut squash is no nut");
+
+            var peanut = await new HouseholdRestrictionResolver(db).ResolveSevereForPersonAsync(70);
+            var offeredPeanut = (await db.Recipes.WithoutHeld(db, peanut).Select(r => r.Id).ToListAsync()).ToHashSet();
+            offeredPeanut.Should().NotContain(bars.Id, "the cocoanut line names no nut, so the title's unnamed nut may be peanuts (review ck19w31-2)");
+            var flags = await db.DietRecipeFlags.Where(f => peanut.Stored!.SetIds.Contains(f.SetId)).ToListAsync();
+            flags.Should().Contain(f => f.RecipeId == bars.Id && f.Verdict == DietVerdict.Unknown && f.Reason == DietFlagReason.Title);
+
+            DietRecipeText.LostNuts("Butter Nut Cake", new[] { "2 cups flour" }).Should().Equal("butternut");
+            DietRecipeText.LostNuts("Butternut Squash Soup", new[] { "1 quart water" }).Should().BeEmpty();
+            DietRecipeText.LostNuts("Nut and Cocoanut Bars", new[] { "1 cup shredded cocoanut" }).Should().Equal("Nut");
+            DietRecipeText.LostNuts("Nut Fritters", new[] { "1 cup corn kernels" }).Should().Equal(new[] { "Nut" }, "corn kernels are no nut");
+            DietRecipeText.LostNuts("Nut Fritters", new[] { "1 cup water chestnuts" }).Should().Equal("Nut");
+            DietRecipeText.LostNuts("Nut Fritters", new[] { "fry like doughnuts" }).Should().Equal("Nut");
+            DietRecipeText.LostNuts("Nut Fritters", new[] { "1 cup chopped chestnuts" }).Should().BeEmpty("a chestnut is a nut the line names");
+            DietRecipeText.LostNuts("Nut Fritters", new[] { "2 cups flour" }, "Stir in the kernels.").Should().BeEmpty("a bare kernel may be the nut's");
+        }
+
+        [Fact]
         public void A_portion_of_a_cake_in_a_method_is_the_cake_and_a_method_that_stirs_something_in_begins_midway()
         {
             DietRecipeText.Mentions("Cool and spread between layers of cake.").Should().Contain("cake", "51930 PEACH-CREAM FILLING is spread between the layers of a cake no line gives");
@@ -363,7 +457,7 @@ namespace Nom.Api.Tests.Services.MealPlan
                 db.Set<ReferenceEntity>().Add(new ReferenceEntity { Id = typeId, Name = type });
                 db.Restrictions.Add(new RestrictionEntity { PersonId = person, Name = type, RestrictionTypeId = typeId });
             }
-            var consomme = Curated("Beef Consomme", 6, "Soup, beef broth or bouillon, canned, ready-to-serve");
+            var consomme = Curated("Beef Broth", 6, "Soup, beef broth or bouillon, canned, ready-to-serve");
             var beef = Curated("Beef", 13, "Beef, round, lean, raw");
             var egg = Curated("Egg white", 1, "Egg, white, raw, fresh");
             var carrot = Curated("Carrots", 11, "Carrots, raw");
@@ -400,7 +494,7 @@ namespace Nom.Api.Tests.Services.MealPlan
             db.HouseholdMembers.Add(new HouseholdMemberEntity { HouseholdId = HouseholdId, PersonId = PersonId, IsActive = true });
             db.Set<ReferenceEntity>().Add(new ReferenceEntity { Id = EggRef, Name = "Egg Allergy" });
             db.Restrictions.Add(new RestrictionEntity { PersonId = PersonId, Name = "Egg Allergy", RestrictionTypeId = EggRef });
-            var consomme = Curated("Beef Consomme", 6, "Soup, beef broth or bouillon, canned, ready-to-serve");
+            var consomme = Curated("Beef Broth", 6, "Soup, beef broth or bouillon, canned, ready-to-serve");
             var beef = Curated("Beef", 13, "Beef, round, lean, raw");
             var egg = Curated("Egg white", 1, "Egg, white, raw, fresh");
             var carrot = Curated("Carrots", 11, "Carrots, raw");

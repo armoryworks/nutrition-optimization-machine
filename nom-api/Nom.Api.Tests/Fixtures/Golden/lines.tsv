@@ -154,3 +154,7 @@ ck9-fr-xref	cross-reference	Pâte comme celle du N. 589	-	-	-	*	*	ok	-	rule:stag
 ck9-fr-xref-celui	cross-reference	Massepain comme celui du N. 579, avec les proportions suivantes:	-	-	-	*	*	ok	-	rule:staging-p8	checkpoint 4 P8 (18802 shape): "comme celui du N. 579" names recipe 579, no count
 ck9-price	price	ten cents' worth of soup bones	-	-	-	*	*	ok	-	rule:staging-p11	checkpoint 4 P11 (the shape of recipe 59040, "twenty cents' worth"): a price is no amount
 ck9-one-half	amount-after-name	alum one-half ounce	0.5	Ounce	-	*	*	ok	-	rule:staging-p8	checkpoint 4 P8 (the shape of recipe 52616): "one-half ounce" after the name is half an ounce, not one and a half
+ck19s-referral-no	referral	ingredients mentioned in No. 218	-	-	-	*	*	ok	-	rule:construction	checkpoint 8, T11 (#72301): the number of a referred recipe is no amount
+ck19s-referral-number	referral	the same stock as number 184	-	-	-	*	*	ok	-	rule:construction	checkpoint 8, T11 (the shape of #101175, "number" written out): a referred recipe by number is no amount
+ck19s-referral-page	referral	sauce, see page 19	-	-	-	*	*	ok	-	rule:construction	constructed (T11): a page reference is no amount
+ck19s-tin-cover	utensil	a tin cover	-	-	-	*	*	ok	-	rule:construction	checkpoint 8, T1 (#133368): a tin before a utensil is no can

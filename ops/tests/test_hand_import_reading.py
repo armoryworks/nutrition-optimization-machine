@@ -156,7 +156,7 @@ class LibraryPageImageTests(unittest.TestCase):
             self.assertEqual(pages[0]["method"], "loc-ocr", "the image's reading is taken only when it reads better")
             pages, unread = hand.loc_pages(path, WORDS, {31: "/x.jpg"}, lambda p: None)
             self.assertEqual(unread, [31], "an image fetched and not read here (no tesseract) is reported, never only skipped")
-        self.assertEqual(hand.page_reading(self.TABLE, WORDS), {"shortLines": 7, "unreadable": 0})
+        self.assertEqual(hand.page_reading(self.TABLE, WORDS), {"shortLines": 7, "unreadable": 0, "marked": 0})
 
     def test_the_page_image_is_the_largest_jpeg_wide_enough_else_the_master(self):
         item = {"resources": [{"files": [
@@ -203,6 +203,25 @@ class NciPageTests(unittest.TestCase):
         record, why = hand.paged_record(chicken, NCI_PAGE[13], WORDS)
         self.assertIsNone(why)
         self.assertEqual(record["name"], "BAKED FRIED CHICKEN BREAST with MIXED VEGETABLES", "S23: page 13 lost Breast")
+
+    def test_a_sidebar_tip_with_its_icon_letter_is_no_step_and_a_list_heading_no_ingredient_line(self):
+        page = ("GARDEN BEAN SALAD\n\nINGREDIENTS\n\n2 cups green beans, cooked\n1 small onion, chopped\n\nDRESSING\n\n"
+                "2 tablespoons vinegar\n1 tablespoon oil\n\nZ To keep it light, use less oil.\n\n"
+                "Put the beans and onion in a bowl.\nShake the vinegar and oil together and pour over.\nChill for 15 min\u00adutes.\n\n"
+                "Makes 4 servings.\n")
+        answer = {"name": "GARDEN BEAN SALAD", "ingredients": ["2 cups green beans, cooked", "1 small onion, chopped", "DRESSING",
+                                                               "2 tablespoons vinegar", "1 tablespoon oil"],
+                  "steps": ["Put the beans and onion in a bowl.", "Shake the vinegar and oil together and pour over.", "Chill for 15 min\u2013utes.",
+                            "Z To keep it light, use less oil."]}
+        record, why = hand.paged_record(answer, page, WORDS)
+        self.assertIsNone(why)
+        self.assertEqual([i["rawLine"] for i in record["ingredients"]],
+                         ["2 cups green beans, cooked", "1 small onion, chopped", "2 tablespoons vinegar", "1 tablespoon oil"],
+                         "staging checkpoint 8, T19: GARDEN POTATO SALAD kept the list heading DRESSING as a line")
+        self.assertEqual([s["instruction"] for s in record["steps"]],
+                         ["Put the beans and onion in a bowl.", "Shake the vinegar and oil together and pour over.", "Chill for 15 minutes."],
+                         "T19: CATFISH STEW kept the sidebar tip with its icon letter as step 5, and a soft hyphen came back as a dash")
+        self.assertEqual(hand.joined("low\u2013fat milk", WORDS), "low\u2013fat milk", "two words joined by a dash stay apart")
 
     def test_a_yield_sentence_is_no_step_and_is_the_yield(self):
         answer = {"name": "HOT'N SPICY SEASONING", "ingredients": ["¼ cup paprika", "2 tablespoons dried oregano, crushed", "2 teaspoons chili powder",

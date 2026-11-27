@@ -117,7 +117,12 @@ fourth of the flour", "two-thirds Java coffee"), a peck or bushel, a vessel fill
 full"), a size under an inch and a recipe number ("forcemeat No. 1", "sirup No. 3 or 4"); the method finder gives none
 for a line that names what its food is for ("oil for frying"), an oven or fat temperature ("to 350C"), one piece
 named in the singular for a plural line ("on a corn tortilla") or a fraction it cannot read; and the guard reads
-under `reprocess-audit/9` (below)
+under `reprocess-audit/9` (below); `line-builder/14` since staging checkpoint 8 (`cleanup2/ck19-small`; again no rule of
+the builder itself): the parser gives no amount for a recipe or page the line refers to by number ("the same stock as
+number 184", "made by recipe No. 1395", "sauce, see page 19"; T11; a size or count after "recipe", as in "1 recipe 9-inch pie crust", is no reference) nor for a tin utensil ("a tin cover", "1 tin plate";
+T1), takes no scraped quantity that is only the referred number (`IngredientLineParser.IsReferredNumber`), the method
+finder gives none for a cover or lid line, `reprocess-audit/10` grounds no amount on a referred number, and the guard
+empties such a stored amount (`referral`, below)
 is stamped on every journal row. Raise it with any
 change to a rule the builder applies: the detector reads again every recipe an older version read,
 and the lane's signature changes, so its tiers go back to shadow until they qualify under the new
@@ -147,6 +152,11 @@ wording. Each line built from a stored row is compared with that row, and the ve
   text not also stating the count as a count of the food ("Beat 2 eggs and brush with 2 tablespoons of the
   beaten egg" holds the two eggs); or it is the first part of an amount that text states in the same measure ("a pound
   and a half of grated bread", "two pounds and a half of butter", "1-1/4 cups", `added-part`);
+- **referral** (a replace, since `line-builder/14`): a rebuilt row with no amount empties a stored amount that is only
+  the number of the recipe or page the line refers to ("ingredients mentioned in No. 218" stored as 218 pieces,
+  staging checkpoint 8 T11: 201 lines on 190 recipes); a stated amount beside the reference ("2 cups sauce No. 2")
+  is kept. A recipe with such a line refers to another recipe for what it holds (`IngredientLineParser.HasReferral`),
+  so a reading of its contents, such as the diet reading, can read it as incomplete.
 - **held**: every other difference keeps the stored amount and kind and is marked `held` in the line's
   `changes`, with the rebuilt amount in `heldQuantity`, `heldMeasurementId`, `heldUnit`, `heldLineKind` and
   `heldFromMethod` and the reason in `guardReason`: `rebuilt-empty` (since Q12 a rebuilt row with no amount

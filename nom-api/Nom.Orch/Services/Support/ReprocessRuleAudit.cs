@@ -24,7 +24,7 @@ namespace Nom.Orch.Services.Support
     /// </summary>
     public static class ReprocessRuleAudit
     {
-        public const string Version = "reprocess-audit/9";
+        public const string Version = "reprocess-audit/10";
 
         public const string Grounded = "A1";
         public const string Named = "A2";
@@ -182,14 +182,15 @@ namespace Nom.Orch.Services.Support
         /// "tablespoonful grated onion", "saltspoonful salt", "a bunch of parsley", "a head of celery"). A leading "optional" or "~" is read past,
         /// and entities and vulgar fractions are read ("Optional: &amp;frac14; teaspoon"). "Dozen" right after a number is that
         /// number's measure, never a second number ("one dozen and a half" is 1.5 dozen); a size word may stand before the measure ("a scant
-        /// teaspoonful", "a large tablespoon", "scant cup of water"). A number that names another recipe of the book ("al N. 579",
-        /// "du N. 579") is no amount, nor is a price ("twenty cents' worth").
+        /// teaspoonful", "a large tablespoon", "scant cup of water"). A number that names another recipe or page of the book ("al N. 579",
+        /// "du N. 579", "ingredients mentioned in No. 218", "see page 19"; <see cref="IngredientLineParser.ReferredNumbers"/>) is no amount,
+        /// nor is a price ("twenty cents' worth").
         /// </summary>
         public static bool GroundedIn(decimal quantity, IEnumerable<string?> texts, IEnumerable<string?>? named = null)
         {
             if (quantity <= 0) return true;
             var food = (named ?? Array.Empty<string?>()).Where(n => !string.IsNullOrWhiteSpace(n)).Select(n => n!).ToList();
-            foreach (var text in texts.Where(t => !string.IsNullOrWhiteSpace(t)).Select(t => NumberHyphen.Replace(Fractions(Price.Replace(CrossReference.Replace(Hedge.Replace(IngredientNameNormalizer.PlainFractions(System.Net.WebUtility.HtmlDecode(t!)), string.Empty), " "), " ")), " ")))
+            foreach (var text in texts.Where(t => !string.IsNullOrWhiteSpace(t)).Select(t => NumberHyphen.Replace(Fractions(Price.Replace(IngredientLineParser.WithoutReferrals(CrossReference.Replace(Hedge.Replace(IngredientNameNormalizer.PlainFractions(System.Net.WebUtility.HtmlDecode(t!)), string.Empty), " ")), " ")), " ")))
             {
                 var stated = Stated(text, food);
                 var factors = Factors.Where(f => f.Word.IsMatch(text)).Select(f => f.Factor).Prepend(1m).ToList();

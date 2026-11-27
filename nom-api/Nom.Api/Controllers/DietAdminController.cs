@@ -33,6 +33,10 @@ namespace Nom.Api.Controllers
         public async Task<ActionResult<List<Nom.Orch.Services.Support.DietGateBuildReport>>> GetGateBuild()
             => Ok(await Nom.Orch.Services.Support.DietGateStoreReports.BuildsAsync(_db));
 
+        [HttpGet("second-reader")]
+        public async Task<ActionResult<Nom.Orch.Services.DietSecondProgress>> GetSecondReader([FromServices] Nom.Orch.Services.DietSecondReaderLaneService lane, CancellationToken cancellationToken)
+            => Ok(await lane.ProgressAsync(cancellationToken));
+
         [HttpGet("groups")]
         public async Task<ActionResult<List<RestrictionGroupModel>>> GetGroups()
             => Ok(await _dietAdminService.GetGroupsAsync());

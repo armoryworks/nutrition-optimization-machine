@@ -1,0 +1,70 @@
+{
+  "lane": "prose-audit",
+  "model": "phi4",
+  "checkModel": null,
+  "host": "127.0.0.1",
+  "signature": "517567b29295af89",
+  "scoredAtUtc": "2026-11-27T07:53:25.1581025Z",
+  "caseSet": "ec59fb0aa8bb1f1c",
+  "cases": 230,
+  "passed": 206,
+  "score": 0.8957,
+  "falseAccepts": 4,
+  "falseAcceptCases": 164,
+  "falseAcceptRate": 0.0244,
+  "accepted": null,
+  "precision": null,
+  "byJudge": {
+    "agent-review-construction-2026-11-20": [
+      5,
+      8
+    ],
+    "agent-review-construction-2026-11-23": [
+      36,
+      45
+    ],
+    "agent-review-writer-2026-11-23": [
+      44,
+      55
+    ],
+    "rule:construction": [
+      121,
+      122
+    ]
+  },
+  "failed": [
+    "prose-audit:k2-pl-cue-1",
+    "prose-audit:pd30671-faithful",
+    "prose-audit:pd42519-faithful",
+    "prose-audit:pd48380-faithful",
+    "prose-audit:w01-faithful",
+    "prose-audit:w12-faithful",
+    "prose-audit:w21-faithful",
+    "prose-audit:w26-faithful",
+    "prose-audit:w29-faithful",
+    "prose-audit:w32-faithful",
+    "prose-audit:w36-faithful",
+    "prose-audit:w41-faithful",
+    "prose-audit:w44-faithful",
+    "prose-audit:w53-writer",
+    "prose-audit:w59-writer",
+    "prose-audit:w60-writer",
+    "prose-audit:w65-writer",
+    "prose-audit:w69-writer",
+    "prose-audit:w70-writer",
+    "prose-audit:w72-writer",
+    "prose-audit:w73-writer",
+    "prose-audit:w87-writer",
+    "prose-audit:w89-writer",
+    "prose-audit:w91-writer"
+  ],
+  "auditKnownBad": null,
+  "auditFlaggedBad": null,
+  "auditKnownGood": null,
+  "auditFlaggedGood": null,
+  "auditModel": null,
+  "auditorKnownBad": null,
+  "auditorFlaggedBad": null,
+  "auditorKnownGood": null,
+  "auditorFlaggedGood": null
+}

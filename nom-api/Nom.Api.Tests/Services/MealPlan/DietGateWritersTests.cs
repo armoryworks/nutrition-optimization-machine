@@ -78,23 +78,36 @@ namespace Nom.Api.Tests.Services.MealPlan
             await db.SaveChangesAsync();
         }
 
+        private static readonly Dictionary<(string Table, string Event), string> NoTriggerNeeded = new()
+        {
+            [("recipe.Recipe", "INSERT")] = "a new recipe has no stored state, so it is undecided until a cycle reads it",
+            [("recipe.Recipe", "DELETE")] = "a recipe is removed with its lines, whose trigger holds it",
+            [("measurement.Measurement", "INSERT")] = "no line is in a unit before it exists",
+            [("nutrient.Nutrient", "INSERT")] = "no criterion names a nutrient before it exists",
+            [("reference.Reference", "INSERT")] = "no criterion is of a type before it exists",
+        };
+
         [Fact]
-        public void Every_table_the_gate_reads_has_a_trigger_for_every_write_that_makes_what_it_touched_undecided()
+        public void A_renamed_nutrient_or_type_is_a_change_of_the_criteria_a_set_is_found_by()
+        {
+            var alcohol = new DietDataCriterion(1, 10, null, 5, "Alcohol", null, 5, null);
+            var pork = new DietDataCriterion(2, 10, null, null, null, null, 5, null, "%pork%", "Halal");
+            var key = DietGateStore.KeyOf(new[] { alcohol, pork });
+
+            DietGateStore.KeyOf(new[] { alcohol with { NutrientName = "Ethyl alcohol" }, pork }).Should().NotBe(key,
+                "review ck19 CK19SM-3: the nutrient trigger logs a criteria row, and the rename reads as an admin's criteria edit does (a severe type is held until the new key is built)");
+            DietGateStore.KeyOf(new[] { alcohol, pork with { TypeName = "Halal (strict)" } }).Should().NotBe(key);
+        }
+
+        [Fact]
+        public async Task Every_table_the_gate_reads_has_a_trigger_for_every_write_that_makes_what_it_touched_undecided()
         {
             var objects = File.ReadAllText(RepoFile("db/custom-objects.sql"));
             var schema = File.ReadAllText(RepoFile("db/schema.sql"));
-            var wanted = new Dictionary<string, string[]>
-            {
-                ["recipe.RecipeIngredient"] = new[] { "INSERT", "UPDATE", "DELETE" },
-                ["recipe.Recipe"] = new[] { "UPDATE" },
-                ["recipe.RecipeStep"] = new[] { "INSERT", "UPDATE", "DELETE" },
-                ["recipe.Ingredient"] = new[] { "INSERT", "UPDATE", "DELETE" },
-                ["recipe.IngredientAlias"] = new[] { "INSERT", "UPDATE", "DELETE" },
-                ["nutrient.IngredientNutrient"] = new[] { "INSERT", "UPDATE", "DELETE" },
-                ["recipe.IngredientContents"] = new[] { "INSERT", "UPDATE", "DELETE" },
-                ["plan.RestrictionCriterion"] = new[] { "INSERT", "UPDATE", "DELETE" },
-                ["measurement.Measurement"] = new[] { "UPDATE", "DELETE" },
-            };
+            var queried = await DietGateReadingTables.QueriedAsync();
+            queried.Should().Contain(new[] { "recipe.RecipeIngredient", "recipe.Ingredient", "recipe.IngredientWording", "curation.FoodCatalogProposal", "plan.RecipeDietReading", "auth.PlatformFeature" },
+                "the list is taken from the reading's own queries, so it reaches every table the reading depends on");
+            var wanted = queried.ToDictionary(t => t, t => new[] { "INSERT", "UPDATE", "DELETE" }.Where(e => !NoTriggerNeeded.ContainsKey((t, e))).ToArray());
             foreach (var (text, file) in new[] { (objects, "db/custom-objects.sql"), (schema, "db/schema.sql") })
             {
                 var found = Regex.Matches(text, @"CREATE TRIGGER ""?(\w+)""? AFTER ([A-Z ]+?) ON (\w+)\.""(\w+)""")
@@ -102,7 +115,7 @@ namespace Nom.Api.Tests.Services.MealPlan
                     .ToHashSet();
                 foreach (var (table, events) in wanted)
                     foreach (var e in events)
-                        found.Should().Contain((table, e), $"{file} must clear the stored diet state on every {e} of {table}, whatever writes it (staging checkpoint 6, R12)");
+                        found.Should().Contain((table, e), $"{file} must clear or hold the stored diet state on every {e} of {table}, a table the reading queries, whatever writes it (staging checkpoint 6, R12; checkpoint 8, T7)");
                 text.Should().Contain("plan.\"DietGateClearRecipes\"").And.Contain("plan.\"DietGateClearFoods\"").And.Contain("INSERT INTO plan.\"DietGateWrite\"", file);
                 text.Should().NotContain("nextval('plan.\"DietGate", "a sequence moves when the statement runs, not when it commits, so a build job polling it misses a write that commits later (review CK11-DM-1)");
             }

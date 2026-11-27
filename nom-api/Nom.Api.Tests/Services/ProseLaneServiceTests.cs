@@ -242,6 +242,55 @@ namespace Nom.Api.Tests.Services
             (await RecipeAsync(rig.Db, edited)).Should().Match<RecipeEntity>(r => r.ContainsSourceProse && r.ProseRewriteAttemptedAt == null);
         }
 
+        [Theory]
+        [InlineData(SourceRightsRule.PermissionNeeded)]
+        [InlineData(SourceRightsRule.Forbidden)]
+        public async Task A_recipe_of_a_permission_needed_or_forbidden_source_stays_withheld_and_out_of_the_queue(string rightsClass)
+        {
+            var rig = NewRig();
+            var barred = await SeedAsync(rig.Db);
+            var factsOnly = await SeedAsync(rig.Db, approved: false);
+            foreach (var recipe in await rig.Db.Recipes.ToListAsync())
+                recipe.SourceRights = recipe.Id == barred ? rightsClass : SourceRightsRule.FactsOnly;
+            await rig.Db.SaveChangesAsync();
+            rig.Db.ChangeTracker.Clear();
+
+            await rig.Lane.SweepAsync(LaneMode.Live, Models, new FakeWriter(), new FakeJudge(), 25);
+
+            (await rig.Db.LaneDecisions.Select(d => d.Subject).ToListAsync()).Should().Equal(new[] { ProseLaneService.Subject(factsOnly) },
+                "staging checkpoint 8: 2,449 recipes of two permission-needed sources were in the queue; they wait for the owner's decision on those sources");
+            (await RecipeAsync(rig.Db, barred)).Should().Match<RecipeEntity>(r => r.ProseWithheld && r.ProseRewriteAttemptedAt == null);
+        }
+
+        [Fact]
+        public async Task The_queue_read_lists_the_lanes_order_with_counts_by_tier_source_class_and_approval_and_the_recipes_kept_out()
+        {
+            var rig = NewRig();
+            var quarantined = await SeedAsync(rig.Db, withheld: false, approved: false);
+            var withheld = await SeedAsync(rig.Db, approved: false);
+            var approved = await SeedAsync(rig.Db);
+            var barred = await SeedAsync(rig.Db);
+            foreach (var recipe in await rig.Db.Recipes.ToListAsync())
+            {
+                recipe.SourceRights = recipe.Id == barred ? SourceRightsRule.PermissionNeeded : recipe.Id == quarantined ? null : SourceRightsRule.FactsOnly;
+                recipe.SourceSite = "example.org";
+            }
+            await rig.Db.SaveChangesAsync();
+            rig.Db.ChangeTracker.Clear();
+
+            var queue = await rig.Lane.QueueAsync(Models.Version, sample: 10);
+
+            queue.Total.Should().Be(3);
+            queue.First.Select(e => e.RecipeId).Should().Equal(approved, withheld, quarantined);
+            queue.First.Select(e => e.Position).Should().Equal(1, 2, 3);
+            queue.ByTier.Should().BeEquivalentTo(new Dictionary<string, int> { ["approved-withheld"] = 1, ["withheld"] = 1, ["quarantined"] = 1 });
+            queue.BySourceClass.Should().BeEquivalentTo(new Dictionary<string, int> { [SourceRightsRule.FactsOnly] = 2, ["none"] = 1 });
+            queue.ByApproved.Should().BeEquivalentTo(new Dictionary<string, int> { ["approved"] = 1, ["not-approved"] = 2 });
+            queue.KeptOutByClass.Should().BeEquivalentTo(new Dictionary<string, int> { [SourceRightsRule.PermissionNeeded] = 1 });
+            queue.LaneVersion.Should().Be(Models.Version);
+            (await rig.Db.LaneDecisions.CountAsync()).Should().Be(0, "the queue read writes nothing");
+        }
+
         [Fact]
         public async Task In_shadow_a_recipe_decided_under_this_version_is_not_taken_again_before_every_other_has_been_decided()
         {

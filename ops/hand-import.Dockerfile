@@ -3,7 +3,8 @@ FROM python:3.12.8-slim-bookworm
 RUN apt-get update \
  && apt-get install -y --no-install-recommends poppler-utils tesseract-ocr tesseract-ocr-eng wamerican \
  && rm -rf /var/lib/apt/lists/* \
- && useradd --system --uid 10001 --no-create-home --shell /usr/sbin/nologin nomhand
+ && useradd --system --uid 10001 --no-create-home --shell /usr/sbin/nologin nomhand \
+ && pip install --no-cache-dir --only-binary=:all: pillow==11.0.0
 
 COPY hand-import.py cookbook-extract.py recipe-source-attach.py /app/ops/
 COPY hand-import/sources.csv hand-import/books.csv /app/ops/hand-import/

@@ -169,7 +169,7 @@ namespace Nom.Orch.Services.Support
     /// </summary>
     public static class LinkGate
     {
-        public const string Version = "link-gate/13";
+        public const string Version = "link-gate/14";
 
         public const string Heading = "heading";
         public const string Compound = "compound";
@@ -313,6 +313,13 @@ namespace Nom.Orch.Services.Support
         {
             "pickle", "sauce", "soup", "pie", "jam", "jelly", "relish", "pudding", "salad", "dressing", "gravy", "stew", "cake",
         };
+
+        /// <summary>Products made from a food that are not the food: "peanut oil" is no peanut, "almond flour" no almond.</summary>
+        private static readonly HashSet<string> ProductsOfFood = new(StringComparer.Ordinal) { "oil", "flour", "butter", "milk" };
+
+        internal const string ProductOfFoodRule = "an oil, flour, butter or milk of a food is not the food";
+
+        internal const string MadeProductRule = "a bare made-product word is no evidence for one particular product";
 
         private static readonly HashSet<string> DriedCues = new(StringComparer.Ordinal) { "dried", "dry", "ground", "grated", "grate", "grates", "grating", "powdered", "powder" };
 
@@ -595,6 +602,12 @@ namespace Nom.Orch.Services.Support
             }
 
             if (lexical && identity.Count > 0 && AddedOnly(identity[^1], text, catalog)) Add(HeadNoun, "the wording's head noun is only something the food is made or topped with", "with " + identity[^1]);
+
+            if (senseCredit != SenseCredit.First && identity.Count >= 2 && ProductsOfFood.Contains(identity[^1]) && !Medium(raw, identity[^1]) && !NamesProduct(target, identity[^1]))
+                Add(HeadNoun, ProductOfFoodRule, identity[^1]);
+
+            if (!headDefault && BareMadeProduct(identity) is { } made && MadeProductQualifier(target, made, folded) is { } madeQualifier)
+                Add(Generic, MadeProductRule, $"{made}: {madeQualifier}");
 
             if (lexical && !headDefault && identity.Count >= 2 && lead != null && ProductLeads.Contains(lead))
             {
@@ -1155,6 +1168,44 @@ namespace Nom.Orch.Services.Support
             return !Meets(word, main, catalog) && Meets(word, added, catalog);
         }
 
+        /// <summary>
+        /// Whether the food is the product the word names (<see cref="ProductsOfFood"/>): its name or entry carries the word on
+        /// its own or closing a compound word ("Buttermilk"), not only joined to a process by a hyphen ("Peanuts, spanish,
+        /// oil-roasted" is no oil) nor only as what the food is packed in or made with ("in oil", "with butter"). Staging checkpoint 8, T5: "roasted peanut oil" was passed to
+        /// oil-roasted peanuts.
+        /// </summary>
+        private static bool NamesProduct(GateFood food, string product)
+        {
+            var pattern = new Regex(@"(?<![\p{L}-])(?<!\b(?:in|with)\s)" + Regex.Escape(product) + @"s?(?![\p{L}]|-\p{L})", RegexOptions.IgnoreCase | RegexOptions.CultureInvariant);
+            return pattern.IsMatch(Plain(food.Name)) || pattern.IsMatch(Plain(food.Text))
+                || Words(food.Name).Concat(Words(food.Text)).Any(w => w.Length > product.Length + 2 && w.EndsWith(product, StringComparison.Ordinal));
+        }
+
+        /// <summary>Whether the wording names the product only as what its food is packed in or made with ("sun-dried tomatoes in oil").</summary>
+        private static bool Medium(string wording, string product) =>
+            Regex.IsMatch(wording.Split(',')[0], @"\b(?:in|with)\s+(?:\p{L}+\s+)?" + Regex.Escape(product) + @"s?\b", RegexOptions.IgnoreCase | RegexOptions.CultureInvariant);
+
+        /// <summary>
+        /// The made-product word (<see cref="ProductLeads"/>: a sauce, soup, gravy, dressing, pie, cake ...) a wording names with
+        /// nothing else but neutral words ("homemade sauce", "sauce"), or null.
+        /// </summary>
+        private static string? BareMadeProduct(IReadOnlyList<string> identity)
+        {
+            var core = identity.Where(w => !GenericNeutral.Contains(w) && !Connectives.Contains(w)).ToList();
+            return core.Count == 1 && ProductLeads.Contains(core[0]) ? core[0] : null;
+        }
+
+        /// <summary>
+        /// The first word of the food that makes it one particular product of the bare made-product word the wording names
+        /// ("white" of "Sauce, homemade, white, medium" for "homemade sauce"; staging checkpoint 8, T5), or null when the food is
+        /// the plain product. A state, form, neutral, entry or connective word sets no product apart, nor does an alternative the
+        /// food joins to the product ("Jams and preserves" for "jam").
+        /// </summary>
+        private static string? MadeProductQualifier(GateFood food, string made, IReadOnlySet<string> folded) =>
+            Words(Plain(food.Name)).Concat(Words(Plain(food.Text))).Select(Fold)
+                .FirstOrDefault(w => w != made && w.Length > 1 && !folded.Contains(w) && !NotDistinguishing(w) && !RatioWords.Contains(w)
+                    && !AlternativeOfNamed(w, food.Name, folded) && !AlternativeOfNamed(w, food.Text, folded));
+
         /// <summary>The description with every segment read only up to its "with": "Oranges, raw, with peel" is the whole fruit, not its peel.</summary>
         private static string WithoutAdditions(string text) =>
             string.Join(", ", text.Split(',').Select(s => WithWord.Split(s)[0]));
@@ -1331,6 +1382,7 @@ namespace Nom.Orch.Services.Support
             Table("cooked", CookedWords);
             Table("fresh", FreshWords);
             Table("ratio", RatioWords);
+            Table("products-of-food", ProductsOfFood);
             Table("neutral-spice", SpiceNeutral);
             Table("neutral-flour", FlourNeutral);
             Table("neutral-drink", DrinkNeutral);

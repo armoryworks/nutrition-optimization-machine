@@ -21,13 +21,22 @@ namespace Nom.Orch.Services
     /// calories (alcohol design A7). Every changed line gets an AlcoholRetention journal entry with
     /// its old and new factor and basis; <see cref="UndoAsync"/> gives them back by time, skipping a
     /// line read again since and a recipe rebuilt since. A run writes only where the reading
-    /// changes, so it can run again after steps or lines change.
+    /// changes, so it can run again after steps or lines change. An apply writes in batches of
+    /// <see cref="Chunk"/> recipes, each in its own transaction with its lines, their journal
+    /// entries (stamped with the batch's time), its recipes' labels and a batch mark under the
+    /// run's stamp (staging checkpoint 8, T15): a failure or a restart leaves whole batches only,
+    /// and a run with resume goes on after the last one under the same stamp.
     /// </summary>
     public class AlcoholRetentionService : IAlcoholRetentionService
     {
         public const string ChangeType = "AlcoholRetention";
         public const string LineEntityType = ScrapedRecipeRepairService.LineEntityType;
         public const int Chunk = 200;
+
+        /// <summary>The journal's entity type of a run's marks: one per committed batch (<see cref="BatchChangeType"/>) and one at its end (<see cref="DoneChangeType"/>), each with the run's stamp as OldValue.</summary>
+        public const string RunEntityType = "AlcoholRetentionRun";
+        public const string BatchChangeType = "AlcoholRetentionBatch";
+        public const string DoneChangeType = "AlcoholRetentionDone";
 
         private readonly ApplicationDbContext _db;
         private readonly IRecipeNutritionService _nutrition;
@@ -39,6 +48,12 @@ namespace Nom.Orch.Services
             _nutrition = nutrition;
             _logger = logger;
         }
+
+        /// <summary>A hook a test sets to fail an apply's batch (the batch's index) before it writes anything.</summary>
+        internal Func<int, Task>? BeforeBatchWrite { get; set; }
+
+        /// <summary>A hook a test sets to fail an apply's batch (the batch's index) after its writes and before its commit.</summary>
+        internal Func<int, Task>? BeforeBatchCommit { get; set; }
 
         /// <summary>The journal's property name for a line.</summary>
         public static string PropertyName(long ingredientId, int sortOrder) =>
@@ -57,16 +72,27 @@ namespace Nom.Orch.Services
             return (factor, bar < 0 ? null : value[(bar + 1)..]);
         }
 
-        public async Task<AlcoholRetentionRunResult> RunAsync(bool apply, int maxRecipes = 20000, long afterRecipeId = 0, int sampleSize = 50, CancellationToken cancellationToken = default)
+        public async Task<AlcoholRetentionRunResult> RunAsync(bool apply, int maxRecipes = 20000, long afterRecipeId = 0, int sampleSize = 50, bool resume = false, CancellationToken cancellationToken = default)
         {
             var stamp = DateTime.UtcNow;
             var result = new AlcoholRetentionRunResult { Applied = apply, Version = AlcoholRetention.Version, StampUtc = stamp };
+            if (resume && await UnfinishedRunAsync(cancellationToken) is { } unfinished)
+            {
+                stamp = unfinished.Stamp;
+                result.StampUtc = stamp;
+                result.ResumedRunUtc = stamp;
+                afterRecipeId = Math.Max(afterRecipeId, unfinished.LastRecipeId);
+            }
             var foodIds = await _db.IngredientNutrients.AsNoTracking()
                 .Where(n => !n.IsDeleted && n.Amount > 0m && n.Nutrient.Name == DietCriteriaMatcher.AlcoholNutrientName)
                 .Select(n => n.IngredientId)
                 .Distinct()
                 .ToListAsync(cancellationToken);
-            if (foodIds.Count == 0) return result;
+            if (foodIds.Count == 0)
+            {
+                result.Completed = true;
+                return result;
+            }
 
             var recipeIds = await _db.RecipeIngredients.AsNoTracking()
                 .Where(ri => !ri.IsDeleted && ri.RecipeId > afterRecipeId && foodIds.Contains(ri.IngredientId))
@@ -77,102 +103,204 @@ namespace Nom.Orch.Services
                 .ToListAsync(cancellationToken);
             result.Recipes = recipeIds.Count;
 
+            var index = 0;
+            var committed = afterRecipeId;
             foreach (var chunk in recipeIds.Chunk(Chunk))
             {
                 cancellationToken.ThrowIfCancellationRequested();
-                var ids = chunk.ToList();
-                var steps = (await _db.RecipeSteps.AsNoTracking()
-                        .Where(st => ids.Contains(st.RecipeId) && !st.IsDeleted)
-                        .Select(st => new { st.RecipeId, st.StepNumber, st.Description })
-                        .ToListAsync(cancellationToken))
-                    .GroupBy(st => st.RecipeId)
-                    .ToDictionary(g => g.Key, g => g.OrderBy(st => st.StepNumber).Select(st => st.Description).ToList());
-                var lines = await _db.RecipeIngredients
-                    .Where(ri => !ri.IsDeleted && ids.Contains(ri.RecipeId) && foodIds.Contains(ri.IngredientId))
-                    .ToListAsync(cancellationToken);
-
-                var touched = new HashSet<long>();
-                var bounded = new HashSet<long>();
-                var ordered = lines.OrderBy(l => l.RecipeId).ThenBy(l => l.SortOrder).ToList();
-                var readings = ordered.GroupBy(l => l.RecipeId)
-                    .SelectMany(g => g.Zip(AlcoholRetention.ReadRecipe(steps.GetValueOrDefault(g.Key), g.Select(l => l.RawLine).ToList())))
-                    .ToList();
-                foreach (var (line, reading) in readings)
+                result.Batches++;
+                AlcoholRetentionRunResult part = new();
+                Exception? failed = null;
+                for (var attempt = 1; attempt <= 2; attempt++)
                 {
-                    result.Lines++;
-                    result.ByKind[reading.Kind] = result.ByKind.GetValueOrDefault(reading.Kind) + 1;
-                    if (reading.Estimated) result.Estimated++;
-                    if (reading.Unnamed) result.Unnamed++;
-                    if (reading.UpTo)
+                    part = new AlcoholRetentionRunResult();
+                    try
                     {
-                        result.UpperBound++;
-                        bounded.Add(line.RecipeId);
-                        var reason = reading.Reason ?? "time";
-                        result.ByReason[reason] = result.ByReason.GetValueOrDefault(reason) + 1;
+                        await BatchAsync(chunk, foodIds, apply, stamp, index, part, Math.Max(0, sampleSize - result.Samples.Count), cancellationToken);
+                        failed = null;
+                        break;
                     }
-                    if (line.AlcoholRetention == reading.Factor && line.AlcoholRetentionBasis == reading.Basis) continue;
-
-                    result.Changed++;
-                    if (result.Samples.Count < sampleSize)
+                    catch (Exception ex) when (apply && ex is not OperationCanceledException)
                     {
-                        result.Samples.Add(new AlcoholRetentionSample
-                        {
-                            RecipeId = line.RecipeId,
-                            IngredientId = line.IngredientId,
-                            SortOrder = line.SortOrder,
-                            Line = line.RawLine ?? string.Empty,
-                            OldFactor = line.AlcoholRetention,
-                            OldBasis = line.AlcoholRetentionBasis,
-                            NewFactor = reading.Factor,
-                            NewBasis = reading.Basis,
-                            UsdaCode = reading.Code,
-                            Estimated = reading.Estimated,
-                            Unnamed = reading.Unnamed,
-                            Reason = reading.UpTo ? reading.Reason ?? "time" : null,
-                        });
-                    }
-                    if (!apply) continue;
-
-                    _db.AuditLogEntries.Add(new AuditLogEntryEntity
-                    {
-                        EntityType = LineEntityType,
-                        EntityId = line.RecipeId,
-                        ChangeType = ChangeType,
-                        PropertyName = PropertyName(line.IngredientId, line.SortOrder),
-                        OldValue = JournalValue(line.AlcoholRetention, line.AlcoholRetentionBasis),
-                        NewValue = JournalValue(reading.Factor, reading.Basis),
-                        Timestamp = stamp,
-                        ChangedByPersonId = SystemConstants.SystemPersonId,
-                    });
-                    line.AlcoholRetention = reading.Factor;
-                    line.AlcoholRetentionBasis = reading.Basis;
-                    line.LastModifiedDate = stamp;
-                    line.LastModifiedByPersonId = SystemConstants.SystemPersonId;
-                    touched.Add(line.RecipeId);
-                }
-
-                result.RecipesUpperBound += bounded.Count;
-                if (apply && touched.Count > 0)
-                {
-                    await _db.SaveChangesAsync(cancellationToken);
-                    _db.ChangeTracker.Clear();
-                    foreach (var recipeId in touched.OrderBy(id => id))
-                    {
-                        await _nutrition.RecalculateAsync(recipeId);
-                        result.RecipesRecalculated++;
+                        failed = ex;
+                        _db.ChangeTracker.Clear();
+                        _logger.LogWarning(ex, "Alcohol retention ({Version}): batch {Batch} (recipes {First} to {Last}) failed on attempt {Attempt}; it wrote nothing", AlcoholRetention.Version, index, chunk[0], chunk[^1], attempt);
                     }
                 }
-                _db.ChangeTracker.Clear();
+                if (failed != null)
+                {
+                    result.Error = failed.GetType().Name + ": " + failed.Message;
+                    result.ResumeAfterRecipeId = committed;
+                    _logger.LogError("Alcohol retention ({Version}) stopped at batch {Batch}: {Error}; {Written} batches committed; resume after recipe {Resume} under run {Stamp:o}",
+                        AlcoholRetention.Version, index, result.Error, result.BatchesWritten, committed, stamp);
+                    return result;
+                }
+                Add(result, part);
+                if (apply && part.Changed > 0) result.BatchesWritten++;
+                committed = chunk[^1];
+                index++;
             }
 
-            _logger.LogInformation("Alcohol retention ({Version}): {Lines} lines in {Recipes} recipes read, {Estimated} estimated ({Unnamed} with the drink named in no step), {UpperBound} upper bounds in {RecipesUpperBound} recipes, {Changed} changed, {Recalculated} recipes recalculated{DryRun}",
-                AlcoholRetention.Version, result.Lines, result.Recipes, result.Estimated, result.Unnamed, result.UpperBound, result.RecipesUpperBound, result.Changed, result.RecipesRecalculated, apply ? string.Empty : " (dry run)");
+            if (apply && recipeIds.Count > 0)
+            {
+                _db.AuditLogEntries.Add(RunMark(DoneChangeType, recipeIds[^1], stamp, DateTime.UtcNow, null));
+                await _db.SaveChangesAsync(cancellationToken);
+                _db.ChangeTracker.Clear();
+            }
+            result.Completed = true;
+            _logger.LogInformation("Alcohol retention ({Version}): {Lines} lines in {Recipes} recipes read in {Batches} batches, {Estimated} estimated ({Unnamed} with the drink named in no step), {UpperBound} upper bounds in {RecipesUpperBound} recipes, {Changed} changed in {Touched} recipes, {Recalculated} recipes recalculated{DryRun}",
+                AlcoholRetention.Version, result.Lines, result.Recipes, result.Batches, result.Estimated, result.Unnamed, result.UpperBound, result.RecipesUpperBound, result.Changed, result.RecipesTouched, result.RecipesRecalculated, apply ? string.Empty : " (dry run)");
             return result;
+        }
+
+        /// <summary>
+        /// Reads one batch of recipes and, on an apply, writes it in one transaction: each changed line with its journal entry
+        /// (stamped with the batch's own time), the recalculated labels of the recipes it touched, and the batch's mark under the
+        /// run's stamp, so a stop leaves whole batches only and a resumed run knows where to go on.
+        /// </summary>
+        private async Task BatchAsync(long[] chunk, List<long> foodIds, bool apply, DateTime runStamp, int index, AlcoholRetentionRunResult result, int samplesLeft, CancellationToken cancellationToken)
+        {
+            var ids = chunk.ToList();
+            var steps = (await _db.RecipeSteps.AsNoTracking()
+                    .Where(st => ids.Contains(st.RecipeId) && !st.IsDeleted)
+                    .Select(st => new { st.RecipeId, st.StepNumber, st.Description })
+                    .ToListAsync(cancellationToken))
+                .GroupBy(st => st.RecipeId)
+                .ToDictionary(g => g.Key, g => g.OrderBy(st => st.StepNumber).Select(st => st.Description).ToList());
+            await using var tx = apply && _db.Database.IsRelational() ? await _db.Database.BeginTransactionAsync(cancellationToken) : null;
+            var lines = await _db.RecipeIngredients
+                .Where(ri => !ri.IsDeleted && ids.Contains(ri.RecipeId) && foodIds.Contains(ri.IngredientId))
+                .ToListAsync(cancellationToken);
+
+            var stamp = DateTime.UtcNow;
+            if (stamp < runStamp) stamp = runStamp;
+            var touched = new HashSet<long>();
+            var bounded = new HashSet<long>();
+            var ordered = lines.OrderBy(l => l.RecipeId).ThenBy(l => l.SortOrder).ToList();
+            var readings = ordered.GroupBy(l => l.RecipeId)
+                .SelectMany(g => g.Zip(AlcoholRetention.ReadRecipe(steps.GetValueOrDefault(g.Key), g.Select(l => l.RawLine).ToList())))
+                .ToList();
+            foreach (var (line, reading) in readings)
+            {
+                result.Lines++;
+                result.ByKind[reading.Kind] = result.ByKind.GetValueOrDefault(reading.Kind) + 1;
+                if (reading.Estimated) result.Estimated++;
+                if (reading.Unnamed) result.Unnamed++;
+                if (reading.UpTo)
+                {
+                    result.UpperBound++;
+                    bounded.Add(line.RecipeId);
+                    var reason = reading.Reason ?? "time";
+                    result.ByReason[reason] = result.ByReason.GetValueOrDefault(reason) + 1;
+                }
+                if (line.AlcoholRetention == reading.Factor && line.AlcoholRetentionBasis == reading.Basis) continue;
+
+                result.Changed++;
+                touched.Add(line.RecipeId);
+                if (result.Samples.Count < samplesLeft)
+                {
+                    result.Samples.Add(new AlcoholRetentionSample
+                    {
+                        RecipeId = line.RecipeId,
+                        IngredientId = line.IngredientId,
+                        SortOrder = line.SortOrder,
+                        Line = line.RawLine ?? string.Empty,
+                        OldFactor = line.AlcoholRetention,
+                        OldBasis = line.AlcoholRetentionBasis,
+                        NewFactor = reading.Factor,
+                        NewBasis = reading.Basis,
+                        UsdaCode = reading.Code,
+                        Estimated = reading.Estimated,
+                        Unnamed = reading.Unnamed,
+                        Reason = reading.UpTo ? reading.Reason ?? "time" : null,
+                    });
+                }
+                if (!apply) continue;
+
+                _db.AuditLogEntries.Add(new AuditLogEntryEntity
+                {
+                    EntityType = LineEntityType,
+                    EntityId = line.RecipeId,
+                    ChangeType = ChangeType,
+                    PropertyName = PropertyName(line.IngredientId, line.SortOrder),
+                    OldValue = JournalValue(line.AlcoholRetention, line.AlcoholRetentionBasis),
+                    NewValue = JournalValue(reading.Factor, reading.Basis),
+                    Timestamp = stamp,
+                    ChangedByPersonId = SystemConstants.SystemPersonId,
+                });
+                line.AlcoholRetention = reading.Factor;
+                line.AlcoholRetentionBasis = reading.Basis;
+                line.LastModifiedDate = stamp;
+                line.LastModifiedByPersonId = SystemConstants.SystemPersonId;
+            }
+
+            result.RecipesUpperBound += bounded.Count;
+            result.RecipesTouched += touched.Count;
+            if (apply && touched.Count > 0)
+            {
+                if (BeforeBatchWrite != null) await BeforeBatchWrite(index);
+                await _db.SaveChangesAsync(cancellationToken);
+                _db.ChangeTracker.Clear();
+                await _nutrition.RecalculateManyAsync(touched.OrderBy(id => id).ToList());
+                result.RecipesRecalculated += touched.Count;
+                _db.ChangeTracker.Clear();
+                _db.AuditLogEntries.Add(RunMark(BatchChangeType, chunk[^1], runStamp, stamp, string.Create(CultureInfo.InvariantCulture, $"{index}|{chunk[0]}-{chunk[^1]}|{result.Changed}")));
+                await _db.SaveChangesAsync(cancellationToken);
+                if (BeforeBatchCommit != null) await BeforeBatchCommit(index);
+                if (tx != null) await tx.CommitAsync(cancellationToken);
+            }
+            _db.ChangeTracker.Clear();
+        }
+
+        private static void Add(AlcoholRetentionRunResult into, AlcoholRetentionRunResult part)
+        {
+            into.Lines += part.Lines;
+            into.Changed += part.Changed;
+            into.Estimated += part.Estimated;
+            into.Unnamed += part.Unnamed;
+            into.UpperBound += part.UpperBound;
+            into.RecipesUpperBound += part.RecipesUpperBound;
+            into.RecipesTouched += part.RecipesTouched;
+            into.RecipesRecalculated += part.RecipesRecalculated;
+            foreach (var (kind, n) in part.ByKind) into.ByKind[kind] = into.ByKind.GetValueOrDefault(kind) + n;
+            foreach (var (reason, n) in part.ByReason) into.ByReason[reason] = into.ByReason.GetValueOrDefault(reason) + n;
+            into.Samples.AddRange(part.Samples);
+        }
+
+        /// <summary>The journal entry that marks a committed batch, or the end of a run, under the run's stamp ("o").</summary>
+        private static AuditLogEntryEntity RunMark(string changeType, long lastRecipeId, DateTime runStamp, DateTime at, string? detail) => new()
+        {
+            EntityType = RunEntityType,
+            EntityId = lastRecipeId,
+            ChangeType = changeType,
+            PropertyName = "Run",
+            OldValue = runStamp.ToString("o", CultureInfo.InvariantCulture),
+            NewValue = detail,
+            Timestamp = at,
+            ChangedByPersonId = SystemConstants.SystemPersonId,
+        };
+
+        private sealed record Unfinished(DateTime Stamp, long LastRecipeId);
+
+        /// <summary>The latest run whose batches were marked and whose end was not: the run a resume goes on with.</summary>
+        private async Task<Unfinished?> UnfinishedRunAsync(CancellationToken cancellationToken)
+        {
+            var last = await _db.AuditLogEntries.AsNoTracking()
+                .Where(a => a.EntityType == RunEntityType && (a.ChangeType == BatchChangeType || a.ChangeType == DoneChangeType))
+                .OrderByDescending(a => a.Id)
+                .Select(a => new { a.ChangeType, a.OldValue })
+                .FirstOrDefaultAsync(cancellationToken);
+            if (last == null || last.ChangeType == DoneChangeType || last.OldValue == null) return null;
+            var run = last.OldValue;
+            var lastRecipe = await _db.AuditLogEntries.AsNoTracking()
+                .Where(a => a.EntityType == RunEntityType && a.ChangeType == BatchChangeType && a.OldValue == run)
+                .MaxAsync(a => a.EntityId, cancellationToken);
+            return new Unfinished(DateTime.Parse(run, CultureInfo.InvariantCulture, DateTimeStyles.RoundtripKind), lastRecipe);
         }
 
         public async Task<AlcoholRetentionUndoResult> UndoAsync(DateTime sinceUtc, bool apply = false, CancellationToken cancellationToken = default)
         {
-            var entries = await _db.AuditLogEntries
+            var entries = await _db.AuditLogEntries.AsNoTracking()
                 .Where(a => a.EntityType == LineEntityType && a.ChangeType == ChangeType && a.Timestamp >= sinceUtc)
                 .OrderByDescending(a => a.Id)
                 .ToListAsync(cancellationToken);
@@ -181,6 +309,8 @@ namespace Nom.Orch.Services
 
             foreach (var chunk in entries.Chunk(500))
             {
+                cancellationToken.ThrowIfCancellationRequested();
+                await using var tx = apply && _db.Database.IsRelational() ? await _db.Database.BeginTransactionAsync(cancellationToken) : null;
                 var recipeIds = chunk.Select(e => e.EntityId).Distinct().ToList();
                 var rebuilt = await RecipeReprocessService.RebuiltAtAsync(_db, recipeIds);
                 var trail = await RecipeOrderTrail.LoadAsync(_db, recipeIds);
@@ -188,6 +318,7 @@ namespace Nom.Orch.Services
                     .GroupBy(ri => (ri.RecipeId, ri.IngredientId, ri.SortOrder))
                     .ToDictionary(g => g.Key, g => g.First());
                 var touched = new HashSet<long>();
+                var taken = new List<long>();
                 var now = DateTime.UtcNow;
                 foreach (var entry in chunk)
                 {
@@ -222,22 +353,34 @@ namespace Nom.Orch.Services
                     row.AlcoholRetentionBasis = oldBasis;
                     row.LastModifiedDate = now;
                     row.LastModifiedByPersonId = SystemConstants.SystemPersonId;
-                    _db.AuditLogEntries.Remove(entry);
+                    taken.Add(entry.Id);
                     touched.Add(entry.EntityId);
                 }
 
                 if (apply)
                 {
                     await trail.StageAsync(_db);
+                    _db.AuditLogEntries.RemoveRange(await _db.AuditLogEntries.Where(a => taken.Contains(a.Id)).ToListAsync(cancellationToken));
                     await _db.SaveChangesAsync(cancellationToken);
                     _db.ChangeTracker.Clear();
-                    foreach (var recipeId in touched.OrderBy(id => id))
-                    {
-                        await _nutrition.RecalculateAsync(recipeId);
-                        result.RecipesRecalculated++;
-                    }
+                    if (touched.Count > 0) await _nutrition.RecalculateManyAsync(touched.OrderBy(id => id).ToList());
+                    result.RecipesRecalculated += touched.Count;
+                    if (tx != null) await tx.CommitAsync(cancellationToken);
                 }
                 _db.ChangeTracker.Clear();
+            }
+
+            if (apply)
+            {
+                var marks = await _db.AuditLogEntries.Where(a => a.EntityType == RunEntityType && a.Timestamp >= sinceUtc).ToListAsync(cancellationToken);
+                result.RunMarksRemoved = marks.Count;
+                _db.AuditLogEntries.RemoveRange(marks);
+                await _db.SaveChangesAsync(cancellationToken);
+                _db.ChangeTracker.Clear();
+            }
+            else
+            {
+                result.RunMarksRemoved = await _db.AuditLogEntries.CountAsync(a => a.EntityType == RunEntityType && a.Timestamp >= sinceUtc, cancellationToken);
             }
             return result;
         }

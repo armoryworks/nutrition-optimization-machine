@@ -13,21 +13,27 @@ namespace Nom.Orch.Services.Support
     /// <summary>The judge's reading of one step pair: the facts of the original step and what the rewrite step adds.</summary>
     public sealed record ProseStepReading(IReadOnlyList<ProseStepFact> Facts, IReadOnlyList<ProseStepFact> Added);
 
+    /// <summary>A rule's pairing of one step pair: the original clauses it found in the rewrite step (with the rewrite's words), those it did not, and the rewrite clauses that may add something.</summary>
+    public sealed record ProseStepPairing(IReadOnlyList<ProseStepFact> Paired, IReadOnlyList<ProseStepFact> Unpaired, IReadOnlyList<ProseStepFact> Added);
+
     /// <summary>
     /// The rules around the prose judge (<see cref="OllamaProseStepJudge"/>). Before the model: a
     /// rewrite with another number of steps, one the prose check fails on a fact, and a step pair whose
     /// heat level, oven heat or serving temperature differ are faults by rule and no model is asked.
-    /// After it: an action of the original step the model's facts leave out is added as a missing fact
-    /// (<see cref="Unread"/>); a fact the model reads as the same is still a fault when the rewrite's
-    /// words it quotes are not in the rewrite step or name another heat; only a step pair with every
-    /// fact found and nothing added is the same. Words are found by rule with a fixed table of words of
-    /// one meaning (<see cref="FoundByRule"/>), so a synonym of an action, a utensil or a cue is never
-    /// left to the model, and a clause with a word no rule finds is asked again whatever the model read
-    /// (<see cref="Uncovered"/>). <see cref="Version"/> changes with any rule.
+    /// Then each clause of the original step is paired with the rewrite step by rule (<see cref="Pair"/>),
+    /// with a fixed table of words of one meaning and the prose vocabulary's verb groups, so voice, order,
+    /// articles and a synonym of an action, a utensil or a cue are never left to the model; only the
+    /// clauses it cannot pair and the rewrite clauses with words the original does not hold are asked
+    /// about, and an answer stands only when its quote holds (<see cref="PartKept"/>, <see cref="PartSaid"/>).
+    /// Only a step pair with every fact found and nothing added is the same (<see cref="Step"/>).
+    /// <see cref="Version"/> changes with any rule the prose auditor shares; <see cref="PairVersion"/>
+    /// with any rule only the judge runs (<see cref="Pair"/>, <see cref="Unmatched"/>, <see cref="NewWords"/>,
+    /// <see cref="Filler"/>, <see cref="Dish"/>, <see cref="PartKept"/>, <see cref="PartSaid"/>, <see cref="Step"/>).
     /// </summary>
     public static class ProseJudgeRules
     {
-        public const string Version = "judge-rules/7";
+        public const string Version = "judge-rules/11";
+        public const string PairVersion = "judge-pair/3";
         public const string Same = "same";
         public const string Different = "different";
         public const string Missing = "missing";
@@ -35,6 +41,15 @@ namespace Nom.Orch.Services.Support
         public const string FactChanged = "changed";
         public const string FactLost = "lost";
         public const decimal QuoteShare = 0.5m;
+
+        /// <summary>The note of a step refused because the model kept a part of the original with words of the rewrite that it then read as new: the two answers disagree, and a disagreement is a refusal, never a pass.</summary>
+        public const string Disagreement = "disagreement";
+
+        /// <summary>The note of a step refused by rule because an amount is bound to something it does not measure (<see cref="AmountMisbound"/>).</summary>
+        public const string Misbound = "amount moved";
+
+        /// <summary>A rewrite step with fewer words than this share of the original step's is read whole by the model even when a rule pairs every clause, since a terse step can hold every word and still drop how they go together.</summary>
+        public const double ShortRewrite = 0.8;
 
         public static readonly IReadOnlyList<string> Kinds = new[] { "action", "ingredient", "heat", "amount", "cue", "serve", "warning" };
 
@@ -48,23 +63,37 @@ namespace Nom.Orch.Services.Support
         private static readonly Regex Clause = new(@"[.;,]\s*|\s+(?:and then|then|and)\s+", RegexOptions.Compiled | RegexOptions.IgnoreCase | RegexOptions.CultureInvariant);
         private static readonly Regex OvenWord = new(@"\boven\b", RegexOptions.Compiled | RegexOptions.IgnoreCase | RegexOptions.CultureInvariant);
         private static readonly Regex OvenVerb = new(@"\b(?:bak|roast)\w*", RegexOptions.Compiled | RegexOptions.IgnoreCase | RegexOptions.CultureInvariant);
-        private static readonly Regex StepNumber = new(@"step (\d+)", RegexOptions.Compiled | RegexOptions.IgnoreCase | RegexOptions.CultureInvariant);
+        private static readonly Regex Until = new(@"\buntil\b(?<cue>[^.;,]*?)(?=[.;,]|\s+(?:and\s+)?then\b|$)", RegexOptions.Compiled | RegexOptions.IgnoreCase | RegexOptions.CultureInvariant);
+        private static readonly Regex AnyCueWord = new(@"\b(?:until|till|when|once|as\s+soon\s+as)\b", RegexOptions.Compiled | RegexOptions.IgnoreCase | RegexOptions.CultureInvariant);
+        private static readonly Regex StepNumber =new(@"step (\d+)", RegexOptions.Compiled | RegexOptions.IgnoreCase | RegexOptions.CultureInvariant);
 
         private static readonly HashSet<string> HeatWords = new(StringComparer.Ordinal)
         {
-            "low", "medium", "high", "moderate", "moderately", "hot", "very", "slow", "cool", "quick", "heat", "oven", "warm", "cold", "chilled", "serve", "served", "serving", "over", "room", "temperature",
+            "low", "medium", "high", "moderate", "moderately", "hot", "very", "slow", "cool", "quick", "heat", "oven", "warm", "cold", "chilled", "serve", "served", "serving", "over", "room", "temperature", "burner", "stove", "stovetop", "hob", "flame",
         };
 
         private static readonly HashSet<string> Minor = new(StringComparer.Ordinal)
         {
             "a", "an", "the", "of", "in", "on", "to", "it", "them", "its", "into", "with", "and", "or", "then", "for", "is", "are", "be", "until", "about", "at", "from",
-            "which", "should", "will", "may", "must", "that", "this", "so", "as", "by", "all", "some", "they", "their",
+            "which", "should", "will", "may", "must", "that", "this", "so", "as", "by", "all", "some", "they", "their", "but", "along", "these", "else", "onto",
         };
 
         private static readonly HashSet<string> Manner = new(StringComparer.Ordinal)
         {
             "small", "large", "big", "little", "deep", "heavy", "wide", "gently", "gentle", "well", "thoroughly", "lightly", "slightly", "carefully", "quickly", "slowly",
             "now", "again", "together", "before", "after", "first", "next", "each", "both", "once", "also", "any", "up", "out", "down", "let", "allow", "you", "your", "can",
+        };
+
+        private static readonly HashSet<string> Sequence = new(StringComparer.Ordinal)
+        {
+            "now", "again", "together", "before", "after", "first", "next", "each", "both", "once", "also", "any", "up", "out", "down", "let", "allow", "you", "your", "can",
+        };
+
+        private static readonly HashSet<string> RewriteFiller = new(StringComparer.Ordinal)
+        {
+            "just", "back", "away", "apart", "leave", "leaving", "letting", "lets", "left", "sure", "ovenproof", "altogether", "through", "prepared", "top", "off", "time", "turn", "turns", "turned", "turning", "become", "becomes", "became", "set",
+            "ready", "complete", "completes", "completed", "followed", "follows", "preparation", "results", "result", "ensure", "ensures", "ensuring", "sign", "doneness",
+            "including", "include", "used", "use", "using", "good", "nice", "right", "whatever", "prior", "per", "needing", "taking", "takes", "earlier", "throughout", "reach", "reaches", "form", "forms", "consistency", "next",
         };
 
         private static readonly HashSet<string> AmountWords = new(StringComparer.Ordinal)
@@ -83,7 +112,7 @@ namespace Nom.Orch.Services.Support
 
         private static readonly string[][] KinGroups =
         {
-            new[] { "add", "pour", "put", "place", "tip", "return", "transfer", "drop" },
+            new[] { "add", "pour", "put", "place", "tip", "return", "transfer", "drop", "lay" },
             new[] { "heat", "warm", "preheat", "reheat" },
             new[] { "fry", "fried", "fries", "saute", "sauté", "sautéed", "sear" },
             new[] { "simmer", "stew" },
@@ -111,6 +140,17 @@ namespace Nom.Orch.Services.Support
             new[] { "crisp", "crispy", "crunchy" },
             new[] { "fragrant", "aromatic", "smell", "smells" },
             new[] { "thick", "thicken", "thickened", "thicker" },
+            new[] { "lower", "down", "reduce" },
+            new[] { "not", "never", "without", "no", "nor" },
+            new[] { "lumps", "clumps" },
+            new[] { "bottom", "base" },
+            new[] { "whole", "intact" },
+            new[] { "thin", "thinly" },
+            new[] { "fine", "finely" },
+            new[] { "centre", "center", "middle" },
+            new[] { "colour", "color" },
+            new[] { "shake", "shaken", "shook" },
+            new[] { "slightly", "little", "bit", "lightly" },
         };
 
         private static readonly (string Word, string[] Narrower)[] Broader =
@@ -349,7 +389,14 @@ namespace Nom.Orch.Services.Support
         /// manner and size need not be there, nor, when the prose check finds the step's amounts the
         /// same (<paramref name="amountsAgree"/>), the amounts and their units.
         /// </summary>
-        public static bool FoundByRule(ProseStepFact fact, string rewrite, bool amountsAgree = false)
+        public static bool FoundByRule(ProseStepFact fact, string rewrite, bool amountsAgree = false) => FoundByRule(fact, rewrite, amountsAgree, false);
+
+        /// <summary>
+        /// As <see cref="FoundByRule(ProseStepFact, string, bool)"/>, and when <paramref name="sizeAndManner"/>
+        /// is set a word of size or manner ("deep", "small", "well", "lightly") must be there too; words
+        /// of sequence and address still need not.
+        /// </summary>
+        public static bool FoundByRule(ProseStepFact fact, string rewrite, bool amountsAgree, bool sizeAndManner)
         {
             if (fact.Original.Length == 0) return false;
             var heats = Heats(fact.Original);
@@ -361,10 +408,29 @@ namespace Nom.Orch.Services.Support
             }
 
             var all = Words(fact.Original).Where(w => !Minor.Contains(w) && (heats.Count == 0 || !HeatWords.Contains(w))).ToList();
-            var words = all.Where(w => !Manner.Contains(w) && !(amountsAgree && IsAmount(w))).ToList();
+            var words = all.Where(w => !(sizeAndManner ? Sequence.Contains(w) : Manner.Contains(w)) && !(amountsAgree && IsAmount(w))).ToList();
             if (words.Count == 0) return heats.Count > 0 || all.Count > 0;
             var have = Words(rewrite).ToList();
             return words.All(w => Found(w, have));
+        }
+
+        /// <summary>
+        /// Whether the rewrite step leaves out a sign of doneness of the original step: an "until" clause
+        /// of the original whose last content word ("soft", "golden") the rewrite step does not hold (as
+        /// <see cref="FoundByRule(ProseStepFact, string, bool)"/> finds words), in a rewrite step that
+        /// says "until", "till", "when", "once" or "as soon as" nowhere.
+        /// </summary>
+        public static bool CueLost(string original, string rewrite)
+        {
+            if (AnyCueWord.IsMatch(rewrite)) return false;
+            var have = Words(rewrite).ToList();
+            foreach (Match m in Until.Matches(original))
+            {
+                var last = Words(m.Groups["cue"].Value).Where(w => !Minor.Contains(w) && !Manner.Contains(w) && !IsAmount(w)).LastOrDefault();
+                if (last != null && !Found(last, have)) return true;
+            }
+
+            return false;
         }
 
         /// <summary>
@@ -406,12 +472,349 @@ namespace Nom.Orch.Services.Support
                 .Where(w => !Found(w, have)).Distinct(StringComparer.Ordinal).ToList();
         }
 
-        private static bool IsAmount(string word) => AmountWords.Contains(word) || word.Any(c => char.IsDigit(c) || c is '½' or '¼' or '¾' or '⅓' or '⅔');
+        /// <summary>
+        /// The rule's pairing of one step pair before any model reads it. Each clause of the original step
+        /// is paired when every content word of it is in the rewrite step as <see cref="FoundByRule"/>
+        /// finds words, or as a verb of the same group of the prose vocabulary (<see cref="ProseVerbLexicon"/>,
+        /// irregular participles such as "beaten" included; a cooking verb is never kept by another
+        /// method through the generic "cook"); voice ("should be", "gets", "needs"), articles, the order of
+        /// clauses and a repeated unit word are wording and ask for nothing. Each clause of the rewrite step
+        /// with a content word the original step does not hold, or a heat it does not name, is a thing
+        /// that may be added. Only the unpaired clauses and the possible additions go to the model. A
+        /// vessel the original step names again ("in the pan") is kept when the previous step of both
+        /// texts names it, since the food is already there (<paramref name="previousRewrite"/>).
+        /// </summary>
+        public static ProseStepPairing Pair(string original, string rewrite, bool amountsAgree = false, IReadOnlyList<string>? method = null, string title = "", int step = 0, string? previousRewrite = null)
+        {
+            var have = Words(Plain(rewrite)).ToList();
+            var paired = new List<ProseStepFact>();
+            var unpaired = new List<ProseStepFact>();
+            foreach (var clause in Clause.Split(original).Select(c => c.Trim()).Where(c => c.Length > 0))
+            {
+                var words = OriginalWords(clause, amountsAgree);
+                if (words.Count == 0) continue;
+                var verbs = VerbsOf(clause);
+                var matched = words.Select(w => (Counted.ContainsKey(w) ? CountedMatch(w, have) : Match(w, have, verbs.Contains(w))) ?? CarriedVessel(w, method, step, previousRewrite)).ToList();
+                if (matched.All(m => m != null)) paired.Add(new ProseStepFact(KindOf(clause), clause, string.Join(" ", matched.Distinct(StringComparer.Ordinal)), Same));
+                else unpaired.Add(new ProseStepFact(KindOf(clause), clause, string.Empty, Missing));
+            }
 
-        private static bool Found(string word, IReadOnlyList<string> have, bool broad = true)
+            if (unpaired.Count == 0 && paired.Count > 0 && Words(rewrite).Count() < ShortRewrite * Words(original).Count())
+            {
+                paired.Clear();
+                unpaired.Add(new ProseStepFact("action", original.Trim(), string.Empty, Missing));
+            }
+
+            var ours = Words(Plain(original)).ToList();
+            var stepGroups = StepGroups(original);
+            var heats = Heats(original).Select(h => h.Split(':')[0]).ToHashSet(StringComparer.Ordinal);
+            var added = new List<ProseStepFact>();
+            foreach (var clause in Clause.Split(rewrite).Select(c => c.Trim()).Where(c => c.Length > 0))
+            {
+                var fresh = Content(Filler(clause, method, step, title), amountsAgree, rewriteSide: true).Where(w => !Referents.Contains(w)).Where(w => !Said(w, ours, stepGroups) && !Named(w, method) && !Dish(w, title, method)).Any(w => !Placing(w))
+                    || Heats(clause).Select(h => h.Split(':')[0]).Any(scale => scale != "serve" && !heats.Contains(scale));
+                if (fresh) added.Add(new ProseStepFact(KindOf(clause), string.Empty, clause, Different));
+            }
+
+            return new ProseStepPairing(paired, unpaired, added);
+        }
+
+        /// <summary>The content words of a thing the model may be asked whether the original step says (<see cref="Pair"/>), which no word of the original step matches by rule.</summary>
+        public static IReadOnlyList<string> NewWords(ProseStepFact added, string original, bool amountsAgree = false, IReadOnlyList<string>? method = null, string title = "", int step = 0)
+        {
+            var ours = Words(Plain(original)).ToList();
+            var stepGroups = StepGroups(original);
+            return Content(Filler(added.Rewrite, method, step, title), amountsAgree, rewriteSide: true).Where(w => !Referents.Contains(w) && !Said(w, ours, stepGroups) && !Named(w, method) && !Dish(w, title, method)).Distinct(StringComparer.Ordinal).ToList();
+        }
+
+        /// <summary>
+        /// A rewrite clause with the writer's filler frames taken out, each of which states no fact
+        /// when the action it names is one the original method has at that place: "by which time it
+        /// is ready (for frying, to be served)" and "sliced for frying" name an action of this step or a
+        /// later one, "before frying" one of a later step; "once the fritters are fried", "with the noodles cooked" and
+        /// "after toasting" one of this step or an earlier one; "which is needed for the next step" and
+        /// "to prepare the cream" the next step or a food of the method. A frame whose action the
+        /// method does not have there is left, so the model is still asked about it. With no method or
+        /// step number nothing is taken out.
+        /// </summary>
+        public static string Filler(string clause, IReadOnlyList<string>? method, int step, string title = "")
+        {
+            if (method == null || step < 1 || step > method.Count) return clause;
+            var text = NeededFor.Replace(clause, m => Known(m.Groups["what"].Value, method, title) ? " " : m.Value);
+            text = ReadyFrame.Replace(text, m => !m.Groups["verb"].Success || EndWords.Contains(m.Groups["verb"].Value.ToLowerInvariant()) || InSteps(m.Groups["verb"].Value, method, step, method.Count) ? " " : m.Value);
+            text = BeforeFrame.Replace(text, m => InSteps(m.Groups["verb"].Value, method, m.Groups["for"].Success ? step : step + 1, method.Count) ? " " : m.Value);
+            text = AfterFrame.Replace(text, m => InSteps(m.Groups["verb"].Value, method, 1, step) ? " " : m.Value);
+            text = Allows.Replace(text, m => EndWords.Contains(m.Groups["verb"].Value.ToLowerInvariant()) || InSteps(m.Groups["verb"].Value, method, step, method.Count) ? " " : m.Value);
+            text = ForTaste.Replace(text, " ");
+            if (DoneFrame.Match(text) is { Success: true } done && Known(done.Groups["what"].Value, method, title)
+                && (InSteps(done.Groups["verb"].Value, method, 1, step) || ReadyWords.Contains(done.Groups["verb"].Value.ToLowerInvariant()))) text = " ";
+            return text;
+        }
+
+        private static readonly Regex NeededFor = new(@"\b(?:(?:which|that)\s+(?:is|are|will\s+be)\s+(?:needed|used|wanted)\s+for|(?:in\s+order\s+)?to\s+(?:prepare|make|finish|complete))\s+(?:the\s+)?(?<what>next\s+steps?|later|what\s+follows|flavou?r|\p{L}+)\b", RegexOptions.Compiled | RegexOptions.IgnoreCase | RegexOptions.CultureInvariant);
+
+        private static readonly Regex Allows = new(@"\b(?:which|that|this)\s+(?:allows|lets|leaves)\s+(?:it|them|the\s+\p{L}+)\s+(?:to\s+)?(?:be\s+)?(?<verb>\p{L}+)\b", RegexOptions.Compiled | RegexOptions.IgnoreCase | RegexOptions.CultureInvariant);
+
+        private static readonly Regex ForTaste = new(@"\b(?:(?:in\s+order\s+)?to\s+(?:enhance|improve|boost|bring\s+out|add\s+to)\s+(?:the\s+|their\s+|its\s+)?(?:taste|flavou?rs?)|(?:which|that)\s+(?:is|are)\s+(?:there\s+)?for\s+(?:taste|flavou?r))\b", RegexOptions.Compiled | RegexOptions.IgnoreCase | RegexOptions.CultureInvariant);
+
+        private static readonly HashSet<string> ReadyWords = new(StringComparer.Ordinal) { "ready", "done", "prepared", "finished" };
+
+        private static readonly Regex ReadyFrame = new(@"\b(?:by\s+which\s+(?:time|point)\s+|at\s+which\s+point\s+|and\s+)?(?:(?:it|they|everything|the\s+\p{L}+)\s+)?(?:is|are|should\s+be|will\s+be|becomes?|gets?)\s+(?:now\s+|then\s+)?ready\b(?:\s+(?:for|to)\s+(?:be\s+)?(?<verb>\p{L}+)(?:\s+(?:the\s+next\s+steps?|next|later))?|\s+for\s+the\s+next\s+steps?)?", RegexOptions.Compiled | RegexOptions.IgnoreCase | RegexOptions.CultureInvariant);
+
+        private static readonly Regex BeforeFrame = new(@"\b(?:before|prior\s+to|ahead\s+of|(?<for>ready\s+for|for))\s+(?<verb>\p{L}+ing)\b", RegexOptions.Compiled | RegexOptions.IgnoreCase | RegexOptions.CultureInvariant);
+
+        private static readonly Regex AfterFrame = new(@"\b(?:after|once\s+done|when\s+done)\s+(?<verb>\p{L}+ing)\b", RegexOptions.Compiled | RegexOptions.IgnoreCase | RegexOptions.CultureInvariant);
+
+        private static readonly Regex DoneFrame = new(@"^\s*(?:once|when|after|with|now\s+that)\s+(?:the\s+|it\s+|they\s+|its\s+|their\s+)?(?<what>(?:\p{L}+\s+){0,2}?)(?:(?:is|are|has\s+been|have\s+been|has|have|was|were|being)\s+)?(?:(?:done|fully|well|all)\s+)?(?<verb>\p{L}+)\s*$", RegexOptions.Compiled | RegexOptions.IgnoreCase | RegexOptions.CultureInvariant);
+
+        private static readonly HashSet<string> EndWords = new(StringComparer.Ordinal) { "serve", "served", "serving", "eat", "eaten", "eating", "drink", "drunk", "drinking", "use", "used", "using", "enjoy", "enjoyed" };
+
+        private static bool Known(string what, IReadOnlyList<string> method, string title)
+        {
+            var words = Words(what).Where(w => !Minor.Contains(w)).ToList();
+            if (words.All(w => w is "next" or "step" or "steps" or "later" or "what" or "follows" or "flavor" or "flavour")) return true;
+            var said = method.SelectMany(Words).Select(Stem).ToHashSet(StringComparer.Ordinal);
+            return words.All(w => said.Contains(Stem(w)) || Dish(w, title, method));
+        }
+
+        private static bool InSteps(string verb, IReadOnlyList<string> method, int from, int to)
+        {
+            var word = verb.ToLowerInvariant();
+            var groups = ProseVerbLexicon.Default.GroupsIn(new[] { word });
+            if (groups.Count == 0) return false;
+            var specific = groups.Where(g => g != CookGroup).ToHashSet(StringComparer.Ordinal);
+            for (var i = Math.Max(1, from); i <= Math.Min(method.Count, to); i++)
+            {
+                var words = ProsePhrases.Words(method[i - 1]);
+                if (words.Any(w => Stem(w) == Stem(word))) return true;
+                var theirs = ProseVerbLexicon.Default.GroupsIn(words);
+                if (specific.Count > 0 ? specific.Overlaps(theirs) : theirs.Contains(CookGroup)) return true;
+            }
+
+            return false;
+        }
+
+        /// <summary>Whether a rewrite word names the dish: the head word of the recipe title (its last word before "with", "in", "on", "for", "and" or "of", as "dip" of Spiced Lentil Dip), when it is no verb and no original step names it.</summary>
+        public static bool Dish(string word, string title, IReadOnlyList<string>? method)
+        {
+            if (string.IsNullOrWhiteSpace(title)) return false;
+            var head = Regex.Split(title.ToLowerInvariant(), @"\b(?:with|in|on|for|and|of)\b")[0];
+            var last = Words(head).LastOrDefault();
+            if (last == null || ProseVerbLexicon.Default.GroupsIn(new[] { last }).Count > 0) return false;
+            if (method != null && method.SelectMany(Words).Any(w => Stem(w) == Stem(last))) return false;
+            return Stem(word) == Stem(last) || Root(word) == Root(last);
+        }
+
+        private static List<string> OriginalWords(string clause, bool amountsAgree) =>
+            Content(clause, amountsAgree).Where(w => !Referents.Contains(w))
+                .Concat(Words(clause).Where(Counted.ContainsKey))
+                .Distinct(StringComparer.Ordinal).ToList();
+
+        private static readonly HashSet<string> CountedOnlyAsKeeper = new(StringComparer.Ordinal) { "all", "per", "light", "little", "bit", "quick", "fast", "gentle", "every", "either", "keep", "keeps", "throughout", "now", "regularly" };
+
+        /// <summary>Words of manner that are a detail of a step ("lightly", "gently", "quickly", "on each side"), each with the words that keep it ("a side" keeps "each side"); an original clause holding one is paired only when the rewrite step holds one of them.</summary>
+        private static readonly Dictionary<string, string[]> Counted = CountedTable(
+            new[] { "gently", "gentle", "slowly", "carefully", "softly" },
+            new[] { "quickly", "briefly", "quick", "fast", "swiftly", "rapidly" },
+            new[] { "lightly", "slightly", "light", "little", "bit" },
+            new[] { "each", "every", "both", "per", "all", "either" },
+            new[] { "constantly", "continuously", "continually", "steadily", "nonstop", "keep", "keeps", "throughout" },
+            new[] { "often", "frequently", "regularly", "now" },
+            new[] { "slowly", "gradually" });
+
+        private static Dictionary<string, string[]> CountedTable(params string[][] groups)
+        {
+            var table = new Dictionary<string, string[]>(StringComparer.Ordinal);
+            foreach (var group in groups)
+            {
+                foreach (var word in group.Where(w => !CountedOnlyAsKeeper.Contains(w)))
+                    table[word] = table.TryGetValue(word, out var more) ? more.Concat(group).Distinct(StringComparer.Ordinal).ToArray() : group;
+            }
+
+            return table;
+        }
+
+        private static string? CarriedVessel(string word, IReadOnlyList<string>? method, int step, string? previousRewrite)
+        {
+            if (method == null || step < 2 || step > method.Count || string.IsNullOrEmpty(previousRewrite) || !Vessels.Contains(word)) return null;
+            return Found(word, Words(method[step - 2]).ToList(), broad: false) && Found(word, Words(previousRewrite).ToList(), broad: false) ? "(" + word + " of the step before)" : null;
+        }
+
+        private static readonly HashSet<string> Vessels = new(StringComparer.Ordinal)
+        {
+            "pan", "pans", "saucepan", "skillet", "pot", "wok", "frypan", "bowl", "basin", "dish", "tray", "sheet", "tin", "jar", "mold", "mould", "casserole", "plate",
+        };
+
+        private static string? CountedMatch(string word, IReadOnlyList<string> have) =>
+            have.FirstOrDefault(h => Counted[word].Any(k => Stem(k) == Stem(h) || Root(k) == Root(h)))
+            ?? (Counted[word].Contains("each") && have.Where((h, i) => h == "a" && i + 1 < have.Count && Stem(have[i + 1]) == Stem("side")).Any() ? "a side" : null);
+
+        private static bool Placing(string word) => Groups(word) is { Count: > 0 } groups && groups.All(g => g == ProseVerbLexicon.AddGroup);
+
+        private static bool Said(string word, IReadOnlyList<string> ours, IReadOnlySet<string> stepGroups) =>
+            Found(word, ours, broad: false) || Groups(word).Overlaps(stepGroups);
+
+        private static HashSet<string> StepGroups(string original)
+        {
+            var groups = ProseVerbLexicon.Default.GroupsIn(ProsePhrases.Words(original));
+            groups.Remove(CookGroup);
+            return groups;
+        }
+
+        /// <summary>
+        /// The content words of an original clause (<see cref="Pair"/>) that no word of the rewrite step
+        /// matches by rule, for the model to look for.
+        /// </summary>
+        public static IReadOnlyList<string> Unmatched(ProseStepFact fact, string rewrite, bool amountsAgree = false)
+        {
+            var have = Words(Plain(rewrite)).ToList();
+            var verbs = VerbsOf(fact.Original);
+            return OriginalWords(fact.Original, amountsAgree).Where(w => (Counted.ContainsKey(w) ? CountedMatch(w, have) : Match(w, have, verbs.Contains(w))) == null).ToList();
+        }
+
+        private static bool Named(string word, IReadOnlyList<string>? method)
+        {
+            if (method == null || (ProseVerbLexicon.Default.GroupsIn(new[] { word }).Count > 0 && !word.EndsWith("ed", StringComparison.Ordinal))) return false;
+            var stem = Stem(word);
+            return method.SelectMany(Words).Any(w => Stem(w) == stem);
+        }
+
+        private static IEnumerable<string> Content(string text, bool amountsAgree, bool rewriteSide = false)
+        {
+            var bare = StoveLevel.Replace(Plain(text), " ");
+            if (OvenWord.IsMatch(bare)) bare = OvenHeat.Replace(bare, " ");
+            bare = HeatSourceNoun.Replace(bare, " ");
+            bare = KindOfVessel.Replace(bare, " ");
+            var cue = CueWord.IsMatch(bare);
+            return Words(bare).Where(w => (cue && Degree.Contains(w)) || (!Minor.Contains(w) && !Manner.Contains(w) && !Voice.Contains(w) && !LevelWords.Contains(w) && !(amountsAgree && IsAmount(w))
+                && !(rewriteSide && (RewriteFiller.Contains(w) || IsAdverb(w)))));
+        }
+
+        private static string Plain(string text)
+        {
+            var plain = OffHeatPhrase.Replace(text, m => m.Groups["what"].Value + " offheat");
+            plain = SwitchOff.Replace(plain, " offheat ");
+            plain = OffTheHeat.Replace(plain, " offheat ");
+            plain = Facing.Replace(plain, m => " face" + m.Groups["way"].Value.ToLowerInvariant() + " ");
+            return PlaceSet.Replace(plain, "put");
+        }
+
+        private static readonly Regex Facing = new(@"\b(?:sides?|face|faces|facing)\s+(?<way>up|down)(?:wards?)?\b", RegexOptions.Compiled | RegexOptions.IgnoreCase | RegexOptions.CultureInvariant);
+
+        /// <summary>
+        /// Whether the rewrite step binds an amount to something it does not measure where the original
+        /// step does not: a time given as an amount of a food ("3 minutes of mushrooms"; "3 minutes of
+        /// stirring" is a time) or a measure given as a time ("cook for ¼ teaspoon"). The amounts agree
+        /// with the original's and every word pairs, so only this rule sees that they moved.
+        /// </summary>
+        public static bool AmountMisbound(string original, string rewrite)
+        {
+            foreach (Match m in TimeOf.Matches(rewrite))
+            {
+                var what = m.Groups["what"].Value.ToLowerInvariant();
+                if (what.EndsWith("ing", StringComparison.Ordinal) || ProseVerbLexicon.Default.GroupsIn(new[] { what }).Count > 0 || TimeNouns.Contains(what)) continue;
+                if (!TimeOf.Matches(original).Any(o => o.Groups["what"].Value.Equals(what, StringComparison.OrdinalIgnoreCase))) return true;
+            }
+
+            return MeasureFor.Matches(rewrite).Count > MeasureFor.Matches(original).Count;
+        }
+
+        private static readonly Regex TimeOf = new(@"(?:\d|[½¼¾⅓⅔]|\b(?:a|an|one|two|three|four|five|six|ten|few|several))\s*-?\s*(?:minutes?|mins?|hours?|hrs?|seconds?|secs?)\s+of\s+(?:the\s+|their\s+|its\s+)?(?<what>\p{L}+)", RegexOptions.Compiled | RegexOptions.IgnoreCase | RegexOptions.CultureInvariant);
+
+        private static readonly Regex MeasureFor = new(@"\bfor\s+(?:about\s+|around\s+)?(?:\d+(?:[./]\d+)?|[½¼¾⅓⅔])\s*[½¼¾⅓⅔]?\s*(?:teaspoons?|tablespoons?|tsps?|tbsps?|cups?|g|grams?|kg|ml|litres?|liters?|ounces?|oz|pounds?|lbs?|pints?|quarts?|pinch(?:es)?)\b", RegexOptions.Compiled | RegexOptions.IgnoreCase | RegexOptions.CultureInvariant);
+
+        private static readonly HashSet<string> TimeNouns = new(StringComparer.Ordinal) { "time", "heat", "rest", "work", "this", "that", "it", "them", "cooking", "steady", "gentle", "constant", "slow", "low", "high", "medium" };
+
+        private static readonly Regex OffHeatPhrase = new(@"\b(?:take|takes|taking|took|taken|remove|removes|removed|removing|lift|lifts|lifted|lifting|move|moved|pull|pulled|slide|slid)\b(?<what>[^.;,]{0,30}?)\b(?:off|from)\s+(?:the\s+)?(?:heat|burner|stove|stovetop|hob|flame)\b", RegexOptions.Compiled | RegexOptions.IgnoreCase | RegexOptions.CultureInvariant);
+
+        private static readonly Regex SwitchOff = new(@"\b(?:turn|turns|turned|turning|switch|switches|switched|switching)\s+(?:off\s+)?(?:the\s+)?(?:heat|burner|stove|hob|flame|gas)(?:\s+off)?\b", RegexOptions.Compiled | RegexOptions.IgnoreCase | RegexOptions.CultureInvariant);
+
+        private static readonly Regex OffTheHeat = new(@"\b(?:off|from)\s+the\s+(?:heat|burner|stove|stovetop|hob|flame)\b", RegexOptions.Compiled | RegexOptions.IgnoreCase | RegexOptions.CultureInvariant);
+
+        private static readonly Regex PlaceSet = new(@"\bset(?=\s+(?:the|a|an|them|it|each)\b)", RegexOptions.Compiled | RegexOptions.IgnoreCase | RegexOptions.CultureInvariant);
+
+        private static readonly Regex CueWord = new(@"\b(?:until|till)\b", RegexOptions.Compiled | RegexOptions.IgnoreCase | RegexOptions.CultureInvariant);
+
+        private static readonly HashSet<string> Degree = new(StringComparer.Ordinal) { "very", "slightly", "little", "barely", "lightly", "partly", "half", "bit", "just" };
+
+        private static bool IsAdverb(string word) => word.Length > 4 && word.EndsWith("ly", StringComparison.Ordinal) && !NotAdverbs.Contains(word);
+
+        private static readonly HashSet<string> NotAdverbs = new(StringComparer.Ordinal) { "jelly", "belly", "bubbly", "curly", "chilly", "thinly", "finely", "coarsely", "roughly", "thickly" };
+
+        private static readonly HashSet<string> LevelWords = new(StringComparer.Ordinal) { "low", "medium", "high", "moderate", "moderately", "very", "slow", "quick", "oven", "room", "temperature", "over" };
+
+        private static readonly Regex StoveLevel = new(@"\b(?:(?:on|over)\s+(?:a\s+)?)?(?:medium[- ]low|medium[- ]high|medium|low|high|moderate)(?:\s+heat)?\b", RegexOptions.Compiled | RegexOptions.IgnoreCase | RegexOptions.CultureInvariant);
+
+        private static readonly Regex HeatSourceNoun = new(@"\b(?:the|a|an)\s+(?:heat|burner|stove|stovetop|hob|flame|gas)\b", RegexOptions.Compiled | RegexOptions.IgnoreCase | RegexOptions.CultureInvariant);
+
+        private static readonly Regex KindOfVessel = new(@"\b(?:baking|frying|roasting|mixing|serving|soup|cake|loaf|pie|sauce)(?=\s+(?:dish|sheet|tray|tin|pan|paper|parchment|bowl|pot|plate)(?:e?s)?\b)", RegexOptions.Compiled | RegexOptions.IgnoreCase | RegexOptions.CultureInvariant);
+
+        private static string KindOf(string clause) =>
+            Heats(clause).Count > 0 ? "heat"
+            : Regex.IsMatch(clause, @"^\s*(?:until|till|when|once)\b", RegexOptions.IgnoreCase | RegexOptions.CultureInvariant) ? "cue"
+            : Regex.IsMatch(clause, @"\bserv", RegexOptions.IgnoreCase | RegexOptions.CultureInvariant) ? "serve"
+            : "action";
+
+        private static string? Match(string word, IReadOnlyList<string> have, bool verb = true)
         {
             var stem = Stem(word);
-            if (have.Any(h => Stem(h) == stem)) return true;
+            if (have.FirstOrDefault(h => Stem(h) == stem) is { } same) return same;
+            var root = Root(word);
+            if (have.FirstOrDefault(h => Root(h) == root) is { } near) return near;
+            if (verb && SameVerb(word, have) is { } kept) return kept;
+            if (PairKin.FirstOrDefault(g => g.Contains(stem)) is { } kin && have.FirstOrDefault(h => kin.Contains(Stem(h))) is { } other) return other;
+            return Found(word, have, verbs: verb) ? have.FirstOrDefault(h => Found(word, new[] { h }, verbs: verb)) ?? word : null;
+        }
+
+        /// <summary>Words of one meaning the judge's pairing alone uses (the prose auditor's table is <see cref="Found"/>'s).</summary>
+        private static readonly HashSet<string>[] PairKin =
+        {
+            new[] { "drop", "plunge", "dip", "immerse", "lower" }.Select(Stem).ToHashSet(StringComparer.Ordinal),
+        };
+
+        private static string? SameVerb(string word, IReadOnlyList<string> have)
+        {
+            var need = Groups(word);
+            return need.Count == 0 ? null : have.FirstOrDefault(h => Groups(h).Overlaps(need));
+        }
+
+        private static HashSet<string> Groups(string word)
+        {
+            var groups = ProseVerbLexicon.Default.GroupsIn(new[] { word });
+            groups.Remove(CookGroup);
+            return groups;
+        }
+
+        private static HashSet<string> VerbsOf(string clause)
+        {
+            var words = Words(clause).ToList();
+            return words.Where((w, i) => i == 0 || (!NounBefore.Contains(words[i - 1]) && !words[i - 1].Any(char.IsDigit))).ToHashSet(StringComparer.Ordinal);
+        }
+
+        private static readonly HashSet<string> NounBefore = new(StringComparer.Ordinal) { "the", "a", "an", "into", "ice", "inch", "of", "sugar", "stock", "bouillon", "its", "their", "your", "in" };
+
+        private const string CookGroup = "cook";
+
+        private static readonly HashSet<string> Voice = new(StringComparer.Ordinal)
+        {
+            "should", "be", "been", "being", "get", "gets", "got", "getting", "gotten", "need", "needs", "needed", "has", "have", "had", "was", "were", "will", "would",
+            "can", "could", "might", "do", "does", "did", "give", "gives", "giving", "given", "goes", "go", "going", "there", "here", "what", "when", "while", "till",
+            "whose", "who", "where", "make", "makes", "making", "bring", "brings", "brought", "bringing", "hold", "holds", "stay", "stays",
+        };
+
+        private static readonly HashSet<string> Referents = new(StringComparer.Ordinal)
+        {
+            "mixture", "batter", "contents", "everything", "ingredients", "remaining", "step", "steps", "process", "dessert", "drink", "meal", "treat", "result", "these", "else", "all",
+        };
+
+        private static bool IsAmount(string word) => AmountWords.Contains(word) || word.Any(c => char.IsDigit(c) || c is '½' or '¼' or '¾' or '⅓' or '⅔');
+
+        private static bool Found(string word, IReadOnlyList<string> have, bool broad = true, bool verbs = true)
+        {
+            var stem = Stem(word);
+            var root = Root(word);
+            if (have.Any(h => Stem(h) == stem || Root(h) == root)) return true;
+            if (verbs && SameVerb(word, have) != null) return true;
             if (Kin.TryGetValue(stem, out var groups) && have.Any(h => Kin.TryGetValue(Stem(h), out var theirs) && theirs.Overlaps(groups))) return true;
             foreach (var (wide, narrower) in Broader)
             {
@@ -454,6 +857,27 @@ namespace Nom.Orch.Services.Support
             if (verdict == "other_result") return fact with { Match = Different };
             if (verdict == "not_said") return fact with { Rewrite = string.Empty, Match = Missing };
             return fact.Match == Same ? fact with { Match = Missing } : fact;
+        }
+
+        /// <summary>
+        /// An unpaired part of the original step (<see cref="Pair"/>) after the model was asked about it
+        /// (<see cref="ProseLanePrompts.JudgePart"/>): the same only when the answer is "kept", its quote
+        /// is in the rewrite step and names no other heat; changed or lost as the answer says; lost when
+        /// the answer cannot be read.
+        /// </summary>
+        public static ProseStepFact PartKept(ProseStepFact part, string? answer, string rewrite)
+        {
+            var (quote, verdict) = Answer(answer, "rewrite");
+            if (verdict == FactKept && Holds(rewrite, quote) && HeatConflicts(part.Original, quote).Count == 0) return part with { Rewrite = quote, Match = Same };
+            if (verdict == FactChanged) return part with { Match = Different };
+            return part with { Rewrite = string.Empty, Match = Missing };
+        }
+
+        /// <summary>Whether a part of the rewrite step that may add something (<see cref="Pair"/>) is answered "said" (<see cref="ProseLanePrompts.JudgeNew"/>) with a quote the original step or the original method holds.</summary>
+        public static bool PartSaid(string? answer, string original, IReadOnlyList<string>? method = null)
+        {
+            var (quote, verdict) = Answer(answer, "original");
+            return verdict == "said" && (Holds(original, quote) || (method != null && Holds(string.Join(" ", method), quote)));
         }
 
         /// <summary>Whether an added claim asked again is answered "kept" with a quote the original step holds.</summary>
@@ -534,7 +958,9 @@ namespace Nom.Orch.Services.Support
             if (reading.Added.Count > 0)
             {
                 added = true;
-                note ??= reading.Added[0].Kind + " added";
+                var disagree = reading.Facts.Any(f => f.Match == Same && f.Rewrite.Length > 0 && f.Rewrite != rewrite
+                    && reading.Added.Any(a => Holds(a.Rewrite, f.Rewrite) || Holds(f.Rewrite, a.Rewrite)));
+                note ??= disagree ? Disagreement : reading.Added[0].Kind + " added";
             }
 
             return new ProseJudgeStep(number, actions, amounts, missing, added, note);
@@ -544,13 +970,24 @@ namespace Nom.Orch.Services.Support
 
         private static string Stem(string word)
         {
+            if (word.Length > 4 && (word.EndsWith("ied", StringComparison.Ordinal) || word.EndsWith("ies", StringComparison.Ordinal))) return word[..^3] + "y";
             foreach (var ending in new[] { "ing", "ed", "es", "s" })
             {
-                if (word.Length > ending.Length + 2 && word.EndsWith(ending, StringComparison.Ordinal)) return Trim(word[..^ending.Length]);
+                if (word.Length > ending.Length + 2 && word.EndsWith(ending, StringComparison.Ordinal))
+                {
+                    var stem = word[..^ending.Length];
+                    if (ending is "ing" or "ed" && stem.Length >= 3 && stem[^1] == stem[^2] && !"lsfzaeiou".Contains(stem[^1])) stem = stem[..^1];
+                    return Trim(stem);
+                }
             }
 
             return Trim(word);
         }
+
+        private static string Root(string word) =>
+            word.Length > 5 && word.EndsWith("ly", StringComparison.Ordinal) ? Stem(word[..^2])
+            : word.Length > 4 && word.EndsWith('y') && !"aeiouy".Contains(word[^2]) ? Stem(word[..^1])
+            : Stem(word);
 
         private static string Trim(string word) => word.Length > 3 && word.EndsWith('e') ? word[..^1] : word;
     }

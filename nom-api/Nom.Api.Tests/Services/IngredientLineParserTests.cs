@@ -505,9 +505,65 @@ namespace Nom.Api.Tests.Services
         [InlineData("forcemeat No. 1, Chapter VIII.")]
         [InlineData("sirup No. 3 or 4")]
         [InlineData("batter (No. 2, page 98)")]
+        [InlineData("the same stock as number 184")]
+        [InlineData("sauce, see page 19")]
+        [InlineData("a tin cover")]
+        [InlineData("1 tin plate")]
         public void A_proportion_an_unknown_measure_a_size_or_a_recipe_number_is_no_amount(string raw)
         {
             IngredientLineParser.Parse(raw).Should().BeNull();
+        }
+
+        [Theory]
+        [InlineData("ingredients mentioned in No. 218", 218)]
+        [InlineData("the same stock as No. 184", 184)]
+        [InlineData("apple marmalade made by recipe No. 1395", 1395)]
+        [InlineData("forcemeat No. 417", 417)]
+        [InlineData("the same stock as number 184", 184)]
+        [InlineData("sauce, see page 19", 19)]
+        public void A_scraped_quantity_that_is_only_the_number_of_a_referred_recipe_is_no_amount(string raw, double quantity)
+        {
+            IngredientLineParser.ReferredNumbers(raw).Should().Contain((decimal)quantity);
+            IngredientLineParser.IsReferredNumber((decimal)quantity, raw).Should().BeTrue();
+            IngredientLineParser.Normalize((decimal)quantity, null, raw).Should().BeNull("staging checkpoint 8, T11: 201 lines carried the referred recipe's number as their amount");
+            IngredientLineParser.HasReferral(new[] { "2 eggs", raw }).Should().BeTrue();
+        }
+
+        [Theory]
+        [InlineData("2 cups sauce No. 2", 2, "cups", 2, "Cup")]
+        [InlineData("1 No. 2 can tomatoes", 1, "can", 1, "Can")]
+        [InlineData("1 tin sardines", 1, "tin", 1, "Can")]
+        public void A_stated_amount_beside_a_reference_or_a_numbered_can_stays_an_amount(string raw, double quantity, string unit, double expected, string measurement)
+        {
+            IngredientLineParser.Normalize((decimal)quantity, unit, raw).Should().Be(new ParsedQuantity((decimal)expected, measurement));
+            IngredientLineParser.IsReferredNumber((decimal)quantity, raw).Should().BeFalse();
+        }
+
+        [Theory]
+        [InlineData("1 recipe 9-inch pie crust", "pie crust")]
+        [InlineData("Pastry for 1 recipe 2-crust pie", "crust pie")]
+        [InlineData("Half recipe 3 egg sponge cake", "egg sponge cake")]
+        public void A_size_or_count_after_recipe_names_no_other_recipe_and_stays_in_the_line(string raw, string kept)
+        {
+            IngredientLineParser.ReferredNumbers(raw).Should().BeEmpty();
+            IngredientLineParser.HasReferral(new[] { raw }).Should().BeFalse();
+            IngredientLineParser.WithoutReferrals(raw).Should().Be(raw).And.Contain(kept);
+        }
+
+        [Theory]
+        [InlineData("apple marmalade made by recipe 1395", 1395)]
+        [InlineData("sauce as in recipe 12.", 12)]
+        [InlineData("forcemeat (recipe 417)", 417)]
+        public void A_bare_recipe_number_that_ends_its_phrase_is_a_referral(string raw, double number)
+        {
+            IngredientLineParser.ReferredNumbers(raw).Should().Equal((decimal)number);
+        }
+
+        [Fact]
+        public void A_recipe_without_a_numbered_reference_is_not_a_referral()
+        {
+            IngredientLineParser.HasReferral(new[] { "1 No. 2 can corn", "2 cups flour", "forcemeat balls" }).Should().BeFalse();
+            IngredientLineParser.ReferredNumbers("1 No. 2 can corn").Should().BeEmpty();
         }
 
         [Fact]

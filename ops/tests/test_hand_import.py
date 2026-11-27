@@ -918,7 +918,11 @@ class BoxTests(unittest.TestCase):
             books = os.path.join(work, "books.csv")
             with open(books, "w", encoding="utf-8") as handle:
                 handle.write("doc_id,source,kind,url,layout,title,attribution\n")
-            done = self.box("extract", "--books", books, "--wait-limit", "90", NOM_HAND_WORK=work, NOM_HAND_MODEL_HOST="http://model.test:11434",
+            host_file = os.path.join(work, "model-host")
+            with open(host_file, "w", encoding="utf-8") as handle:
+                handle.write("http://model.test:11434\n")
+            os.chmod(host_file, 0o600)
+            done = self.box("extract", "--books", books, "--wait-limit", "90", NOM_HAND_WORK=work, NOM_HAND_MODEL_HOST_FILE=host_file,
                             NOM_API="http://api.test", NOM_API_KEY="s3cret-key-value")
             self.assertEqual(done.returncode, 0, done.stderr)
             self.assertNotIn("s3cret-key-value", done.stdout, "a secret is passed by name, never on the command line")
@@ -935,6 +939,39 @@ class BoxTests(unittest.TestCase):
             local = [os.path.realpath(work) if t == "/work" else t for t in tail]
             with contextlib.redirect_stdout(io.StringIO()):
                 self.assertEqual(hand.main(local), 0, "the arguments the wrapper builds are the script's own")
+
+    def test_the_model_host_is_read_only_from_a_private_file_and_without_it_extract_reads_by_rule_only(self):
+        with tempfile.TemporaryDirectory() as work:
+            refused = self.box("extract", NOM_HAND_WORK=work, NOM_HAND_MODEL_HOST="http://model.test:11434")
+            self.assertNotEqual(refused.returncode, 0, "staging checkpoint 8, correction 4: the address stays out of the environment")
+            self.assertIn("NOM_HAND_MODEL_HOST_FILE", refused.stderr)
+            rules = self.box("extract", NOM_HAND_WORK=work)
+            self.assertEqual(rules.returncode, 0, rules.stderr)
+            self.assertNotIn("--host", shlex.split(rules.stdout))
+            self.assertIn("rules only", rules.stderr)
+            gone = self.box("extract", NOM_HAND_WORK=work, NOM_HAND_MODEL_HOST_FILE=os.path.join(work, "removed-after-the-model-step"))
+            self.assertEqual(gone.returncode, 0, gone.stderr)
+            self.assertNotIn("--host", shlex.split(gone.stdout), "a host file removed after the model step leaves a rule-only extract")
+            open_file = os.path.join(work, "model-host")
+            with open(open_file, "w", encoding="utf-8") as handle:
+                handle.write("http://model.test:11434\n")
+            os.chmod(open_file, 0o644)
+            loose = self.box("extract", NOM_HAND_WORK=work, NOM_HAND_MODEL_HOST_FILE=open_file)
+            self.assertNotEqual(loose.returncode, 0)
+            self.assertIn("mode 600", loose.stderr)
+            text = self.box("text", NOM_HAND_WORK=work, NOM_HAND_MODEL_HOST_FILE=open_file)
+            self.assertEqual(text.returncode, 0, text.stderr)
+            self.assertNotIn("model.test", text.stdout, "only the extract step reads the file")
+
+    def test_the_selftest_runs_the_reading_tests_in_the_image_with_ops_and_docs_mounted(self):
+        done = self.box("selftest", NOM_HAND_IMAGE="nom-hand-import:v0.3.134")
+        self.assertEqual(done.returncode, 0, done.stderr)
+        tokens = shlex.split(done.stdout)
+        mounts = [tokens[i + 1] for i, t in enumerate(tokens[:-1]) if t == "-v"]
+        self.assertEqual(mounts, [f"{os.path.realpath(OPS)}:/app/ops:ro", f"{os.path.realpath(os.path.join(OPS, '..', 'docs'))}:/app/docs:ro"],
+                         "staging checkpoint 8, correction 2: the determination test reads docs/architecture/crosscheck-sources.md")
+        self.assertIn("--read-only", tokens)
+        self.assertEqual(tokens[tokens.index("nom-hand-import:v0.3.134") + 1:], ["-m", "unittest", "discover", "-s", "/app/ops/tests", "-p", "test_hand_import*.py", "-v"])
 
     def test_each_step_of_the_script_is_a_step_of_the_wrapper_and_the_api_steps_need_no_work_folder(self):
         for step in ("fetch", "links", "text", "extract", "sample", "stage"):

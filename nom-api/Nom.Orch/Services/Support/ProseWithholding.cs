@@ -27,10 +27,22 @@ namespace Nom.Orch.Services.Support
         /// <summary>
         /// The ingredient line wording to serve: none for a recipe of a facts-only source
         /// (<see cref="RecipeEntity.SourceRights"/>), whose readers get NOM's catalog names, amounts and
-        /// units only, never the publisher's line as written.
+        /// units only, never the publisher's line as written; otherwise the line with its HTML entities read
+        /// (<see cref="Shown"/>).
         /// </summary>
         public static string? LineWording(RecipeEntity recipe, string? rawLine) =>
-            recipe.SourceRights == SourceRightsRule.FactsOnly ? null : rawLine;
+            recipe.SourceRights == SourceRightsRule.FactsOnly ? null : Shown(rawLine);
+
+        /// <summary>
+        /// A stored line as a reader sees it: its HTML entities read, also an entity escaped once more ("&amp;frac14;" and
+        /// "&amp;amp;frac12;" are ¼ and ½; staging checkpoint 8 found them served as written on 36465 and 50764).
+        /// </summary>
+        public static string? Shown(string? rawLine)
+        {
+            if (rawLine == null || rawLine.IndexOf('&') < 0) return rawLine;
+            var once = System.Net.WebUtility.HtmlDecode(rawLine);
+            return once.Contains('&') ? System.Net.WebUtility.HtmlDecode(once) : once;
+        }
 
         /// <summary>The most words a facts-only line's own food words may have; a longer reading is the publisher's sentence, not a food.</summary>
         public const int MaxFoodWords = 4;
@@ -124,7 +136,7 @@ namespace Nom.Orch.Services.Support
         /// <summary>The same for a query projection: the recipe's <see cref="RecipeEntity.SourceRights"/> stamp and the line's text, food, amount and unit, and whether its food is a catalog food.</summary>
         public static string LineName(string? sourceRights, string? rawLine, string? foodName, decimal quantity, string? measurement, bool catalogFood)
         {
-            if (sourceRights != SourceRightsRule.FactsOnly && !string.IsNullOrWhiteSpace(rawLine)) return rawLine.Trim();
+            if (sourceRights != SourceRightsRule.FactsOnly && !string.IsNullOrWhiteSpace(rawLine)) return Shown(rawLine)!.Trim();
             var parts = new List<string>();
             if (quantity > 0m)
             {

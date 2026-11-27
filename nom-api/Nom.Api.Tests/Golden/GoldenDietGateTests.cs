@@ -82,10 +82,10 @@ namespace Nom.Api.Tests.Golden
                 await new AlcoholRetentionService(db, new RecipeNutritionService(db, NullLogger<RecipeNutritionService>.Instance), NullLogger<AlcoholRetentionService>.Instance).RunAsync(apply: true, afterRecipeId: 0);
             await DefaultRestrictionCriteria.EnsureAsync(db);
 
+            await Nom.Api.Tests.Services.MealPlan.DietGateStoreTests.AssertStoreAgreesAsync(db, HouseholdId, PersonId);
             var resolver = new HouseholdRestrictionResolver(db);
             var set = await resolver.ResolveAsync(HouseholdId);
-            await Nom.Api.Tests.Services.MealPlan.DietGateStoreTests.AssertStoreAgreesAsync(db, HouseholdId, PersonId);
-            var plan = set.IngredientIds.Contains(food.Id) || set.RecipeIds.Contains(recipe.Id);
+            var plan = !await db.Recipes.WithoutHeld(db, set).AnyAsync(r => r.Id == recipe.Id);
             var service = new RecipeOrchestrationService(db, new HttpContextAccessor(), new Mock<ICurrentUserService>().Object,
                 new Mock<Nom.Orch.UtilityInterfaces.IMediaStorageService>().Object, new Mock<IRecipeNutritionService>().Object);
             var page = (await service.GetDietMatchesAsync(recipe.Id, PersonId)).Any(m => m.RestrictionName == restriction);
@@ -94,7 +94,7 @@ namespace Nom.Api.Tests.Golden
             {
                 var hidden = await resolver.ResolveSevereForPersonAsync(PersonId);
                 var conflicts = await service.GetSevereDietConflictsAsync(new[] { recipe.Id }, PersonId);
-                severe = (hidden.IngredientIds.Contains(food.Id) || hidden.RecipeIds.Contains(recipe.Id)) && conflicts.ContainsKey(recipe.Id);
+                severe = await db.Recipes.WithoutHeld(db, hidden).AllAsync(r => r.Id != recipe.Id) && conflicts.ContainsKey(recipe.Id);
             }
             return new Verdict(plan, page, severe);
         }

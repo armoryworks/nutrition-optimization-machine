@@ -425,6 +425,63 @@ class TableRowTests(unittest.TestCase):
         text = hand.table_text(page(word(250, "1", top=200)), dictionary=WORDS)
         self.assertEqual([b.outcome for b in cookbook.read_by_rule(text, WORDS) if b.title], ["rule"])
 
+    def test_a_lone_figure_as_wide_as_a_fraction_sign_is_never_written(self):
+        half = hand.Word(1770, 100, 38, 40, 96.0, "2")
+        self.assertEqual(self.row(word(310, "Butter"), word(500, "ee", 10), half, word(1810, "Cup")), f"Butter . . . . . . {cookbook.UNREAD}",
+                         "staging checkpoint 8, T18: a printed half cup was kept as '2 Cup' at the confidence bar")
+        self.assertEqual(self.row(word(310, "Butter"), word(500, "ee", 10), word(1770, "2"), word(1810, "Cup")), "Butter . . . . . . 2 Cup")
+
+    def test_an_amount_its_second_reading_does_not_confirm_is_unread(self):
+        def row(again):
+            return hand.table_row([word(310, "Butter"), word(500, "ee", 10), word(1770, "2"), word(1810, "Cup")], self.HEIGHT, self.EDGE, self.MIDDLE,
+                                  dictionary=WORDS, reread=lambda cell: again)
+        for again in ("½", "%", "1/2", "4", "", None):
+            self.assertEqual(row(again), f"Butter . . . . . . {cookbook.UNREAD}", repr(again))
+        self.assertEqual(row("2"), "Butter . . . . . . 2 Cup")
+        self.assertEqual(row("2."), "Butter . . . . . . 2 Cup")
+
+    def test_an_old_style_one_read_as_a_letter_or_an_unconfirmed_figure_before_a_measure_is_unread_in_a_list_line(self):
+        def page(*amount, reread=None):
+            words = [word(1150, "PUDDING.", top=100), word(250, "Sweet", top=200), word(400, "milk,", top=200), *amount,
+                     word(250, "Seeded", top=260), word(420, "raisins", top=260),
+                     word(320, "Mix", top=360), *[word(470 + 150 * i, w, top=360) for i, w in enumerate("all and bake in a slow oven one hour.".split())]]
+            return hand.table_text(words, dictionary=WORDS, reread=reread)
+        for one in ("I", "l"):
+            self.assertIn(f"Sweet milk, {cookbook.UNREAD} cup", page(word(530, one, top=200), word(570, "cup", top=200)),
+                          "staging checkpoint 8, T18: 'Sweet milk, I cup' stayed unmarked")
+        self.assertIn(f"Sweet milk, {cookbook.UNREAD} cup", page(word(530, "1", top=200), word(570, "cup", top=200), reread=lambda cell: "½"))
+        self.assertIn("Sweet milk, 1 cup", page(word(530, "1", top=200), word(570, "cup", top=200), reread=lambda cell: "1"))
+
+    def test_a_two_column_index_row_keeps_each_name_with_its_own_number(self):
+        words = [word(250, "Sally", top=100), word(420, "Lunn", top=100), word(560, "......", 20, top=100),
+                 word(1400, "Waffles", top=100), word(1650, ".....", 15, top=100), word(2200, "26", top=100),
+                 word(250, "Fruit", top=160), word(400, "Pies", top=160), word(520, "....", 20, top=160), word(1150, "89", top=160),
+                 word(1400, "Crab", top=160), word(1550, "Apple", top=160), word(1720, "Jelly", top=160), word(2200, "104", top=160)]
+        lines = [line for line in hand.table_text(words, dictionary=WORDS).split("\n") if line.strip()]
+        self.assertFalse(any("Sally" in line and "26" in line for line in lines), lines)
+        self.assertFalse(any("Fruit" in line and "104" in line for line in lines), lines)
+        self.assertTrue(any("Waffles" in line and "26" in line for line in lines), lines)
+        self.assertTrue(any("Crab Apple Jelly" in line and "104" in line for line in lines), lines)
+
+    def test_a_cell_is_read_again_cropped_from_the_image_and_enlarged(self):
+        try:
+            from PIL import Image
+        except ImportError:
+            self.skipTest("Pillow is not installed (it is in the nom-hand-import image)")
+        sizes = []
+
+        def runner(command):
+            with Image.open(command[1]) as cell:
+                sizes.append(cell.size)
+            self.assertEqual(command[2:], ["stdout", "-l", "eng", "--psm", "7"])
+            return "2\n"
+        page = os.path.join(FIXTURES, "table-page-whole.jpg")
+        read = hand.cell_reader(page, runner)
+        self.assertEqual(read([hand.Word(1000, 1000, 24, 38, 96.0, "2")]), "2")
+        self.assertEqual(sizes, [((24 + 38) * hand.CELL_SCALE, (38 + 38) * hand.CELL_SCALE)])
+        self.assertIsNone(hand.cell_reader(os.path.join(FIXTURES, "missing.jpg"), runner)([hand.Word(10, 10, 20, 38, 96.0, "2")]),
+                          "an image that cannot be opened confirms nothing")
+
     def test_a_recipe_with_the_unread_mark_is_never_kept_or_sent_to_the_model(self):
         text = f"CORN BREAD.\n\nCorn meal . . . . . . 1 pint\nFlour . . . . . . {cookbook.UNREAD}\n\nMix the meal and flour, add the milk; bake in a quick oven twenty minutes.\n"
         found = cookbook.read_by_rule(text, WORDS)
@@ -487,6 +544,22 @@ class TableReadingTests(unittest.TestCase):
         result = hand.extract_document(doc, SOURCES["loc"], words=WORDS)
         self.assertEqual([[i["rawLine"] for i in r["recipe"]["ingredients"]] for r in result.kept], [page["recipes"][0]["expected"]])
 
+    def test_an_image_reading_that_names_every_row_replaces_the_garbled_library_text_though_it_marks_amounts(self):
+        image_text = (f"CORN BREAD.\n\nCorn meal . . . . . . {cookbook.UNREAD}\nFlour . . . . . . 1 pint\nSugar . . . . . . {cookbook.UNREAD}\n"
+                      f"Milk . . . . . . {cookbook.UNREAD}\n\nMix the meal and flour, add the milk; bake in a quick oven twenty minutes.\n")
+        garbled = ("CORN BREAD.\n\n" + "\n".join(["ELI aa a as I pint", "Shy SS 0 Ut ee ae ay cee ise cecil (Oude B:",
+                                                 "ALIN Gg | 0) Ea aaa ian a ne I pint", "BI ttace ee Sore Semel arg ys 1 ae 3 qts."]) +
+                   "\n\nMix the meal and flour, add the milk; bake in a quick oven twenty minutes.\n")
+        with tempfile.TemporaryDirectory() as folder:
+            path = os.path.join(folder, "text.json")
+            with open(path, "w", encoding="utf-8") as handle:
+                json.dump({"25": {"fulltext": garbled}}, handle)
+            pages, _ = hand.loc_pages(path, WORDS, {25: "p.jpg"}, lambda p: image_text)
+        self.assertEqual(pages[0]["method"], "loc-image-ocr", "staging checkpoint 8, T18: p. 25 kept the Library's garbled table")
+        self.assertEqual((pages[0]["imageReading"]["unreadable"], pages[0]["imageReading"]["marked"]), (3, 3))
+        self.assertEqual([b.outcome for b in cookbook.read_by_rule(pages[0]["text"], WORDS) if b.title], ["unreadable"],
+                         "a marked recipe is still never kept or sent to the model")
+
     def test_tesseract_is_asked_for_its_words_and_boxes(self):
         commands = []
         real = hand.have
@@ -494,7 +567,8 @@ class TableReadingTests(unittest.TestCase):
         hand.have = lambda tool: True
         with open(os.path.join(FIXTURES, "table-page-whole.tsv"), encoding="utf-8") as handle:
             tsv = handle.read()
-        text = hand.tesseract_image("/work/loc/docs/b.p0021.jpg", runner=lambda c: commands.append(c) or tsv, words=WORDS)
+        text = hand.tesseract_image("/work/loc/docs/b.p0021.jpg", runner=lambda c: commands.append(c) or tsv, words=WORDS,
+                                    reread=lambda cell: cell[0].text)
         self.assertEqual(commands, [["tesseract", "/work/loc/docs/b.p0021.jpg", "stdout", "-l", "eng", "--psm", "11", "tsv"]])
         self.assertIn("Chili powder . . . . . . 2 teaspoons", text)
         hand.have = lambda tool: False

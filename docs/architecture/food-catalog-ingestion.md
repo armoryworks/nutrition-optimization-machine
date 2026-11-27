@@ -1578,6 +1578,12 @@ nutrition sweep recalculates the labels. Order of work as for the other line lan
 snapshot, dry run, note the UTC time, apply, check the samples in the app, prove the undo,
 then production.
 
+Since `cleanup2/ck21-approved-pool` approval follows understanding: the job leaves a recipe its policy and vetting pass
+waiting, counted in the sweep's refusals by reason, while the stored diet gate has not decided it, a severe diet type
+holds it as unknown by its rules, or the second diet reader's pair has not read it (`DietApprovalHolds`;
+`Curation:AutoApprove:RequireDietUnderstood` and `Curation:AutoApprove:RequireSecondReading`, both true). A recipe
+already approved is never taken back. See `diet-gate.md`, "The second reader in the stored gate".
+
 ### Verified wording table — BUILT ✅ (table empty until the first judged batch)
 `recipe."IngredientWording"` holds one reviewed verdict per wording, keyed by
 `IngredientNameNormalizer.WordingKey` (the normalised name, lower-cased; no plural or
@@ -1599,8 +1605,9 @@ say "no such food". Aliases with no `SourceContext` are not a trusted source for
 `db/verified-wordings.tsv` in the repository holds that header only, as the template: each reviewed
 batch is its own file (the first, `w01`, 233 rows, is kept with the staging evidence, outside the
 repository; the second, `w02`, old cookbook words, is
-`nom-api/Nom.Api.Tests/Fixtures/VerifiedWordings/batch-w02.tsv`), and every load names that batch file, never the
-template. A category row gives `category_id` (the USDA FoodData Central food category) and, when it narrows it,
+`nom-api/Nom.Api.Tests/Fixtures/VerifiedWordings/batch-w02.tsv`; the third, `w03`, `batch-w03.tsv`, holds "protose", a
+meat substitute of unknown contents the catalog has no food for, as `none`), and every load names that batch file, never
+the template. A category row gives `category_id` (the USDA FoodData Central food category) and, when it narrows it,
 `category_head` (the leading part of the USDA description, up to a comma or its end); a load refuses one with no
 category, a prepared food category (`category is a prepared food category`) or no live curated food of that category
 and head (`no live curated food is of the category and head`), journals the group as a second `WordingVerify` entry

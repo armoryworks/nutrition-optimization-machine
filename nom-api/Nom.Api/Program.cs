@@ -466,6 +466,10 @@ builder.Services.AddHttpClient<Nom.Orch.Interfaces.IWordingReaders, Nom.Orch.Ser
     .AddHttpMessageHandler(sp => new Nom.Api.Services.AiLaneHttpHandler(sp.GetRequiredService<Nom.Api.Services.AiHostMonitor>(), Nom.Orch.Services.Support.AiLanes.WordingReaders));
 builder.Services.AddScoped<Nom.Orch.Interfaces.ILaneUndo, Nom.Orch.Services.WordingReaderUndo>();
 builder.Services.AddHostedService<Nom.Api.Services.WordingReaderHostedService>();
+builder.Services.AddHttpClient<Nom.Orch.Services.DietSecondReaderLaneService>(
+    client => client.Timeout = TimeSpan.FromSeconds(300))
+    .AddHttpMessageHandler(sp => new Nom.Api.Services.AiLaneHttpHandler(sp.GetRequiredService<Nom.Api.Services.AiHostMonitor>(), Nom.Orch.Services.Support.AiLanes.DietSecondReader));
+builder.Services.AddHostedService<Nom.Api.Services.DietSecondReaderHostedService>();
 
 // Add OCR service
 // builder.Services.AddScoped<ITesseractOcrService, TesseractOcrService>();

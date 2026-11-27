@@ -259,6 +259,27 @@ value it had before every entry at or after the time, newest first, skipping a l
 recipes it changed. The dry run follows each line through the entries it would restore, so when two
 runs changed the same line it counts both as restored, as the undo then does.
 
+**Batches, resume and the failure of checkpoint 8 (T15, `cleanup2/ck19-store-moves`).** On staging the apply over every
+recipe failed after ten minutes with HTTP 409 (`DbUpdateConcurrencyException`, "expected to affect 1 row(s), but
+actually affected 0") and left 7,868 lines written. The cause was the diet store's EF clearer
+(`DietRecipeStateClearer`): a save that writes a recipe's lines removed that recipe's `DietRecipeState` rows as tracked
+entities, so the save expected each row read a moment before to still be there; the build job replaces a recipe's state
+(delete and insert) in its own chunk transaction, and when it did so between the clearer's read and the save's delete,
+the delete waited for the job's commit and then found the old row gone. On a relational database the clearer now logs
+the recipe in the write log instead (an insert, which never conflicts; `Standing` holds the recipe from the commit, as
+the triggers do). And the apply writes in batches of `AlcoholRetentionService.Chunk` (200) recipes, each in its own
+transaction: the lines, their journal entries (stamped with the batch's own time, never before the run's stamp), the
+labels of the recipes it touched (`RecalculateManyAsync`) and a batch mark (`AlcoholRetentionRun`/`AlcoholRetentionBatch`,
+the run's stamp as old value). A batch that fails is tried once more; a second failure stops the run with nothing of
+that batch written and the answer says `completed: false`, the `error` and `resumeAfterRecipeId`. `resume=true` goes on
+after the last batch of the latest run that did not finish (no `AlcoholRetentionDone` mark), under that run's stamp
+(`resumedRunUtc`), after a failure or a restart alike. The dry run counts what the whole apply does (`batches`, `lines`,
+`changed`, `recipesTouched`, the kinds and reasons); the apply adds `batchesWritten` and `recipesRecalculated`. The undo
+by the run's stamp takes back every batch of a stopped and resumed run, each chunk of entries in its own transaction
+with its labels, and removes the run's marks (`runMarksRemoved`) so no later resume goes on with a run taken back.
+Proved on the production-sized generated data beside the build job's cycles
+(`DietGateStorePostgresTests.The_alcohol_retention_apply_over_every_recipe_completes_beside_the_build_jobs_cycles_and_a_stopped_run_is_resumed_and_taken_back_whole`).
+
 Operator notes (staging checkpoint 2): on the 2026-11-20 production data after the admission (66
 more alcoholic foods than the design counted) the dry run reads about 14,048 lines in 12,832
 recipes, not about 10,184 recipes. The factor and basis are kept by an order-only reprocess pass

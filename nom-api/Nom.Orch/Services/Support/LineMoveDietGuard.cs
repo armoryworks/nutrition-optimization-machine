@@ -55,6 +55,7 @@ namespace Nom.Orch.Services.Support
         private readonly List<LineMoveHold> _restored = new();
         private readonly Dictionary<long, (string? Name, bool Live)> _expected = new();
         private readonly HashSet<string> _dropped = new(StringComparer.Ordinal);
+        private readonly HashSet<long> _verified = new();
 
         private LineMoveDietGuard(ApplicationDbContext? db, IReadOnlyList<Reading> readings, IReadOnlyList<long> nutrientIds, DietLineRules.Matcher? matcher)
         {
@@ -152,6 +153,20 @@ namespace Nom.Orch.Services.Support
             _expected[foodId] = _expected.TryGetValue(foodId, out var was) ? (name ?? was.Name, live || was.Live) : (name, live);
             if (droppedAliasContext != null) _dropped.Add(droppedAliasContext);
             _foods.Clear();
+            _byFoods.Clear();
+        }
+
+        /// <summary>
+        /// Reads <paramref name="foodId"/> without the link re-check's mark of unknown contents
+        /// (<see cref="RecheckDietGuard.UnknownContentsContext"/>): the food is a verified wording's own uncurated row, whose
+        /// lines the verified relink moves to the food the reviewed wording names, and the reviewed wording, not the mark a
+        /// re-check run put on the row, says what those lines hold (staging checkpoint 8, T14: the alcohol set marked
+        /// "sweet cider", and a w01 round trip then held 40 lines off Apple Juice). Every other reading of the food stays.
+        /// </summary>
+        public void ReadsVerified(long foodId)
+        {
+            if (!_verified.Add(foodId)) return;
+            _foods.Remove(foodId);
             _byFoods.Clear();
         }
 
@@ -325,12 +340,13 @@ namespace Nom.Orch.Services.Support
             if (_foods.TryGetValue(id, out var known)) return known;
             var catalog = await DietFoodCatalog.LoadAsync(_db!, _nutrientIds, foodIds: new[] { id });
             if (!catalog.Foods.ContainsKey(id)) return _foods[id] = null;
-            if (_expected.TryGetValue(id, out var expected) || _dropped.Count > 0)
+            if (_expected.TryGetValue(id, out var expected) || _dropped.Count > 0 || _verified.Contains(id))
             {
                 var food = catalog.Foods[id];
                 if (expected != default) food = food with { Name = expected.Name ?? food.Name, Live = food.Live || expected.Live };
+                var verified = _verified.Contains(id);
                 var aliases = (catalog.Aliases.TryGetValue(id, out var have) ? have : Array.Empty<DietFoodCatalog.Alias>())
-                    .Where(a => a.Context == null || !_dropped.Contains(a.Context));
+                    .Where(a => a.Context == null || (!_dropped.Contains(a.Context) && !(verified && a.Context == RecheckDietGuard.UnknownContentsContext)));
                 catalog = DietFoodCatalog.Of(new[] { food }, aliases, catalog.Nutrients, catalog.Statements);
             }
             await catalog.LoadStatementsAsync(_db!, new[] { id });
@@ -355,7 +371,7 @@ namespace Nom.Orch.Services.Support
             {
                 var decision = DietFoodReader.Decide(reading, _readings[i].Criteria);
                 verdicts[i] = decision.Foods.Values.Any(f => f.Contains(id)) ? DietVerdict.Contains
-                    : decision.Unknown.Contains(id) || decision.Split.Contains(id) ? DietVerdict.Unknown
+                    : decision.Unknown.Contains(id) || decision.Split.Contains(id) || decision.Unread.Contains(id) ? DietVerdict.Unknown
                     : decision.AliasOnly.Contains(id) ? DietVerdict.AliasOnly : null;
                 alcohol[i] = _readings[i].CappedNutrient is { } capped && nutrients != null && nutrients.TryGetValue(capped, out var amount) && amount > DietCriteriaMatcher.PresencePer100g;
             }

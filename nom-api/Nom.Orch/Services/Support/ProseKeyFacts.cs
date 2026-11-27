@@ -15,7 +15,8 @@ namespace Nom.Orch.Services.Support
     /// names. Numbers and units are written in one fixed form ("bake 30 to 40 min", "oven 350°F",
     /// "9 x 13-inch pan"), so no wording of the source is carried over: these are facts, not
     /// expression. Amounts of ingredients, counts and bracketed conversions are left out (the
-    /// ingredient list states them). Text only: no database and no model.
+    /// ingredient list states them), and so is how long the dish keeps (a time in a storing sentence); a
+    /// temperature never takes the verb of work on a pan ("line", "grease"). Text only: no database and no model.
     /// </summary>
     public static class ProseKeyFacts
     {
@@ -91,9 +92,10 @@ namespace Nom.Orch.Services.Support
                     continue;
                 }
 
+                if (q.Family == ProseQuantities.Time && Stored(q, words, sentenceStart, sentenceEnd)) continue;
                 var inOven = q.Family == ProseQuantities.Temperature
                     && words.Any(w => w.Start >= sentenceStart && w.Start < sentenceEnd && w.Text == "oven");
-                var verb = inOven ? "oven" : VerbFor(words, texts, q, sentenceStart, sentenceEnd, verbs);
+                var verb = inOven ? "oven" : VerbFor(words, texts, q, sentenceStart, sentenceEnd, verbs, q.Family == ProseQuantities.Temperature ? PanWork : null);
                 var amount = q.Family == ProseQuantities.Time ? Time(q) : Temperature(q);
                 yield return verb == null ? amount : $"{verb} {amount}";
             }
@@ -119,21 +121,58 @@ namespace Nom.Orch.Services.Support
         private static bool IsDecimalPoint(string text, int index) =>
             text[index] == '.' && index > 0 && index + 1 < text.Length && char.IsDigit(text[index - 1]) && char.IsDigit(text[index + 1]);
 
-        private static string? VerbFor(IReadOnlyList<Word> words, IReadOnlyList<string> texts, ProseQuantity q, int sentenceStart, int sentenceEnd, ProseVerbLexicon verbs)
+        private static string? VerbFor(IReadOnlyList<Word> words, IReadOnlyList<string> texts, ProseQuantity q, int sentenceStart, int sentenceEnd, ProseVerbLexicon verbs, IReadOnlySet<string>? never = null)
         {
             for (var i = words.Count - 1; i >= 0; i--)
             {
-                if (words[i].Start >= q.Start || words[i].Start < sentenceStart) continue;
+                if (words[i].Start >= q.Start || words[i].Start < sentenceStart || never?.Contains(words[i].Text) == true) continue;
                 if (verbs.GroupsAt(texts, i) is { } groups) return GroupName(groups, words[i].Text);
             }
 
             for (var i = 0; i < words.Count; i++)
             {
-                if (words[i].Start < q.End || words[i].Start >= sentenceEnd) continue;
+                if (words[i].Start < q.End || words[i].Start >= sentenceEnd || never?.Contains(words[i].Text) == true) continue;
                 if (verbs.GroupsAt(texts, i) is { } groups) return GroupName(groups, words[i].Text);
             }
 
             return null;
+        }
+
+        /// <summary>Work on a pan or a dish, never what a temperature is for: "line 450°" read a pan lining as an oven (staging checkpoint 8).</summary>
+        private static readonly HashSet<string> PanWork = new(StringComparer.Ordinal)
+        {
+            "line", "lines", "lined", "lining", "grease", "greased", "greasing", "butter", "buttered", "oil", "oiled", "spray", "sprayed",
+            "flour", "floured", "cover", "covered", "wrap", "wrapped", "set", "place", "arrange", "arranged",
+        };
+
+        private static readonly HashSet<string> StorageWords = new(StringComparer.Ordinal)
+        {
+            "store", "stores", "stored", "storing", "storage", "leftover", "leftovers", "airtight",
+        };
+
+        private static readonly HashSet<string> KeepingWords = new(StringComparer.Ordinal) { "keep", "keeps", "kept", "last", "lasts" };
+
+        private static readonly HashSet<string> ColdWords = new(StringComparer.Ordinal)
+        {
+            "chill", "chilled", "refrigerate", "refrigerated", "refrigerator", "fridge", "freeze", "frozen", "freezer", "cover", "covered",
+        };
+
+        private static readonly HashSet<string> LongUnits = new(StringComparer.Ordinal) { "day", "week", "month" };
+
+        /// <summary>
+        /// Whether a time is how long the dish keeps, not a step: a time after a word of storing it ("store", "airtight",
+        /// "leftovers"), or a time of days or weeks in a sentence about storing or keeping ("keeps", "lasts") or bounded by "up
+        /// to" in the cold ("cover and chill up to 4 days"). Staging checkpoint 8 found "cover 4 days" and "chill 2 weeks" among
+        /// the key facts; a bake time before "storing" and "marinate up to 2 days" stay steps.
+        /// </summary>
+        private static bool Stored(ProseQuantity q, IReadOnlyList<Word> words, int sentenceStart, int sentenceEnd)
+        {
+            var sentence = words.Where(w => w.Start >= sentenceStart && w.Start < sentenceEnd).ToList();
+            if (sentence.Any(w => StorageWords.Contains(w.Text) && w.Start < q.Start)) return true;
+            if (!LongUnits.Contains(q.Unit)) return false;
+            return sentence.Any(w => StorageWords.Contains(w.Text) || KeepingWords.Contains(w.Text))
+                || (sentence.Any(w => ColdWords.Contains(w.Text))
+                    && sentence.Zip(sentence.Skip(1)).Any(p => p.First.Text == "up" && p.Second.Text == "to" && p.Second.Start < q.Start));
         }
 
         private static string GroupName(IReadOnlySet<string> groups, string word)

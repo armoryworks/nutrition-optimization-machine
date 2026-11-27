@@ -36,6 +36,7 @@
     <EmbeddedResource Include="Contents\diet-dough-titles.tsv" LogicalName="Nom.Orch.Contents.diet-dough-titles.tsv" />
     <EmbeddedResource Include="Contents\diet-spellings.tsv" LogicalName="Nom.Orch.Contents.diet-spellings.tsv" />
     <EmbeddedResource Include="Contents\diet-branded-consensus.tsv" LogicalName="Nom.Orch.Contents.diet-branded-consensus.tsv" />
+    <EmbeddedResource Include="Contents\diet-dish-words.tsv" LogicalName="Nom.Orch.Contents.diet-dish-words.tsv" />
     <EmbeddedResource Include="Fonts\Lato\*.ttf" LogicalName="Nom.Orch.Fonts.Lato.%(Filename)%(Extension)" />
     <EmbeddedResource Include="..\Nom.Api.Tests\Fixtures\Golden\prose-verbs.tsv" LogicalName="Nom.Orch.Prose.prose-verbs.tsv" Link="Prose\prose-verbs.tsv" />
     <EmbeddedResource Include="..\Nom.Api.Tests\Fixtures\Golden\model-lanes.json" LogicalName="Nom.Orch.Golden.model-lanes.json" Link="Golden\model-lanes.json" />

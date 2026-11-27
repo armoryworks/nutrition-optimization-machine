@@ -48,6 +48,15 @@ namespace Nom.Data.Plan
 
         /// <summary>A line no curated food decides names a word the curated catalog knows only on foods the set flags, or a line holds a processing kind of the set (the dried form of a fruit for Sulfite Sensitivity).</summary>
         FoodWord = 11,
+
+        /// <summary>A line sends the cook to another recipe or page of the book by number, whose ingredients are not in these lines, so the recipe is incomplete (a severe set only).</summary>
+        Referral = 12,
+
+        /// <summary>The rules find the recipe clear, but the second reader has not read it under its current prompt and text (a severe set of the reader's types, while the platform setting diet-second-reader-gate is on).</summary>
+        SecondUnread = 13,
+
+        /// <summary>The rules find the recipe clear, but a stored reading of the second reader does not call it clearly free of what the set restricts (a severe set of the reader's types, while the platform setting diet-second-reader-gate is on).</summary>
+        SecondReader = 14,
     }
 
     /// <summary>

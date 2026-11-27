@@ -613,8 +613,12 @@ name a model pick linked to a food it is not ("Protose", the vegetarian books' w
   when it names the class's probe word as a line would ("wheat"; "barley" for gluten, so Wheat Allergy does not read it;
   "almond" for the tree nuts, so Peanut Allergy's unnamed nut does not). A usually-contains food is flagged
   (`DietFoodFact.Source` `consensus`); a split food is unknown (`consensus-split`) for that set; a diet of choice reads
-  nothing. A row applies to a curated food by its name and FDC id (catalog ids differ between databases), and is part of
-  the food's fingerprint, so a changed file decides the food again. A consensus fact is no knowledge of a food's words:
+  nothing. A row applies to a curated food by its name and FDC id (catalog ids differ between databases); a food of a
+  made category with no FDC id of its own takes every row of its name (so Corn Tortillas is split on wheat, as the real
+  food is, and Sugar and Apple Butter are decided by their branded statements), and is of unread contents only where no
+  row of its name exists. When a food's facts have several sources, the one stored is its own data's (name, alias,
+  category, statement), so a consensus that agrees with them does not take the food's word knowledge away. Rows are
+  part of the food's fingerprint, so a changed file decides the food again. A consensus fact is no knowledge of a food's words:
   "soup" in an old book's "soup stock" is not a can of condensed soup. The line-move guard reads a split food as
   unknown, as the store does, so a relink, merge or undo that would move a line off it onto a clear food is held.
 - **Unproven links.** A line on a curated food whose wording an applied model pick linked there (`ai:` link proposals
@@ -873,8 +877,10 @@ cycle failed:
 A set holds unknowns when one of its criteria is of severity 4 or 5, or when a household member holds the type at
 severity 4 or 5. Such a set keeps them out of search, plans and prepared meals (`diet_gate_pending`), and the recipe
 page names them "Ingredients not known". A diet of severity 3 holds what contains its foods and shows what it cannot
-read. A type whose criteria changed reads its previous set until the new one is built, so a deploy or an admin edit
-never empties the gate. A type with no set at all (no build yet, or a type the build has never decided) holds every
+read. A type with no severe criterion whose criteria changed reads its previous set until the new one is built, so a
+deploy or an admin edit never empties the gate for a diet of choice. A severe type whose criteria changed (an admin's
+edit, a renamed type or nutrient) is held, as a type with no set is, until the set of its new criteria is built: the
+previous set never read what the new criteria restrict (lead answer to CK19SM-3, wave 31). A type with no set at all (no build yet, or a type the build has never decided) holds every
 recipe, and the recipe page names it "Not checked yet". `gate-counts` gives, per set, `recipesUnknown` and the flags
 among decided recipes, `recipesNotDecided` (held by every set) and `recipesHeldOnlyForUnknown`: the price of the safe
 side.
@@ -945,6 +951,9 @@ now diffs standalone sequences, functions and triggers, so `apply.sh` and `--che
 | `recipe."IngredientContents"` | a statement of no household | the food; its recipes held through the write log |
 | `plan."RestrictionCriterion"` | insert, update, delete | nothing (a log row, so the job sees the criteria) |
 | `measurement."Measurement"` | delete; an update of category, factor, container mark or liveness | every recipe with a line in that unit (retained alcohol weighs drinks by it) |
+| `recipe."IngredientWording"` (since `cleanup2/ck19-store-moves`) | insert, delete; an update of a row's wording, verdict, food, category, head or liveness | every recipe with a line on a food whose name, lower-cased, is the wording (a category row is read on those lines), and every recipe on the row's food when an applied model pick links that food (a food row proves the pick); held through the write log |
+| `curation."FoodCatalogProposal"` (since `cleanup2/ck19-store-moves`) | an applied `ai:` link pick inserted, deleted, or changed in field, status, source, wording, food or liveness | every recipe on the picked food (the unproven links the reading reads by their words); held through the write log |
+| `nutrient."Nutrient"`, `reference."Reference"` (since `cleanup2/ck19-store-moves`) | update, delete | nothing (a log row, as for a criterion: a nutrient's and a type's name are part of the criteria a set is keyed by) |
 
 Every trigger also logs what it touched in `plan."DietGateWrite"` (a recipe id, a food id, or neither for a criterion
 or a new food), the write log every process's build job polls. A log row is a row of the writer's own transaction, so
@@ -1068,6 +1077,126 @@ criteria do not count it; a recipe with a line on it is unknown (`UnknownFood`),
 (a severe type, or a member at severity 4 or 5) and shown by a diet of choice, and the food-group top-up holds the food
 for such a set too. The move guard reads the mark the same way (`LineMoveDietGuard`): a move off such a food to one
 that does not flag a type is a lowering move and is held, by an undo too unless the operator chose `restoreLowered`.
+
+## Every table the reading reads (staging checkpoint 8, T7, T6; `cleanup2/ck19-store-moves`)
+
+**T7.** Since `cleanup2/ck17-words` the reading reads the verified wording table (category rows), and since
+`cleanup2/ck18-composites` the applied model picks (the unproven links); neither had a trigger. A wording write changed
+the reading of thousands of recipes and held none: after the w02 unload 1,212 recipes that gained a severe flag or hold
+were served their earlier clear verdict for up to 1 min 51 s, until the whole cycle the new words signature forced had
+read them. Now `plan."DietGateWordingsWritten"` and `plan."DietGateProposalsWritten"` hold, in the writer's transaction,
+every recipe whose reading the write can change (table above), through the write log (`plan."DietGateHoldRecipes"`: a
+log row per recipe, no state removed), and a write to a nutrient's or a type's name logs a row as a criterion does.
+The reading reads a nutrient's or a type's name only through a criterion that names it (`DietCriteriaMatcher.CriteriaAsync`),
+and that name is part of the set's `CriteriaKey`, so a rename is a change of criteria, as an admin's edit of a criterion
+is: a type with no severe criterion reads its previous set until the set of the new key is built (review CK10S-2),
+and a severe type holds every recipe until then (lead answer to CK19SM-3, wave 31). The
+branded consensus is a file, not a table: it reaches the reading through the build's version. The wording rejections
+are not read by the reading.
+
+The list of tables is no longer written by hand. `DietGateWritersTests.Every_table_the_gate_reads_has_a_trigger_for_every_write_that_makes_what_it_touched_undecided`
+runs a whole cycle and a cycle over the changes of the build job on a kitchen that reaches every part of the reading,
+takes every table its queries root at (an EF query expression interceptor, mapped to tables by the Postgres model), and
+fails when one of them has no trigger for an insert, an update or a delete in `db/custom-objects.sql` or `db/schema.sql`.
+The writes that need none are listed with their reason (a new recipe, unit, nutrient or type is undecided or unread
+until something refers to it; a recipe is deleted with its lines).
+
+**The release count.** The cycle after a write of more than `WriteBatch` log rows read the rest in the next cycle and
+counted them as `held by a food write released unread` although that cycle's predecessor had already decided those
+recipes (`86747 ... released unread` after the admission). The count now takes only the recipes the rows held when the
+cycle began: no state, or a state whose reading could not see the row's transaction (`Standing`).
+
+**T6.** The first shuffle after the first build switched took 18.7 s and every later one under a second. The build wrote
+its rows by COPY faster than autovacuum's analyze follows, so the first requests were planned on the statistics of
+nearly empty tables. The cycle that switches a build now readies it first (`WarmAsync`): it analyzes the store's tables
+and reads the build's states and every set's flags once by the indexes a request uses; the cycle line says `(readied
+for requests in N s before the switch)` and the report carries `WarmSeconds`.
+`DietGateStorePostgresTests.The_first_shuffle_after_a_new_build_switches_answers_under_a_second` empties the store and
+its statistics, builds, and times the first shuffle with a restriction.
+
+## The second reader in the stored gate (plan item ck21, `cleanup2/ck21-approved-pool`)
+
+Households see only the public pool (`RecipeVisibilityExtensions.VisibleTo`: public, Approved, no verbatim source
+prose, not withheld): on the staging copy 21,920 of 116,557 live recipes. Every earlier draw and price figure was taken
+over all live recipes; the figures for the pool people see are in the build report `build/ck21-approved-pool.md`.
+
+**The setting.** The platform feature `diet-second-reader-gate` (`DietSecondGate.FeatureKey`, off by default). While it
+is on, a recipe the rules find clear for a severe set of one of the second reader's eleven types
+(`OllamaDietSecondReader.Types`; `SetState.SecondIndex`) is shown only when both models of the pair
+(`DietSecondGate.Pair`: mistral-small:24b and phi4) have a stored reading of it under the reader's current prompt
+signature and the recipe's current text, and both call it clearly free of that type. Otherwise the set holds it as
+unknown:
+
+- `DietFlagReason.SecondUnread` (13), "Not yet read by the second reader": a model of the pair has no current reading
+  (none, another prompt, other text, or an unreadable reply);
+- `DietFlagReason.SecondReader` (14), "Not clearly free to the second reader": a current reading says contains or may.
+
+The readers never clear what the rules hold: the rule reasons are decided first. A diet of choice, a severe type the
+reader does not read (Corn, Mustard, a single-nut type) and the recipe page's other reasons are unchanged. With the
+setting off the build reads no reading and every flag and recipe fingerprint is what it was
+(`DietSecondGateTests.With_the_setting_off_...`).
+
+**The readings** live in `plan."RecipeDietReading"` (`RecipeDietReadingEntity`, key recipe and model): the model, the
+prompt signature, the text signature, the store version (`diet-second-gate/1`), readable or not, whole or not, one letter
+per type (`c`, `m`, `f`) and the reply as JSON. The text signature (`DietSecondGate.TextSignature`) is taken over the
+title, every live line in order (its text, or its food's name) and the method, with all white space folded, so the
+build job (which reads the method as one string), the lane (step by step) and the auto-approval (from the loaded
+entity) sign alike. Only the shadow lane writes a row (below); nothing in a reading is a nutrition number.
+
+**How the build reads them.** While the setting is on, each cycle loads the pair's readings (all of them in a whole or a
+windowed cycle, those of its scope in a cycle over the changes) and folds the pair's summary into the recipe's
+fingerprint (`Print(..., second)`), so a new or changed reading moves the fingerprint and the recipe is decided again.
+The setting itself is read every cycle; a change of it makes the cycle over the changes a whole cycle (every recipe's
+fingerprint moves). `DietGateStore.Version` carries `DietSecondGate.StoreEntry` (the rule's version and a hash of the
+prompt signature and the pair), so a new rule, prompt or pair builds a new build beside the active one; the version
+column was widened to 1,023 characters for it (the version was already 249 characters).
+
+**Triggers** (`db/custom-objects.sql`, carried into `db/schema.sql`):
+
+| Table | Writes | Made undecided |
+|---|---|---|
+| `plan."RecipeDietReading"` | insert, delete; an update of a row's prompt or text signature, readability or letters, only while the setting is on | the recipe, held through the write log (`DietGateHoldRecipes`) |
+| `auth."PlatformFeature"` | insert, update, delete of the `diet-second-reader-gate` row (its key, on/off or liveness) | nothing (a log row, as for a criterion, so the job runs its next cycle) |
+
+A method rewritten on a web recipe (no step trigger for a recipe without a scrape time) makes its reading stale: the
+whole cycle of the next sweep (`DietGate:SweepSeconds`, 900) reads the new text signature and holds the recipe as not
+yet read until the lane reads it again. `gate-counts` gives `recipesNotReadBySecondReader` and
+`recipesHeldBySecondReader` per set.
+
+**The shadow lane** (`DietSecondReaderLaneService`, run by `DietSecondReaderHostedService`, lane `diet-second-reader`):
+off unless `DietSecondReader:Enabled=true`, and held by `ai-pause-diet-second-reader`, `ai-pause-all`, quiet hours and the
+host breaker (`AiLaneGate`), the pause read again before each recipe. It reads the approved pool first, then the recipes
+waiting for approval that nothing but the reading keeps waiting (`ApprovableAsync`: the sweep's candidates under the
+configured `Curation:AutoApprove` options that pass its policy and vetting and that `DietApprovalHolds` holds for no other
+reason; a recipe waiting for an unmeasured line or held as unknown is read once it is understood), each with both models, one call per recipe and model at
+the measured prompt (version 1, unchanged, so ck20's figures hold for it), and stores each reading as it comes, with a
+`curation."LaneDecision"` row (mode shadow, `Writes` false) as its journal. It never reads a recipe again while its text,
+the prompt and the model are unchanged, so a stopped lane resumes where it was; an unreadable reply (no reply in the
+HttpClient's 300 s, a reply missing a type, a request the host refuses with a 4xx status) is stored as unreadable, holds
+the recipe, and is read again after `DietSecondReader:RetryUnreadableHours` (24). A host fault (the host marked down, no
+connection, a 5xx status) is not a reply: the pass stops with the fault, stores nothing for that recipe and backs off
+five minutes, so an outage leaves no recipe unread for a day. `DietSecondReader:BatchSize` (10) recipes per pass,
+`DietSecondReader:PauseSeconds` (5), `DietSecondReader:IdleMinutes` (60). The host is `DietSecondReader:OllamaUrl`, else
+`Ai:BatchOllamaUrl`, else `Ai:OllamaUrl`. `GET /api/DietAdmin/second-reader` gives the scope (approved, waiting as above), the
+recipes read by the pair, per model the current, stale and unreadable readings and the recipes left, and the hours of
+model time left at each model's mean seconds per recipe (ck20's 22.1 s and 13.1 s until the lane has 20 readings of its
+own). The only types that take the reader are this lane and `DietSecondGate` (its prompt signature and type order); the
+IL test of `GoldenDietSecondReaderTests` holds that only the lane builds one.
+
+**Approval follows understanding** (`DietApprovalHolds`, read by `RecipeAutoCurationService`): a recipe the auto-approval
+policy and vetting pass still waits, counted in the sweep's refusals by reason, while
+
+- the active build has not decided it, or builds a severe set (a set being built has decided nothing, and requests of
+  its type hold every recipe until it is complete) (`not yet decided by the diet check`),
+- a severe set holds it as unknown by its rules (`held as unknown by a severe diet type`; the second reader's own holds
+  do not count: the recipe is understood and stays held for that type only), or
+- the pair has not read its current text (`not yet read by the second reader`).
+
+`Curation:AutoApprove:RequireDietUnderstood` and `Curation:AutoApprove:RequireSecondReading` (both true) turn either off.
+A recipe already approved is never taken back; it stays held for the severe types that do not understand it. On a
+database where the stored gate is not in use (in-memory, no build) nothing waits. The sweep's change signal
+(`AutoApproveChangeSignal`) moves with a reading, a recipe state the active build decides, a write logged or consumed
+and a set being built, not with a gate cycle that changes nothing, so an idle database still skips sweeps.
 
 ## Golden set
 
@@ -1313,6 +1442,44 @@ merge), twenty-two triggers (`DietGate*Inserted`,
    `wordings/unload?batch=w02&apply=false` and `apply=true` (rows out, category rows included); one wording alone:
    `wordings/{id}/retract`.
 
+### Unread made products and dish words (since `cleanup2/ck19-diet`)
+
+No schema change. The rule versions move (`branded-consensus/4`, `diet-food-words/5`, `recipe-text/9`; `DietFlagReason.Referral` is a new value of the existing smallint column), and the store
+version now carries the text signature of both derived tables (`BrandedConsensus.Signature`,
+`DietDishWords.Signature`), so a table derived again is a new build whether or not its version was raised, and the
+signature of the referral patterns (`IngredientLineParser.ReferralSignature`: `referral/1` and the first eight digits of
+their hash), so a widened or narrowed referral pattern reads every recipe again. The whole version must fit the
+build's 255-character column, which a test holds.
+
+- A curated food of a made category (4, 6, 7, 8, 18, 19, 23) with no consensus row (by its name and FDC id, or by its
+  name alone when it has no FDC id) is of unknown contents for a severe set on each class at least one in ten of its category's read foods state; its FDC id
+  and its category's unread classes are part of its fingerprint. A food read from fewer than ten statements, most of
+  them naming a single ingredient, is split on every class one of them states.
+- Title and method words hold a class only by their measured share (`Contents/diet-dish-words.tsv`: at least 20
+  recipes and 95 % with a flagged line); a title food no line names holds nothing by its name alone. A lost dough,
+  flour or method dish holds only the classes most web recipes of its dish carry, for a severe set whose type the
+  table measured (the eleven reference types, or a set whose severe patterns are all theirs); any other severe set
+  (corn, mustard, a walnut allergy) keeps every lost part's hold.
+- A book recipe whose title names a nut that no line and no sentence of the method names ("Nut and Asparagus Soup") is
+  held for every severe set whose line rules read that nut as a line would read it: an unnamed nut for Peanut Allergy and
+  Tree Nut Allergy alike, a named one ("Hickory Nut Cake") only for what names it (`DietRecipeText.LostNuts`,
+  `recipe-text/9`). A dough nut or a ginger nut is no nut; a butter nut ("Butter Nut Cake", "Butter-Nut Taffy") is the
+  butternut, the white walnut of the old American books, and is read as "butternut" is in a line (Tree Nut Allergy), while
+  a butternut squash is no nut. A word of the lines or the method that only looks like a nut (coconut, doughnut, ginger
+  nut, butternut squash, water chestnut, corn kernels) does not stand for the title's nut, so "Nut and Cocoanut Bars" is
+  still held for Peanut Allergy.
+- A recipe a line of which sends the cook to another recipe or page of its book by number
+  (`IngredientLineParser.HasReferral`: "as in recipe No. 12", "sauce, see page 19") is incomplete: a severe set holds
+  it as unknown with the reason `Referral` (`DietFlagReason.Referral`, 12; the recipe page names it "Refers to another
+  recipe"; `gate-counts` counts it as `recipesByReferral`), after every more particular reason. A diet of choice reads
+  it by its lines.
+- A severe type whose criteria changed is held until its new set is built (above).
+
+1. To derive the dish words again: `dotnet run --project nom-api/Nom.Import -- --dish-words --out
+   nom-api/Nom.Orch/Contents/diet-dish-words.tsv --corpus "<which copy>"` against a copy of the catalog (it reads,
+   it writes only the file; `--no-statements` for a role that may not read `IngredientContents`, as the committed
+   table was read). Commit the file; the first start builds every set again.
+
 ### Made products by their brands (since `cleanup2/ck18-composites`)
 
 No schema change. The versions move (`diet-food-words/4`, `recipe-text/5`), so the first start builds every set beside
@@ -1353,3 +1520,18 @@ The function `plan."DietGateClearFoods"` changes (no table, column or trigger): 
 5. Before the first food write after the deploy: `SELECT count(*) FROM plan."DietRecipeState" WHERE "ReadXmin" IS NULL`.
    Such states (stored before the column existed) are not removed by a food write any more; `Standing` holds them while
    any write is logged for their recipe (review ck16-r5), so the count is for the record, not a blocker.
+
+### The second reader (since `cleanup2/ck21-approved-pool`)
+
+One table (`plan."RecipeDietReading"`), two functions (`plan."DietGateReadingsWritten"`, `plan."DietGateFeaturesWritten"`),
+six triggers, and `plan."DietGateBuild"."Version"` widened to 1,023 characters: `./db/apply.sh --dry-run` shows those and
+nothing else. `DietGateStore.Version` changes, so the first start runs a whole build beside the active one, as for every
+rule change. On staging, with the setting off:
+
+1. Run the ten `DietGateStorePostgresTests` with `NOM_DIET_STORE_PG` (the new
+   `A_second_reading_holds_its_recipe_...` prints the whole cycle after the setting is turned on).
+2. Set `DietSecondReader:Enabled=true` and the host, leave `diet-second-reader-gate` off, and watch
+   `GET /api/DietAdmin/second-reader` (hours left, readings per model); `gate-counts` must not move.
+3. Only once `readByPair` covers the approved pool (`approvedReadByPair` equal to `approved`): turn the setting on, wait for
+   the whole cycle, and read `gate-counts`' `recipesNotReadBySecondReader` (expect only the waiting recipes not yet read)
+   and `recipesHeldBySecondReader` (the pair's price, about one shown recipe in six of what the rules show).

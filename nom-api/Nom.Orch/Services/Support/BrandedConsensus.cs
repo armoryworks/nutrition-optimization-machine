@@ -19,13 +19,20 @@ namespace Nom.Orch.Services.Support
     public sealed record ConsensusKey(string Head, IReadOnlyList<string> Words);
 
     /// <summary>One row of <c>Contents/diet-branded-consensus.tsv</c>: a generic curated food by its FDC id (<c>-</c> for a seed food) and its name, since catalog ids differ between databases; a class of what severe types restrict; how its branded products read for it; how many of them were read and how many state the class; and three example FDC ids of products that state it.</summary>
-    public sealed record ConsensusRow(string Fdc, string Name, string Class, string Verdict, int Products, int Stating, IReadOnlyList<string> Examples);
+    public sealed record ConsensusRow(string Fdc, string Name, string Class, string Verdict, int Products, int Stating, IReadOnlyList<string> Examples)
+    {
+        /// <summary>The food's USDA category when it was derived (none for a seed food with no category).</summary>
+        public int? Category { get; init; }
+    }
 
     /// <summary>What the branded products matched to one generic food read: how many statements were read, and for each class how many state it, with the FDC ids that do.</summary>
     public sealed class ConsensusTally
     {
         public int Matched { get; set; }
         public int Read { get; set; }
+
+        /// <summary>Of the read statements, those that name a single ingredient (the food itself, whatever it is also called: "CREAM OF TARTAR (POTASSIUM BITARTRATE)").</summary>
+        public int Single { get; set; }
         public Dictionary<string, List<string>> Stating { get; } = new(StringComparer.Ordinal);
     }
 
@@ -46,7 +53,7 @@ namespace Nom.Orch.Services.Support
     /// </summary>
     public static class BrandedConsensus
     {
-        public const string Version = "branded-consensus/2";
+        public const string Version = "branded-consensus/4";
         public const string ResourceName = "Nom.Orch.Contents.diet-branded-consensus.tsv";
 
         /// <summary>The source a fact of the consensus is journaled with.</summary>
@@ -60,6 +67,19 @@ namespace Nom.Orch.Services.Support
 
         public const string Usually = "usually";
         public const string Split = "split";
+
+        /// <summary>The verdict of the one row a food read from at least <see cref="MinProducts"/> statements (or of whose read statements at least <see cref="MinSingle"/>, and at least <see cref="UsuallyShare"/> of them, name a single ingredient: the makers usually sell it as the food alone) carries under the class <see cref="AnyClass"/>, whatever they state: its contents are known, and a class with no row of its own is clear.</summary>
+        public const string Read = "read";
+        public const string AnyClass = "any";
+
+        /// <summary>The source of a stored Unknown fact of a curated food of a made category whose brands were never read (<see cref="UnreadClasses"/>).</summary>
+        public const string UnreadFactSource = "consensus-unread";
+
+        /// <summary>The share of the read foods of a USDA category that must state a class (usually or split) for a food of that category whose brands were never read to be of unknown contents for it (<see cref="UnreadClasses"/>): at least one in ten.</summary>
+        public const double UnreadShare = 0.10;
+
+        /// <summary>The fewest read statements, each naming a single ingredient, that make a food's contents known though fewer than <see cref="MinProducts"/> were read: every maker sells it as the food alone (cream of tartar).</summary>
+        public const int MinSingle = 3;
 
         /// <summary>The fewest read statements a consensus is drawn from; fewer leave the food as its own data reads.</summary>
         public const int MinProducts = 10;
@@ -242,14 +262,16 @@ namespace Nom.Orch.Services.Support
         {
             var keys = foods.Select(f => (Food: f, Key: KeyOf(f.Name, f.Description))).Where(x => x.Key != null).ToList();
             var heads = keys.Select(k => k.Key!.Head).ToHashSet(StringComparer.Ordinal);
+            var keyWords = keys.SelectMany(k => k.Key!.Words).ToHashSet(StringComparer.Ordinal);
+            var descriptions = products.Select(p => Joined(p.Description, keyWords)).ToArray();
             var meals = PreparedFoods.BrandedMealCategories.ToHashSet(StringComparer.Ordinal);
             var phrase = new List<string>[products.Count];
             var later = new List<string>[products.Count];
             var index = new Dictionary<string, List<int>>(StringComparer.Ordinal);
             for (var i = 0; i < products.Count; i++)
             {
-                phrase[i] = ProductWords(products[i].Description, heads);
-                later[i] = products[i].Description.Split(',').Skip(1).Select(Tokens).Where(t => t.Count >= 3 && foodHeads.Contains(t[^1])).Select(t => t[^1]).ToList();
+                phrase[i] = ProductWords(descriptions[i], heads);
+                later[i] = descriptions[i].Split(',').Skip(1).Select(Tokens).Where(t => t.Count >= 3 && foodHeads.Contains(t[^1])).Select(t => t[^1]).ToList();
                 if (products[i].Category is { } cat && meals.Contains(cat)) continue;
                 foreach (var w in phrase[i].Distinct(StringComparer.Ordinal))
                 {
@@ -276,6 +298,8 @@ namespace Nom.Orch.Services.Support
                     if (p.Count == 0 || p[^1] != key.Head) return false;
                     if (p.Any(w => Forms.Contains(w) && !own.Contains(w))) return false;
                     if (Tokens(products[i].Category).FirstOrDefault() is { } form && Forms.Contains(form) && !own.Contains(form)) return false;
+                    if (own.Contains(CannedForm) && !Tokens(descriptions[i]).Contains(CannedForm) && Tokens(products[i].Category).FirstOrDefault() != CannedForm) return false;
+                    if (Tokens(descriptions[i]).Any(w => !own.Contains(w) && ClassesNamed(w).Any(c => !ownClasses.Contains(c)))) return false;
                     if (later[i].Any(h => !own.Contains(h))) return false;
                     var plain = p.Where(w => !Qualifiers.Contains(w)).ToList();
                     return plain.Count < 2 || own.Contains(plain[^2]) || (!foodHeads.Contains(plain[^2]) && ClassesNamed(plain[^2]).All(ownClasses.Contains));
@@ -289,6 +313,21 @@ namespace Nom.Orch.Services.Support
         }
 
         private static readonly System.Collections.Concurrent.ConcurrentDictionary<string, IReadOnlySet<string>> ClassWords = new(StringComparer.Ordinal);
+
+        /// <summary>The form a generic food USDA describes as canned must have in a product too: its words, or the first word of its branded category ("Canned Vegetables"), so a kettle corn or a puffed corn snack is no canned corn (staging checkpoint 8, T4).</summary>
+        public const string CannedForm = "canned";
+
+        private static readonly Regex Pair = new(@"(?<![\p{L}])(\p{L}+)[\s-]+(\p{L}+)(?![\p{L}])", RegexOptions.CultureInvariant | RegexOptions.Compiled);
+
+        /// <summary>A branded description with each pair of words written apart or with a hyphen joined where the joined word is a word of a generic food's key ("SEMI-SWEET CHOCOLATE" is semisweet chocolate, staging checkpoint 8, T12: Semisweet Chocolate matched 3 products).</summary>
+        public static string Joined(string description, IReadOnlySet<string> keyWords) =>
+            Pair.Replace(description, m => keyWords.Contains(Singular((m.Groups[1].Value + m.Groups[2].Value).ToLowerInvariant())) && !keyWords.Contains(Singular(m.Groups[2].Value.ToLowerInvariant())) ? m.Groups[1].Value + m.Groups[2].Value : m.Value);
+
+        private static readonly Regex Ground = new(@"(?<![\p{L}])(\p{L}+)[\s-]+(?:flour|meal|bran)s?(?![\p{L}])", RegexOptions.CultureInvariant | RegexOptions.IgnoreCase | RegexOptions.Compiled);
+
+        /// <summary>An ingredient name with each "X flour", "X meal" or "X bran" read as X where X is a food of a category that is no grain (<paramref name="ground"/>: mustard, almond, cashew, bean, potato): a label's bare "flour" is wheat flour (21 CFR 137.105), but a named food's flour is that food ground, not wheat (staging checkpoint 8, T4: "MUSTARD FLOUR" and "cashew flour" read as gluten).</summary>
+        public static string GroundAs(string name, IReadOnlySet<string>? ground) =>
+            ground == null || ground.Count == 0 ? name : Ground.Replace(name, m => ground.Contains(Singular(m.Groups[1].Value.ToLowerInvariant())) ? m.Groups[1].Value : m.Value);
 
         /// <summary>The classes of the vocabulary a word alone names ("clam" shellfish, "almond" the tree nuts, "mayo" egg), read by the classes' rules as a statement's ingredient is: a product named, right before its head, for a food of a class the generic food's own words do not name is another product ("white clam sauce" is no white sauce, "lemon meringue pie" no lemon pie), whether or not a curated description is headed by that word; one whose word names only what the food's words already name is the same kind ("mayo mayonnaise", "sourdough bread").</summary>
         public static IReadOnlySet<string> ClassesNamed(string word) =>
@@ -348,18 +387,21 @@ namespace Nom.Orch.Services.Support
         /// warning is not a statement of contents and is left out. Null when the statement is not read (unbalanced brackets,
         /// a run-on item, no text): such a product is not counted.
         /// </summary>
-        public static IReadOnlySet<string>? StatedClasses(string statement)
+        public static IReadOnlySet<string>? StatedClasses(string statement, IReadOnlySet<string>? ground = null) => Stated(statement, ground).Classes;
+
+        /// <summary>The classes one statement states (<see cref="StatedClasses"/>) and how many ingredients it names; null classes when it is not read.</summary>
+        public static (IReadOnlySet<string>? Classes, int Items) Stated(string statement, IReadOnlySet<string>? ground = null)
         {
             var reading = IngredientStatementReader.Read(statement);
-            if (!reading.Read) return null;
+            if (!reading.Read) return (null, 0);
             var contents = new IngredientStatementReading { Read = true, Ingredients = reading.Ingredients, Declared = reading.Declared };
             var row = PreparedContentsService.Build(new ContentsStatement(0, Source, statement), statement, contents, new Dictionary<string, long>(), Version, DateTime.UnixEpoch);
-            if (row.Outcome != Nom.Data.Recipe.IngredientContentsOutcome.Read) return null;
+            if (row.Outcome != Nom.Data.Recipe.IngredientContentsOutcome.Read) return (null, 0);
             var texts = new List<string>();
             var allergens = new List<StatementAllergen>();
             foreach (var item in PreparedContentsService.Items(row))
             {
-                texts.Add(item.Name);
+                texts.Add(GroundAs(item.Name, ground));
                 allergens.AddRange((item.LabelTerms()?.SelectMany(t => t.Contains) ?? Array.Empty<string>()).Select(f => new StatementAllergen(f, IngredientStatementReader.ClassOf(f))));
             }
             allergens.AddRange(PreparedContentsService.Allergens(row).Declared);
@@ -374,7 +416,7 @@ namespace Nom.Orch.Services.Support
             Read(texts, null);
             foreach (var allergen in allergens.Where(a => !NamesCoconut(a.Word)))
                 Read(IngredientStatementReader.GateWords(allergen), allergen.Class is { } major && ClassesOf.TryGetValue(major, out var classes) ? classes : null);
-            return stated;
+            return (stated, reading.Ingredients.Count);
         }
 
         /// <summary>The vocabulary classes a declared major allergen states: its own only, so a "Contains: tree nuts (almonds)" line is no statement of peanut, although Peanut Allergy reads an unnamed "nuts".</summary>
@@ -394,20 +436,37 @@ namespace Nom.Orch.Services.Support
         /// <summary>A declared or contained allergen that is coconut: labels declare it as a tree nut, but the Tree Nut set does not read coconut (the Coconut Allergy type does, as the 2025 FDA list has it), so a coconut product does not state the tree nuts.</summary>
         private static bool NamesCoconut(string word) => Tokens(word).Contains("coconut");
 
-        /// <summary>Counts, for each matched food, its read statements and the products that state each class.</summary>
-        public static Dictionary<long, ConsensusTally> Tally(Dictionary<long, List<ConsensusProduct>> matches)
+        /// <summary>The USDA categories whose foods are no grain (Spices and Herbs, Fruits, Vegetables, Nut and Seed Products, Legumes): a word of the first two parts of a curated food's description of one of them names a food whose flour, meal or bran is that food ground (<see cref="GroundAs"/>).</summary>
+        public static readonly IReadOnlySet<int> GroundCategories = new HashSet<int> { 2, 9, 11, 12, 16 };
+
+        /// <summary>The USDA categories of the grains and what is made of them (Breakfast Cereals, Baked Products, Cereal Grains and Pasta): a word of their descriptions is never a ground word ("Wheat flour, white, all-purpose" keeps "white flour" a wheat flour, though "Potatoes, white" is a vegetable).</summary>
+        public static readonly IReadOnlySet<int> GrainCategories = new HashSet<int> { 8, 18, 20 };
+
+        /// <summary>The words of the first two parts of the descriptions of the curated foods of <see cref="GroundCategories"/>, qualifiers and the words of the grain foods' descriptions (<see cref="GrainCategories"/>) left out ("Spices, mustard seed, ground": spice, mustard, seed; "Nuts, almonds": nut, almond).</summary>
+        public static HashSet<string> GroundWords(IEnumerable<(int? CategoryId, string Description)> foods)
         {
-            var stated = new Dictionary<string, IReadOnlySet<string>?>(StringComparer.Ordinal);
-            foreach (var p in matches.Values.SelectMany(m => m).DistinctBy(p => p.FdcId).ToList().AsParallel().Select(p => (p.FdcId, Classes: StatedClasses(p.Statement))).ToList())
-                stated[p.FdcId] = p.Classes;
+            var list = foods.ToList();
+            IEnumerable<string> Words(IReadOnlySet<int> categories) => list.Where(f => f.CategoryId is { } c && categories.Contains(c))
+                .SelectMany(f => Bracket.Replace(f.Description, " ").Split(',').Take(2).SelectMany(Tokens));
+            var grain = Words(GrainCategories).ToHashSet(StringComparer.Ordinal);
+            return Words(GroundCategories).Where(t => !Qualifiers.Contains(t) && t.Length > 2 && !grain.Contains(t)).ToHashSet(StringComparer.Ordinal);
+        }
+
+        /// <summary>Counts, for each matched food, its read statements and the products that state each class.</summary>
+        public static Dictionary<long, ConsensusTally> Tally(Dictionary<long, List<ConsensusProduct>> matches, IReadOnlySet<string>? ground = null)
+        {
+            var stated = new Dictionary<string, (IReadOnlySet<string>? Classes, int Items)>(StringComparer.Ordinal);
+            foreach (var p in matches.Values.SelectMany(m => m).DistinctBy(p => p.FdcId).ToList().AsParallel().Select(p => (p.FdcId, Read: Stated(p.Statement, ground))).ToList())
+                stated[p.FdcId] = p.Read;
             var result = new Dictionary<long, ConsensusTally>();
             foreach (var (food, products) in matches)
             {
                 var tally = new ConsensusTally { Matched = products.Count };
                 foreach (var p in products.OrderBy(p => long.TryParse(p.FdcId, out var n) ? n : long.MaxValue))
                 {
-                    if (stated[p.FdcId] is not { } classes) continue;
+                    if (stated[p.FdcId] is not { Classes: { } classes } read) continue;
                     tally.Read++;
+                    if (read.Items == 1) tally.Single++;
                     foreach (var c in classes)
                     {
                         if (!tally.Stating.TryGetValue(c, out var ids)) tally.Stating[c] = ids = new List<string>();
@@ -428,7 +487,7 @@ namespace Nom.Orch.Services.Support
             return share > ClearShare ? Split : null;
         }
 
-        /// <summary>The rows of the consensus for the given foods and their tallies, in food and class order. A food made at home (<see cref="HomeMade"/>) takes from its kind's brands only what they usually state, what the dish is made of (the flour of a pie, the eggs of a sponge cake): where they are split, the split is what each maker adds, and a home recipe's own choice is in its own lines; and it never takes the sulfite class, a preservative a maker adds and a home kitchen does not (refrigerated mashed potatoes with sodium bisulfite are no home-prepared mashed potatoes).</summary>
+        /// <summary>The rows of the consensus for the given foods and their tallies, in food and class order. A food read from fewer than <see cref="MinProducts"/> statements whose contents are known by its single-ingredient makers (its read row) is <see cref="Split"/> on every class any of its statements state: too few were read for a share, and a stated class is never clear. A food made at home (<see cref="HomeMade"/>) takes from its kind's brands only what they usually state, what the dish is made of (the flour of a pie, the eggs of a sponge cake): where they are split, the split is what each maker adds, and a home recipe's own choice is in its own lines; and it never takes the sulfite class, a preservative a maker adds and a home kitchen does not (refrigerated mashed potatoes with sodium bisulfite are no home-prepared mashed potatoes).</summary>
         public static IReadOnlyList<ConsensusRow> Rows(IEnumerable<ConsensusFood> foods, IReadOnlyDictionary<long, ConsensusTally> tallies)
         {
             var rows = new List<ConsensusRow>();
@@ -436,12 +495,17 @@ namespace Nom.Orch.Services.Support
             {
                 if (!tallies.TryGetValue(food.Id, out var tally)) continue;
                 var home = HomeMade(food.Description);
+                var fdc = string.IsNullOrWhiteSpace(food.FdcId) ? "-" : food.FdcId.Trim();
+                var few = tally.Read < MinProducts && tally.Single >= MinSingle && tally.Single >= UsuallyShare * tally.Read;
+                if (tally.Read >= MinProducts || few)
+                    rows.Add(new ConsensusRow(fdc, food.Name, AnyClass, Read, tally.Read, 0, Array.Empty<string>()) { Category = food.CategoryId });
                 foreach (var c in DietVocabulary.Classes)
                 {
                     if (home && c.Name == SulfiteClass) continue;
                     var ids = tally.Stating.GetValueOrDefault(c.Name) ?? new List<string>();
-                    if (VerdictOf(tally.Read, ids.Count) is { } verdict && (!home || verdict == Usually))
-                        rows.Add(new ConsensusRow(string.IsNullOrWhiteSpace(food.FdcId) ? "-" : food.FdcId.Trim(), food.Name, c.Name, verdict, tally.Read, ids.Count, ids.Take(3).ToList()));
+                    var verdict = few ? (ids.Count > 0 ? Split : null) : VerdictOf(tally.Read, ids.Count);
+                    if (verdict != null && (!home || verdict == Usually))
+                        rows.Add(new ConsensusRow(fdc, food.Name, c.Name, verdict, tally.Read, ids.Count, ids.Take(3).ToList()) { Category = food.CategoryId });
                 }
             }
             return rows;
@@ -455,9 +519,11 @@ namespace Nom.Orch.Services.Support
             text.Append("# products: the matched products whose statement was read; stating: those that state the class (the gate's reading of the statement against the default criteria of the class's type, warnings left out); examples: up to three FDC ids that state it.\n");
             text.Append("# verdict: usually when at least ").Append(UsuallyShare.ToString("0.##", CultureInfo.InvariantCulture)).Append(" of at least ").Append(MinProducts)
                 .Append(" products state it, split when more than ").Append(ClearShare.ToString("0.##", CultureInfo.InvariantCulture)).Append(" and less than that; a food or class with no row reads as its own data.\n");
-            text.Append("fdc\tname\tclass\tverdict\tproducts\tstating\texamples\tsource\n");
+            text.Append("# class any, verdict read: the food was read from at least ").Append(MinProducts).Append(" statements, or at least ").Append(MinSingle).Append(" of its read statements, and three in four of them, name a single ingredient (then split on every class one of them states), so a class with no row is clear for it; a curated food of a made category (").Append(string.Join(", ", MadeCategories.OrderBy(c => c)))
+                .Append(") with no read row is of unknown contents for each class at least ").Append(UnreadShare.ToString("0.##", CultureInfo.InvariantCulture)).Append(" of the read foods of its category state. category: the food's USDA category.\n");
+            text.Append("fdc\tname\tcategory\tclass\tverdict\tproducts\tstating\texamples\tsource\n");
             foreach (var r in rows)
-                text.Append(r.Fdc).Append('\t').Append(r.Name.Replace('\t', ' ')).Append('\t').Append(r.Class).Append('\t').Append(r.Verdict).Append('\t')
+                text.Append(r.Fdc).Append('\t').Append(r.Name.Replace('\t', ' ')).Append('\t').Append(r.Category?.ToString(CultureInfo.InvariantCulture) ?? "-").Append('\t').Append(r.Class).Append('\t').Append(r.Verdict).Append('\t')
                     .Append(r.Products.ToString(CultureInfo.InvariantCulture)).Append('\t').Append(r.Stating.ToString(CultureInfo.InvariantCulture)).Append('\t')
                     .Append(string.Join(' ', r.Examples)).Append('\t').Append(Source).Append('\n');
             return text.ToString();
@@ -483,9 +549,10 @@ namespace Nom.Orch.Services.Support
                 var cell = header.Select((h, i) => (h, cells[i].Trim())).ToDictionary(x => x.h, x => x.Item2, StringComparer.Ordinal);
                 var row = new ConsensusRow(cell["fdc"], cell["name"], cell["class"], cell["verdict"],
                     int.Parse(cell["products"], CultureInfo.InvariantCulture), int.Parse(cell["stating"], CultureInfo.InvariantCulture),
-                    cell["examples"].Split(' ', StringSplitOptions.RemoveEmptyEntries));
-                if (!Probes.ContainsKey(row.Class)) throw new InvalidDataException($"diet-branded-consensus.tsv: {row.Class} is no class of the vocabulary");
-                if (row.Verdict != Usually && row.Verdict != Split) throw new InvalidDataException($"diet-branded-consensus.tsv: {row.Verdict} is no verdict");
+                    cell["examples"].Split(' ', StringSplitOptions.RemoveEmptyEntries))
+                { Category = cell.TryGetValue("category", out var category) && int.TryParse(category, NumberStyles.Integer, CultureInfo.InvariantCulture, out var c) ? c : null };
+                if (row.Class == AnyClass ? row.Verdict != Read : !Probes.ContainsKey(row.Class)) throw new InvalidDataException($"diet-branded-consensus.tsv: {row.Class} is no class of the vocabulary");
+                if (row.Verdict != Usually && row.Verdict != Split && row.Verdict != Read) throw new InvalidDataException($"diet-branded-consensus.tsv: {row.Verdict} is no verdict");
                 if (cell["source"] != Source) throw new InvalidDataException($"diet-branded-consensus.tsv: {cell["source"]} is not {Source}");
                 if (!seen.Add((row.Fdc, row.Name.ToLowerInvariant(), row.Class))) throw new InvalidDataException($"diet-branded-consensus.tsv: {row.Fdc} {row.Name} {row.Class} stands twice");
                 rows.Add(row);
@@ -508,19 +575,38 @@ namespace Nom.Orch.Services.Support
 
         private static readonly Lazy<Dictionary<string, ConsensusRow[]>> ByName = new(() => All.GroupBy(r => r.Name.Trim().ToLowerInvariant()).ToDictionary(g => g.Key, g => g.ToArray(), StringComparer.Ordinal));
 
-        /// <summary>The rows of a food: those of its name, and of its FDC id when the row has one, so a renamed food is another food until the consensus is derived again.</summary>
-        public static IReadOnlyList<ConsensusRow> ForFood(string name, string? fdcId, IReadOnlyList<ConsensusRow>? rows = null)
+        /// <summary>The rows of a food: those of its name, and of its FDC id when the row has one, so a renamed food is another food until the consensus is derived again; with <paramref name="anyFdc"/> (a food with no FDC id of its own) every row of its name.</summary>
+        public static IReadOnlyList<ConsensusRow> ForFood(string name, string? fdcId, IReadOnlyList<ConsensusRow>? rows = null, bool anyFdc = false)
         {
             var key = name.Trim().ToLowerInvariant();
             var found = rows == null
                 ? ByName.Value.GetValueOrDefault(key) ?? Array.Empty<ConsensusRow>()
                 : rows.Where(r => r.Name.Trim().ToLowerInvariant() == key).ToArray();
-            return found.Where(r => r.Fdc == "-" || string.Equals(r.Fdc, fdcId?.Trim(), StringComparison.Ordinal)).ToList();
+            return found.Where(r => anyFdc || r.Fdc == "-" || string.Equals(r.Fdc, fdcId?.Trim(), StringComparison.Ordinal)).ToList();
         }
 
-        /// <summary>Whether a severe criterion reads a class: it names the class's probe word as a recipe line's own text would.</summary>
-        public static bool Reads(DietDataCriterion criterion, string className) =>
-            criterion.Severity >= 4 && (criterion.LikePattern != null || criterion.WordPattern != null)
+        private static readonly Lazy<Dictionary<int, HashSet<string>>> UnreadByCategory = new(() => UnreadByCategoryOf(All));
+
+        /// <summary>For each made category with a read food among the rows, the classes at least <see cref="UnreadShare"/> of its read foods state (<see cref="UnreadClasses"/>).</summary>
+        public static Dictionary<int, HashSet<string>> UnreadByCategoryOf(IReadOnlyList<ConsensusRow> rows)
+        {
+            var read = rows.Where(r => r.Class == AnyClass && r.Category is { } c && MadeCategories.Contains(c)).GroupBy(r => r.Category!.Value).ToDictionary(g => g.Key, g => g.Select(r => (r.Fdc, r.Name)).ToHashSet());
+            var stating = rows.Where(r => r.Class != AnyClass && r.Category is { } c && read.ContainsKey(c)).GroupBy(r => (r.Category!.Value, r.Class)).ToDictionary(g => g.Key, g => g.Select(r => (r.Fdc, r.Name)).Distinct().Count());
+            return read.ToDictionary(kv => kv.Key, kv => DietVocabulary.Classes.Select(c => c.Name).Where(c => stating.GetValueOrDefault((kv.Key, c)) >= UnreadShare * kv.Value.Count).ToHashSet(StringComparer.Ordinal));
+        }
+
+        /// <summary>The classes a curated food of a made category whose brands were never read (no row of its own) is of unknown contents for: those at least <see cref="UnreadShare"/> of the read foods of its category state, usually or split (a semisweet chocolate is of unknown milk and soy, as the chocolates read are; staging checkpoint 8, T12, where Semisweet Chocolate read clear for Soy Allergy). None for a category that is not made or has no read food.</summary>
+        public static IReadOnlySet<string> UnreadClasses(int? categoryId, IReadOnlyDictionary<int, HashSet<string>>? byCategory = null) =>
+            categoryId is { } c && MadeCategories.Contains(c) && (byCategory ?? UnreadByCategory.Value).TryGetValue(c, out var classes) ? classes : new HashSet<string>(StringComparer.Ordinal);
+
+        /// <summary>The fingerprint of the committed file's text: a regenerated file is another reading of every food, so it is part of the store's version (<see cref="DietGateStore.Version"/>) whether or not <see cref="Version"/> was raised with it.</summary>
+        public static string Signature => SignatureOf.Value;
+
+        private static readonly Lazy<string> SignatureOf = new(() => Version + ":" + DietTextSignature.Of(typeof(BrandedConsensus).Assembly, ResourceName));
+
+        /// <summary>Whether a severe criterion reads a class: it names the class's probe word as a recipe line's own text would. A usually row counts for a criterion of any severity (<paramref name="anySeverity"/>: caramel and fudge syrup contain milk for a Vegan household too, staging checkpoint 8, T10), a split or an unread food only for a severe one.</summary>
+        public static bool Reads(DietDataCriterion criterion, string className, bool anySeverity = false) =>
+            (anySeverity || criterion.Severity >= 4) && (criterion.LikePattern != null || criterion.WordPattern != null)
             && Probes.TryGetValue(className, out var probe) && DietCriteriaMatcher.LineNames(criterion, probe);
     }
 }

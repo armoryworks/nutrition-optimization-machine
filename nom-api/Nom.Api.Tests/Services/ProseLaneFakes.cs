@@ -88,11 +88,16 @@ namespace Nom.Api.Tests.Services
         public Func<string, string> Reword { get; init; } = sentence => GarlicSauce.Reworded.TryGetValue(sentence, out var reworded) ? reworded : sentence;
         public List<ProseRewordRequest> Reworded { get; } = new();
 
+        /// <summary>The second rewrite of each sentence, in another frame; none is given when it returns null.</summary>
+        public Func<string, string?> Other { get; init; } = _ => null;
+
         public Task<string?> RewordAsync(ProseRewordRequest request, CancellationToken cancellationToken)
         {
             if (Throw != null) throw Throw;
             Reworded.Add(request);
-            var sentences = request.Sentences.Select(x => new { n = x.Number, reading = "what the cook does", rewrite = Reword(x.Text) }).ToList();
+            var sentences = request.Sentences.Select(x => Other(x.Text) is { } other
+                ? (object)new { n = x.Number, reading = "what the cook does", rewrite = Reword(x.Text), other }
+                : new { n = x.Number, reading = "what the cook does", rewrite = Reword(x.Text) }).ToList();
             return Task.FromResult<string?>(JsonSerializer.Serialize(new { method = "a sauce", step = "this step", sentences }));
         }
 
@@ -113,7 +118,7 @@ namespace Nom.Api.Tests.Services
         public Func<int, bool?> Confirms { get; set; } = _ => true;
         public List<IReadOnlyList<string>> Read { get; } = new();
 
-        public Task<ProseJudgeVerdict?> JudgeAsync(IReadOnlyList<string> original, IReadOnlyList<string> rewrite, CancellationToken cancellationToken)
+        public Task<ProseJudgeVerdict?> JudgeAsync(IReadOnlyList<string> original, IReadOnlyList<string> rewrite, CancellationToken cancellationToken, string title = "")
         {
             Read.Add(rewrite);
             var faithful = Faithful(original, rewrite);

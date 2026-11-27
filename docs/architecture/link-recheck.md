@@ -445,6 +445,18 @@ brings back as live and under the name it takes back (`LineMoveDietGuard.Expect`
 counts its import landings as its apply moves them (`landingsMovedBack`, `landingsKept`, `landingsSkipped`), so the dry
 run equals the apply (S10: the w01 unload's dry run held 8,348 and moved no landing, its apply held 8,300 and moved 16).
 
+**Marks of unknown contents on the way back (staging checkpoint 8, T13 and T14; `cleanup2/ck19-store-moves`).** The
+undo with `restoreLowered=true` keeps a mark the run put on a food only while a line the run moved there is still on
+that food (held by the diet guard, on a rebuilt recipe, or not followed to its place): those lines are held by the mark.
+A moved line that is gone or now sits on another food keeps nothing, and lines that were on the food before the run
+never keep it (the free-of undo with `restoreLowered=true` kept six marks on foods such as "Vegan butter" whose other
+113 lines the run never moved, so those recipes stayed held after an undo chosen to be exact). The default undo never
+lowers a flag, so it keeps the mark while any live line stays on the food, as before (review ck19 CK19SM-1); its dry
+run, like the apply, counts a line entry it cannot follow to a live line as not taken back (CK19SM-2). And a verified wording wins over a
+mark: the verified relink reads the wording's own uncurated row without the mark (`LineMoveDietGuard.ReadsVerified`),
+since the reviewed row, not a re-check run, says what those lines hold (the alcohol set marked w01's "sweet cider" row,
+and the w01 round trip then held 40 lines off Apple Juice). The mark stays for every other reading of the row.
+
 Operator note: after the withdrawal every withdrawn wording is a link-lane source again: expect
 `linkQueue` to rise to about 64,000 while the link lane stays paused. A food holding the wording's
 very name is renamed to its USDA description, or, when that differs from the wording only in case

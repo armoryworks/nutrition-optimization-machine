@@ -22,6 +22,9 @@ namespace Nom.Orch.Interfaces
 
             /// <summary>Holds the weekly prose re-check job, which withholds the prose of shown recipes that fail the prose check.</summary>
             public const string ProseRecheckPause = "pause-prose-recheck";
+
+            /// <summary>Off by default: while on, the stored diet gate shows a recipe to a severe type of the second reader only when the rules find it clear and both stored readings of the reader's pair call it clearly free.</summary>
+            public const string DietSecondReaderGate = Nom.Orch.Services.Support.DietSecondGate.FeatureKey;
         }
 
         Task<bool> IsEnabledAsync(string key);

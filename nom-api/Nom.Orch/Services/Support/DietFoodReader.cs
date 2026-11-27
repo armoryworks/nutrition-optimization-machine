@@ -36,6 +36,7 @@ namespace Nom.Orch.Services.Support
             Aliases = aliases;
             Nutrients = nutrients;
             Statements = statements;
+            _unreadByCategory = new(() => BrandedConsensus.UnreadByCategoryOf(Consensus));
         }
 
         public IReadOnlyDictionary<long, Food> Foods { get; }
@@ -52,15 +53,25 @@ namespace Nom.Orch.Services.Support
         /// <summary>The rows of the branded consensus the decision reads: the committed file (<see cref="BrandedConsensus.All"/>), or the rows a test gives.</summary>
         public IReadOnlyList<ConsensusRow> Consensus { get; init; } = BrandedConsensus.All;
 
-        /// <summary>The consensus rows of a food: only a curated food carries them, and only under the name they were derived for.</summary>
+        /// <summary>The consensus rows of a food: only a curated food carries them, and only under the name they were derived for; a food of a made category with no FDC id takes the rows of its name whatever food they were derived for (Corn Tortillas is split on wheat, as the real food is).</summary>
         public IReadOnlyList<ConsensusRow> ConsensusOf(Food food) =>
-            !food.Curated ? Array.Empty<ConsensusRow>() : BrandedConsensus.ForFood(food.Name, food.FdcId, ReferenceEquals(Consensus, BrandedConsensus.All) ? null : Consensus);
+            !food.Curated ? Array.Empty<ConsensusRow>() : BrandedConsensus.ForFood(food.Name, food.FdcId, ReferenceEquals(Consensus, BrandedConsensus.All) ? null : Consensus, anyFdc: NoFdcMade(food));
+
+        private static bool NoFdcMade(Food food) => string.IsNullOrWhiteSpace(food.FdcId) && food.CategoryId is { } c && BrandedConsensus.MadeCategories.Contains(c);
+
+        /// <summary>The classes a curated food of a made category with no consensus row of its own is of unknown contents for (<see cref="BrandedConsensus.UnreadClasses"/>), read from the consensus the catalog reads; none for a food with a row, an uncurated food or a food of another category. A food with no FDC id is unread only where no row of its name exists (<see cref="ConsensusOf"/>).</summary>
+        public IReadOnlySet<string> UnreadClassesOf(Food food) =>
+            !food.Curated || ConsensusOf(food).Count > 0 ? NoClasses : BrandedConsensus.UnreadClasses(food.CategoryId, ReferenceEquals(Consensus, BrandedConsensus.All) ? null : _unreadByCategory.Value);
+
+        private static readonly IReadOnlySet<string> NoClasses = new HashSet<string>(StringComparer.Ordinal);
+
+        private readonly Lazy<Dictionary<int, HashSet<string>>> _unreadByCategory;
 
         /// <summary>The statement rows with their text, for the foods <see cref="LoadStatementsAsync"/> loaded.</summary>
         public Dictionary<long, IngredientContentsEntity> StatementRows { get; } = new();
 
-        /// <summary>Reads the catalog, or with <paramref name="foodIds"/> only those foods; the statements' text is not read here.</summary>
-        public static async Task<DietFoodCatalog> LoadAsync(ApplicationDbContext db, IReadOnlyCollection<long> nutrientIds, CancellationToken cancellationToken = default, IReadOnlyCollection<long>? foodIds = null)
+        /// <summary>Reads the catalog, or with <paramref name="foodIds"/> only those foods; the statements' text is not read here, and with <paramref name="withStatements"/> false not even their rows (a reader whose role may not read the contents table).</summary>
+        public static async Task<DietFoodCatalog> LoadAsync(ApplicationDbContext db, IReadOnlyCollection<long> nutrientIds, CancellationToken cancellationToken = default, IReadOnlyCollection<long>? foodIds = null, bool withStatements = true)
         {
             var scopes = foodIds == null ? new long[]?[] { null } : foodIds.Distinct().Chunk(5000).Select(c => (long[]?)c).ToArray();
             var ids = nutrientIds.Distinct().ToList();
@@ -86,11 +97,12 @@ namespace Nom.Orch.Services.Support
                             .Select(n => new { n.IngredientId, n.NutrientId, n.Amount })
                             .ToListAsync(cancellationToken))
                         .Select(n => (n.IngredientId, n.NutrientId, n.Amount)));
-                statementRows.AddRange((await db.IngredientContents.AsNoTracking()
+                if (withStatements)
+                    statementRows.AddRange((await db.IngredientContents.AsNoTracking()
                         .Where(c => c.HouseholdId == null && (scope == null || scope.Contains(c.IngredientId)))
                         .Select(c => new { c.Id, c.IngredientId, c.Outcome, c.ReaderVersion, c.LastModifiedDate })
                         .ToListAsync(cancellationToken))
-                    .Select(c => new Statement(c.Id, c.IngredientId, c.Outcome, c.ReaderVersion, c.LastModifiedDate)));
+                        .Select(c => new Statement(c.Id, c.IngredientId, c.Outcome, c.ReaderVersion, c.LastModifiedDate)));
             }
             var aliases = aliasRows.GroupBy(a => a.IngredientId).ToDictionary(g => g.Key, g => g.ToArray());
             var nutrients = nutrientRows.GroupBy(n => n.IngredientId)
@@ -138,6 +150,8 @@ namespace Nom.Orch.Services.Support
             if (Statements.TryGetValue(foodId, out var s)) hash.Add(s.Id).Add(s.Outcome).Add(s.ReaderVersion).Add(s.Modified?.Ticks);
             hash.Add("|");
             foreach (var row in ConsensusOf(food).OrderBy(r => r.Class, StringComparer.Ordinal)) hash.Add(row.Class).Add(row.Verdict);
+            hash.Add("|").Add(food.FdcId?.Trim());
+            foreach (var c in UnreadClassesOf(food).OrderBy(c => c, StringComparer.Ordinal)) hash.Add(c);
             return hash.Value;
         }
 
@@ -196,6 +210,9 @@ namespace Nom.Orch.Services.Support
 
             /// <summary>The live curated foods the set counts for nothing whose branded products are split on a class a severe criterion of the set reads (<see cref="BrandedConsensus.Split"/>): their contents for the set are unknown.</summary>
             public HashSet<long> Split { get; init; } = new();
+
+            /// <summary>The live curated foods of a made category the set counts for nothing whose brands were never read (<see cref="BrandedConsensus.UnreadClasses"/>), on a class a severe criterion of the set reads: their contents for the set are unknown, never clear.</summary>
+            public HashSet<long> Unread { get; init; } = new();
         }
 
         /// <summary>What a batch of foods reads for every rule, computed once per rule and kept for every set that needs it.</summary>
@@ -329,6 +346,34 @@ namespace Nom.Orch.Services.Support
             }
         }
 
+        /// <summary>The class a dried fruit is counted for, by a severe criterion of the set that reads it (<see cref="BrandedConsensus.Reads"/>).</summary>
+        public const string DriedFruitClass = "sulfite";
+
+        /// <summary>The source of a fact a dried fruit's description gave (<see cref="IsDriedFruit"/>).</summary>
+        public const string DriedFruitSource = "dried-fruit";
+
+        /// <summary>The fruit USDA's US Fruits and Fruit Juices category describes as kept by drying: a description that says dried, dehydrated, candied or sun-dried, or names prunes or raisins, and is no juice or nectar.</summary>
+        private static readonly System.Text.RegularExpressions.Regex DriedWord = new(@"(?<![\p{L}])(?:dried|dehydrated|candied|prunes?|raisins?)(?![\p{L}])", System.Text.RegularExpressions.RegexOptions.IgnoreCase | System.Text.RegularExpressions.RegexOptions.CultureInvariant | System.Text.RegularExpressions.RegexOptions.Compiled);
+
+        /// <summary>Whether a live food is a fruit its own USDA description (its name or its <c>fdc:description</c> alias) gives as dried, dehydrated, candied, as prunes or as raisins, in the Fruits and Fruit Juices category (<see cref="CatalogAdmissionRule"/> category 9): such a fruit is usually sulfited (21 CFR 182.3862; staging checkpoint 8, T2: prunes and dried figs were shown for Sulfite Sensitivity), and a prepared form of it ("Plums, dried (prunes), stewed", "Figs, dried, stewed") keeps the word, so it inherits the fact.</summary>
+        public static bool IsDriedFruit(DietFoodCatalog.Food food, IEnumerable<DietFoodCatalog.Alias>? aliases)
+        {
+            if (!food.Live || food.CategoryId != FruitCategory) return false;
+            var described = (aliases ?? Array.Empty<DietFoodCatalog.Alias>()).Where(a => string.Equals(a.Context?.Trim(), IngredientLinkService.UsdaDescriptionContext, StringComparison.OrdinalIgnoreCase)).Select(a => a.Text).Prepend(food.Name).ToList();
+            return described.Any(t => DriedWord.IsMatch(t)) && !described.Any(t => Pressed.IsMatch(t));
+        }
+
+        /// <summary>A juice or a nectar is pressed from the fruit, not the dried fruit ("Prune juice, canned").</summary>
+        private static readonly System.Text.RegularExpressions.Regex Pressed = new(@"(?<![\p{L}])(?:juices?|nectars?)(?![\p{L}])", System.Text.RegularExpressions.RegexOptions.IgnoreCase | System.Text.RegularExpressions.RegexOptions.CultureInvariant | System.Text.RegularExpressions.RegexOptions.Compiled);
+
+        private static readonly System.Text.RegularExpressions.Regex AlwaysDried = new(@"(?<![\p{L}])(?:prunes?|raisins?)(?![\p{L}])", System.Text.RegularExpressions.RegexOptions.IgnoreCase | System.Text.RegularExpressions.RegexOptions.CultureInvariant | System.Text.RegularExpressions.RegexOptions.Compiled);
+
+        /// <summary>Whether a food's name names a fruit that is dried by its name (prunes, raisins): its dried-fruit fact is knowledge of the word, so a line that says "prunes" on a food no one curated is read as the dried fruit (staging checkpoint 8, T2: 96827 "nice large California prunes").</summary>
+        public static bool NamesDriedFruit(string name) => AlwaysDried.IsMatch(name);
+
+        /// <summary>USDA's Fruits and Fruit Juices category.</summary>
+        public const int FruitCategory = 9;
+
         /// <summary>Prepares the reading of a batch of foods (the statements' text of the batch must be loaded for the contents to be read).</summary>
         public static Reading Read(DietFoodCatalog catalog, IReadOnlyCollection<long> foodIds) => new(catalog, foodIds);
 
@@ -411,18 +456,29 @@ namespace Nom.Orch.Services.Support
             foreach (var c in criteria.Where(c => c.LikePattern != null || c.WordPattern != null))
                 foreach (var food in reading.Contents(c)) Count(c.Id, food, "contents");
 
+            if (criteria.FirstOrDefault(c => BrandedConsensus.Reads(c, DriedFruitClass)) is { } sulfite)
+                foreach (var food in reading.Live.Where(f => IsDriedFruit(f, catalog.Aliases.GetValueOrDefault(f.Id))))
+                    Count(sulfite.Id, food.Id, DriedFruitSource);
+
             var split = new HashSet<long>();
+            var unread = new HashSet<long>();
             var severe = criteria.Where(c => c.Severity >= 4 && (c.LikePattern != null || c.WordPattern != null)).ToList();
-            if (severe.Count > 0)
+            var patterned = criteria.Where(c => c.LikePattern != null || c.WordPattern != null).ToList();
+            if (patterned.Count > 0)
                 foreach (var food in reading.Live)
-                    foreach (var row in catalog.ConsensusOf(food))
+                {
+                    var rows = catalog.ConsensusOf(food);
+                    if (severe.Count > 0 && catalog.UnreadClassesOf(food).Any(c => severe.Any(x => BrandedConsensus.Reads(x, c)))) unread.Add(food.Id);
+                    foreach (var row in rows)
                     {
-                        var reads = severe.Where(c => BrandedConsensus.Reads(c, row.Class)).ToList();
-                        if (reads.Count == 0) continue;
                         if (row.Verdict == BrandedConsensus.Usually)
-                            foreach (var c in reads) Count(c.Id, food.Id, BrandedConsensus.FactSource);
-                        else split.Add(food.Id);
+                        {
+                            foreach (var c in patterned.Where(c => BrandedConsensus.Reads(c, row.Class, anySeverity: true))) Count(c.Id, food.Id, BrandedConsensus.FactSource);
+                            continue;
+                        }
+                        if (severe.Any(c => BrandedConsensus.Reads(c, row.Class)) && row.Verdict == BrandedConsensus.Split) split.Add(food.Id);
                     }
+                }
 
             foreach (var ids in result.Values) aliasOnly.ExceptWith(ids);
             var countedAny = result.Values.SelectMany(ids => ids).ToHashSet();
@@ -434,7 +490,10 @@ namespace Nom.Orch.Services.Support
             split.ExceptWith(countedAny);
             split.ExceptWith(unknown);
             aliasOnly.ExceptWith(split);
-            return new Decision(result, sources, aliasOnly) { Unknown = unknown, Split = split };
+            unread.ExceptWith(countedAny);
+            unread.ExceptWith(unknown);
+            aliasOnly.ExceptWith(unread);
+            return new Decision(result, sources, aliasOnly) { Unknown = unknown, Split = split, Unread = unread };
         }
     }
 }

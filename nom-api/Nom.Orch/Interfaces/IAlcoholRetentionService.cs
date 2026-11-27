@@ -16,8 +16,10 @@ namespace Nom.Orch.Interfaces
         /// Reads every live line on a food that stores alcohol, in recipes after <paramref name="afterRecipeId"/>
         /// (at most <paramref name="maxRecipes"/>), and writes the factor and basis where they change, with an
         /// AlcoholRetention journal entry each, then recalculates those recipes; a dry run unless <paramref name="apply"/>.
+        /// An apply commits each batch of recipes on its own; with <paramref name="resume"/> it goes on after the last
+        /// committed batch of the latest run that did not finish, under that run's stamp.
         /// </summary>
-        Task<AlcoholRetentionRunResult> RunAsync(bool apply, int maxRecipes = 20000, long afterRecipeId = 0, int sampleSize = 50, CancellationToken cancellationToken = default);
+        Task<AlcoholRetentionRunResult> RunAsync(bool apply, int maxRecipes = 20000, long afterRecipeId = 0, int sampleSize = 50, bool resume = false, CancellationToken cancellationToken = default);
 
         /// <summary>Gives back the retention each line had before a run at or after <paramref name="sinceUtc"/> and recalculates its recipe; a dry run unless <paramref name="apply"/>.</summary>
         Task<AlcoholRetentionUndoResult> UndoAsync(DateTime sinceUtc, bool apply = false, CancellationToken cancellationToken = default);

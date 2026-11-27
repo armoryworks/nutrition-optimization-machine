@@ -41,8 +41,8 @@ namespace Nom.Orch.Interfaces
     {
         string Model { get; }
 
-        /// <summary>The verdict on each step; null when the answer cannot be read.</summary>
-        Task<ProseJudgeVerdict?> JudgeAsync(IReadOnlyList<string> original, IReadOnlyList<string> rewrite, CancellationToken cancellationToken);
+        /// <summary>The verdict on each step, read with the recipe title (the dish) when it is given; null when the answer cannot be read.</summary>
+        Task<ProseJudgeVerdict?> JudgeAsync(IReadOnlyList<string> original, IReadOnlyList<string> rewrite, CancellationToken cancellationToken, string title = "");
 
         /// <summary>Whether step <paramref name="step"/> of the rewrite, which another reviewer flagged, is wrong; null when the answer cannot be read.</summary>
         Task<bool?> ConfirmAsync(IReadOnlyList<string> original, IReadOnlyList<string> rewrite, int step, CancellationToken cancellationToken);

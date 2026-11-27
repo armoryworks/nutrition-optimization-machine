@@ -1,11 +1,11 @@
 {
   "version": "link-recheck/8",
-  "decisionSignature": "84cc4d45bc96ad8c",
+  "decisionSignature": "21a8d9fc31b47c65",
   "caseSet": "a82db1e18a1f3b78",
   "rows": 1068,
   "bar": 0.95,
   "minimum": 40,
-  "scoredAtUtc": "2026-11-25T11:35:00.9364704Z",
+  "scoredAtUtc": "2026-11-26T17:52:07.9617267Z",
   "classes": [
     {
       "class": "alcohol",

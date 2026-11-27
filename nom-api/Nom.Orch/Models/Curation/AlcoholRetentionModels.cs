@@ -32,6 +32,27 @@ namespace Nom.Orch.Models.Curation
         /// <summary>Upper-bound lines by their reason (<see cref="Nom.Orch.Services.Support.AlcoholRetention.Reasons"/>, or "time" for heat with no time the reader can take).</summary>
         public Dictionary<string, int> ByReason { get; set; } = new();
 
+        /// <summary>The batches of recipes read (<see cref="Nom.Orch.Services.AlcoholRetentionService.Chunk"/> each); an apply writes each in its own transaction with its own journal stamp.</summary>
+        public int Batches { get; set; }
+
+        /// <summary>The batches an apply committed (each with its lines, their journal entries, its recipes' labels and its batch mark); 0 on a dry run.</summary>
+        public int BatchesWritten { get; set; }
+
+        /// <summary>Recipes with a line whose stored retention changes, whose labels the apply recalculates: equal on a dry run and on the apply it previews.</summary>
+        public int RecipesTouched { get; set; }
+
+        /// <summary>Whether every batch was read (and, on an apply, committed); false when the apply stopped at a batch that failed twice.</summary>
+        public bool Completed { get; set; }
+
+        /// <summary>Why the apply stopped, when it did; the batch that failed wrote nothing.</summary>
+        public string? Error { get; set; }
+
+        /// <summary>The last recipe of the last batch committed, when the apply stopped: a run with resume=true (or afterRecipeId set to it) goes on from there under the same run stamp.</summary>
+        public long? ResumeAfterRecipeId { get; set; }
+
+        /// <summary>The stamp of the earlier run this one went on with (resume=true); its undo by that stamp takes back both parts.</summary>
+        public DateTime? ResumedRunUtc { get; set; }
+
         public List<AlcoholRetentionSample> Samples { get; set; } = new();
     }
 
@@ -75,5 +96,8 @@ namespace Nom.Orch.Models.Curation
         /// <summary>Journal entries of a recipe rebuilt after them (<see cref="Nom.Orch.Services.RecipeReprocessService"/>): undo the rebuild first.</summary>
         public int SkippedRebuilt { get; set; }
         public int RecipesRecalculated { get; set; }
+
+        /// <summary>The run marks (batch and end) at or after the given time the undo takes out with the lines, so a later resume does not go on with a run taken back.</summary>
+        public int RunMarksRemoved { get; set; }
     }
 }

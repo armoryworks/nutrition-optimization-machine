@@ -91,6 +91,7 @@ namespace Nom.Data
         public DbSet<DietRecipeFlagEntity> DietRecipeFlags { get; set; } = default!;
         public DbSet<DietRecipeStateEntity> DietRecipeStates { get; set; } = default!;
         public DbSet<DietGateWriteEntity> DietGateWrites { get; set; } = default!;
+        public DbSet<RecipeDietReadingEntity> RecipeDietReadings { get; set; } = default!;
 
         // New Plan entities (from Mealie)
         public DbSet<HouseholdEntity> Households { get; set; } = default!;

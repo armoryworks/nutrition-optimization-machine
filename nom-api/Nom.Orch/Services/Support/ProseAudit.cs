@@ -36,15 +36,21 @@ namespace Nom.Orch.Services.Support
     /// </summary>
     public static class ProseAudit
     {
-        public const string Version = "audit-rules/1";
+        public const string Version = "audit-rules/2";
         public const string LeftOut = "left out";
         public const string Changed = "changed";
         public const string Added = "added";
         public const string SameVerdict = "same";
         public const string DiffersVerdict = "differs";
 
-        /// <summary>One step's reading: whether the auditor finds it differs, and the kinds of difference it lists.</summary>
-        public sealed record StepReading(bool Differs, string Kinds);
+        /// <summary>One difference the auditor lists: its kind, the original's words and the rewrite's words.</summary>
+        public sealed record Difference(string What, string Original, string Rewrite);
+
+        /// <summary>One step's reading: whether the auditor finds it differs, and the differences it lists.</summary>
+        public sealed record StepReading(bool Differs, IReadOnlyList<Difference> Differences)
+        {
+            public string Kinds => string.Join(", ", Differences.Select(d => d.What).Distinct(StringComparer.Ordinal));
+        }
 
         /// <summary>
         /// The auditor's answer on one step (<c>{"differences":[{"what":...}],"verdict":...}</c>): it differs
@@ -60,19 +66,72 @@ namespace Nom.Orch.Services.Support
                 if (root.ValueKind != JsonValueKind.Object
                     || !root.TryGetProperty("verdict", out var verdict) || verdict.GetString() is not (SameVerdict or DiffersVerdict)
                     || !root.TryGetProperty("differences", out var differences) || differences.ValueKind != JsonValueKind.Array) return null;
-                var kinds = differences.EnumerateArray()
-                    .Select(d => d.ValueKind == JsonValueKind.Object && d.TryGetProperty("what", out var what) && what.ValueKind == JsonValueKind.String ? what.GetString() : null)
-                    .OfType<string>()
-                    .Where(k => k is LeftOut or Changed or Added)
+                static string Text(JsonElement e, string name) => e.TryGetProperty(name, out var v) && v.ValueKind == JsonValueKind.String ? v.GetString()?.Trim() ?? string.Empty : string.Empty;
+                var listed = differences.EnumerateArray()
+                    .Where(d => d.ValueKind == JsonValueKind.Object)
+                    .Select(d => new Difference(Text(d, "what"), Text(d, "original"), Text(d, "rewrite")))
+                    .Where(d => d.What is LeftOut or Changed or Added)
                     .ToList();
-                var differs = verdict.GetString() == DiffersVerdict || kinds.Count > 0;
-                return new StepReading(differs, string.Join(", ", kinds.Distinct()));
+                var differs = verdict.GetString() == DiffersVerdict || listed.Count > 0;
+                return new StepReading(differs, listed);
             }
             catch (JsonException)
             {
                 return null;
             }
         }
+
+        /// <summary>
+        /// The differences of a step reading that a rule does not show to be wording only: a thing left
+        /// out or changed stands unless every content word of the original's words, words of size and
+        /// manner included, is in the rewrite step (as <see cref="ProseJudgeRules.FoundByRule(ProseStepFact, string, bool, bool)"/>
+        /// finds words); a thing changed stands too when the rewrite's words hold a word the original
+        /// step does not (<see cref="ProseJudgeRules.AddedByRule"/>) or the two hold the same content words
+        /// in another order; a thing added stands unless its words are all in the original step. A difference whose words are not in its own step, or that
+        /// gives none, stands, and so does a "differs" verdict that lists nothing.
+        /// </summary>
+        public static IReadOnlyList<Difference> Standing(ProseAuditPair pair, int step, StepReading reading)
+        {
+            if (!reading.Differs) return Array.Empty<Difference>();
+            if (reading.Differences.Count == 0) return new[] { new Difference(Changed, string.Empty, string.Empty) };
+            var original = At(pair.Original, step);
+            var rewrite = At(pair.Rewrite, step);
+            var agree = ProseJudgeRules.AmountsAgree(Check(pair), step);
+            return reading.Differences.Where(d => !WordingOnly(d, original, rewrite, agree)).ToList();
+        }
+
+        private static bool WordingOnly(Difference difference, string original, string rewrite, bool amountsAgree)
+        {
+            var source = new ProseStepFact(difference.What, difference.Original, string.Empty, ProseJudgeRules.Missing);
+            var added = new ProseStepFact(difference.What, string.Empty, difference.Rewrite, ProseJudgeRules.Different);
+            switch (difference.What)
+            {
+                case LeftOut:
+                    return difference.Original.Length > 0 && ProseJudgeRules.Holds(original, difference.Original)
+                        && ProseJudgeRules.FoundByRule(source, rewrite, amountsAgree, true);
+                case Changed:
+                    if (difference.Original.Length == 0 || !ProseJudgeRules.Holds(original, difference.Original)) return false;
+                    if (difference.Rewrite.Length > 0 && Reordered(difference.Original, difference.Rewrite)) return false;
+                    return ProseJudgeRules.FoundByRule(source, rewrite, amountsAgree, true)
+                        && (difference.Rewrite.Length == 0 || !ProseJudgeRules.AddedByRule(added, original, amountsAgree));
+                case Added:
+                    return difference.Rewrite.Length > 0 && ProseJudgeRules.Holds(rewrite, difference.Rewrite)
+                        && !ProseJudgeRules.AddedByRule(added, original, amountsAgree);
+                default:
+                    return false;
+            }
+        }
+
+        private static bool Reordered(string original, string rewrite)
+        {
+            var ours = ContentWords(original);
+            var theirs = ContentWords(rewrite);
+            return ours.Count > 1 && ours.OrderBy(w => w, StringComparer.Ordinal).SequenceEqual(theirs.OrderBy(w => w, StringComparer.Ordinal), StringComparer.Ordinal)
+                && !ours.SequenceEqual(theirs, StringComparer.Ordinal);
+        }
+
+        private static List<string> ContentWords(string text) =>
+            Normal(text).Split(' ', StringSplitOptions.RemoveEmptyEntries).Where(w => !Articles.Contains(w) && w is not ("and" or "then" or "together" or "them" or "it")).ToList();
 
         /// <summary>
         /// The auditor's blind re-read of a step (<c>{"difference":...,"wrong":...}</c>): whether it finds the
@@ -94,11 +153,20 @@ namespace Nom.Orch.Services.Support
             }
         }
 
-        /// <summary>The verdict of the rules alone; null when no rule decides.</summary>
+        /// <summary>
+        /// The verdict of the rules alone; null when no rule decides. The gate's rules first
+        /// (<see cref="ProseJudgeRules.Before"/>), then the audit's own: a sign of doneness of a source
+        /// step that its rewrite step leaves out (<see cref="ProseJudgeRules.CueLost"/>).
+        /// </summary>
         public static ProseAuditVerdict? ByRule(ProseAuditPair pair)
         {
             var finding = Check(pair);
-            if (ProseJudgeRules.Before(pair.Original, pair.Rewrite, finding) is not { } ruled) return null;
+            if (ProseJudgeRules.Before(pair.Original, pair.Rewrite, finding) is not { } ruled)
+            {
+                var lost = ChangedSteps(pair).Where(n => ProseJudgeRules.CueLost(pair.Original[n - 1], pair.Rewrite[n - 1])).ToList();
+                return lost.Count == 0 ? null : new ProseAuditVerdict(lost, true, $"step {string.Join(", ", lost)}: cue missing");
+            }
+
             var flagged = ruled.Steps.Where(s => !s.Same).ToList();
             var reasons = finding.Faults.Select(f => f.Reason).Where(r => !ProseCheck.UnsureReasons.Contains(r) && !ProseCheck.CopyReasons.Contains(r))
                 .Concat(flagged.Select(s => s.Note).OfType<string>())
@@ -143,6 +211,15 @@ namespace Nom.Orch.Services.Support
 
         private static string Number(int n) => n.ToString(CultureInfo.InvariantCulture);
 
-        private static string Normal(string text) => string.Join(' ', text.Split((char[]?)null, StringSplitOptions.RemoveEmptyEntries)).ToLowerInvariant();
+        private static readonly HashSet<string> Articles = new(StringComparer.Ordinal) { "a", "an", "the" };
+
+        private static string Normal(string text)
+        {
+            var words = System.Text.RegularExpressions.Regex.Matches(text.ToLowerInvariant(), @"[\p{L}\p{N}½¼¾⅓⅔°/.-]+")
+                .Select(m => m.Value.Trim('.', '-'))
+                .Where(w => w.Length > 0 && !Articles.Contains(w))
+                .ToList();
+            return string.Join(' ', words.Where((w, i) => i == 0 || w != words[i - 1]));
+        }
     }
 }

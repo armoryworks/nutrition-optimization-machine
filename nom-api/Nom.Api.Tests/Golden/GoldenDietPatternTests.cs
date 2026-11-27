@@ -94,6 +94,9 @@ namespace Nom.Api.Tests.Golden
             return patterns.Concat(DefaultRestrictionCriteria.Companions.Where(c => c.Type == restriction && patterns.Contains(c.Pattern)).Select(c => c.Companion)).ToArray();
         }
 
+        private static bool HeldByBrands(GoldenRow row) =>
+            row.Value("food") is { Length: > 0 } food && BrandedConsensus.ForFood(food, null, anyFdc: true).Any(c => c.Class != BrandedConsensus.AnyClass);
+
         private static bool Crude(string restriction, string text) =>
             LikePatterns(restriction).Any(p => DietCriteriaMatcher.LikeRegex(p).IsMatch(text));
 
@@ -131,12 +134,12 @@ namespace Nom.Api.Tests.Golden
             var rows = GoldenSet.Read("diet-patterns.tsv").Rows.Concat(GoldenSet.Read("diet-gate.tsv").Rows.Where(r => r["alcohol"] is "" or GoldenTsv.NoAnswer)).ToList();
             var verdicts = await VerdictsAsync();
 
-            var lost = rows.Where(r => r["expect"] is "hit" or "out" && Crude(r["restriction"], r["line"]) && !Rule(r["restriction"], r["line"])).Select(r => $"{r.Id}: {r["line"]}");
+            var lost = rows.Where(r => r["expect"] is "hit" or "out" && !HeldByBrands(r) && Crude(r["restriction"], r["line"]) && !Rule(r["restriction"], r["line"])).Select(r => $"{r.Id}: {r["line"]}");
             lost.Should().BeEmpty("a line that names a restricted food by a pattern keeps naming it");
             verdicts.Where(v => rows.Single(r => r.Id == v.Key)["expect"] == "hit" && !v.Value.Line).Select(v => v.Key).Should().BeEmpty();
 
             var cleared = rows.Where(r => Crude(r["restriction"], r["line"]) && !Rule(r["restriction"], r["line"])).ToList();
-            cleared.Where(r => r["expect"] is not ("clear" or "in")).Select(r => r.Id).Should().BeEmpty("a line the crude reading flagged and the rule clears is a look-alike a row reviews");
+            cleared.Where(r => r["expect"] is not ("clear" or "in") && !HeldByBrands(r)).Select(r => r.Id).Should().BeEmpty("a line the crude reading flagged and the rule clears is a look-alike a row reviews");
             _output.WriteLine($"look-alikes the crude reading flagged and the rule clears: {cleared.Count} ({string.Join(", ", cleared.Select(r => r.Id))})");
             cleared.Count.Should().BeGreaterThan(80);
 

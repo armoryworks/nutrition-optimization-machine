@@ -50,9 +50,11 @@ namespace Nom.Api.Tests.Services
             var worded = RecipeRemovalService.ProposalsWordedOf(db, new List<string> { "1 cup brandy" }).ToQueryString();
             var merged = RecipeRemovalService.MergedAwayFoodsOf(db, new List<string> { "1 cup brandy" }).ToQueryString();
             var aliases = RecipeRemovalService.RetiredAliasesOf(db, new List<string> { "retired:1" }).Select(a => a.AliasName).ToQueryString();
+            var namedAliases = RecipeRemovalService.AliasesWordedOf(db, new List<string> { "for the glaze" }).Select(a => a.Id).ToQueryString();
             _output.WriteLine(retired);
             _output.WriteLine(merged);
             _output.WriteLine(aliases);
+            _output.WriteLine(namedAliases);
             _output.WriteLine(inUse);
             _output.WriteLine(worded);
 
@@ -61,6 +63,7 @@ namespace Nom.Api.Tests.Services
             worded.Should().Contain("\"FoodCatalogProposal\"").And.Contain("lower(");
             merged.Should().Contain("strpos(").And.Contain("substring(").And.Contain("btrim(");
             aliases.Should().Contain("\"SourceContext\"");
+            namedAliases.Should().Contain("\"AliasName\"").And.Contain("lower(").And.Contain("btrim(");
         }
     }
 }

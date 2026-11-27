@@ -397,11 +397,10 @@ namespace Nom.Api.Tests.Services
 
             run!.Groups.Should().Be(2, "the sauce and the cream cheese lines are marked free of what their foods hold; the stand-in and the food named first are not read");
             run.LinesUnlinked.Should().Be(2);
-            (run.Held, run.UnknownGroups).Should().Be((0, 1), "the cream cheese line's own words do not say it lacks milk for every type its take-back would lower, so it goes to a food of unknown contents, not back to the cream cheese (staging checkpoint 7, S15)");
+            (run.Held, run.UnknownGroups).Should().Be((0, 2), "the cream cheese line's own words do not say it lacks milk for every type its take-back would lower, so it goes to a food of unknown contents, not back to the cream cheese (staging checkpoint 7, S15); nor do the sauce line's words say it lacks what a sauce whose brands were never read may hold (review ck19-diet-6)");
             var home = await FoodOfAsync(db, dip.Id, "1 Tbsp vegan worcestershire sauce");
             home.Should().NotBe(sauce.Id);
-            (await db.Ingredients.SingleAsync(i => i.Id == home)).Name.Should().Be("vegan worcestershire sauce");
-            (await db.IngredientAliases.AnyAsync(a => a.IngredientId == home && a.SourceContext == RecheckDietGuard.UnknownContentsContext)).Should().BeFalse();
+            (await db.IngredientAliases.AnyAsync(a => a.IngredientId == home && a.SourceContext == RecheckDietGuard.UnknownContentsContext)).Should().BeTrue("a curated made product with an FDC id and no consensus row is of unknown contents for the severe types, so its take-back keeps that unknown");
             var unknown = await FoodOfAsync(db, dip.Id, "8 ounces vegan cream cheese");
             unknown.Should().NotBe(cheese.Id);
             (await db.IngredientAliases.AnyAsync(a => a.IngredientId == unknown && a.SourceContext == RecheckDietGuard.UnknownContentsContext)).Should().BeTrue();
@@ -882,6 +881,65 @@ namespace Nom.Api.Tests.Services
             (undo.LinesRestored, undo.RestoredLowering).Should().Be((2, 2));
             (await FingerprintAsync(db)).Should().Be(before, "by the operator's explicit choice the undo puts the lines back and removes the foods it made with their marks");
             (await db.IngredientAliases.AnyAsync(a => a.SourceContext == RecheckDietGuard.UnknownContentsContext)).Should().BeFalse();
+        }
+
+        [Fact]
+        public async Task An_undo_that_takes_back_every_move_takes_back_the_mark_it_put_on_a_food_that_had_lines_before_the_run()
+        {
+            await using var db = NewContext();
+            var juice = Food("Orange Juice", "Orange juice, raw", "169098", 9);
+            var liqueur = Food(IngredientNameNormalizer.WordingKey("1 glass Grand Marnier"), status: (long)CurationStatusEnum.NonCurated);
+            db.Ingredients.AddRange(juice, liqueur);
+            await db.SaveChangesAsync();
+            var duck = Scraped("Duck with orange", (juice, "1 glass Grand Marnier"));
+            var crepes = Scraped("Crêpes Suzette", (liqueur, "2 tablespoons Grand Marnier"));
+            db.Recipes.AddRange(duck, crepes);
+            await db.SaveChangesAsync();
+
+            var before = await FingerprintAsync(db);
+            var run = await Recheck(db).RunAsync(LinkRecheckRules.Alcohol, apply: true);
+            (await FoodOfAsync(db, duck.Id, "1 glass Grand Marnier")).Should().Be(liqueur.Id, "the take-back lands on the wording's food that was there before the run");
+            (await db.IngredientAliases.CountAsync(a => a.IngredientId == liqueur.Id && a.SourceContext == RecheckDietGuard.UnknownContentsContext)).Should().Be(1);
+
+            var dry = await Recheck(db).UndoAsync(run!.Stamp!.Value, restoreLowered: true);
+            var undo = await Recheck(db).UndoAsync(run.Stamp!.Value, apply: true, restoreLowered: true);
+
+            (dry.LinesRestored, dry.MarksKept, dry.AliasesRestored).Should().Be((undo.LinesRestored, undo.MarksKept, undo.AliasesRestored));
+            (undo.LinesRestored, undo.HeldByDiet, undo.MarksKept).Should().Be((1, 0, 0),
+                "staging checkpoint 8, T13: the crêpes' line was on the food before the run and the run moved none of it, so it holds no mark the exact undo must keep");
+            (await FingerprintAsync(db)).Should().Be(before);
+            (await db.IngredientAliases.AnyAsync(a => a.SourceContext == RecheckDietGuard.UnknownContentsContext)).Should().BeFalse("the explicit restore is the exact earlier state");
+        }
+
+        [Theory]
+        [InlineData(false, 1)]
+        [InlineData(true, 0)]
+        public async Task A_mark_on_a_food_that_had_lines_before_the_run_whose_moved_line_is_gone_stays_on_the_default_undo_and_goes_on_the_restore(bool restoreLowered, int marksKept)
+        {
+            await using var db = NewContext();
+            var juice = Food("Orange Juice", "Orange juice, raw", "169098", 9);
+            var liqueur = Food(IngredientNameNormalizer.WordingKey("1 glass Grand Marnier"), status: (long)CurationStatusEnum.NonCurated);
+            db.Ingredients.AddRange(juice, liqueur);
+            await db.SaveChangesAsync();
+            var duck = Scraped("Duck with orange", (juice, "1 glass Grand Marnier"));
+            var crepes = Scraped("Crêpes Suzette", (liqueur, "2 tablespoons Grand Marnier"));
+            db.Recipes.AddRange(duck, crepes);
+            await db.SaveChangesAsync();
+
+            var run = await Recheck(db).RunAsync(LinkRecheckRules.Alcohol, apply: true);
+            (await FoodOfAsync(db, duck.Id, "1 glass Grand Marnier")).Should().Be(liqueur.Id);
+            db.RecipeIngredients.RemoveRange(await db.RecipeIngredients.Where(ri => ri.RecipeId == duck.Id).ToListAsync());
+            await db.SaveChangesAsync();
+            db.ChangeTracker.Clear();
+
+            var dry = await Recheck(db).UndoAsync(run!.Stamp!.Value, restoreLowered: restoreLowered);
+            var undo = await Recheck(db).UndoAsync(run.Stamp!.Value, apply: true, restoreLowered: restoreLowered);
+
+            (dry.LinesRestored, dry.MarksKept, dry.AliasesRestored).Should().Be((undo.LinesRestored, undo.MarksKept, undo.AliasesRestored), "review ck19 CK19SM-2: the dry run counts what the apply does");
+            undo.MarksKept.Should().Be(marksKept, restoreLowered
+                ? "review ck19 CK19SM-2: the line the run moved is gone, so no moved line holds the mark the exact undo takes back"
+                : "review ck19 CK19SM-1: by default an undo never lowers a flag, and the crêpes' line still reads the mark");
+            (await db.IngredientAliases.CountAsync(a => a.IngredientId == liqueur.Id && a.SourceContext == RecheckDietGuard.UnknownContentsContext)).Should().Be(marksKept);
         }
 
         [Fact]

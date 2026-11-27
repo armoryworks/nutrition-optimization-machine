@@ -233,21 +233,138 @@ namespace Nom.Api.Tests.Services
         }
 
         [Fact]
-        public async Task The_judge_asks_no_model_when_a_rule_decides_and_one_call_per_step_otherwise()
+        public void A_rule_pairs_voice_clause_order_articles_and_verbs_of_one_group()
         {
-            var handler = new Answering("{\"facts\":[],\"added\":[]}");
+            var original = "Beat in the egg and the baking powder until smooth.";
+            var passive = ProseJudgeRules.Pair(original, "The egg and baking powder should be beaten into the oat mixture until it becomes smooth.");
+            passive.Unpaired.Should().BeEmpty("\"should be beaten\" is the passive of the original's verb");
+            ProseJudgeRules.Pair(original, "Whisk the egg and baking powder in until smooth.").Unpaired.Should().BeEmpty("whisk beats");
+            ProseJudgeRules.Pair("Drain the beans and rinse them under cold water.", "Under cold water the beans get rinsed, once they have been drained.").Unpaired.Should().BeEmpty();
+            ProseJudgeRules.Pair("Cook the pancakes 2 minutes a side.", "Boil the pancakes 2 minutes a side.").Unpaired.Should().ContainSingle("the generic verb is not kept by another method");
+            ProseJudgeRules.Pair("Peel the melon and cut it into cubes.", "Peel and cut the melon.").Unpaired.Select(u => u.Original).Should().Equal("cut it into cubes");
+            ProseJudgeRules.Pair("Whip the whites until stiff.", "Fold the whites until stiff.").Unpaired.Should().ContainSingle();
+        }
+
+        [Fact]
+        public void A_rewrite_clause_with_a_word_the_original_does_not_hold_may_add_something()
+        {
+            string[] method = { "Melt the chocolate over simmering water.", "Spread the chocolate on the tray and leave it to set." };
+            ProseJudgeRules.Pair(method[1], "The melted chocolate should be spread on the tray and left to set.", method: method).Added.Should().BeEmpty("a state from an earlier step adds nothing");
+            var added = ProseJudgeRules.Pair(method[1], "Spread the chocolate on the tray, squeeze lemon over it and leave it to set.", method: method).Added;
+            added.Should().ContainSingle().Which.Rewrite.Should().Be("squeeze lemon over it");
+            ProseJudgeRules.NewWords(added[0], method[1], method: method).Should().Equal("squeeze", "lemon");
+            ProseJudgeRules.Pair("Fry the onion until soft.", "Fry the onion over high heat until soft.").Added.Should().ContainSingle("a heat the original does not name");
+        }
+
+        [Fact]
+        public void A_terse_rewrite_is_read_whole_even_when_every_clause_pairs()
+        {
+            var terse = ProseJudgeRules.Pair("Peel the pears and cut them in half lengthwise.", "Peel pears, cut half lengthwise.");
+            terse.Unpaired.Should().ContainSingle().Which.Original.Should().Be("Peel the pears and cut them in half lengthwise.");
+            ProseJudgeRules.Pair("Peel the pears and cut them in half lengthwise.", "The pears should be peeled and then cut in half lengthwise.").Unpaired.Should().BeEmpty();
+        }
+
+        [Fact]
+        public void An_unpaired_part_stands_unless_the_answer_keeps_it_with_a_quote_the_rewrite_holds()
+        {
+            var part = new ProseStepFact("action", "Pick over the lentils", string.Empty, ProseJudgeRules.Missing);
+            var rewrite = "Sort through the lentils and rinse them.";
+            static string Answer(string quote, string verdict) => JsonSerializer.Serialize(new { rewrite = quote, verdict });
+
+            ProseJudgeRules.PartKept(part, Answer("Sort through the lentils", "kept"), rewrite).Match.Should().Be(ProseJudgeRules.Same);
+            ProseJudgeRules.PartKept(part, Answer("Wash the beans", "kept"), rewrite).Match.Should().Be(ProseJudgeRules.Missing, "a quote the step does not hold withdraws nothing");
+            ProseJudgeRules.PartKept(part, Answer("Sort through the lentils", "changed"), rewrite).Match.Should().Be(ProseJudgeRules.Different);
+            ProseJudgeRules.PartKept(part, "not json", rewrite).Match.Should().Be(ProseJudgeRules.Missing);
+            ProseJudgeRules.PartSaid(JsonSerializer.Serialize(new { original = "in the butter", verdict = "said" }), "Fry the onion in the butter.").Should().BeTrue();
+            ProseJudgeRules.PartSaid(JsonSerializer.Serialize(new { original = "a pinch of salt", verdict = "said" }), "Fry the onion in the butter.").Should().BeFalse();
+            ProseJudgeRules.PartSaid(JsonSerializer.Serialize(new { original = "in the butter", verdict = "new" }), "Fry the onion in the butter.").Should().BeFalse();
+        }
+
+        [Fact]
+        public void The_writers_filler_adds_nothing_only_where_the_method_has_its_action_at_that_place()
+        {
+            string[] method = { "Grate the parsnips and squeeze them dry.", "Fry spoonfuls of the batter in hot oil.", "Drain the cakes on paper and serve." };
+            ProseJudgeRules.Pair(method[0], "The parsnips should be grated and squeezed dry, by which time they are ready for frying.", method: method, step: 1).Added.Should().BeEmpty("they are fried in step 2");
+            ProseJudgeRules.Pair(method[0], "Before frying, the parsnips get grated and squeezed dry.", method: method, step: 1).Added.Should().BeEmpty();
+            ProseJudgeRules.Pair(method[2], "Once the cakes are fried, drain them on paper and serve.", method: method, step: 3).Added.Should().BeEmpty("they were fried in step 2");
+            ProseJudgeRules.Pair(method[0], "The parsnips should be grated and squeezed dry, which is needed for the next step.", method: method, step: 1).Added.Should().BeEmpty();
+            ProseJudgeRules.Pair(method[0], "The parsnips should be grated and squeezed dry, by which time they are ready for baking.", method: method, step: 1).Added.Should().ContainSingle("the method bakes nothing");
+            ProseJudgeRules.Pair(method[1], "Fry spoonfuls of the batter in hot oil after draining.", method: method, step: 2).Added.Should().ContainSingle("draining comes later, not before");
+            ProseJudgeRules.Pair(method[2], "Once the cakes are crisp, drain them on paper and serve.", method: method, step: 3).Added.Should().ContainSingle("a state the method never names is a cue");
+            ProseJudgeRules.Pair(method[0], "The parsnips should be grated and squeezed dry, by which time they are ready for frying.").Added.Should().ContainSingle("with no method nothing is filler");
+            ProseJudgeRules.Pair(method[2], "Drain the cakes on paper, which allows them to be served.", method: method, step: 3).Added.Should().BeEmpty();
+            ProseJudgeRules.Pair(method[2], "With the cakes ready, drain them on paper and serve.", method: method, step: 3).Added.Should().BeEmpty();
+            ProseJudgeRules.Pair(method[2], "Drain the cakes on paper and serve with chives to enhance their taste.", method: method, step: 3).Added.Should().ContainSingle("the chives are new, the purpose is not");
+        }
+
+        [Fact]
+        public void The_dish_named_by_its_title_adds_nothing_and_a_word_of_manner_must_be_kept()
+        {
+            string[] method = { "Mash the beans with the oil.", "Stir in the lemon juice until smooth." };
+            ProseJudgeRules.Pair(method[1], "The lemon juice gets stirred in until the hummus is smooth.", method: method, title: "White Bean Hummus", step: 2).Added.Should().BeEmpty();
+            ProseJudgeRules.Pair(method[1], "The lemon juice gets stirred in until the hummus is smooth.", method: method, step: 2).Added.Should().ContainSingle();
+            ProseJudgeRules.Dish("tomatoes", "Bread with Tomatoes", method).Should().BeFalse("only the head of the title names the dish");
+            ProseJudgeRules.Pair("Brush the rolls lightly with milk.", "The rolls should be brushed with milk.").Unpaired.Should().ContainSingle();
+            ProseJudgeRules.Pair("Brush the rolls lightly with milk.", "The rolls get a light brushing of milk.").Unpaired.Should().BeEmpty();
+            ProseJudgeRules.Pair("Grill the steak for 3 minutes on each side.", "The steak should be grilled 3 minutes a side.").Unpaired.Should().BeEmpty();
+            ProseJudgeRules.Pair("Grill the steak for 3 minutes on each side.", "The steak should be grilled for 3 minutes.").Unpaired.Should().ContainSingle();
+            ProseJudgeRules.Pair("Lay the trout on the tray skin side down.", "The trout goes on the tray skin side up.").Unpaired.Should().ContainSingle("up is not down");
+            ProseJudgeRules.Pair("Stir the jam constantly for 5 minutes.", "Keep stirring the jam for 5 minutes.").Unpaired.Should().BeEmpty();
+
+            string[] pan = { "Heat the oil in a wok.", "Add the shrimp to the wok and fry for 2 minutes." };
+            ProseJudgeRules.Pair(pan[1], "Next the shrimp get added and fry for 2 minutes.", method: pan, step: 2, previousRewrite: "The oil gets hot in a wok.").Unpaired.Should().BeEmpty("the wok of the step before");
+            ProseJudgeRules.Pair(pan[1], "Next the shrimp get added and fry for 2 minutes.", method: pan, step: 2, previousRewrite: "The oil gets hot.").Unpaired.Should().ContainSingle();
+        }
+
+        [Fact]
+        public void An_amount_bound_to_something_it_does_not_measure_is_a_fault_by_rule()
+        {
+            ProseJudgeRules.AmountMisbound("Fry the radishes for 3 minutes.", "Fry 3 minutes of radishes.").Should().BeTrue();
+            ProseJudgeRules.AmountMisbound("Add ¼ teaspoon salt and cook for 1 minute.", "Add the salt and cook for ¼ teaspoon.").Should().BeTrue();
+            ProseJudgeRules.AmountMisbound("Fry the radishes for 3 minutes, stirring.", "The radishes need 3 minutes of frying and stirring.").Should().BeFalse();
+            ProseJudgeRules.AmountMisbound("Add ¼ teaspoon salt and cook for 1 minute.", "Cook for 1 minute with ¼ teaspoon salt.").Should().BeFalse();
+        }
+
+        [Fact]
+        public void Two_answers_on_one_fact_that_disagree_refuse_the_step_as_a_disagreement()
+        {
+            var kept = new ProseStepFact("cue", "until smooth", "no lumps remain", ProseJudgeRules.Same);
+            var added = new ProseStepFact("cue", string.Empty, "until no lumps remain in the sauce", ProseJudgeRules.Different);
+            var step = ProseJudgeRules.Step(1, "Whisk until smooth.", "Whisk until no lumps remain in the sauce.", new ProseStepReading(new[] { kept }, new[] { added }));
+            step.Same.Should().BeFalse();
+            step.Note.Should().Be(ProseJudgeRules.Disagreement);
+        }
+
+        [Fact]
+        public async Task The_judge_asks_no_model_when_a_rule_decides_or_pairs_every_part_and_one_call_per_unpaired_part_otherwise()
+        {
+            var handler = new Answering("{\"rewrite\":\"\",\"verdict\":\"lost\"}");
             var judge = new OllamaProseStepJudge(new HttpClient(handler), "http://judge.invalid", "mistral-nemo");
 
             var hotter = Faithful.Select(s => s.Replace("on medium", "on high", StringComparison.Ordinal)).ToList();
             (await judge.JudgeAsync(Original, hotter, CancellationToken.None))!.Faithful.Should().BeFalse();
             handler.Bodies.Should().BeEmpty();
 
-            (await judge.JudgeAsync(Original, Faithful, CancellationToken.None))!.Steps.Should().HaveCount(3);
-            handler.Bodies.Count(b => b.Contains("\"facts\"", StringComparison.Ordinal)).Should().Be(3, "one reading per step pair; a claim is asked again apart");
+            string[] passive = { Faithful[0], "The squash should be roasted for 40 minutes in a moderately hot oven.", "The soup is served hot, with the walnuts on top." };
+            (await judge.JudgeAsync(Original, passive, CancellationToken.None))!.Faithful.Should().BeTrue();
+            handler.Bodies.Should().BeEmpty("every part of every step is paired by rule");
+
+            var other = passive.ToArray();
+            other[0] = "Dry-toast the walnuts in a pan on medium until they look golden.";
+            var verdict = (await judge.JudgeAsync(Original, other, CancellationToken.None))!;
+            verdict.Steps.Where(s => !s.Same).Select(s => s.Number).Should().Equal(1);
+            handler.Bodies.Should().HaveCount(2, "one question for the clause with the unmatched cue and one for the words the original does not hold");
             using var first = JsonDocument.Parse(handler.Bodies[0]);
             first.RootElement.GetProperty("options").GetProperty("seed").GetInt32().Should().Be(ProseLanePrompts.JudgeSeed);
             first.RootElement.GetProperty("options").GetProperty("temperature").GetDouble().Should().Be(0);
-            first.RootElement.GetProperty("messages")[1].GetProperty("content").GetString().Should().Contain(Original[0]).And.Contain(Faithful[0]);
+            first.RootElement.GetProperty("messages")[1].GetProperty("content").GetString().Should().Contain("PART: Toast the walnuts in a dry pan over medium heat until they smell nutty").And.Contain("WORDS NOT MATCHED: smell, nutty");
+
+            handler.Bodies.Clear();
+            other[0] = Faithful[0];
+            other[1] = "The squash should be roasted in a moderately hot oven for 40 minutes, then sprinkled with sage.";
+            (await judge.JudgeAsync(Original, other, CancellationToken.None, "Squash Soup"))!.Faithful.Should().BeFalse();
+            using var asked = JsonDocument.Parse(handler.Bodies.Single());
+            asked.RootElement.GetProperty("messages")[1].GetProperty("content").GetString().Should().Contain("RECIPE: Squash Soup").And.Contain("PREVIOUS REWRITE STEP: " + Faithful[0]);
         }
 
         private sealed class Answering : HttpMessageHandler

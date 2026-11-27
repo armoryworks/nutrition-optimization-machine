@@ -28,8 +28,9 @@ namespace Nom.Api.Tests.Services.MealPlan
     /// as the matcher does (<see cref="AssertStoreAgreesAsync"/>, run by the golden diet tests); before the first build
     /// every recipe is held; a recipe not decided yet (new, or its lines written since) is held by every set; a recipe with
     /// no ingredient line and a meal not decided yet are unknown and held for a severe type only; a changed food or
-    /// criterion is decided again alone, and a type keeps its previous set until the new one is built; a rule-version
-    /// change builds beside the active build; and a failed cycle loses nothing stored, nor the work it left undone.
+    /// criterion is decided again alone; a type with no severe criterion keeps its previous set until the new one is
+    /// built, while a severe type's recipes are held until then; a rule-version change builds beside the active build;
+    /// and a failed cycle loses nothing stored, nor the work it left undone.
     /// </summary>
     public class DietGateStoreTests
     {
@@ -42,7 +43,7 @@ namespace Nom.Api.Tests.Services.MealPlan
         /// <summary>
         /// Asserts that, after a build, the stored sets let through exactly the recipes and foods the in-line matcher does,
         /// for the household and for the person's severe set, apart from the recipes the store holds as unknown for a severe
-        /// set (no ingredient line), which the matcher lets through; leaves the store built, so later readers of the context
+        /// set (no ingredient line) and the foods it holds as of unknown contents for one, which the matcher lets through; leaves the store built, so later readers of the context
         /// read it.
         /// </summary>
         internal static async Task AssertStoreAgreesAsync(ApplicationDbContext db, long householdId, long personId)
@@ -61,8 +62,9 @@ namespace Nom.Api.Tests.Services.MealPlan
                 var matcher = (await db.Recipes.WithoutHeld(db, e).Select(r => r.Id).ToListAsync()).Where(id => !unknown.Contains(id)).ToList();
                 (await db.Recipes.WithoutHeld(db, a).Select(r => r.Id).ToListAsync())
                     .Should().BeEquivalentTo(matcher, "the store lets through the recipes the matcher does");
+                var unknownFoods = (await db.DietFoodFacts.Where(f => unknownSets.Contains(f.SetId) && f.Verdict == DietVerdict.Unknown).Select(f => f.IngredientId).ToListAsync()).ToHashSet();
                 (await db.Ingredients.WithoutHeld(db, a).Select(i => i.Id).ToListAsync())
-                    .Should().BeEquivalentTo(await db.Ingredients.WithoutHeld(db, e).Select(i => i.Id).ToListAsync(), "the store counts the foods the matcher does");
+                    .Should().BeEquivalentTo((await db.Ingredients.WithoutHeld(db, e).Select(i => i.Id).ToListAsync()).Where(id => !unknownFoods.Contains(id)), "the store counts the foods the matcher does, less those it holds as of unknown contents for a severe set (a made product whose brands were never read, review ck19-diet-7)");
             }
         }
 
@@ -329,22 +331,20 @@ namespace Nom.Api.Tests.Services.MealPlan
         }
 
         [Fact]
-        public async Task A_changed_criterion_keeps_its_types_previous_set_until_the_new_one_is_built_and_the_old_set_is_then_removed()
+        public async Task A_changed_criterion_of_a_type_with_no_severe_criterion_keeps_its_previous_set_until_the_new_one_is_built_and_the_old_set_is_then_removed()
         {
             using var db = NewContext();
-            var k = await SeedAsync(db);
+            var k = await SeedAsync(db, "Vegetarian", VegetarianRef);
             var builder = new DietGateStoreBuilder();
             await builder.RunAsync(db);
-            var before = await db.DietGateSets.Where(s => s.RestrictionTypeId == CeliacRef).Select(s => s.Id).ToListAsync();
+            var before = await db.DietGateSets.Where(s => s.RestrictionTypeId == VegetarianRef).Select(s => s.Id).ToListAsync();
 
-            db.Set<RestrictionCriterionEntity>().Add(new RestrictionCriterionEntity { RestrictionTypeId = CeliacRef, IngredientPattern = "%rice%", Severity = 4, Notes = "admin", CreatedDate = DateTime.UtcNow });
+            db.Set<RestrictionCriterionEntity>().Add(new RestrictionCriterionEntity { RestrictionTypeId = VegetarianRef, IngredientPattern = "%rice%", Severity = 3, Notes = "admin", CreatedDate = DateTime.UtcNow });
             await db.SaveChangesAsync();
-            foreach (var kept in new[] { await new HouseholdRestrictionResolver(db).ResolveAsync(HouseholdId), await new HouseholdRestrictionResolver(db).ResolveSevereForPersonAsync(PersonId) })
-            {
-                kept.Pending.Should().BeFalse("a criterion changed by a deploy or an admin never empties the gate (review CK10S-2)");
-                kept.Stored!.SetIds.Should().BeSubsetOf(before, "the type's previous set is read until the new one is built");
-                (await OfferedAsync(db, kept)).Should().BeEquivalentTo(new[] { k.Pilaf });
-            }
+            var kept = await new HouseholdRestrictionResolver(db).ResolveAsync(HouseholdId);
+            kept.Pending.Should().BeFalse("a criterion changed by a deploy or an admin never empties the gate of a type that restricts nothing severely (review CK10S-2)");
+            kept.Stored!.SetIds.Should().BeSubsetOf(before, "the type's previous set is read until the new one is built");
+            (await OfferedAsync(db, kept)).Should().Contain(k.Pilaf);
 
             builder.BeforeRecipes = _ => throw new InvalidOperationException("the cycle fails while the new set is building");
             await builder.Invoking(b => b.RunAsync(db)).Should().ThrowAsync<InvalidOperationException>();
@@ -352,8 +352,7 @@ namespace Nom.Api.Tests.Services.MealPlan
             (await db.DietGateSets.Where(s => before.Contains(s.Id)).Select(s => s.State).ToListAsync()).Should().AllBe(DietGateStore.Superseded);
             var building = await new HouseholdRestrictionResolver(db).ResolveAsync(HouseholdId);
             building.Pending.Should().BeFalse("the superseded set is still read while its successor is not complete");
-            (await OfferedAsync(db, building)).Should().BeEquivalentTo(new[] { k.Pilaf });
-            (await new HouseholdRestrictionResolver(db).ResolveSevereForPersonAsync(PersonId)).Pending.Should().BeFalse();
+            (await OfferedAsync(db, building)).Should().Contain(k.Pilaf);
 
             await builder.RunAsync(db);
             var after = await new HouseholdRestrictionResolver(db).ResolveAsync(HouseholdId);
@@ -362,6 +361,39 @@ namespace Nom.Api.Tests.Services.MealPlan
             (await OfferedAsync(db, after)).Should().NotContain(k.Pilaf);
             (await db.DietGateSets.AnyAsync(s => before.Contains(s.Id))).Should().BeFalse("a set no type reads any more is removed with its rows");
             (await db.DietRecipeFlags.AnyAsync(f => before.Contains(f.SetId))).Should().BeFalse();
+            await AssertStoreAgreesAsync(db, HouseholdId, PersonId);
+        }
+
+        [Fact]
+        public async Task A_changed_criterion_of_a_severe_type_holds_its_recipes_until_the_new_set_is_built_and_the_old_set_is_then_removed()
+        {
+            using var db = NewContext();
+            var k = await SeedAsync(db);
+            var builder = new DietGateStoreBuilder();
+            await builder.RunAsync(db);
+            var before = await db.DietGateSets.Where(s => s.RestrictionTypeId == CeliacRef).Select(s => s.Id).ToListAsync();
+            (await OfferedAsync(db, await new HouseholdRestrictionResolver(db).ResolveAsync(HouseholdId))).Should().Contain(k.Pilaf);
+
+            db.Set<RestrictionCriterionEntity>().Add(new RestrictionCriterionEntity { RestrictionTypeId = CeliacRef, IngredientPattern = "%rice%", Severity = 4, Notes = "admin", CreatedDate = DateTime.UtcNow });
+            await db.SaveChangesAsync();
+            foreach (var held in new[] { await new HouseholdRestrictionResolver(db).ResolveAsync(HouseholdId), await new HouseholdRestrictionResolver(db).ResolveSevereForPersonAsync(PersonId) })
+            {
+                held.Pending.Should().BeTrue("lead answer to CK19SM-3: the previous set never read the new criterion, so a severe type's recipes are held until the new set is built");
+                (await OfferedAsync(db, held)).Should().BeEmpty("the pilaf the previous set offered is rice, which the new criterion restricts");
+            }
+
+            builder.BeforeRecipes = _ => throw new InvalidOperationException("the cycle fails while the new set is building");
+            await builder.Invoking(b => b.RunAsync(db)).Should().ThrowAsync<InvalidOperationException>();
+            builder.BeforeRecipes = null;
+            (await new HouseholdRestrictionResolver(db).ResolveAsync(HouseholdId)).Pending.Should().BeTrue("a failed cycle leaves the new set unbuilt, so the type stays held");
+            (await new HouseholdRestrictionResolver(db).ResolveSevereForPersonAsync(PersonId)).Pending.Should().BeTrue();
+
+            await builder.RunAsync(db);
+            var after = await new HouseholdRestrictionResolver(db).ResolveAsync(HouseholdId);
+            after.Pending.Should().BeFalse();
+            after.Stored!.SetIds.Should().NotIntersectWith(before);
+            (await OfferedAsync(db, after)).Should().NotContain(k.Pilaf);
+            (await db.DietGateSets.AnyAsync(s => before.Contains(s.Id))).Should().BeFalse("a set no type reads any more is removed with its rows");
             await AssertStoreAgreesAsync(db, HouseholdId, PersonId);
         }
 

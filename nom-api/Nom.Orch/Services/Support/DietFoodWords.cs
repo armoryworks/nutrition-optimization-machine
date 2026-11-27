@@ -30,7 +30,7 @@ namespace Nom.Orch.Services.Support
     /// </summary>
     public static class DietFoodWords
     {
-        public const string Version = "diet-food-words/4";
+        public const string Version = "diet-food-words/5";
         public const string LineWordsResource = "Nom.Orch.Contents.diet-line-words.tsv";
         public const string MethodFoodsResource = "Nom.Orch.Contents.diet-method-foods.tsv";
         public const string MethodDishesResource = "Nom.Orch.Contents.diet-method-dishes.tsv";
@@ -153,11 +153,12 @@ namespace Nom.Orch.Services.Support
             return SpellingSet.Value.TryGetValue(w, out var spelt) ? spelt : w;
         }
 
-        /// <summary>A text with each old or variant spelling of <see cref="Spellings"/> written as its catalog word, so that the restriction patterns read it as they read the word ("grated cocoanut" is read as "grated coconut"), in the spelling's own case ("Prepare Cocoanut Pudding." is read as "Prepare Coconut Pudding.", so the referral rules still read a capitalised recipe name: review ck17dpr-1), and without the sizes it gives by a food ("a walnut-sized piece of butter", "butter the size of an egg": proof draw 14 of ck17, 74666 The Exquisite, held for tree nuts by its walnut); null stays null.</summary>
+        /// <summary>A text with each pair of words a hyphen joins written as one word where that word is a term of the vocabulary ("pea-nuts" is peanuts, so the Tree Nut set does not read its "nuts": staging checkpoint 8, T9), each old or variant spelling of <see cref="Spellings"/> written as its catalog word, so that the restriction patterns read it as they read the word ("grated cocoanut" is read as "grated coconut"), in the spelling's own case ("Prepare Cocoanut Pudding." is read as "Prepare Coconut Pudding.", so the referral rules still read a capitalised recipe name: review ck17dpr-1), and without the sizes it gives by a food ("a walnut-sized piece of butter", "butter the size of an egg": proof draw 14 of ck17, 74666 The Exquisite, held for tree nuts by its walnut; any nut, "about half the size of a hickory-nut": staging checkpoint 8, T9); null stays null.</summary>
         public static string? Respell(string? text)
         {
             if (string.IsNullOrEmpty(text)) return text;
             text = SizeOf.Replace(text, " ");
+            text = HyphenPair.Replace(text, m => HyphenTerms.Value.Contains(DietVocabulary.Singular((m.Groups[1].Value + m.Groups[2].Value).ToLowerInvariant())) ? m.Groups[1].Value + m.Groups[2].Value : m.Value);
             if (SpellingSet.Value.Count == 0) return text;
             return Letters.Replace(text, m =>
             {
@@ -168,13 +169,17 @@ namespace Nom.Orch.Services.Support
             });
         }
 
+        private static readonly Regex HyphenPair = new(@"(?<![\p{L}])(\p{L}+)-(\p{L}+)(?![\p{L}-])", RegexOptions.CultureInvariant | RegexOptions.Compiled);
+
+        private static readonly Lazy<HashSet<string>> HyphenTerms = new(() => DietVocabulary.All.Select(t => t.Term.Trim().ToLowerInvariant()).Where(t => t.Length > 0 && t.All(char.IsLetter)).Select(DietVocabulary.Singular).ToHashSet(StringComparer.Ordinal));
+
         private static string CasedAs(string original, string word)
         {
             if (original.Length > 1 && original.All(c => !char.IsLetter(c) || char.IsUpper(c))) return word.ToUpperInvariant();
             return char.IsUpper(original[0]) ? char.ToUpperInvariant(word[0]) + word[1..] : word;
         }
 
-        private static readonly Regex SizeOf = new(@"(?<![\p{L}])(?:(?:about\s+)?(?:the|a)\s+)?(?:size|bigness)\s+of\s+(?:a|an|one|two)\s+(?:small\s+|large\s+|good[\s-]sized\s+|hen'?s\s+|hen’s\s+|pullet'?s\s+)?(?:walnut|nut|egg|hazel[\s-]?nut|filbert|nutmeg|pea|bean|chestnut|almond)s?(?![\p{L}])|(?<![\p{L}])(?:walnut|nut|egg|hazelnut|filbert|chestnut)[\s-]+sized?(?![\p{L}])|(?<![\p{L}])as\s+(?:big|large)\s+as\s+(?:a|an)\s+(?:small\s+|large\s+)?(?:walnut|nut|egg|nutmeg|pea|hazelnut|filbert|chestnut)s?(?![\p{L}])", RegexOptions.IgnoreCase | RegexOptions.CultureInvariant | RegexOptions.Compiled);
+        private static readonly Regex SizeOf = new(@"(?<![\p{L}])(?:(?:about\s+)?(?:the|a)\s+)?(?:size|bigness)\s+of\s+(?:a|an|one|two)\s+(?:small\s+|large\s+|good[\s-]sized\s+|hen'?s\s+|hen’s\s+|pullet'?s\s+)?(?:\p{L}*[\s-]?nut|egg|filbert|nutmeg|pea|bean|almond)s?(?![\p{L}])|(?<![\p{L}])(?:\p{L}*nut|egg|filbert)[\s-]+sized?(?![\p{L}])|(?<![\p{L}])as\s+(?:big|large)\s+as\s+(?:a|an)\s+(?:small\s+|large\s+)?(?:walnut|nut|egg|nutmeg|pea|hazelnut|filbert|chestnut)s?(?![\p{L}])", RegexOptions.IgnoreCase | RegexOptions.CultureInvariant | RegexOptions.Compiled);
 
         /// <summary>Every word of a text, normalised (<see cref="Normal"/>), without its amounts and measures and the grammar of English (<see cref="Grammar"/>); the line words are kept (a food name reads them too).</summary>
         public static List<string> AllWords(string? text)

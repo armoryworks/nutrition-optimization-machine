@@ -177,6 +177,37 @@ namespace Nom.Api.Tests.Services
         }
 
         [Fact]
+        public async Task A_verified_wording_wins_over_a_recheck_mark_on_its_own_row_so_an_unload_and_reload_leave_the_lines_as_they_were()
+        {
+            using var db = NewContext();
+            var juice = Curated("Apple Juice", "173933", "Apple juice, canned or bottled, unsweetened");
+            var cider = Uncurated("sweet cider");
+            db.Ingredients.AddRange(juice, cider);
+            await db.SaveChangesAsync();
+            var mulled = Scraped("Mulled cider", (cider, "1 quart sweet cider"));
+            db.Recipes.Add(mulled);
+            await db.SaveChangesAsync();
+            (await Wordings(db).LoadAsync(new[] { Row("sweet cider", juice) }, Batch, apply: true)).Rejected.Should().Be(0);
+            (await Relink(db).LinkVerifiedWordingsAsync(apply: true, batch: Batch)).Moved.Should().Be(1);
+            db.IngredientAliases.Add(new IngredientAliasEntity { IngredientId = cider.Id, AliasName = "sweet cider", SourceContext = RecheckDietGuard.UnknownContentsContext });
+            await db.SaveChangesAsync();
+            var before = await LinesAsync(db);
+
+            var unloaded = await Wordings(db).UnloadAsync(Batch, apply: true, withLines: true);
+            unloaded.Lines!.Undone!.Restored.Should().Be(1, "the way back onto the marked row raises every flag, so it goes through");
+            (await FoodOfAsync(db, mulled.Id)).Should().Be(cider.Id);
+
+            (await Wordings(db).LoadAsync(new[] { Row("sweet cider", juice) }, Batch, apply: true)).Rejected.Should().Be(0);
+            var dry = await Relink(db).LinkVerifiedWordingsAsync(apply: false, batch: Batch);
+            var relinked = await Relink(db).LinkVerifiedWordingsAsync(apply: true, batch: Batch);
+
+            (dry.HeldByDiet, relinked.HeldByDiet, relinked.Moved).Should().Be((0, 0, 1),
+                "staging checkpoint 8, T14: a re-check run marked w01's own \"sweet cider\" row of unknown contents, and the reload held 40 lines off Apple Juice; the reviewed wording says what the line holds, not the mark");
+            (await LinesAsync(db)).Should().Be(before, "the round trip leaves every line where it was");
+            (await db.IngredientAliases.CountAsync(a => a.IngredientId == cider.Id && a.SourceContext == RecheckDietGuard.UnknownContentsContext)).Should().Be(1, "the mark stays for any line the wording does not move");
+        }
+
+        [Fact]
         public async Task An_undo_puts_back_a_move_that_raised_flags_only_by_the_operators_explicit_choice_listed_by_its_dry_run_and_journaled()
         {
             using var db = NewContext();

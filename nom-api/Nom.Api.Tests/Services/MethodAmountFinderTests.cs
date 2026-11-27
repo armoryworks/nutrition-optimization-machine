@@ -176,6 +176,7 @@ namespace Nom.Api.Tests.Services
 
         [Theory]
         [InlineData("tin plate", "Butter a tin plate and line it with paste.")]
+        [InlineData("tin cover", "Put a tin cover over it, and let it broil quickly until nearly done.")]
         [InlineData("lemon, raspberry, or any other acid syrup", "Put into a tumbler lemon, raspberry, or any other acid syrup, sufficient in quantity to flavour the water.")]
         [InlineData("acid syrup", "Put into a tumbler enough acid syrup to flavour it, and fill up with water.")]
         [InlineData("syrup", "Pour into a glass some syrup, sufficient to flavour the water.")]

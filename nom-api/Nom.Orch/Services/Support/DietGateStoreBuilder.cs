@@ -63,6 +63,9 @@ namespace Nom.Orch.Services.Support
 
             /// <summary>Whether a cycle over the changes read every line in windows because its scope was larger than <see cref="LargeScope"/>.</summary>
             public bool Windowed { get; init; }
+
+            /// <summary>On the cycle that switched a build to active, the seconds it took to ready the new rows for requests before the switch (<see cref="WarmAsync"/>); null otherwise.</summary>
+            public double? WarmSeconds { get; init; }
         }
 
         internal sealed record Spec(long TypeId, int MinimumSeverity, string Key, string Text, bool Severe, List<DietDataCriterion> Criteria);
@@ -85,7 +88,18 @@ namespace Nom.Orch.Services.Support
 
             public bool FlourLost { get; init; }
 
+            public string[] NutRules { get; init; } = Array.Empty<string>();
+
+            public bool Referral { get; init; }
+
+            public string? LostDish { get; init; }
+
+            public IReadOnlyDictionary<string, (string Place, string Word)> DishHolds { get; init; } = new Dictionary<string, (string, string)>(StringComparer.Ordinal);
+
             public DietFoodWords.Table? Table { get; init; }
+
+            /// <summary>The second reader's pair reading (<see cref="DietSecondGate.Summary"/>) while the gate setting is on: empty when not yet read; null while the setting is off.</summary>
+            public string? Second { get; init; }
         }
 
         internal sealed record LineWords(long IngredientId, int[] Words, bool Read, int Group = -1, bool Reference = false, bool Choice = false);
@@ -110,7 +124,19 @@ namespace Nom.Orch.Services.Support
 
         internal sealed record LineRow(long RecipeId, long IngredientId, int SortOrder, string? RawLine, decimal Quantity, long MeasurementId, string? LineKind, decimal? AlcoholRetention, string? AlcoholRetentionBasis);
 
-        internal sealed record RecipeLines(Dictionary<long, string> Servings, Dictionary<long, List<LineRow>> Lines, Dictionary<long, BookText> Books);
+        internal sealed record RecipeLines(Dictionary<long, string> Servings, Dictionary<long, List<LineRow>> Lines, Dictionary<long, BookText> Books)
+        {
+            /// <summary>Every recipe's title and method, read only while the second reader's gate is on.</summary>
+            public Dictionary<long, (string? Name, string? Method)> Texts { get; init; } = new();
+        }
+
+        /// <summary>The stored readings of the second reader's pair while its gate setting is on (<see cref="DietSecondGate"/>).</summary>
+        internal sealed record SecondReads(Dictionary<long, List<DietSecondGate.Stored>> Readings)
+        {
+            public string Of(long recipeId, string? title, IReadOnlyList<LineRow> lines, string? method, IReadOnlyDictionary<long, DietFoodCatalog.Food> foods) =>
+                DietSecondGate.Summary(Readings.GetValueOrDefault(recipeId),
+                    DietSecondGate.TextSignature(title, lines.Select(l => DietSecondGate.LineText(l.RawLine, foods.GetValueOrDefault(l.IngredientId)?.Name)), new[] { method }));
+        }
 
         internal sealed record BookText(string? Name, string? Method, string? Book = null);
 
@@ -140,6 +166,15 @@ namespace Nom.Orch.Services.Support
 
             public HashSet<string> ClarifiedBooks { get; set; } = new(StringComparer.Ordinal);
 
+            public string[] DishClasses { get; set; } = Array.Empty<string>();
+
+            public bool HoldsBase { get; set; }
+
+            public bool Measured { get; set; }
+
+            /// <summary>The set's type in the second reader's order, for a severe set of a type it reads; -1 otherwise.</summary>
+            public int SecondIndex { get; set; } = -1;
+
             public bool Building => Row.State == DietGateStore.Building;
 
             public Stopwatch FoodClock { get; } = new();
@@ -160,6 +195,7 @@ namespace Nom.Orch.Services.Support
         private readonly Dictionary<long, long> _foodInputs = new();
         private readonly Dictionary<long, SetState> _sets = new();
         private Words? _words;
+        private bool? _secondOn;
 
         /// <summary>Run after the foods of a cycle are decided and stored and before its recipes are (a test makes a cycle fail there).</summary>
         internal Func<CancellationToken, Task>? BeforeRecipes { get; set; }
@@ -181,7 +217,7 @@ namespace Nom.Orch.Services.Support
         public static Task<bool> PendingWritesAsync(ApplicationDbContext db, CancellationToken cancellationToken = default) =>
             db.DietGateWrites.AsNoTracking().AnyAsync(cancellationToken);
 
-        private sealed record Writes(List<long> Ids, HashSet<long> Recipes, HashSet<long> Foods, HashSet<long> FoodRecipes);
+        private sealed record Writes(List<long> Ids, HashSet<long> Recipes, HashSet<long> Foods, Dictionary<long, ulong> FoodRecipes);
 
         private sealed record LogMark(string? Snapshot, HashSet<long>? Seen)
         {
@@ -231,12 +267,35 @@ namespace Nom.Orch.Services.Support
         private static async Task<Writes> ReadWritesAsync(ApplicationDbContext db, CancellationToken cancellationToken)
         {
             var rows = await db.DietGateWrites.AsNoTracking().OrderBy(w => w.Id).Take(WriteBatch)
-                .Select(w => new { w.Id, w.RecipeId, w.IngredientId })
+                .Select(w => new { w.Id, w.RecipeId, w.IngredientId, w.Tx })
                 .ToListAsync(cancellationToken);
             return new Writes(rows.Select(r => r.Id).ToList(),
                 rows.Where(r => r.RecipeId != null && r.IngredientId == null).Select(r => r.RecipeId!.Value).ToHashSet(),
                 rows.Where(r => r.IngredientId != null).Select(r => r.IngredientId!.Value).ToHashSet(),
-                rows.Where(r => r.RecipeId != null && r.IngredientId != null).Select(r => r.RecipeId!.Value).ToHashSet());
+                rows.Where(r => r.RecipeId != null && r.IngredientId != null).GroupBy(r => r.RecipeId!.Value).ToDictionary(g => g.Key, g => g.Max(r => r.Tx)));
+        }
+
+        /// <summary>
+        /// The recipes a food write of the log held when the cycle began: those whose stored state did not stand against the
+        /// write (no state, or a state whose reading could not see the write's transaction, as <see cref="DietGateStore.Standing"/>
+        /// reads it). A row left from a batch an earlier cycle could not read (more than <see cref="WriteBatch"/> rows) is of a
+        /// recipe that cycle already decided again, and is not counted as released (staging checkpoint 8, T7). Off Postgres
+        /// every logged recipe counts.
+        /// </summary>
+        private static async Task<HashSet<long>> HeldByFoodWritesAsync(ApplicationDbContext db, long buildId, Writes writes, CancellationToken cancellationToken)
+        {
+            if (!db.Database.IsRelational()) return writes.FoodRecipes.Keys.ToHashSet();
+            var held = new HashSet<long>();
+            foreach (var batch in writes.FoodRecipes.Keys.Chunk(5000))
+            {
+                var states = await db.DietRecipeStates.AsNoTracking()
+                    .Where(s => s.BuildId == buildId && batch.Contains(s.RecipeId))
+                    .Select(s => new { s.RecipeId, s.ReadXmin })
+                    .ToDictionaryAsync(s => s.RecipeId, s => s.ReadXmin, cancellationToken);
+                foreach (var id in batch)
+                    if (!states.TryGetValue(id, out var xmin) || xmin == null || writes.FoodRecipes[id] >= xmin) held.Add(id);
+            }
+            return held;
         }
 
         private static async Task ConsumeWritesAsync(ApplicationDbContext db, Writes writes, CancellationToken cancellationToken)
@@ -304,6 +363,7 @@ namespace Nom.Orch.Services.Support
             var foodClock = Stopwatch.StartNew();
             var catalog = await DietFoodCatalog.LoadAsync(db, NutrientIds(specs), cancellationToken);
             var buildId = build.Id;
+            var held = await HeldByFoodWritesAsync(db, buildId, writes, cancellationToken);
             var stored = (await db.DietFoodStates.AsNoTracking().Where(s => s.BuildId == buildId).Select(s => s.IngredientId).ToListAsync(cancellationToken)).ToHashSet();
             var changedFoods = catalog.Foods.Keys.Where(id => !stored.Contains(id) || !_foodPrints.TryGetValue(id, out var old) || old != catalog.Fingerprint(id)).ToHashSet();
             var goneFoods = _foodPrints.Keys.Where(id => !catalog.Foods.ContainsKey(id)).ToList();
@@ -318,13 +378,16 @@ namespace Nom.Orch.Services.Support
             var readers = ReadersOf(specs);
             var words = await WordsAsync(db, readers, specs, sets, cancellationToken);
             _words = words;
-            var (live, changedRecipes, readings) = await ReadLinesAsync(db, buildId, readers, moved, built.Count > 0, words, catalog.Foods, cancellationToken);
+            var secondOn = await DietSecondGate.OnAsync(db, cancellationToken);
+            var second = secondOn ? new SecondReads(await DietSecondGate.LoadAsync(db, null, cancellationToken)) : null;
+            var (live, changedRecipes, readings) = await ReadLinesAsync(db, buildId, readers, moved, built.Count > 0, words, catalog.Foods, second, cancellationToken);
             if (AfterLinesRead != null) await AfterLinesRead(cancellationToken);
             var goneRecipes = _recipePrints.Keys.Where(id => !live.Contains(id)).ToList();
             await RemoveRecipesAsync(db, buildId, goneRecipes, cancellationToken);
             foreach (var id in goneRecipes) _recipePrints.Remove(id);
             var (decided, late) = await DecideRecipesAsync(db, buildId, catalog, sets, live, changedRecipes, readings, mark, cancellationToken);
             await WriteFoodStatesAsync(db, buildId, catalog, changedFoods, goneFoods, cancellationToken);
+            _secondOn = secondOn;
             recipeClock.Stop();
 
             var now = DateTime.UtcNow;
@@ -348,6 +411,8 @@ namespace Nom.Orch.Services.Support
             }
 
             var switched = false;
+            double? warmed = null;
+            if (build.State == DietGateStore.Building) warmed = await WarmAsync(db, buildId, sets.Select(s => s.Row.Id).ToList(), cancellationToken);
             if (build.State == DietGateStore.Building)
             {
                 build.State = DietGateStore.Active;
@@ -375,7 +440,8 @@ namespace Nom.Orch.Services.Support
             {
                 RecipesLate = late,
                 FoodsMoved = moved.Count,
-                RecipesConfirmed = writes.FoodRecipes.Count(id => live.Contains(id) && !changedRecipes.Contains(id)),
+                RecipesConfirmed = held.Count(id => live.Contains(id) && !changedRecipes.Contains(id)),
+                WarmSeconds = warmed,
             };
         }
 
@@ -386,11 +452,14 @@ namespace Nom.Orch.Services.Support
             if (build == null || build.Id != _buildId || build.State != DietGateStore.Active || _sets.Values.Any(s => s.Building)) return await CycleAsync(db, cancellationToken);
             var specs = await SpecsAsync(db);
             if (!specs.Select(s => s.Key).ToHashSet(StringComparer.Ordinal).SetEquals(_sets.Values.Select(s => s.Row.CriteriaKey))) return await CycleAsync(db, cancellationToken);
+            var secondOn = await DietSecondGate.OnAsync(db, cancellationToken);
+            if (_secondOn != secondOn) return await CycleAsync(db, cancellationToken);
 
             var clock = Stopwatch.StartNew();
             var writes = await ReadWritesAsync(db, cancellationToken);
             var sets = _sets.Values.OrderBy(s => s.Row.Id).ToList();
             var buildId = build.Id;
+            var held = await HeldByFoodWritesAsync(db, buildId, writes, cancellationToken);
 
             var foodClock = Stopwatch.StartNew();
             var undecided = (await db.Ingredients.IgnoreQueryFilters().AsNoTracking()
@@ -435,11 +504,12 @@ namespace Nom.Orch.Services.Support
             if (windowed)
             {
                 recipeCatalog = await DietFoodCatalog.LoadAsync(db, NutrientIds(specs), cancellationToken);
-                (live, changed, readings) = await ReadLinesAsync(db, buildId, readers, moved, false, words, recipeCatalog.Foods, cancellationToken);
+                var second = secondOn ? new SecondReads(await DietSecondGate.LoadAsync(db, null, cancellationToken)) : null;
+                (live, changed, readings) = await ReadLinesAsync(db, buildId, readers, moved, false, words, recipeCatalog.Foods, second, cancellationToken);
             }
             else
             {
-                var recipes = await RecipeLinesAsync(db, recipeScope, cancellationToken);
+                var recipes = await RecipeLinesAsync(db, recipeScope, cancellationToken, secondOn);
                 recipeCatalog = await DietFoodCatalog.LoadAsync(db, NutrientIds(specs), cancellationToken,
                     recipes.Lines.Values.SelectMany(l => l.Select(x => x.IngredientId)).ToHashSet());
                 var storedPrints = new Dictionary<long, long>();
@@ -447,7 +517,8 @@ namespace Nom.Orch.Services.Support
                     foreach (var s in await db.DietRecipeStates.AsNoTracking().Where(s => s.BuildId == buildId && batch.Contains(s.RecipeId)).Select(s => new { s.RecipeId, s.Fingerprint }).ToListAsync(cancellationToken))
                         storedPrints[s.RecipeId] = s.Fingerprint;
                 live = recipes.Servings.Keys.ToHashSet();
-                (changed, readings) = ReadScope(readers, recipes, storedPrints, moved, words, recipeCatalog.Foods);
+                var second = secondOn ? new SecondReads(await DietSecondGate.LoadAsync(db, recipeScope, cancellationToken)) : null;
+                (changed, readings) = ReadScope(readers, recipes, storedPrints, moved, words, recipeCatalog.Foods, second);
             }
             if (AfterLinesRead != null) await AfterLinesRead(cancellationToken);
             var gone = windowed
@@ -475,7 +546,7 @@ namespace Nom.Orch.Services.Support
             {
                 RecipesLate = late,
                 FoodsMoved = moved.Count,
-                RecipesConfirmed = writes.FoodRecipes.Count(id => !changed.Contains(id) && !goneSet.Contains(id)),
+                RecipesConfirmed = held.Count(id => !changed.Contains(id) && !goneSet.Contains(id)),
                 Windowed = windowed,
             };
         }
@@ -485,7 +556,7 @@ namespace Nom.Orch.Services.Support
         /// S2: read one by one, a cycle over 116,639 recipes took 316 s where the whole cycle reads 122,103 in 67 s): a recipe
         /// is decided again when it has no stored state, its fingerprint moved, or one of its foods' decisions moved.
         /// </summary>
-        private static (HashSet<long> Changed, Dictionary<long, Reading> Readings) ReadScope(Readers readers, RecipeLines recipes, Dictionary<long, long> storedPrints, HashSet<long> moved, Words words, IReadOnlyDictionary<long, DietFoodCatalog.Food> foods)
+        private static (HashSet<long> Changed, Dictionary<long, Reading> Readings) ReadScope(Readers readers, RecipeLines recipes, Dictionary<long, long> storedPrints, HashSet<long> moved, Words words, IReadOnlyDictionary<long, DietFoodCatalog.Food> foods, SecondReads? second)
         {
             var ids = recipes.Servings.Keys.ToArray();
             var outcome = new Reading?[ids.Length];
@@ -494,9 +565,11 @@ namespace Nom.Orch.Services.Support
                 var id = ids[i];
                 var lines = recipes.Lines.TryGetValue(id, out var l) ? l : new List<LineRow>();
                 var book = recipes.Books.GetValueOrDefault(id);
-                var print = Print(lines, recipes.Servings[id], book, words.Signature);
+                var text = recipes.Texts.GetValueOrDefault(id);
+                var secondOf = second?.Of(id, text.Name, lines, text.Method, foods);
+                var print = Print(lines, recipes.Servings[id], book, words.Signature, secondOf);
                 if (storedPrints.TryGetValue(id, out var was) && was == print && !lines.Any(x => moved.Contains(x.IngredientId))) return;
-                outcome[i] = Read(readers, id, lines, print, book, words, foods);
+                outcome[i] = Read(readers, id, lines, print, book, words, foods) with { Second = secondOf };
             });
             var changed = new HashSet<long>();
             var readings = new Dictionary<long, Reading>();
@@ -660,7 +733,7 @@ namespace Nom.Orch.Services.Support
                 .OrderBy(w => w.Wording, StringComparer.Ordinal)
                 .ToList();
 
-        /// <summary>The table of a cycle's curated foods and every severe set's vocabulary of it, with the signature so far; <see cref="WordsAsync"/> adds the category rows. A food flagged only by its brands' consensus (<see cref="BrandedConsensus.FactSource"/>) is no knowledge of its words: "soup" in an old cookbook's "soup stock" is not the condensed soup a can holds.</summary>
+        /// <summary>The table of a cycle's curated foods and every severe set's vocabulary of it, with the signature so far; <see cref="WordsAsync"/> adds the category rows. A food flagged only by its brands' consensus (<see cref="BrandedConsensus.FactSource"/>) is no knowledge of its words: "soup" in an old cookbook's "soup stock" is not the condensed soup a can holds; nor is a fruit flagged only as dried by its description (<see cref="DietFoodReader.DriedFruitSource"/>): "cherries" in a line are not the dried cherries, though "prunes" and "raisins" are always dried (<see cref="DietFoodReader.NamesDriedFruit"/>).</summary>
         internal static async Task<(DietFoodWords.Table Table, DietFoodCatalog.Fnv Hash)> VocabularyAsync(ApplicationDbContext db, Readers readers, List<Spec> specs, List<SetState> sets, CancellationToken cancellationToken)
         {
             var rows = await db.Ingredients.AsNoTracking()
@@ -701,7 +774,7 @@ namespace Nom.Orch.Services.Support
                 var oneWord = set.LineKeys.Keys.Select(k => termWords[k]).Where(w => w.Count == 1).Select(w => w[0]).ToHashSet(StringComparer.Ordinal);
                 var kinds = DietFoodWords.KindsOf(set.Spec.Criteria.Where(c => c.LikePattern != null).Select(c => c.LikePattern!));
                 set.Vocabulary = DietFoodWords.Build(table,
-                    i => set.Facts.TryGetValue(table.Foods[i].Id, out var fact) && fact.Verdict == DietVerdict.Contains && fact.Source != BrandedConsensus.FactSource,
+                    i => set.Facts.TryGetValue(table.Foods[i].Id, out var fact) && fact.Verdict == DietVerdict.Contains && fact.Source != BrandedConsensus.FactSource && (fact.Source != DietFoodReader.DriedFruitSource || DietFoodReader.NamesDriedFruit(table.Foods[i].Name)),
                     i => named[i].Where(keys.ContainsKey).Select(k => termWords[k]).ToList(),
                     oneWord, kinds);
                 hash.Add(set.Row.CriteriaKey);
@@ -745,11 +818,29 @@ namespace Nom.Orch.Services.Support
             foreach (var i in members)
             {
                 if (!set.Facts.TryGetValue(table.Foods[i].Id, out var fact)) continue;
-                if (fact.Verdict == DietVerdict.Contains && fact.Source != BrandedConsensus.FactSource) flagged++;
+                if (fact.Verdict == DietVerdict.Contains && fact.Source != BrandedConsensus.FactSource && (fact.Source != DietFoodReader.DriedFruitSource || DietFoodReader.NamesDriedFruit(table.Foods[i].Name))) flagged++;
                 else open++;
             }
             if (flagged == members.Length) return DietFoodWords.WordClass.Flagged;
             return flagged == 0 && open == 0 && DietFoodWords.PlainCategories.Contains(categoryId) ? DietFoodWords.WordClass.Clear : DietFoodWords.WordClass.Both;
+        }
+
+        /// <summary>
+        /// Readies a complete build's rows for the requests that read them from its switch on (staging checkpoint 8, T6: the
+        /// first shuffle after the switch took 18.7 s, every later one under a second): on Postgres the planner's statistics of
+        /// the store's tables are taken again, since the build wrote its rows by COPY faster than autovacuum's analyze follows,
+        /// and the build's states and its sets' flags are read once by the indexes a request uses. Returns the seconds it took.
+        /// </summary>
+        private static async Task<double> WarmAsync(ApplicationDbContext db, long buildId, List<long> setIds, CancellationToken cancellationToken)
+        {
+            var clock = Stopwatch.StartNew();
+            if (db.Database.IsRelational() && db.Database.GetDbConnection() is NpgsqlConnection)
+                foreach (var table in new[] { "DietRecipeFlag", "DietRecipeState", "DietFoodFact", "DietFoodState", "DietGateSet", "DietGateWrite" })
+                    await db.Database.ExecuteSqlRawAsync("ANALYZE plan.\"" + table + "\"", cancellationToken);
+            await db.DietRecipeStates.AsNoTracking().Where(s => s.BuildId == buildId).CountAsync(cancellationToken);
+            foreach (var set in setIds)
+                await db.DietRecipeFlags.AsNoTracking().Where(f => f.SetId == set).CountAsync(cancellationToken);
+            return clock.Elapsed.TotalSeconds;
         }
 
         /// <summary>Records a failed cycle on the build being worked on; the build keeps what it had, and requests keep reading the active build.</summary>
@@ -862,6 +953,20 @@ namespace Nom.Orch.Services.Support
                 ? Top(spec.Criteria.Where(c => c.NutrientId != null && c.MaxAmountPerServing == null && DietCriteriaMatcher.IsAlcohol(c.NutrientName))).Id
                 : null;
             set.Capped = DietCriteriaMatcher.RetainedCriterion(spec.Criteria);
+            set.DishClasses = spec.Severe ? DietVocabulary.Classes.Select(c => c.Name).Where(c => spec.Criteria.Any(x => BrandedConsensus.Reads(x, c))).ToArray() : Array.Empty<string>();
+            set.Measured = Measured(spec, set.DishClasses);
+            set.HoldsBase = !set.Measured || DietDishWords.LostClasses(DietDishWords.DoughWord) is not { } dough || set.DishClasses.Intersect(dough, StringComparer.Ordinal).Any();
+            set.SecondIndex = spec.Severe ? DietSecondGate.IndexOf(spec.Criteria[0].TypeName) : -1;
+        }
+
+        /// <summary>Whether the dish words measured what a severe set restricts (<see cref="DietDishWords"/>): it reads a class of the vocabulary, and each of its severe criteria is of the reference type of a class it reads or is a default pattern of that type (<see cref="DefaultRestrictionCriteria.ByName"/>). The table's shares were read for those types only, so a set they do not cover (corn, mustard, celery, a walnut allergy) keeps every lost part's hold: below the line was never shown for it.</summary>
+        internal static bool Measured(Spec spec, IReadOnlyCollection<string> dishClasses)
+        {
+            if (!spec.Severe || dishClasses.Count == 0) return false;
+            var types = dishClasses.Select(c => DietVocabulary.ClassOf(c).ReferenceType).ToList();
+            var patterns = types.SelectMany(t => DefaultRestrictionCriteria.ByName.TryGetValue(t, out var d) ? d.Patterns : Array.Empty<string>()).ToHashSet(StringComparer.OrdinalIgnoreCase);
+            return spec.Criteria.Where(c => c.Severity >= 4 && (c.LikePattern != null || c.WordPattern != null))
+                .All(c => types.Contains(c.TypeName ?? string.Empty, StringComparer.OrdinalIgnoreCase) || (c.LikePattern != null && patterns.Contains(c.LikePattern)));
         }
 
         private static DietDataCriterion Top(IEnumerable<DietDataCriterion> criteria) => criteria.OrderByDescending(c => c.Severity).ThenBy(c => c.Id).First();
@@ -935,14 +1040,15 @@ namespace Nom.Orch.Services.Support
             }, cancellationToken);
         }
 
-        private static Dictionary<long, Fact> Facts(DietFoodReader.Decision decision, IReadOnlyList<DietDataCriterion> criteria)
+        internal static Dictionary<long, Fact> Facts(DietFoodReader.Decision decision, IReadOnlyList<DietDataCriterion> criteria)
         {
             var byId = criteria.ToDictionary(c => c.Id);
             var result = new Dictionary<long, Fact>();
             foreach (var food in decision.Foods.SelectMany(kv => kv.Value).Distinct())
             {
                 var counting = decision.Foods.Where(kv => kv.Value.Contains(food) && byId.ContainsKey(kv.Key)).Select(kv => byId[kv.Key]).ToList();
-                var top = Top(counting);
+                var own = counting.Where(c => decision.Sources.GetValueOrDefault((c.Id, food)) is not (BrandedConsensus.FactSource or DietFoodReader.DriedFruitSource)).ToList();
+                var top = Top(own.Count > 0 ? own : counting);
                 result[food] = new Fact(DietVerdict.Contains, top.Id, string.Join(',', counting.Select(c => c.Id).OrderBy(id => id).Select(id => id.ToString(CultureInfo.InvariantCulture))),
                     decision.Sources.GetValueOrDefault((top.Id, food)));
             }
@@ -952,10 +1058,12 @@ namespace Nom.Orch.Services.Support
                 result[food] = new Fact(DietVerdict.Unknown, null, null, "contents-unknown");
             foreach (var food in decision.Split.Where(f => !result.ContainsKey(f)))
                 result[food] = new Fact(DietVerdict.Unknown, null, null, BrandedConsensus.SplitFactSource);
+            foreach (var food in decision.Unread.Where(f => !result.ContainsKey(f)))
+                result[food] = new Fact(DietVerdict.Unknown, null, null, BrandedConsensus.UnreadFactSource);
             return result;
         }
 
-        internal static long Print(IReadOnlyList<LineRow> lines, string servings, BookText? book, long words)
+        internal static long Print(IReadOnlyList<LineRow> lines, string servings, BookText? book, long words, string? second = null)
         {
             var hash = new DietFoodCatalog.Fnv();
             foreach (var line in lines)
@@ -963,6 +1071,7 @@ namespace Nom.Orch.Services.Support
             hash.Add("|").Add(servings);
             hash.Add("|").Add(book?.Name).Add(book?.Method).Add(book?.Book);
             hash.Add("|").Add(words);
+            if (second != null) hash.Add("|second:").Add(second);
             return hash.Value;
         }
 
@@ -1009,7 +1118,7 @@ namespace Nom.Orch.Services.Support
             var foodIds = lines.Select(x => x.IngredientId).Distinct().ToArray();
             var lineWords = WordsOf(lines, words, foods);
             if (book == null)
-                return new Reading(print, matched, drinks, foodIds, lines.Count(x => !DietRecipeText.IsPlaceholder(x.RawLine) && (x.LineKind == null || !NoFoodKinds.Contains(x.LineKind))), Array.Empty<string>(), Array.Empty<string>()) { Words = lineWords, Table = words.Table };
+                return new Reading(print, matched, drinks, foodIds, lines.Count(x => !DietRecipeText.IsPlaceholder(x.RawLine) && (x.LineKind == null || !NoFoodKinds.Contains(x.LineKind))), Array.Empty<string>(), Array.Empty<string>()) { Words = lineWords, Table = words.Table, Referral = IngredientLineParser.HasReferral(lines.Select(x => x.RawLine)) };
             var method = DietFoodWords.Respell(book.Method);
             var raws = lines.Select(x => DietFoodWords.Respell(x.RawLine)).ToList();
             var elsewhere = DietRecipeText.RefersElsewhere(raws, method);
@@ -1024,8 +1133,12 @@ namespace Nom.Orch.Services.Support
             var carried = lines.Where(x => x.LineKind == null || !NoFoodKinds.Contains(x.LineKind)).SelectMany(x => DietFoodWords.AllWords(x.RawLine).Concat(DietFoodWords.AllWords(foods.GetValueOrDefault(x.IngredientId)?.Name))).ToHashSet(StringComparer.Ordinal);
             var methodNamed = sentences.SelectMany(t => DietFoodWords.MethodPairs(t.RawLine, carried)).Distinct().ToList();
             var methodWords = methodNamed.Select(p => (Word: words.Table.IndexOf(p.Word), Next: p.Next == null ? -1 : words.Table.IndexOf(p.Next))).Where(p => p.Word >= 0).Distinct().ToArray();
+            var methodFood = methodNamed.Select(p => p.Word).FirstOrDefault(w => words.Table.IndexOf(w) < 0 && DietFoodWords.IsMethodFood(w));
             var titled = DietFoodWords.AllWords(DietRecipeText.Title(DietFoodWords.Respell(book.Name))).ToHashSet(StringComparer.Ordinal);
-            var methodFood = methodNamed.Select(p => p.Word).FirstOrDefault(w => words.Table.IndexOf(w) < 0 && (DietFoodWords.IsMethodFood(w) || (DietFoodWords.IsMethodDish(w) && !titled.Contains(w))));
+            var lostDish = methodNamed.Select(p => p.Word).FirstOrDefault(w => words.Table.IndexOf(w) < 0 && DietFoodWords.IsMethodDish(w) && !titled.Contains(w));
+            var ingredientLines = lines.Where(x => x.LineKind == null || x.LineKind == RecipeIngredientLineKind.Ingredient).ToList();
+            var dish = DietDishWords.Holds(DietDishWords.Evidence(book.Name, book.Method, ingredientLines.Select(x => x.RawLine)),
+                DietDishWords.Carried(ingredientLines.Select(x => x.RawLine), lines.Select(x => foods.GetValueOrDefault(x.IngredientId)?.Name)));
             return new Reading(print, matched, drinks, foodIds, DietRecipeText.BuildsOnAnother(method, raws) ? 0 : lines.Count(x => !DietRecipeText.IsPlaceholder(x.RawLine) && (x.LineKind == null || !NoFoodKinds.Contains(x.LineKind))), titleRules, methodRules)
             {
                 Words = lineWords,
@@ -1036,6 +1149,10 @@ namespace Nom.Orch.Services.Support
                 ConsommeLine = lines.FirstOrDefault(x => (x.LineKind == null || !NoFoodKinds.Contains(x.LineKind)) && DietRecipeText.NamesConsomme(x.RawLine))?.IngredientId,
                 DoughLost = DietRecipeText.DoughLost(DietFoodWords.Respell(book.Name), raws) || DietRecipeText.PasteLost(method, raws),
                 FlourLost = DietRecipeText.LeaveningLost(raws),
+                NutRules = readers.Lines.Read(DietRecipeText.LostNuts(DietFoodWords.Respell(book.Name), raws, method).Select(t => new DietLineRules.Line(id, 0, 0, t)).ToList(), false).Rules.ToArray(),
+                Referral = IngredientLineParser.HasReferral(lines.Select(x => x.RawLine)),
+                DishHolds = dish,
+                LostDish = lostDish,
             };
         }
 
@@ -1050,14 +1167,16 @@ namespace Nom.Orch.Services.Support
         private static string ServingsOf(long? servings, decimal? recipeServings) =>
             servings?.ToString(CultureInfo.InvariantCulture) + "/" + recipeServings?.ToString(CultureInfo.InvariantCulture);
 
-        private static async Task<RecipeLines> RecipeLinesAsync(ApplicationDbContext db, IReadOnlyCollection<long> recipeIds, CancellationToken cancellationToken)
+        private static async Task<RecipeLines> RecipeLinesAsync(ApplicationDbContext db, IReadOnlyCollection<long> recipeIds, CancellationToken cancellationToken, bool allText = false)
         {
             var servings = new Dictionary<long, string>();
             var lines = new Dictionary<long, List<LineRow>>();
             var books = new Dictionary<long, BookText>();
+            var texts = new Dictionary<long, (string? Name, string? Method)>();
             foreach (var batch in recipeIds.Distinct().Chunk(5000))
             {
                 var names = new Dictionary<long, (string? Name, string? Book)>();
+                var titles = new Dictionary<long, string?>();
                 foreach (var r in await db.Recipes.IgnoreQueryFilters().AsNoTracking()
                              .Where(r => !r.IsDeleted && batch.Contains(r.Id))
                              .Select(r => new { r.Id, r.Servings, r.RecipeServings, r.Name, r.SourceUrl, r.ScrapedAtUtc, r.SourceAttribution })
@@ -1065,9 +1184,11 @@ namespace Nom.Orch.Services.Support
                 {
                     servings[r.Id] = ServingsOf(r.Servings, r.RecipeServings);
                     if (DietRecipeText.FromBook(r.SourceUrl, r.ScrapedAtUtc)) names[r.Id] = (r.Name, r.SourceAttribution);
+                    if (allText) titles[r.Id] = r.Name;
                 }
-                var methods = await MethodsAsync(db, names.Keys.ToList(), cancellationToken);
+                var methods = await MethodsAsync(db, allText ? titles.Keys.ToList() : names.Keys.ToList(), cancellationToken);
                 foreach (var (id, (name, attribution)) in names) books[id] = new BookText(name, methods.GetValueOrDefault(id), attribution);
+                foreach (var (id, title) in titles) texts[id] = (title, methods.GetValueOrDefault(id));
                 var rows = await db.RecipeIngredients.IgnoreQueryFilters().AsNoTracking()
                     .Where(ri => !ri.IsDeleted && batch.Contains(ri.RecipeId))
                     .Select(ri => new LineRow(ri.RecipeId, ri.IngredientId, ri.SortOrder, ri.RawLine, ri.Quantity, ri.MeasurementId, ri.LineKind, ri.AlcoholRetention, ri.AlcoholRetentionBasis))
@@ -1075,11 +1196,11 @@ namespace Nom.Orch.Services.Support
                 foreach (var g in rows.GroupBy(l => l.RecipeId))
                     lines[g.Key] = g.OrderBy(l => l.SortOrder).ThenBy(l => l.IngredientId).ToList();
             }
-            return new RecipeLines(servings, lines, books);
+            return new RecipeLines(servings, lines, books) { Texts = texts };
         }
 
         private static async Task<(HashSet<long> Live, HashSet<long> Changed, Dictionary<long, Reading> Readings)> ReadLinesAsync(
-            ApplicationDbContext db, long buildId, Readers readers, HashSet<long> movedFoods, bool all, Words words, IReadOnlyDictionary<long, DietFoodCatalog.Food> foods, CancellationToken cancellationToken)
+            ApplicationDbContext db, long buildId, Readers readers, HashSet<long> movedFoods, bool all, Words words, IReadOnlyDictionary<long, DietFoodCatalog.Food> foods, SecondReads? second, CancellationToken cancellationToken)
         {
             var recipeRows = (await db.Recipes.IgnoreQueryFilters().AsNoTracking()
                     .Where(r => !r.IsDeleted)
@@ -1117,9 +1238,10 @@ namespace Nom.Orch.Services.Support
                     var recipe = byRecipe.TryGetValue(id, out var l) ? l : new List<LineRow>();
                     var row = recipeRows[id];
                     var book = DietRecipeText.FromBook(row.SourceUrl, row.ScrapedAtUtc) ? new BookText(row.Name, methods.GetValueOrDefault(id), row.SourceAttribution) : null;
-                    var print = Print(recipe, servings[id], book, words.Signature);
+                    var secondOf = second?.Of(id, row.Name, recipe, methods.GetValueOrDefault(id), foods);
+                    var print = Print(recipe, servings[id], book, words.Signature, secondOf);
                     var isChanged = !stored.TryGetValue(id, out var was) || was != print || (movedFoods.Count > 0 && recipe.Any(x => movedFoods.Contains(x.IngredientId)));
-                    outcome[i] = (isChanged, isChanged || all ? Read(readers, id, recipe, print, book, words, foods) : null);
+                    outcome[i] = (isChanged, isChanged || all ? Read(readers, id, recipe, print, book, words, foods) with { Second = secondOf } : null);
                 });
                 for (var i = 0; i < ids.Length; i++)
                 {
@@ -1258,17 +1380,30 @@ namespace Nom.Orch.Services.Support
                 if (set.LineKeys.TryGetValue(key, out var criterion)) return new Flag(DietVerdict.Unknown, DietFlagReason.Title, null, criterion);
             foreach (var key in reading.MethodRules)
                 if (set.LineKeys.TryGetValue(key, out var criterion)) return new Flag(DietVerdict.Unknown, DietFlagReason.Method, null, criterion);
-            if (reading.DoughLost) return new Flag(DietVerdict.Unknown, DietFlagReason.Title, null, null);
-            if (reading.FlourLost) return new Flag(DietVerdict.Unknown, DietFlagReason.NoLine, null, null);
+            foreach (var c in set.DishClasses)
+                if (reading.DishHolds.TryGetValue(c, out var dish)) return new Flag(DietVerdict.Unknown, dish.Place == DietDishWords.TitlePlace ? DietFlagReason.Title : DietFlagReason.Method, null, null);
+            if (reading.LostDish != null && Lost(set, reading.LostDish)) return new Flag(DietVerdict.Unknown, DietFlagReason.Method, null, null);
+            if (reading.DoughLost && set.HoldsBase) return new Flag(DietVerdict.Unknown, DietFlagReason.Title, null, null);
+            if (reading.FlourLost && set.HoldsBase) return new Flag(DietVerdict.Unknown, DietFlagReason.NoLine, null, null);
+            foreach (var key in reading.NutRules)
+                if (set.LineKeys.TryGetValue(key, out var criterion)) return new Flag(DietVerdict.Unknown, DietFlagReason.Title, null, criterion);
             if (set.Vocabulary is { } words)
             {
                 foreach (var (word, next) in reading.MethodWords)
-                    if (words.HoldsInMethod(word, next)) return new Flag(DietVerdict.Unknown, DietFlagReason.Method, null, null);
-                if (reading.MethodFood != null) return new Flag(DietVerdict.Unknown, DietFlagReason.Method, null, null);
-                if (reading.Lines == 1 && reading.MethodWords.Any(p => (words.ClassOf(p.Word) is DietFoodWords.WordClass.Flagged or DietFoodWords.WordClass.Both || words.FormOf(p.Word) == DietFoodWords.FormKind.Dish))) return new Flag(DietVerdict.Unknown, DietFlagReason.Method, null, null);
+                    if (words.HoldsInMethod(word, next) && Lost(set, reading.Table!.WordAt(word))) return new Flag(DietVerdict.Unknown, DietFlagReason.Method, null, null);
+                if (reading.MethodFood != null && Lost(set, reading.MethodFood)) return new Flag(DietVerdict.Unknown, DietFlagReason.Method, null, null);
+                if (reading.Lines == 1 && reading.MethodWords.Any(p => (words.ClassOf(p.Word) is DietFoodWords.WordClass.Flagged or DietFoodWords.WordClass.Both || words.FormOf(p.Word) == DietFoodWords.FormKind.Dish) && Lost(set, reading.Table!.WordAt(p.Word)))) return new Flag(DietVerdict.Unknown, DietFlagReason.Method, null, null);
+            }
+            if (reading.Referral) return new Flag(DietVerdict.Unknown, DietFlagReason.Referral, null, null);
+            if (reading.Second != null && set.SecondIndex >= 0)
+            {
+                if (reading.Second.Length == 0) return new Flag(DietVerdict.Unknown, DietFlagReason.SecondUnread, null, null);
+                if (reading.Second[set.SecondIndex] != 'f') return new Flag(DietVerdict.Unknown, DietFlagReason.SecondReader, null, null);
             }
             return null;
         }
+
+        private static bool Lost(SetState set, string word) => !set.Measured || DietDishWords.LostClasses(word) is not { } classes || set.DishClasses.Intersect(classes, StringComparer.Ordinal).Any();
 
         private static async Task RetireAsync(ApplicationDbContext db, long activeId, CancellationToken cancellationToken)
         {

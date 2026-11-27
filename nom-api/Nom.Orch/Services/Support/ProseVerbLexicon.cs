@@ -95,8 +95,11 @@ namespace Nom.Orch.Services.Support
 
         private readonly Dictionary<string, HashSet<string>> _keepingGroupsOfForm;
 
-        private ProseVerbLexicon(Dictionary<string, HashSet<string>> groupsOfForm, Dictionary<string, HashSet<string>> keepingGroupsOfForm)
+        private readonly Dictionary<string, List<string>> _wordsOfGroup;
+
+        private ProseVerbLexicon(Dictionary<string, HashSet<string>> groupsOfForm, Dictionary<string, HashSet<string>> keepingGroupsOfForm, Dictionary<string, List<string>> wordsOfGroup)
         {
+            _wordsOfGroup = wordsOfGroup;
             _groupsOfForm = groupsOfForm;
             _keepingGroupsOfForm = keepingGroupsOfForm;
             _formsOfGroup = keepingGroupsOfForm
@@ -109,6 +112,10 @@ namespace Nom.Orch.Services.Support
 
         public IReadOnlyCollection<string> Groups => _formsOfGroup.Keys;
 
+        /// <summary>The base words that keep <paramref name="group"/> in a rewrite, in the vocabulary's order; for the <see cref="OffHeatGroup"/> action, the phrase that keeps it; empty for a group it does not hold.</summary>
+        public IReadOnlyList<string> WordsOf(string group) =>
+            _wordsOfGroup.TryGetValue(group, out var words) ? words : group == OffHeatGroup ? new[] { "take off the heat" } : Array.Empty<string>();
+
         /// <summary>
         /// Reads the TSV form: a header <c>id words note</c> (the id names the group),
         /// <c>|</c>-joined base forms, lines starting with <c>#</c> skipped. A form ending in <c>*</c>
@@ -119,6 +126,7 @@ namespace Nom.Orch.Services.Support
         {
             var groupsOfForm = new Dictionary<string, HashSet<string>>(StringComparer.Ordinal);
             var keepingGroupsOfForm = new Dictionary<string, HashSet<string>>(StringComparer.Ordinal);
+            var wordsOfGroup = new Dictionary<string, List<string>>(StringComparer.Ordinal);
             var header = true;
             foreach (var line in tsv.Split('\n').Select(l => l.TrimEnd('\r')))
             {
@@ -136,6 +144,14 @@ namespace Nom.Orch.Services.Support
                 {
                     var keepOnly = cell.EndsWith('*');
                     var word = cell.TrimEnd('*').ToLowerInvariant();
+                    if (!wordsOfGroup.TryGetValue(group, out var words)) wordsOfGroup[group] = words = new List<string>();
+                    if (!words.Contains(word)) words.Add(word);
+                    if (Participles.TryGetValue(word, out var participle))
+                    {
+                        if (!keepingGroupsOfForm.TryGetValue(participle, out var kept)) keepingGroupsOfForm[participle] = kept = new HashSet<string>(StringComparer.Ordinal);
+                        kept.Add(group);
+                    }
+
                     foreach (var form in Inflections(word))
                     {
                         foreach (var target in keepOnly ? new[] { keepingGroupsOfForm } : new[] { groupsOfForm, keepingGroupsOfForm })
@@ -147,7 +163,7 @@ namespace Nom.Orch.Services.Support
                 }
             }
 
-            return new ProseVerbLexicon(groupsOfForm, keepingGroupsOfForm);
+            return new ProseVerbLexicon(groupsOfForm, keepingGroupsOfForm, wordsOfGroup);
         }
 
         /// <summary>
@@ -156,13 +172,16 @@ namespace Nom.Orch.Services.Support
         /// participle that describes ("on lined trays", "until well covered") and an "-ing" form naming a thing ("the whole
         /// baking sheet", "boiling water") ask for nothing.
         /// </summary>
-        public List<IReadOnlySet<string>> VerbsIn(IReadOnlyList<string> words)
+        public List<IReadOnlySet<string>> VerbsIn(IReadOnlyList<string> words) => VerbWordsIn(words).Select(v => v.Groups).ToList();
+
+        /// <summary>Each verb of <paramref name="words"/> that a rewrite must keep (<see cref="VerbsIn"/>), with the word that states it.</summary>
+        public List<(string Word, IReadOnlySet<string> Groups)> VerbWordsIn(IReadOnlyList<string> words)
         {
-            var verbs = new List<IReadOnlySet<string>>();
+            var verbs = new List<(string, IReadOnlySet<string>)>();
             for (var i = 0; i < words.Count; i++)
             {
                 if (words[i].EndsWith("ed", StringComparison.Ordinal) && i > 0 && ParticipleContext.Contains(words[i - 1])) continue;
-                if (GroupsAt(words, i) is { } groups) verbs.Add(groups);
+                if (GroupsAt(words, i) is { } groups) verbs.Add((words[i], groups));
             }
 
             return verbs;
@@ -235,6 +254,14 @@ namespace Nom.Orch.Services.Support
         /// <summary>Every group a verb in <paramref name="words"/> belongs to.</summary>
         public HashSet<string> GroupsIn(IReadOnlyList<string> words) =>
             Enumerable.Range(0, words.Count).Select(i => GroupsAt(words, i, _keepingGroupsOfForm)).OfType<IReadOnlySet<string>>().SelectMany(g => g).ToHashSet(StringComparer.Ordinal);
+
+        /// <summary>The irregular past participles of the vocabulary's verbs ("the eggs should be beaten"): each keeps its verb's groups in a rewrite and is never read as a source verb to keep.</summary>
+        private static readonly IReadOnlyDictionary<string, string> Participles = new Dictionary<string, string>(StringComparer.Ordinal)
+        {
+            ["beat"] = "beaten", ["shake"] = "shaken", ["freeze"] = "frozen", ["break"] = "broken", ["rise"] = "risen", ["take"] = "taken",
+            ["stick"] = "stuck", ["spin"] = "spun", ["throw"] = "thrown", ["tear"] = "torn",
+            ["keep"] = "kept", ["bring"] = "brought", ["stand"] = "stood", ["sit"] = "sat", ["lay"] = "laid",
+        };
 
         private static IEnumerable<string> Inflections(string word)
         {

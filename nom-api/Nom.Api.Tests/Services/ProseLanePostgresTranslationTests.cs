@@ -70,7 +70,11 @@ namespace Nom.Api.Tests.Services
             await Capture("gave-up", db => ProseLaneService.GaveUpQuery(db, "v2-abc").CountAsync());
             var byClass = await Capture("by-class", db => PipelineStatusService.ProseGaveUpByClassQuery(db, "v2-abc").ToListAsync());
 
-            eligible.Should().Contain("EXISTS").And.Contain("\"ProseLaneVersion\"");
+            var ordered = await Capture("ordered", db => ProseLaneService.Ordered(ProseLaneService.EligibleQuery(db, "v2-abc", live: true, ruleLive: true))
+                .Select(r => new { r.Id, r.SourceSite, r.SourceRights, r.ProseCopiedSentences }).Take(50).ToListAsync());
+
+            eligible.Should().Contain("EXISTS").And.Contain("\"ProseLaneVersion\"").And.Contain("\"SourceRights\"");
+            ordered.Should().Contain("\"ProseCopiedSentences\"").And.Contain("ORDER BY");
             byClass.Should().Contain("GROUP BY").And.Contain("LIKE");
         }
     }

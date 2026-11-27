@@ -99,10 +99,12 @@ namespace Nom.Orch.Services
             body.Append("METHOD\n");
             for (var i = 0; i < request.Method.Count; i++) body.Append("Step ").Append((i + 1).ToString(CultureInfo.InvariantCulture)).Append(": ").Append(request.Method[i]).Append('\n');
             body.Append("\nSTEP ").Append(request.Step.ToString(CultureInfo.InvariantCulture)).Append(" AS IT NOW READS: ").Append(request.StepText).Append("\nSENTENCES TO REWORD\n");
-            foreach (var (number, text, problem) in request.Sentences)
+            foreach (var (number, text, problem, keep, last) in request.Sentences)
             {
                 body.Append(number.ToString(CultureInfo.InvariantCulture)).Append(": ").Append(text).Append('\n');
-                if (problem != null) body.Append("   your last rewrite of it was refused: ").Append(problem).Append('\n');
+                body.Append("   KEEP: ").Append(keep).Append('\n');
+                if (last != null) body.Append("   your last rewrite: ").Append(last).Append('\n');
+                if (problem != null) body.Append("   it was refused: ").Append(problem).Append('\n');
             }
 
             return OllamaProseChat.AskAsync(_http, _baseUrl, Model, ProseLanePrompts.Reword, body.ToString(), RewordSchema(request.Sentences.Count), request.Temperature, request.Seed, cancellationToken);
@@ -128,8 +130,12 @@ namespace Nom.Orch.Services
                             n = new { type = "integer" },
                             reading = new { type = "string" },
                             rewrite = new { type = "string" },
+                            other = new { type = "string" },
+                            third = new { type = "string" },
+                            fourth = new { type = "string" },
+                            fifth = new { type = "string" },
                         },
-                        required = new[] { "n", "reading", "rewrite" },
+                        required = new[] { "n", "reading", "rewrite", "other", "third", "fourth", "fifth" },
                     },
                 },
             },
@@ -180,11 +186,14 @@ namespace Nom.Orch.Services
         private readonly HttpClient _http;
         private readonly string _baseUrl;
 
-        public OllamaProseAuditor(HttpClient http, string baseUrl, string model)
+        private readonly Action<string>? _trace;
+
+        public OllamaProseAuditor(HttpClient http, string baseUrl, string model, Action<string>? trace = null)
         {
             _http = http;
             _baseUrl = baseUrl.TrimEnd('/');
             Model = model;
+            _trace = trace;
         }
 
         public string Model { get; }
@@ -199,8 +208,16 @@ namespace Nom.Orch.Services
                 var answer = await OllamaProseChat.AskAsync(_http, _baseUrl, Model, ProseLanePrompts.AuditStep, ProseAudit.StepMessage(pair, step), StepSchema, 0, ProseLanePrompts.AuditSeed, cancellationToken);
                 if (ProseAudit.ParseStep(answer) is not { } reading) return null;
                 if (!reading.Differs) continue;
+                var standing = ProseAudit.Standing(pair, step, reading);
+                if (_trace != null)
+                {
+                    foreach (var d in reading.Differences)
+                        _trace($"step {step.ToString(CultureInfo.InvariantCulture)}\t{d.What}\t{d.Original}\t{d.Rewrite}\t{(standing.Contains(d) ? "stands" : "wording only")}");
+                }
+
+                if (standing.Count == 0) continue;
                 flagged.Add(step);
-                notes.Add($"step {step.ToString(CultureInfo.InvariantCulture)}: {reading.Kinds}");
+                notes.Add($"step {step.ToString(CultureInfo.InvariantCulture)}: {string.Join(", ", standing.Select(d => d.What).Distinct(StringComparer.Ordinal))}");
             }
 
             return flagged.Count == 0 ? ProseAuditVerdict.Same : new ProseAuditVerdict(flagged, false, string.Join("; ", notes.Take(3)));
@@ -240,21 +257,17 @@ namespace Nom.Orch.Services
     }
 
     /// <summary>
-    /// The judge of every rewrite (reader B of the roster) on an Ollama host. Rules decide first
-    /// (<see cref="ProseJudgeRules.Before"/>: the step count, a fact the prose check fails on, a heat
-    /// conflict, a heat or an oven left out), and no model is asked when they find a fault. Otherwise
-    /// the model reads each step pair in a call of its own (<see cref="ProseLanePrompts.JudgeStep"/>,
-    /// temperature 0, a fixed seed): it lists the original step's facts with the rewrite's words for
-    /// each and what the rewrite adds, with the check's weak signals for that step as a note. Each fact
-    /// it does not find as the same and no rule finds (<see cref="ProseJudgeRules.FoundByRule"/>), each
-    /// clause with a word no rule finds (<see cref="ProseJudgeRules.Uncovered"/>), and each thing it
-    /// reads as added that a rule does not find in the original (<see cref="ProseJudgeRules.AddedByRule"/>)
-    /// is asked again on its own with the words no rule finds named
-    /// (<see cref="ProseLanePrompts.JudgeKept"/>, <see cref="ProseLanePrompts.JudgeAdded"/>), and a
-    /// claim stands unless that answer and its quote hold by rule (<see cref="ProseJudgeRules.Kept"/>,
-    /// <see cref="ProseJudgeRules.AlreadySaid"/>). A rule turns the reading into the step's verdict
-    /// (<see cref="ProseJudgeRules.Step"/>). A step pair it cannot
-    /// read makes the whole answer unreadable, which the lane counts as a refusal.
+    /// The judge of every rewrite (reader B of the roster, or <c>Ai:ProseJudgeModel</c>) on an Ollama
+    /// host. Rules decide first (<see cref="ProseJudgeRules.Before"/>: the step count, a fact the prose
+    /// check fails on, a heat conflict, a heat or an oven left out), and no model is asked when they find
+    /// a fault. Otherwise a rule pairs each clause of every original step with the rewrite step
+    /// (<see cref="ProseJudgeRules.Pair"/>), and the model is asked only about what it cannot pair, each
+    /// in a call of its own at temperature 0 with a fixed seed: an original clause it does not find, with
+    /// the pairs it made and the words it could not match (<see cref="ProseLanePrompts.JudgePart"/>), and a
+    /// rewrite clause with words the original does not hold, with the whole original method
+    /// (<see cref="ProseLanePrompts.JudgeNew"/>). An answer counts only when its quote holds by rule
+    /// (<see cref="ProseJudgeRules.PartKept"/>, <see cref="ProseJudgeRules.PartSaid"/>), and a rule turns
+    /// the reading into the step's verdict (<see cref="ProseJudgeRules.Step"/>).
     /// </summary>
     public sealed class OllamaProseStepJudge : IProseJudge
     {
@@ -270,7 +283,7 @@ namespace Nom.Orch.Services
 
         public string Model { get; }
 
-        public async Task<ProseJudgeVerdict?> JudgeAsync(IReadOnlyList<string> original, IReadOnlyList<string> rewrite, CancellationToken cancellationToken)
+        public async Task<ProseJudgeVerdict?> JudgeAsync(IReadOnlyList<string> original, IReadOnlyList<string> rewrite, CancellationToken cancellationToken, string title = "")
         {
             var finding = ProseCheck.Check(new RewriteFidelity.SourceText(string.Empty, original), new RewriteFidelity.SourceText(string.Empty, rewrite));
             if (ProseJudgeRules.Before(original, rewrite, finding) is { } ruled) return ruled;
@@ -278,34 +291,48 @@ namespace Nom.Orch.Services
             var steps = new List<ProseJudgeStep>();
             for (var i = 0; i < original.Count; i++)
             {
-                var body = new StringBuilder();
-                body.Append("ORIGINAL STEP: ").Append(original[i]).Append('\n');
-                body.Append("REWRITE STEP: ").Append(rewrite[i]).Append('\n');
-                foreach (var note in ProseJudgeRules.Notes(finding, i + 1)) body.Append("NOTE: ").Append(note).Append('\n');
-                var answer = await OllamaProseChat.AskAsync(_http, _baseUrl, Model, ProseLanePrompts.JudgeStep, body.ToString(), StepSchema, 0, ProseLanePrompts.JudgeSeed, cancellationToken, ProseLanePrompts.JudgeContext);
-                if (ProseJudgeRules.Parse(answer) is not { } reading) return null;
-                var agree = ProseJudgeRules.AmountsAgree(finding, i + 1);
-                var facts = new List<ProseStepFact>();
-                var unread = ProseJudgeRules.Unread(original[i], reading.Facts);
-                var read = reading.Facts.Concat(unread).ToList();
-                foreach (var fact in read.Concat(ProseJudgeRules.Uncovered(original[i], rewrite[i], unread, agree)))
+                if (ProseJudgeRules.AmountMisbound(original[i], rewrite[i]))
                 {
-                    if (fact.Match == ProseJudgeRules.Same && ProseJudgeRules.Holds(rewrite[i], fact.Rewrite)) { facts.Add(fact); continue; }
-                    if (ProseJudgeRules.FoundByRule(fact, rewrite[i], agree)) { facts.Add(ProseJudgeRules.Kept(fact, null, original[i], rewrite[i], agree)); continue; }
-                    var check = $"ORIGINAL STEP: {original[i]}\nREWRITE STEP: {rewrite[i]}\nFACT ({fact.Kind}): {fact.Original}\n";
-                    if (ProseJudgeRules.NotFound(fact, rewrite[i], agree) is { Count: > 0 } notFound) check += $"WORDS NOT FOUND: {string.Join(", ", notFound)}\n";
-                    var kept = await OllamaProseChat.AskAsync(_http, _baseUrl, Model, ProseLanePrompts.JudgeKept, check, KeptSchema, 0, ProseLanePrompts.JudgeSeed, cancellationToken, ProseLanePrompts.JudgeContext);
-                    facts.Add(ProseJudgeRules.Kept(fact, kept, original[i], rewrite[i], agree));
+                    steps.Add(new ProseJudgeStep(i + 1, true, false, false, false, ProseJudgeRules.Misbound));
+                    continue;
+                }
+
+                var agree = ProseJudgeRules.AmountsAgree(finding, i + 1);
+                var pairing = ProseJudgeRules.Pair(original[i], rewrite[i], agree, original, title, i + 1, i > 0 ? rewrite[i - 1] : null);
+                var facts = pairing.Paired.Select(p => p with { Rewrite = rewrite[i] }).ToList();
+                var matched = string.Concat(pairing.Paired.Select(p => $"- {p.Original} = {p.Rewrite}\n"));
+                var context = new StringBuilder();
+                if (!string.IsNullOrWhiteSpace(title)) context.Append("RECIPE: ").Append(title.Trim()).Append('\n');
+                if (i > 0) context.Append("PREVIOUS ORIGINAL STEP: ").Append(original[i - 1]).Append('\n').Append("PREVIOUS REWRITE STEP: ").Append(rewrite[i - 1]).Append('\n');
+                foreach (var part in pairing.Unpaired)
+                {
+                    var body = new StringBuilder(context.ToString());
+                    body.Append("ORIGINAL STEP: ").Append(original[i]).Append('\n');
+                    body.Append("REWRITE STEP: ").Append(rewrite[i]).Append('\n');
+                    if (matched.Length > 0) body.Append("MATCHED BY RULE\n").Append(matched);
+                    body.Append("PART: ").Append(part.Original).Append('\n');
+                    if (ProseJudgeRules.Unmatched(part, rewrite[i], agree) is { Count: > 0 } unmatched) body.Append("WORDS NOT MATCHED: ").Append(string.Join(", ", unmatched)).Append('\n');
+                    var answer = await OllamaProseChat.AskAsync(_http, _baseUrl, Model, ProseLanePrompts.JudgePart, body.ToString(), PartSchema, 0, ProseLanePrompts.JudgeSeed, cancellationToken, ProseLanePrompts.JudgeContext);
+                    facts.Add(ProseJudgeRules.PartKept(part, answer, rewrite[i]));
                 }
 
                 var added = new List<ProseStepFact>();
-                foreach (var fact in reading.Added.Where(a => ProseJudgeRules.AddedByRule(a, original[i], agree)))
+                foreach (var part in pairing.Added)
                 {
-                    var check = $"ORIGINAL STEP: {original[i]}\nREWRITE STEP: {rewrite[i]}\nADDED ({fact.Kind}): {fact.Rewrite}\n";
-                    var answerAdded = await OllamaProseChat.AskAsync(_http, _baseUrl, Model, ProseLanePrompts.JudgeAdded, check, AddedSchema, 0, ProseLanePrompts.JudgeSeed, cancellationToken, ProseLanePrompts.JudgeContext);
-                    if (!ProseJudgeRules.AlreadySaid(answerAdded, original[i])) added.Add(fact);
+                    var body = new StringBuilder();
+                    if (!string.IsNullOrWhiteSpace(title)) body.Append("RECIPE: ").Append(title.Trim()).Append('\n');
+                    body.Append("ORIGINAL METHOD\n");
+                    for (var j = 0; j < original.Count; j++) body.Append("Step ").Append((j + 1).ToString(CultureInfo.InvariantCulture)).Append(": ").Append(original[j]).Append('\n');
+                    if (i > 0) body.Append("PREVIOUS REWRITE STEP: ").Append(rewrite[i - 1]).Append('\n');
+                    body.Append("ORIGINAL STEP: ").Append(original[i]).Append('\n');
+                    body.Append("REWRITE STEP: ").Append(rewrite[i]).Append('\n');
+                    body.Append("PART: ").Append(part.Rewrite).Append('\n');
+                    if (ProseJudgeRules.NewWords(part, original[i], agree, original, title, i + 1) is { Count: > 0 } fresh) body.Append("WORDS NOT IN THE ORIGINAL: ").Append(string.Join(", ", fresh)).Append('\n');
+                    var answer = await OllamaProseChat.AskAsync(_http, _baseUrl, Model, ProseLanePrompts.JudgeNew, body.ToString(), NewSchema, 0, ProseLanePrompts.JudgeSeed, cancellationToken, ProseLanePrompts.JudgeContext);
+                    if (!ProseJudgeRules.PartSaid(answer, original[i], original)) added.Add(part);
                 }
 
+                if (facts.Count == 0) facts.Add(new ProseStepFact("action", original[i], rewrite[i], ProseJudgeRules.Same));
                 steps.Add(ProseJudgeRules.Step(i + 1, original[i], rewrite[i], new ProseStepReading(facts, added)));
             }
 
@@ -318,63 +345,22 @@ namespace Nom.Orch.Services
             return verdict?.Steps.FirstOrDefault(s => s.Number == step) is { } read ? !read.Same : null;
         }
 
-        private static readonly object KeptSchema = new
+        private static readonly object PartSchema = new
         {
             type = "object",
             properties = new
             {
                 rewrite = new { type = "string" },
-                original_result = new { type = "string" },
-                rewrite_result = new { type = "string" },
-                verdict = new { type = "string", @enum = new[] { "same_result", "other_result", "not_said" } },
+                verdict = new { type = "string", @enum = new[] { ProseJudgeRules.FactKept, ProseJudgeRules.FactChanged, ProseJudgeRules.FactLost } },
             },
-            required = new[] { "rewrite", "original_result", "rewrite_result", "verdict" },
+            required = new[] { "rewrite", "verdict" },
         };
 
-        private static readonly object AddedSchema = new
+        private static readonly object NewSchema = new
         {
             type = "object",
-            properties = new { original = new { type = "string" }, verdict = new { type = "string", @enum = new[] { "kept", "added" } } },
+            properties = new { original = new { type = "string" }, verdict = new { type = "string", @enum = new[] { "said", "new" } } },
             required = new[] { "original", "verdict" },
-        };
-
-        private static readonly object StepSchema = new
-        {
-            type = "object",
-            properties = new
-            {
-                facts = new
-                {
-                    type = "array",
-                    items = new
-                    {
-                        type = "object",
-                        properties = new
-                        {
-                            kind = new { type = "string", @enum = ProseJudgeRules.Kinds },
-                            original = new { type = "string" },
-                            rewrite = new { type = "string" },
-                            match = new { type = "string", @enum = new[] { ProseJudgeRules.FactKept, ProseJudgeRules.FactChanged, ProseJudgeRules.FactLost } },
-                        },
-                        required = new[] { "kind", "original", "rewrite", "match" },
-                    },
-                },
-                added = new
-                {
-                    type = "array",
-                    items = new
-                    {
-                        type = "object",
-                        properties = new
-                        {
-                            kind = new { type = "string", @enum = ProseJudgeRules.Kinds },
-                            rewrite = new { type = "string" },
-                        },
-                        required = new[] { "kind", "rewrite" },
-                    },
-                },
-            },
-            required = new[] { "facts", "added" },
         };
     }
 

@@ -154,11 +154,30 @@ namespace Nom.Api.Tests.Services
         }
 
         [Fact]
+        public void An_oil_flour_butter_or_milk_of_a_food_is_not_the_food()
+        {
+            Codes("roasted peanut oil", Food("Peanuts, spanish, oil-roasted, without salt", "Peanuts, spanish, oil-roasted, without salt", 16)).Should().Contain(LinkGate.HeadNoun);
+            Codes("almond flour", Food("Almonds", "Nuts, almonds", 12)).Should().Contain(LinkGate.HeadNoun);
+            Codes("peanut oil", Food("Peanut Oil", "Oil, peanut, salad or cooking", 4)).Should().NotContain(LinkGate.HeadNoun);
+            Codes("butter milk", Food("Buttermilk", "Milk, buttermilk, fluid, cultured, lowfat", 1)).Should().NotContain(LinkGate.HeadNoun);
+        }
+
+        [Fact]
+        public void A_bare_made_product_word_is_no_evidence_for_one_particular_product()
+        {
+            Codes("homemade sauce", Food("White Sauce", "Sauce, homemade, white, medium", 6)).Should().Contain(LinkGate.Generic);
+            Codes("gravy", Food("Turkey Gravy", "Gravy, turkey, canned, ready-to-serve", 6)).Should().Contain(LinkGate.Generic);
+            Codes("white sauce", Food("White Sauce", "Sauce, homemade, white, medium", 6)).Should().NotContain(LinkGate.Generic);
+            Codes("jam", Food("Jams and preserves", "Jams and preserves", 19)).Should().NotContain(LinkGate.Generic);
+        }
+
+        [Fact]
         public void The_signature_covers_the_tables_of_the_distinguishing_rule()
         {
             var source = LinkGate.SignatureSource();
-            source.Should().Contain("colours:").And.Contain("entry-words:").And.Contain("ratio:").And.Contain("dry-goods=16|").And.Contain("unsweetened-food=not sweetened|");
-            LinkGate.Version.Should().Be("link-gate/13");
+            source.Should().Contain("colours:").And.Contain("entry-words:").And.Contain("ratio:").And.Contain("dry-goods=16|").And.Contain("unsweetened-food=not sweetened|")
+                .And.Contain("products-of-food:butter|flour|milk|oil|");
+            LinkGate.Version.Should().Be("link-gate/14");
         }
     }
 }

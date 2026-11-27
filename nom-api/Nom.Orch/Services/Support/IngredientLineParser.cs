@@ -24,11 +24,13 @@ namespace Nom.Orch.Services.Support
     /// ½ cup.", "Flour, 2-3/4 cups" → 2.75 Cup) are read; a numbered can ("1 No. 2 can") is a
     /// count of cans. A bare measure word before the food is one ("tablespoonful grated onion"), an
     /// Italian count after a dash is read ("Uova - 6 numero" → 6), a cross-reference to another
-    /// recipe of the book ("descritto al N. 579", "comme celui du N. 579", "forcemeat No. 1", "white sauce (No. 7)") is no
-    /// count, and "one-half ounce" is half an
+    /// recipe of the book ("descritto al N. 579", "comme celui du N. 579", "forcemeat No. 1", "white sauce (No. 7)", "the
+    /// same stock as number 184", "made by recipe No. 1395", "sauce, see page 19") is no count, nor is a scraped quantity
+    /// that is only that number (<see cref="IsReferredNumber"/>), and "one-half ounce" is half an
     /// ounce. A rib before the food is the stalk measure only of celery and the like ("2 ribs celery" → 2 Stalk); a rib
     /// of meat is part of the food's name ("a rib roast of beef", "1 rib of beef" count pieces). Returns null when the line has no leading quantity ("salt, to taste"), states
-    /// a vague one ("a drop of water"), sizes a utensil ("two-quart tin mould"), states a price ("twenty cents' worth") or
+    /// a vague one ("a drop of water"), sizes a utensil ("two-quart tin mould"), names a tin utensil ("a tin cover", "1 tin
+    /// plate": a tin is a can only before a food), states a price ("twenty cents' worth") or
     /// a spelt fraction of another amount ("a third as much soda", "one fourth of the flour", "a tenth part of onions"), a
     /// peck or bushel (no measure NOM has), a spelt fraction of pieces that is no part of one item ("two-thirds Java
     /// coffee", "a quarter of sugar"; "one-quarter onion" and "a third of a yeast-cake" are), a vessel filled in part ("a teacup two thirds full") or a size under an inch
@@ -149,8 +151,64 @@ namespace Nom.Orch.Services.Support
             RegexOptions.Compiled | RegexOptions.IgnoreCase | RegexOptions.CultureInvariant);
 
         private static readonly Regex NumberedRecipe = new(
-            @"\s*\(?\s*(?:see\s+)?\bNo\.\s*\d+(?:\s*(?:,\s*or|,|or|and)\s*(?:page\s+)?\d+)*(?![\d½]|\s*(?:[-\s]\s*1/2\s*)?(?:size\s+)?(?:cans?|tins?)\b)\s*\)?",
+            @"\s*\(?\s*(?:see\s+)?(?:\b(?:recipe\s+)?(?:No\.|Nr\.|number)\s*\d+|\brecipe\s+\d+(?=\s*(?:$|[),;:]|\.(?!\d)|(?:or|and)\b))|\b(?:pages?|pp?\.)\s*\d+)(?:\s*(?:,\s*or|,|or|and)\s*(?:page\s+)?\d+)*(?![\d½]|\s*(?:[-\s]\s*1/2\s*)?(?:size\s+)?(?:cans?|tins?)\b)\s*\)?",
             RegexOptions.Compiled | RegexOptions.IgnoreCase | RegexOptions.CultureInvariant);
+
+        private static readonly Regex ReferredNumber = new(@"\d+", RegexOptions.Compiled | RegexOptions.CultureInvariant);
+
+        /// <summary>
+        /// The numbers a line names another recipe or page of its book by ("ingredients mentioned in No. 218", "the same
+        /// stock as number 184", "apple marmalade made by recipe No. 1395", "sauce, see page 19", "descritto al N. 579"):
+        /// such a number is never an amount. A numbered can ("1 No. 2 can") names none, and neither does a size or count
+        /// after "recipe" ("1 recipe 9-inch pie crust", "half recipe 3 egg sponge cake"). Empty when the line refers to
+        /// nothing.
+        /// </summary>
+        public static IReadOnlyList<decimal> ReferredNumbers(string? rawLine)
+        {
+            if (string.IsNullOrWhiteSpace(rawLine)) return Array.Empty<decimal>();
+            var line = System.Net.WebUtility.HtmlDecode(rawLine);
+            return CrossReference.Matches(line).Concat(NumberedRecipe.Matches(line))
+                .SelectMany(m => ReferredNumber.Matches(m.Value))
+                .Select(n => decimal.Parse(n.Value, CultureInfo.InvariantCulture))
+                .ToList();
+        }
+
+        /// <summary>Whether the line refers to another recipe or page of its book by number (<see cref="ReferredNumbers"/>).</summary>
+        public static bool IsReferral(string? rawLine) => ReferredNumbers(rawLine).Count > 0;
+
+        /// <summary>
+        /// Whether a recipe's lines refer to another recipe or page of the book by number (<see cref="IsReferral"/>): what the
+        /// referred recipe holds is not in these lines, so the recipe is incomplete for a reading of its contents such as the
+        /// diet reading (staging checkpoint 8, T11).
+        /// </summary>
+        public static bool HasReferral(IEnumerable<string?> rawLines) => rawLines.Any(IsReferral);
+
+        /// <summary>
+        /// The version of what <see cref="HasReferral"/> reads: its rule version and the first eight digits of the hash of the
+        /// patterns it matches (a build's version column holds 255 characters), so a widened or narrowed pattern is a new
+        /// version of the diet store (<see cref="DietGateStore.Version"/>) and every recipe is read again under it, not only
+        /// those whose lines are written again (review ck19w31-3).
+        /// </summary>
+        public static string ReferralSignature => ReferralSignatureOf.Value;
+
+        private const string ReferralVersion = "referral/1";
+
+        private static readonly Lazy<string> ReferralSignatureOf = new(() =>
+            ReferralVersion + ":" + DietTextSignature.Of(System.Text.Encoding.UTF8.GetBytes(CrossReference + "\n" + NumberedRecipe))[..8]);
+
+        /// <summary>
+        /// Whether a quantity is only the number of the recipe or page the line refers to: the line names that number
+        /// (<see cref="ReferredNumbers"/>) and states it nowhere else ("ingredients mentioned in No. 218" stored as 218
+        /// pieces; "2 cups sauce No. 2" is still two cups).
+        /// </summary>
+        public static bool IsReferredNumber(decimal quantity, string? rawLine)
+        {
+            if (!ReferredNumbers(rawLine).Contains(quantity)) return false;
+            return !ReprocessRuleAudit.Numbers(WithoutReferrals(System.Net.WebUtility.HtmlDecode(rawLine!))).Contains(quantity);
+        }
+
+        /// <summary>The text with every reference to another recipe or page by number taken out (<see cref="ReferredNumbers"/>).</summary>
+        internal static string WithoutReferrals(string text) => NumberedRecipe.Replace(CrossReference.Replace(text, " "), " ");
 
         private static readonly Regex Price = new(
             @"\bcents?'?\s+worth\b|\b(?:penny|pennies|dime|nickel|shilling|sixpence|sixpenny)(?:'s|s')?\s+worth\b",
@@ -252,7 +310,7 @@ namespace Nom.Orch.Services.Support
             if (string.IsNullOrWhiteSpace(rawLine)) return null;
             rawLine = NumberedRecipe.Replace(CrossReference.Replace(IngredientNameNormalizer.PlainFractions(rawLine), string.Empty), string.Empty);
             if (string.IsNullOrWhiteSpace(rawLine) || IsElliptical(rawLine)) return null;
-            if (SizedUtensil.IsMatch(rawLine) || Price.IsMatch(rawLine) || Proportion.IsMatch(rawLine) || Unmeasured.IsMatch(rawLine)) return null;
+            if (SizedUtensil.IsMatch(rawLine) || TinUtensil.IsMatch(rawLine) || Price.IsMatch(rawLine) || Proportion.IsMatch(rawLine) || Unmeasured.IsMatch(rawLine)) return null;
             if (SumOfAmounts.Match(rawLine) is { Success: true } sum && IsBareAmount(sum.Groups["a"].Value)
                 && ParseLeading(sum.Groups["a"].Value, out _, out _) is { } first)
             {
@@ -467,6 +525,10 @@ namespace Nom.Orch.Services.Support
             @"^[^,(]*?\b(?:quarts?|pints?|gallons?|inch(?:es)?|cups?)\b[\s-]*(?:[\p{L}-]+\s+){0,2}?" + Utensil,
             RegexOptions.Compiled | RegexOptions.IgnoreCase | RegexOptions.CultureInvariant);
 
+        private static readonly Regex TinUtensil = new(
+            @"^\s*(?:(?:\d+|an?|one|two|three|four|five|six)\s+)?(?:(?:large|small|deep|shallow|round|square|flat|clean|buttered|greased|well[\s-]buttered|tight|close)\s+)*tins?\s+(?:covers?|lids?|plates?|sheets?|pans?|moulds?|molds?|kettles?|pails?|dish(?:es)?|basins?|saucepans?|boilers?|steamers?|boxe?s?)\b",
+            RegexOptions.Compiled | RegexOptions.IgnoreCase | RegexOptions.CultureInvariant);
+
         private static readonly Regex SumOfAmounts = new(
             @"^\s*(?<a>[^+]*?)\s+\+\s+(?<b>.+)$", RegexOptions.Compiled | RegexOptions.CultureInvariant);
 
@@ -660,6 +722,7 @@ namespace Nom.Orch.Services.Support
         /// </summary>
         public static ParsedQuantity? Normalize(decimal? quantity, string? unit, string? rawLine, bool drained = false)
         {
+            if (quantity is > 0 && IsReferredNumber(quantity.Value, rawLine)) quantity = null;
             if (quantity is not > 0) return drained && SizedContainers(rawLine) is { } counted ? counted : Parse(rawLine);
 
             var mapped = FromUnit(quantity.Value, string.IsNullOrWhiteSpace(unit) ? null : unit.Trim().TrimEnd('.'));

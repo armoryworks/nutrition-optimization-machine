@@ -13,7 +13,7 @@ namespace Nom.Orch.Services.Support
     /// The prompts of the clean-room prose lane and the hashes that name them. The writer
     /// (<see cref="WriterSignature"/>) is the extractor and the two writing styles with the masking,
     /// fact-sheet, description and check rules they run with; the judge
-    /// (<see cref="JudgeSignature"/>) is the step-fact reading with the rules around it
+    /// (<see cref="JudgeSignature"/>) is the questions on what a rule cannot pair, with the rules around it
     /// (<see cref="ProseJudgeRules"/>) and its decoding options; the audit (<see cref="AuditSignature"/>)
     /// is the rules it runs first (<see cref="ProseAudit"/>, with the prose check's version), the step
     /// reading of the auditor and its own blind confirmation of a flag. None includes a
@@ -80,49 +80,41 @@ namespace Nom.Orch.Services.Support
         /// <summary>How many of the steps the auditor flags, in order, it is asked again about blind; a flag counts once any one is confirmed. Part of <see cref="AuditSignature"/>.</summary>
         public const int AuditConfirmations = 3;
 
-        public const string JudgeStep =
-            "You check whether a rewrite of one recipe step keeps the facts of the original step (ORIGINAL STEP and REWRITE STEP). " +
-            "A fact is something the cook must do or know. Wording is never a fact: the rewrite may use other words, a plainer or a more exact word for the same thing, other sentence shapes and another order inside the step. " +
-            "Ask of each fact only: does the cook still do or know this after reading the rewrite?\n" +
-            "First list every fact of the ORIGINAL STEP, one entry each, with its kind:\n" +
-            "  action - a cooking action with what it acts on (\"knead the dough\", \"line the tray\"); every action is its own fact;\n" +
-            "  ingredient - a food the step names;\n" +
-            "  heat - a heat level or oven heat (\"low heat\", \"a very hot oven\");\n" +
-            "  amount - an amount, time, temperature or size, with its unit;\n" +
-            "  cue - how to tell it is done or how it should look, smell or feel (\"until crisp\", \"until set\");\n" +
-            "  serve - how or when it is served (\"serve cold\");\n" +
-            "  warning - something the cook must not do.\n" +
-            "For each fact give original (the original's words), rewrite (the words of the REWRITE STEP that state this fact, copied exactly, or \"\" when none do) " +
-            "and match: kept when the rewrite states the same fact in any words; changed when it states another action, food, heat, amount, time, sign of doneness or serving in its place; lost when the rewrite step does not state it at all. " +
-            "Words for the same thing keep the fact (\"throw in\" and \"add\", \"jug\" and \"pitcher\", \"sauté\" and \"cook in a little fat\", \"leave to settle\" and \"let it rest\", \"until crunchy\" and \"until crisp\"); " +
-            "another thing changes it (\"roast\" and \"steam\", \"low\" and \"high\", \"until crisp\" and \"until soft\", \"chill\" and \"warm\", \"leek\" and \"onion\"). " +
-            "Then list in added every fact the REWRITE STEP states that the ORIGINAL STEP does not: a new action, food, cue, warning or serving, with the rewrite's words; an empty list when there is none. " +
-            "Other words for something the original step already states (its pan, its food, its action) are not added. " +
-            "A NOTE from a rule check, when given, points to something to look at; it may be wrong.\n" +
-            "Example. ORIGINAL STEP: Sauté the leeks in the oil over low heat until soft, about 6 minutes. REWRITE STEP: Cook the leeks in the oil on high for 6 minutes until charred.\n" +
-            "{\"facts\":[{\"kind\":\"action\",\"original\":\"Sauté the leeks\",\"rewrite\":\"Cook the leeks\",\"match\":\"kept\"},{\"kind\":\"ingredient\",\"original\":\"the oil\",\"rewrite\":\"in the oil\",\"match\":\"kept\"},{\"kind\":\"heat\",\"original\":\"over low heat\",\"rewrite\":\"on high\",\"match\":\"changed\"},{\"kind\":\"cue\",\"original\":\"until soft\",\"rewrite\":\"until charred\",\"match\":\"changed\"},{\"kind\":\"amount\",\"original\":\"about 6 minutes\",\"rewrite\":\"for 6 minutes\",\"match\":\"kept\"}],\"added\":[]}\n" +
-            "Example. ORIGINAL STEP: Stir the cocoa into the warm milk in a jug until it dissolves, then add the honey. REWRITE STEP: Mix the cocoa through the warm milk in a pitcher until dissolved. Dust some cinnamon on top.\n" +
-            "{\"facts\":[{\"kind\":\"action\",\"original\":\"Stir the cocoa into the warm milk in a jug\",\"rewrite\":\"Mix the cocoa through the warm milk in a pitcher\",\"match\":\"kept\"},{\"kind\":\"cue\",\"original\":\"until it dissolves\",\"rewrite\":\"until dissolved\",\"match\":\"kept\"},{\"kind\":\"action\",\"original\":\"add the honey\",\"rewrite\":\"\",\"match\":\"lost\"}],\"added\":[{\"kind\":\"ingredient\",\"rewrite\":\"Dust some cinnamon on top\"}]}\n" +
-            "Reply with STRICT JSON only, in this form.";
+        public const string JudgePart =
+            "You check one part of a recipe step against a rewrite of the whole step. ORIGINAL STEP is the published step and REWRITE STEP says it in other words. " +
+            "A rule has already found the other parts of the step in the rewrite (MATCHED BY RULE); only PART is left. WORDS NOT MATCHED are the words of PART that no word of the rewrite matches by rule: look for what each of them means, said in other words. " +
+            "Decide one thing: does a cook who reads only REWRITE STEP still do or know what PART says?\n" +
+            "Wording is never a difference: another verb or noun for the same thing, a plainer word for an old one, the passive or another subject (\"the eggs should be beaten\", \"the butter gets melted\", \"it needs 10 minutes\"), " +
+            "another order of the clauses, a pronoun for a food the step already names, the part said in another sentence of the step, or a word that only builds the sentence and holds no fact of its own (\"until it holds\", \"so that it stays\", \"one by one\"). " +
+            "RECIPE names the dish and the PREVIOUS steps show what comes just before: the name of the dish or of what an earlier step made may stand for the food (\"the chowder\", \"the filling\"), and a pan, bowl or tray the food is already in from the previous rewrite step need not be named again.\n" +
+            "A difference is another action or cooking method, another food, another heat, amount or time, another sign of doneness or state of the food, or a detail of PART that the rewrite does not say at all: a tool, a place, a shape or cut, a heat, a time, a food, a warning, or how it is done (how gently or how quickly, or per side).\n" +
+            "Give rewrite: the words of REWRITE STEP that say PART, copied exactly, or \"\" when none do; then verdict: kept when they say the same thing, changed when they say something else in its place, lost when the rewrite does not say it.\n" +
+            "Examples from other recipes:\n" +
+            "PART: Whisk in the cream. REWRITE STEP: The cream should then be whisked through the sauce. {\"rewrite\":\"The cream should then be whisked through\",\"verdict\":\"kept\"}\n" +
+            "PART: until the onions are translucent. REWRITE STEP: The onions need 5 minutes in the pan, by which time they should look clear. {\"rewrite\":\"they should look clear\",\"verdict\":\"kept\"}\n" +
+            "PART: Pick the leaves off the stalks. REWRITE STEP: Strip the leaves from the stems and chop them. {\"rewrite\":\"Strip the leaves from the stems\",\"verdict\":\"kept\"}\n" +
+            "PART: Beat the whites until they form stiff peaks. REWRITE STEP: Whisk the whites to stiff peaks. {\"rewrite\":\"Whisk the whites to stiff peaks\",\"verdict\":\"kept\"}\n" +
+            "PART: until golden. REWRITE STEP: Fry the bread until it is crisp. {\"rewrite\":\"until it is crisp\",\"verdict\":\"changed\"}\n" +
+            "PART: Grill the peppers. REWRITE STEP: The peppers should be boiled until soft. {\"rewrite\":\"The peppers should be boiled\",\"verdict\":\"changed\"}\n" +
+            "PART: on a wire rack. REWRITE STEP: Leave the loaf to cool completely. {\"rewrite\":\"\",\"verdict\":\"lost\"}\n" +
+            "Reply with STRICT JSON only: {\"rewrite\":\"...\",\"verdict\":\"kept\"}.";
 
-        public const string JudgeKept =
-            "A reviewer compared one step of a recipe (ORIGINAL STEP) with a rewrite of it (REWRITE STEP) and says the rewrite changes or leaves out one fact of the original (FACT). Check that claim. " +
-            "Read the whole REWRITE STEP: the fact may be said anywhere in it, in other words, in another sentence or in another order. " +
-            "WORDS NOT FOUND, when given, are words of FACT that no word of the REWRITE STEP matches by rule: say for each what words of the REWRITE STEP state the same thing; when none do, that part of the fact is not said, and a lost detail (\"on a wire rack\", \"in a cool place\", \"into long strips\") is never the same result. " +
-            "Give rewrite: the words of the REWRITE STEP that say the fact, copied exactly and as few as say it, or \"\" when none do. " +
-            "Give original_result: in at most 8 words, what the food is like or where it is after the cook does what FACT says; and rewrite_result: the same after the cook does what those rewrite words say. " +
-            "Then answer verdict: same_result when the two results are the same: the same food, in the same place, at the same heat, for the same amount and time, at the same sign of doneness " +
-            "(other wording, a synonym, a plain word for an old one, another order, or a more exact verb for what the original does give the same result); " +
-            "other_result when the food, the heat, the amount, the time, the sign of doneness or the state of the food differs (\"roasted\" and \"boiled\", \"crisp\" and \"soft\", \"cold\" and \"warm\", \"just cooked\" and \"falling apart\"); " +
-            "not_said when the rewrite step does not say it at all. " +
-            "Reply with STRICT JSON only: {\"rewrite\":\"...\",\"original_result\":\"...\",\"rewrite_result\":\"...\",\"verdict\":\"same_result\"}.";
-
-        public const string JudgeAdded =
-            "A reviewer compared one step of a recipe (ORIGINAL STEP) with a rewrite of it (REWRITE STEP) and says the rewrite adds something the original step does not say (ADDED). Check that claim. " +
-            "Give original: the words of the ORIGINAL STEP that say the same thing, copied exactly, or \"\" when none do. " +
-            "Then answer verdict: kept when the original step says it too, in any words (a synonym, an everyday word for the same thing, or a thing the original plainly implies such as the pan it names or the dish it serves), " +
-            "added when the original step does not say it: a new action, food, cue, warning or serving. " +
-            "Reply with STRICT JSON only: {\"original\":\"...\",\"verdict\":\"added\"}.";
+        public const string JudgeNew =
+            "You compare a rewrite of one recipe step (REWRITE STEP) with the published step (ORIGINAL STEP); RECIPE and the whole ORIGINAL METHOD are shown so you know the dish, and the PREVIOUS REWRITE STEP what the rewrite has just said. " +
+            "PART is a piece of the rewrite that uses words the original step does not (WORDS NOT IN THE ORIGINAL). Most such pieces only say the original again in other words. " +
+            "Decide one thing: does PART make the cook do or know something that the ORIGINAL STEP does not ask for at all?\n" +
+            "said: PART says again, in any words, something the original step says: another verb for the same action, another word for the same tool, food, place or state, a fuller way of saying the same sign of doneness, " +
+            "putting a pan or a food where the original plainly has it, a word for the food or mixture the step already works with (\"the batter\", \"the hot pan\"), the name of the dish (\"the risotto\") or of what an earlier step made, linking words (\"once that is done\", \"at this point\"), or the passive.\n" +
+            "new: PART asks for an action, food, tool, heat, amount, time, sign of doneness, warning or serving that the original step does not ask for.\n" +
+            "First give original: the words of ORIGINAL STEP that PART says again, copied exactly, or \"\" when there are none; then verdict: said or new.\n" +
+            "Examples from other recipes:\n" +
+            "ORIGINAL STEP: Fry the onion in the butter until soft. PART: once the butter in the pan is hot. {\"original\":\"in the butter\",\"verdict\":\"said\"}\n" +
+            "ORIGINAL STEP: Drain the peas in a colander. PART: Tip the peas into a colander so the water runs off. {\"original\":\"Drain the peas in a colander\",\"verdict\":\"said\"}\n" +
+            "ORIGINAL STEP: Simmer the sauce with the lid off for 10 minutes. PART: leave the pan open while it simmers. {\"original\":\"with the lid off\",\"verdict\":\"said\"}\n" +
+            "ORIGINAL STEP: Melt the butter in a small pan. PART: Put a small pan on the stove. {\"original\":\"in a small pan\",\"verdict\":\"said\"}\n" +
+            "ORIGINAL STEP: Fry the onion in the butter until soft. PART: Add a little grated nutmeg. {\"original\":\"\",\"verdict\":\"new\"}\n" +
+            "ORIGINAL STEP: Knead the dough for 5 minutes. PART: until it is smooth and springy. {\"original\":\"\",\"verdict\":\"new\"}\n" +
+            "Reply with STRICT JSON only: {\"original\":\"...\",\"verdict\":\"said\"}.";
 
         /// <summary>The seed and context of every judge call; part of <see cref="JudgeSignature"/>.</summary>
         public const int JudgeSeed = 17;
@@ -151,14 +143,29 @@ namespace Nom.Orch.Services.Support
             "  1. the whole METHOD: what the dish is, the order of the work, and what matters for it to succeed;\n" +
             "  2. the STEP the sentences stand in: what this step is for and what comes before and after it;\n" +
             "  3. each SENTENCE: what the cook must do or know from it.\n" +
-            "Then write each sentence again from that understanding, not by swapping words: give it another frame, rebuild its clauses, " +
-            "and you may join it with a neighbouring thought or split it in two. Never keep the sentence's own run of words with only single words changed, dropped or moved: " +
-            "swapping words for synonyms while the sentence keeps its shape is copying too, so start the sentence from another part of it, turn its clauses around or say it as a result, a reason or a condition.\n" +
-            "Keep every fact of the sentence exactly: every amount, time, temperature, size and heat level as it is written, every food, every action and its order, every sign of doneness and every warning. " +
-            "Use the recipe's INGREDIENT LINES for the names of foods; never state an amount the lines or the sentence do not state, and never move an amount to another food. " +
-            "Add nothing the sentence does not say and leave nothing out. Words of the craft that have no other name (preheat, fold, simmer, parchment) may stay.\n" +
+            "Then build each sentence anew from that understanding. A rewrite that keeps the sentence's run of words and only swaps single words for synonyms, drops them or moves them is a copy and is refused, however many words change. " +
+            "Small words count too: \"in a\", \"the ... over\", \"for ... until\" kept in the published order make a copy. " +
+            "Beyond the facts, most words of the rewrite must be your own, and the few published words you keep must not come in the published order: moving the clauses round is not enough when the same words stay.\n" +
+            "How to rebuild: name things by what they are in this dish (the batter, the fritters, the stew, the hot skillet) rather than as the published sentence names them; make the food, the pan or the time the subject and let the actions follow from it (\"should be\", \"needs\", \"goes into\"); turn an action that comes first into a condition or a state (\"Once ...\", \"With the ... drained, ...\"). " +
+            "Every clause must say something the sentence says. Write no clause that only fills: never \"by which time\", \"at which point\", \"ready for\" or \"ready to\", \"for the next step\", \"completes the process\", \"which allows\", \"to ensure\", \"so that\"; never add a sign of doneness (\"until ...\"), a result or a purpose the sentence does not give; these are refused like a lost fact. " +
+            "A rewrite is usually longer than the published sentence: give it at least four words of your own that the published sentence does not use, words that name what is already there (the batter, the hot pan, the stew) or build the sentence, but no action, food, amount, time, heat, tool, result or purpose it does not state. " +
+            "Short sentences and sentences made mostly of facts need the most change. Write each rewrite as one sentence, with no semicolon.\n" +
+            "KEEP gives the facts of each sentence, found by rule. Write each amount exactly as listed, in the same digits, fractions and units (\"1/2 inch\" stays \"1/2 inch\", never \"half-inch\"; \"2 minutes\" never \"two minutes\"), together with its food (\"1/4 teaspoon salt\", never only \"salt\"); name each food listed; keep each action as a verb, with its word or one of the words listed for it, in any form (stir, stirring, stirred); keep each heat as listed. " +
+            "These words are facts, not copying: keep them and rebuild the words around them. Keep every sign of doneness, every warning and the order of the actions too. " +
+            "State no amount, food or action the sentence does not state, never move an amount to another food, add nothing and leave nothing out. Words of the craft that have no other name (preheat, fold, simmer, parchment) may stay.\n" +
+            "Examples from other recipes:\n" +
+            "SENTENCE: Melt the butter in a small saucepan over low heat, then stir in the flour. KEEP: foods: butter, flour | actions: melt (or dissolve); stir (or add, pour, put, mix, combine, blend) | heat: over low heat\n" +
+            "REFUSED, a copy: In a small saucepan over low heat, melt the butter and stir in the flour. REWRITE: The butter for the roux should go into a small saucepan to melt over low heat, and once it is liquid the flour gets stirred through it.\n" +
+            "SENTENCE: Cook for 2 minutes, stirring, until it smells nutty. KEEP: amounts, each written exactly so: 2 minutes | actions: cook (or heat, warm, boil)\n" +
+            "REFUSED, a copy: Cook it for 2 minutes while stirring, until nutty. REWRITE: It needs 2 minutes of cooking, stirred as it goes, and it is done as soon as a nutty smell rises.\n" +
+            "SENTENCE: Drain the potatoes and let them sit in the colander for 5 minutes. KEEP: amounts, each written exactly so: 5 minutes | foods: potatoes | actions: drain (or strain); sit (or rest, stand)\n" +
+            "REFUSED, a copy: After you drain the potatoes, let them sit in the colander for 5 minutes. REWRITE: With the water drained off, keep the potatoes in the colander, where they should sit for 5 minutes.\n" +
+            "SENTENCE: Pour in 1/2 cup broth and simmer 5 to 8 minutes, until reduced by half. KEEP: amounts, each written exactly so: 1/2 cup; 5 to 8 minutes | foods: broth | actions: pour (or add, put, place); simmer (or cook, heat, warm, stew, poach); reduced\n" +
+            "REFUSED, a copy: Add 1/2 cup broth and let it simmer 5 to 8 minutes until it has reduced by half. REWRITE: Next the broth, 1/2 cup of it, gets poured in, and the pan should simmer for 5 to 8 minutes until the liquid is down by half.\n" +
+            "SENTENCE: Serve with the sauce. KEEP: actions: serve\n" +
+            "REFUSED, a copy: Serve it with the sauce. REWRITE: Each plate should be served with some of the sauce beside it.\n" +
             "Reply with STRICT JSON only: {\"method\":\"what the dish is and how the work runs, in at most 25 words\",\"step\":\"what this step is for, in at most 15 words\"," +
-            "\"sentences\":[{\"n\":1,\"reading\":\"what the cook must do or know, in at most 15 words\",\"rewrite\":\"...\"}]} with one entry for each SENTENCE given, in order.";
+            "\"sentences\":[{\"n\":1,\"reading\":\"what the cook must do or know, in at most 15 words\",\"rewrite\":\"opening with the time, the vessel or the heat the sentence gives\",\"other\":\"with the food or the dish's part as the subject\",\"third\":\"the first action as a condition (once, with ... done), the rest following\",\"fourth\":\"in the passive, the actions in the sentence's order joined by and, then or after which\",\"fifth\":\"the most unlike the published sentence you can make while keeping every fact\"}]} with one entry for each SENTENCE given, in order; the first of the five that keeps every fact and is clearly rebuilt is used.";
 
         /// <summary>The temperature and seed of each round of the reword lane; a sentence that fails its checks is reworded again in the next round, with what failed.</summary>
         public static readonly IReadOnlyList<(double Temperature, int? Seed)> RewordRounds = new (double, int?)[]
@@ -166,6 +173,8 @@ namespace Nom.Orch.Services.Support
             (0, null),
             (0.5, 7),
             (0.8, 11),
+            (0.7, 13),
+            (0.9, 17),
         };
 
         /// <summary>The signature of the reword writer: its prompt and rounds with the sentence copy rule and the check it runs with; part of the lane version.</summary>
@@ -180,7 +189,7 @@ namespace Nom.Orch.Services.Support
             string.Join(";", Attempts.Select(a => $"{a.Style}/{a.Temperature.ToString(CultureInfo.InvariantCulture)}/{a.Seed}")), RuleAttempt, Retry,
             ProseMasking.Version, ProseFactSheet.Version, ProseDescription.Version, "check " + ProseCheck.Version.ToString(CultureInfo.InvariantCulture)));
 
-        public static string JudgeSignature { get; } = Hash("judge\n" + JudgeStep + "\n␞\n" + JudgeKept + "\n␞\n" + JudgeAdded + "\n␞\n" + ProseJudgeRules.Version + $"\n␞\nseed {JudgeSeed} ctx {JudgeContext} check {ProseCheck.Version}");
+        public static string JudgeSignature { get; } = Hash("judge, unpaired parts only\n" + JudgePart + "\n␞\n" + JudgeNew + "\n␞\n" + ProseJudgeRules.Version + "\n␞\n" + ProseJudgeRules.PairVersion + $"\n␞\nseed {JudgeSeed} ctx {JudgeContext} check {ProseCheck.Version}");
 
         public static string AuditSignature { get; } = Hash("audit by step, confirmed by the auditor\n" + AuditStep + "\n␞\n" + Confirm + "\n␞\n" + ProseAudit.Version + "\n␞\n" + ProseAuditEvidence.Version + "\n␞\n" + ProseJudgeRules.Version + $"\n␞\nseed {AuditSeed}, up to {AuditConfirmations} flagged steps confirmed, check {ProseCheck.Version}");
 

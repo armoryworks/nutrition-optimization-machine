@@ -5,15 +5,22 @@ using System.Threading.Tasks;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.EntityFrameworkCore.Diagnostics;
 using Nom.Data;
+using Nom.Data.Plan;
 using Nom.Data.Recipe;
 
 namespace Nom.Orch.Services.Support
 {
     /// <summary>
     /// Makes a recipe undecided in the diet gate's store in the same save that writes one of its lines or its servings
-    /// (review CK10S-3): its <see cref="Nom.Data.Plan.DietRecipeStateEntity"/> rows are removed, so every stored set holds
-    /// it (<see cref="DietGateStore.WithoutHeld(IQueryable{RecipeEntity}, ApplicationDbContext, RestrictedIngredientSet)"/>)
-    /// until the build job has decided it again, instead of reading the decision made on its old lines.
+    /// (review CK10S-3), so every stored set holds it
+    /// (<see cref="DietGateStore.WithoutHeld(IQueryable{RecipeEntity}, ApplicationDbContext, RestrictedIngredientSet)"/>)
+    /// until the build job has decided it again, instead of reading the decision made on its old lines. On a relational
+    /// database the save logs the recipe in the write log (<see cref="DietGateWriteEntity"/>), which holds it from the
+    /// commit (<see cref="DietGateStore.Standing"/>) as the triggers of <c>db/custom-objects.sql</c> do: removing the
+    /// tracked <see cref="DietRecipeStateEntity"/> rows expected each row to be there at the save, while the build job
+    /// replaces a recipe's state in its own transaction, so a long writer such as the alcohol retention apply failed with a
+    /// concurrency error when the job replaced a state between the read and the save (staging checkpoint 8, T15).
+    /// Elsewhere the state rows are removed.
     /// </summary>
     public sealed class DietRecipeStateClearer : SaveChangesInterceptor
     {
@@ -23,8 +30,12 @@ namespace Nom.Orch.Services.Support
         public override InterceptionResult<int> SavingChanges(DbContextEventData eventData, InterceptionResult<int> result)
         {
             if (eventData.Context is ApplicationDbContext db)
-                foreach (var batch in Touched(db).Chunk(5000))
-                    db.DietRecipeStates.RemoveRange(db.DietRecipeStates.Where(s => batch.Contains(s.RecipeId)).ToList());
+            {
+                if (db.Database.IsRelational()) Hold(db);
+                else
+                    foreach (var batch in Touched(db).Chunk(5000))
+                        db.DietRecipeStates.RemoveRange(db.DietRecipeStates.Where(s => batch.Contains(s.RecipeId)).ToList());
+            }
             return result;
         }
 
@@ -59,8 +70,19 @@ namespace Nom.Orch.Services.Support
             return ids;
         }
 
+        private static void Hold(ApplicationDbContext db)
+        {
+            foreach (var id in Touched(db).Order())
+                db.DietGateWrites.Add(new DietGateWriteEntity { RecipeId = id });
+        }
+
         private static async Task ClearAsync(ApplicationDbContext db, CancellationToken cancellationToken)
         {
+            if (db.Database.IsRelational())
+            {
+                Hold(db);
+                return;
+            }
             foreach (var batch in Touched(db).Chunk(5000))
                 db.DietRecipeStates.RemoveRange(await db.DietRecipeStates.Where(s => batch.Contains(s.RecipeId)).ToListAsync(cancellationToken));
         }

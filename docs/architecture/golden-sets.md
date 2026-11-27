@@ -81,6 +81,7 @@ status columns, a `source` (where the judgement comes from) and a `note`.
 | `alcohol-readings.tsv` | model lane `alcohol-reading` (both readers' fixed readings) | `expect` | `status` (rule rows checked without a model) |
 | `link-pairs.tsv` | model lane `link-audit` (the auditor confirmed by reader B, and the auditor alone; 400 bad and 400 good pairs) | `verdict` | none (scored by the record) |
 | `prose-judge.tsv` + `prose-stock.tsv` | scorer lanes `prose-rewrite` (writer end to end on each recipe's whole method, the strict copy check in its gate; planted faults through the facts gate), `prose-judge` (the judge), `prose-audit` (rules with the lines, then the auditor confirmed by its own blind re-read) | `expect`, `fault` | none (scored by the record) |
+| `diet-second-reader.tsv` | model lane `diet-second-reader` (the second diet reader, `OllamaDietSecondReader`; unwired, no floor) | `truth` (`contains`, `safe`, `doubtful`) beside the rules' verdict `rules` and the miss `kind` | `status` (all `agent`) |
 | `model-lanes.json` | every model lane | floors | — |
 | `baseline.json` | — | allowed `known` rows per `file:column` | — |
 
@@ -247,7 +248,7 @@ an operator with `--golden-score --lane <lane> --host <model host> --model <mode
 <judge>] --record`: `prose-rewrite` (the writer through the whole pipeline with the judge; a planted
 fault the gate lets through is a false accept, ceiling 0), `prose-judge` (floor 95 %, at most 2 %
 false accepts) and `prose-audit` (rules first with the row's ingredient lines, then the auditor step by
-step, its flags confirmed by its own blind re-read, never by the judge that passed the rewrites; its
+step, a difference it lists dropped when a rule finds its source words in the rewrite step, its flags confirmed by its own blind re-read, never by the judge that passed the rewrites; its
 signature holds the prose check version, so a new check version needs a new record; its known-bad and known-good counts are the audit check score the
 lane frame corrects with; `--check-model` is for `prose-rewrite` only; the run prints the faithful rewrites the auditor flags as its
 false alarms). `prose-judge`, `prose-audit`, `prose-rewrite` and `link-pick` can be scored on one
@@ -255,9 +256,13 @@ fixed half of its rows (`--split working|held-out|all`, never with `--record`): 
 rows whose SHA-256 of the row id starts with an even byte, so a prompt is tuned on the working half and
 checked once per round on the held-out half, whose failing rows are not read. A `prose-rewrite`
 recipe falls in the half of the hash of `recipe:<recipe>` and each planted or writer fault in its
-own row's; the run prints how many recipes the first writer attempt got through, how many ended on
+own row's; the run prints how many recipes the first reword round got through, how many ended on
 the rule rendering and how many were given up, with the seconds a recipe took, and on the working half
-`--trace <file>` writes each recipe's sheets and refused steps for reading. None is `required` until
+`--trace <file>` writes each recipe's attempts and accepted rewrite for reading (a `prose-audit` run on
+the working half writes there each difference the auditor lists and whether it stands). On one half,
+`--recipes-only` rewords the recipes and leaves out the planted faults: their verdicts are the gate's and
+the judge's and do not move with the writer, so a writer round need not pay for them again (never with
+`--record`, which scores every case). None is `required` until
 the staging proof records it, but the records are also compiled into Nom.Orch and the running lane
 cannot qualify without a current record for its own models (`ProseLaneGolden.GoldenProblem`), so a
 missing record holds the lane in shadow rather than the release. Of the 122 planted faults, 84 pass
@@ -275,7 +280,7 @@ every file from the captures and the evidence, all rows `new`.
 ## Model lanes
 
 ```
-dotnet run --project nom-api/Nom.Import -- --golden-score --lane <link-pick|link-verify|line-classify|link-gate|alcohol-context|alcohol-retention|wording-tiers|line-judge> \
+dotnet run --project nom-api/Nom.Import -- --golden-score --lane <link-pick|link-verify|line-classify|link-gate|alcohol-context|alcohol-retention|wording-tiers|line-judge|diet-second-reader> \
     --host http://<model host>:11434 --model <model tag> [--limit N] [--out failures.tsv] [--record] [--split working|held-out|all]
 ```
 
@@ -295,6 +300,19 @@ dotnet run --project nom-api/Nom.Import -- --golden-score --lane <link-pick|link
   rebuild tier cannot leave shadow without a record of the current prompt (`OllamaLineJudge.Signature`)
   and the model the lane asks. `required` is false until the first record is committed.
 
+- `diet-second-reader`: the second diet reader (`OllamaDietSecondReader`), one call per recipe of
+  `diet-second-reader.tsv` with its title, lines and method and no rule verdict, answering contains,
+  may or free for each of the eleven severe types (a recipe the reader finds is not whole is never
+  free). A `contains` row passes when it is not read free (reading it free is a false accept), a
+  `safe` row when it is read free; `doubtful` rows are reported, not scored. `--split working|held-out`
+  halves the rows by a hash of the recipe id, so every type of a recipe is in one half and one call
+  serves them all. The run also prints the measuring figures of `docs/architecture/diet-second-reader.md`
+  (misses the reader would catch by kind, the shown coverage it would cost, the unknown holds it would
+  release, the bar of the `draws` frame over the picks still shown with its Wilson interval, seconds per recipe); `--answers <file>`
+  keeps each recipe's readings and `--agree <file>` adds the figures for two readers both calling a
+  recipe clear; `--replay <file>` reports a kept run again without asking a host (pass `--host none`)
+  and takes neither `--record` nor `--limit`, since kept answers carry no signature, model or row set.
+  No floor and no record until the owner sets a bar; the reader is wired into nothing.
 - `link-gate`, `alcohol-context`, `alcohol-retention` and `wording-tiers`: see below; they need no model.
 - `link-pick`: the ambiguous judged wordings (a staple or the name matcher would answer the rest),
   answered as the link lane answers them: a wording of two foods is linked to none and a staple named

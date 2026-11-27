@@ -33,6 +33,33 @@ namespace Nom.Api.Tests.Services
         }
 
         [Fact]
+        public void A_temperature_never_takes_the_verb_of_lining_or_greasing_a_pan()
+        {
+            ProseKeyFacts.Build(Method("To 450°F first, and line a baking sheet with parchment."))
+                .Should().Equal(new[] { "450°F" }, "staging checkpoint 8 read a pan lining as an oven: 'line 450°'");
+            ProseKeyFacts.Build(Method("Grease the pan well and set the oven to 375°F.")).Should().Equal("oven 375°F");
+        }
+
+        [Fact]
+        public void How_long_the_dish_keeps_is_no_step()
+        {
+            ProseKeyFacts.Build(Method("Bake for 25 minutes.", "Cover and chill up to 4 days.", "Leftovers keep in the fridge for 2 weeks."))
+                .Should().Equal(new[] { "bake 25 min" }, "staging checkpoint 8 found 'cover 4 days' and 'chill 2 weeks' among the key facts");
+            ProseKeyFacts.Build(Method("Store in an airtight tin for 3 hours before serving.")).Should().BeEmpty();
+            ProseKeyFacts.Build(Method("Let the dough rise for 2 days in the fridge.")).Should().ContainSingle(f => f.EndsWith("2 days", StringComparison.Ordinal));
+            ProseKeyFacts.Build(Method("Keep warm for 10 minutes.")).Should().HaveCount(1);
+        }
+
+        [Fact]
+        public void A_step_time_in_a_sentence_that_also_stores_the_dish_stays_a_fact()
+        {
+            ProseKeyFacts.Build(Method("Bake 25 to 30 minutes, then cool on a rack before storing in an airtight container."))
+                .Should().Equal("bake 25 to 30 min");
+            ProseKeyFacts.Build(Method("Marinate up to 2 days.")).Should().ContainSingle(f => f.EndsWith("2 days", StringComparison.Ordinal));
+            ProseKeyFacts.Build(Method("Refrigerate up to 3 days.")).Should().BeEmpty();
+        }
+
+        [Fact]
         public void Ingredient_amounts_counts_and_conversions_are_left_to_the_ingredient_list()
         {
             ProseKeyFacts.Build(Method("Add 2 cups of flour and 3 eggs, then stir in 1/2 teaspoon salt.")).Should().BeEmpty();

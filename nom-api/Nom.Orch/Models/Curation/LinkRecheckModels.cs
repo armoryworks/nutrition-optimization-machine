@@ -172,7 +172,7 @@ namespace Nom.Orch.Models.Curation
         public int NamesRestored { get; set; }
         public int AliasEntries { get; set; }
         public int AliasesRestored { get; set; }
-        /// <summary>Marks of unknown contents kept with their journal entries because the undo left lines on their food (<see cref="HeldByDiet"/>): without the mark those lines would lower the flags the severe types hold them by (review ck16-r1).</summary>
+        /// <summary>Marks of unknown contents kept with their journal entries because the undo left lines the run moved on their food (<see cref="HeldByDiet"/>): without the mark those lines would lower the flags the severe types hold them by (review ck16-r1). Lines that were on the food before the run never keep it: an undo that takes back every move of the run takes back every mark (staging checkpoint 8, T13).</summary>
         public int MarksKept { get; set; }
         public int FoodsRemoved { get; set; }
         public int FoodsKept { get; set; }

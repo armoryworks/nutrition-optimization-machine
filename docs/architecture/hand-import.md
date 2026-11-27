@@ -139,6 +139,34 @@ application server, in the `nom-hand-import` image, staging first (see "Where it
    tesseract reads as "%" or "Y%", or a figure below the bar, never becomes a number the page does
    not hold; the recipe is lost instead.
 
+   **Since staging checkpoint 8 (T18)** the Library proof kept one wrong amount from an image
+   (Lizzie's cook book p. 99, `Butter . . . 2 Cup` where the page prints ½ cup: a fraction read as a
+   plain figure at the bar), took index numbers from the other column and left an old-style "1" read
+   as "I" unmarked. So:
+   - **every amount the reading keeps is read again** (`confirmed`, `cell_reader`): the cell (the
+     amount's words) is cropped from the page image with half a line of margin, enlarged three times
+     (`CELL_SCALE`) and read by tesseract as one line (`--psm 7`); the amount is written only when
+     that reading starts with the same number. A fraction sign, "%", "1/2", another figure or no
+     reading at all puts the mark in its place. Cropping needs Pillow (HPND, OSI-approved), which the
+     image installs (`pillow==11.0.0`); without it no cell is read again and no amount is kept;
+   - **a lone figure as wide as a fraction sign** is never written: a printed figure is about half as
+     wide as the line is high, a half about as wide as high, so a single figure whose box is at least
+     `FRACTION_WIDTH` (0.8) of its height carries the mark whatever the readings say;
+   - in a line set as prose, **an "I", "l" or "|" before a measure word** ("Sweet milk, I cup") and a
+     figure before a measure word that its second reading does not confirm carry the mark;
+   - **a two-column row is read as two rows** (`_columns`): at a gap wider than three letters across
+     the middle, after which a name in capitals ends in a page number, so an index name never takes
+     the other column's number;
+   - **a page whose image reading names its lines replaces its garbled Library text**: a line that
+     fails the readability test only because it carries the mark is counted `marked`, not garbled
+     (`page_reading`), and the image's reading is the page's text when it has fewer garbled lines
+     than the Library's (p. 25 kept the Library's garbled table though the image read every name). A
+     marked recipe on such a page is still never kept by rule or sent to the model.
+   With tesseract 5.3.4 on the four test pages every amount the reading keeps is still the printed
+   one, and SEASONING is still kept by rule; the residual risk (a fraction read twice, at two
+   resolutions, as the same plain figure, and narrow enough to pass the width rule) is measured by the
+   next one-book proof.
+
    **What the test pages show** (`ops/tests/fixtures/hand-import/table-page-*.jpg`, made by
    `table-pages.py` from NCI's public-domain text set as old-book dot-leader tables at 300 dpi,
    turned, blurred and speckled; nothing taken from the Library; tesseract 5.3.4): of 29 table rows,
@@ -225,7 +253,13 @@ application server, in the `nom-hand-import` image, staging first (see "Where it
      pass the number check and the readability test, and every line of the page that starts with an
      amount (a bare step number and the title's own lines aside: S23, "2 0 - M I N U T E" was read as
      an ingredient line the record left out) must lie inside one of its ingredient lines or a step, so
-     a wrapped line counts once and no listed ingredient is left out. **The name is the title the
+     a wrapped line counts once and no listed ingredient is left out. Since staging checkpoint 8 (T19:
+     2 of 14 kept records wrong) a list heading in capitals the model returns as a line ("DRESSING",
+     "FOR THE TOPPING:") is no ingredient line, a sidebar tip set after its icon letter ("Z To reduce
+     sodium, ...": one capital other than A or I, then a capitalised word) is no step, and a word the
+     page breaks with a soft hyphen comes back whole ("min–utes" is "minutes" where the joined word is
+     known and its halves are not both words; the page text is read the same way for the number
+     check). **The name is the title the
      page prints, read by rule** (staging checkpoint 7, S23: the model returned "MIXED DEGREE GREENS"
      for MIXED GREENS and lost "Breast" on page 13): a run of short lines in capitals (the page's
      INGREDIENTS and NUTRITION CONTENT headings aside; a run followed by an ingredient line is a
@@ -334,21 +368,30 @@ Before any larger run, one Library book is taken through the page images on stag
 image built from the release commit (`ops/hand-import-box.sh build`):
 
 1. In the image, the reading tests on the test pages with the image's own tesseract:
-   `docker run --rm --read-only --entrypoint python3 -v "$PWD/ops:/app/ops:ro" nom-hand-import -m
-   unittest discover -s /app/ops/tests -p 'test_hand_import_images.py' -v` (from a checkout of the
-   release commit). The real-tesseract test must run (not skip) and pass; record its output.
+   `ops/hand-import-box.sh selftest` from a copy of the release commit's `ops` and `docs`
+   (`git archive <tag> ops docs`): it runs `ops/tests/test_hand_import*.py` in the image with `ops/`
+   and `docs/` mounted read-only (the determination test reads `docs/architecture/crosscheck-sources.md`;
+   staging checkpoint 8, correction 2, found the bare `docker run` with `ops/` alone erroring on it). The
+   real-tesseract tests must run (not skip) and pass; record the output.
 2. Pick one book of `books.csv` already fetched and read at an earlier checkpoint (Lizzie's cook book,
    `loc-lizzie`, with its garbled tables, is the one S22 found), and give its row alone in a books file
    (`--books /work/loc/books-proof.csv`).
 3. `text --source loc --books ...` and record `pagesNeedingImage`.
 4. `images --source loc --books ... --limit 50`: read the report. Every refusal must name its limit;
    `requests` and the run's time must fit 6 s a request. Repeat until no `leftForNextRun`.
-5. `text --source loc --books ...` again: record `imagesDeleted`, check that no `*.p????.jpg` and no
-   `*.p????.*.part` is left
+5. **Before the second `text` run** (it deletes the images), draw the pages to read against their
+   images (a seeded draw, about 20 of the fetched pages), copy those images aside, read each page's
+   image reading against its image (every amount, every name, index numbers), then delete the copies
+   wherever they were made; record it as step 7's reading of the images (staging checkpoint 8,
+   correction 3). Then `text --source loc --books ...` again: record `imagesDeleted`, check that no
+   `*.p????.jpg` and no `*.p????.*.part` is left
    in `/work/loc/docs` and that `SHA256SUMS` passes `sha256sum -c`; record the pages that turned
    `loc-image-ocr`.
-6. `plan` and `extract` for the book (model as before). Record `keptByRule`, the unreadable recipes
-   and the model calls.
+6. `plan` and `extract` for the book. A rule-only extract runs with no model host file
+   (`NOM_HAND_MODEL_HOST_FILE` unset or the file removed: the wrapper says `extract: rules only`), so
+   it never reaches the host by accident; for the model step copy the mode-600 file in, run, and
+   remove it (staging checkpoint 8, correction 4). Record `keptByRule`, the unreadable recipes and the
+   model calls.
 7. Read every record kept from an image page against the page on the Library's site in a browser
    (not fetched by script): name, every amount, every food, the steps. The bar is the same as for any
    hand import (0 wrong records of the sample). Then sample, stage the dry run, apply, prove the
@@ -391,19 +434,22 @@ The hand import runs on the application server as a container, and nothing is in
 host. `ops/hand-import.Dockerfile` builds the `nom-hand-import` image from the Python slim image
 (Debian) with `poppler-utils` (`pdftotext`, `pdftoppm`, GPL), `tesseract-ocr` with
 `tesseract-ocr-eng` (Apache-2.0) and `wamerican` (SCOWL's word list, a permissive licence, for the
-readability test); the script needs only Python's standard library. The image holds
+readability test) and Pillow (HPND, to crop and enlarge an amount cell of a page image for its second
+reading); the script needs nothing else beyond Python's standard library. The image holds
 the script, the two modules it loads (`cookbook-extract.py`, `recipe-source-attach.py`) and the two
 lists, and nothing else: no secret, no host name, no address. One image serves staging and
 production; only the environment of a run differs.
 
 `ops/hand-import-box.sh` runs every step in it (`fetch`, `links`, `text`, `images`, `plan`, `extract`,
-`sample`, `sources`, `stage`, `withhold`, `release`), and `build` builds it; `plan` gets `--model` from
+`sample`, `sources`, `stage`, `withhold`, `release`), `build` builds it, and `selftest` runs the reading
+tests in it with the checkout's `ops/` and `docs/` mounted read-only; `plan` gets `--model` from
 `NOM_HAND_MODEL` like `extract`. It reads at run time:
 
 | Variable | Use |
 |---|---|
 | `NOM_HAND_WORK` | the work folder on the server, mounted at `/work` (required for every step with `--out`; `--out` defaults to `/work` and must lie under it) |
-| `NOM_HAND_MODEL_HOST`, `NOM_HAND_MODEL` | the model host and model for `extract`, passed as `--host` and `--model` (model default `qwen2.5:14b-instruct`) |
+| `NOM_HAND_MODEL_HOST_FILE` | a file of the caller's, mode 600 (or 400), whose first line is the model host for `extract`, passed as `--host`; copied in only for a model step and removed after, so the address stays out of the environment and a rule-only `extract` (no file: `extract: rules only`) never reaches the host. `NOM_HAND_MODEL_HOST` is refused (staging checkpoint 8, correction 4) |
+| `NOM_HAND_MODEL` | the model for `extract` and `plan`, passed as `--model` (default `qwen2.5:14b-instruct`) |
 | `NOM_API`, `NOM_API_KEY`, `NOM_API_TOKEN` | the NOM API of the environment being imported into, passed into the container by name, never on the command line |
 | `NOM_HAND_NETWORK` | a docker network for the container (`host` when `NOM_API` is a loopback address) |
 | `NOM_HAND_IMAGE` | the image tag (default `nom-hand-import`) |

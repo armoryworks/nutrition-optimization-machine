@@ -10,7 +10,7 @@ namespace Nom.Import.Golden
 {
     /// <summary>
     /// Scores one model lane against its golden set on a model host the operator names:
-    /// <c>dotnet run -- --golden-score --lane link-verify --host http://ai-host:11434 --model qwen3:8b [--limit 200] [--golden &lt;dir&gt;] [--out failures.tsv] [--record] [--split working|held-out|all]</c>; a lane of <see cref="ModelLanes.Splittable"/> can be scored on one fixed half of its rows (--split, never with --record); the prose lanes also take <c>[--check-model mistral-nemo]</c>, the judge that checks the writer, and the reader lanes (wording-read, wording-lexicon, alcohol-reading) and link-audit take it as reader B (default the roster's), which the record names; alcohol-reading also takes <c>[--audit-model phi4]</c>, the auditor it scores in the fixed-reading mode (default the roster's); prose-rewrite on the working half takes <c>[--trace &lt;file&gt;]</c>, where each recipe's sheets and refused steps are written.
+    /// <c>dotnet run -- --golden-score --lane link-verify --host http://ai-host:11434 --model qwen3:8b [--limit 200] [--golden &lt;dir&gt;] [--out failures.tsv] [--record] [--split working|held-out|all]</c>; a lane of <see cref="ModelLanes.Splittable"/> can be scored on one fixed half of its rows (--split, never with --record); the prose lanes also take <c>[--check-model mistral-nemo]</c>, the judge that checks the writer, and the reader lanes (wording-read, wording-lexicon, alcohol-reading) and link-audit take it as reader B (default the roster's), which the record names; alcohol-reading also takes <c>[--audit-model phi4]</c>, the auditor it scores in the fixed-reading mode (default the roster's); prose-rewrite on the working half takes <c>[--trace &lt;file&gt;]</c>, where each recipe's sheets and refused steps are written (prose-audit: each difference the auditor lists and whether it stands), and on one half <c>[--recipes-only]</c>, which leaves out the planted faults (their verdicts are the gate's and the judge's, not the writer's); diet-second-reader prints its report (<see cref="DietReaderReport"/>) and takes <c>[--answers &lt;file&gt;]</c>, where each recipe's readings are written, <c>[--agree &lt;file&gt;]</c>, another model's answers on the same rows, for the figures when both readers call a recipe clear, and <c>[--replay &lt;file&gt;]</c>, which reports a kept run again without asking the host and takes neither --record nor --limit.
     /// Prints the lane's score, its false-accept rate, the floor from <c>model-lanes.json</c> and every
     /// case that passed in the recorded run and fails now, and exits 1 when the lane is below its
     /// floor. <c>--record</c> writes the score file the release gate reads. Refused under CI, and it
@@ -34,7 +34,7 @@ namespace Nom.Import.Golden
             var model = Option(args, "--model") ?? (noModel ? ModelLanes.NoModelVersion(lane!) : null);
             if (lane == null || host == null || model == null || !ModelLanes.Scored.Contains(lane))
             {
-                Console.Error.WriteLine($"usage: {Flag} --lane <{string.Join('|', ModelLanes.Scored)}> --host <url> --model <name> [--limit N] [--golden <dir>] [--out <file>] [--record] [--split <working|held-out|all>] [--check-model <name>] [--audit-model <name>] [--trace <file>] ({string.Join(", ", ModelLanes.NoModel)} needs no host or model)");
+                Console.Error.WriteLine($"usage: {Flag} --lane <{string.Join('|', ModelLanes.Scored)}> --host <url> --model <name> [--limit N] [--golden <dir>] [--out <file>] [--record] [--split <working|held-out|all>] [--check-model <name>] [--audit-model <name>] [--trace <file>] [--recipes-only] [--answers <file>] [--agree <file>] [--replay <file>] ({string.Join(", ", ModelLanes.NoModel)} needs no host or model)");
                 return 2;
             }
 
@@ -56,6 +56,18 @@ namespace Nom.Import.Golden
                 Console.Error.WriteLine("--record scores every row; leave out --split.");
                 return 2;
             }
+            if (Option(args, "--replay") != null && (args.Contains("--record") || args.Contains("--limit")))
+            {
+                Console.Error.WriteLine("--replay reports a kept run again; its answers carry no prompt signature, model or row set, so it takes neither --record nor --limit.");
+                return 2;
+            }
+
+            var recipesOnly = args.Contains("--recipes-only");
+            if (recipesOnly && (lane != ModelLanes.ProseRewriteLane || split == ModelLanes.SplitAll))
+            {
+                Console.Error.WriteLine("--recipes-only is for prose-rewrite on one half (--split working or held-out).");
+                return 2;
+            }
 
             int? limit = int.TryParse(Option(args, "--limit"), out var l) && l > 0 ? l : null;
             var floor = ModelLanes.Floors(goldenDir).TryGetValue(lane, out var f) ? f : new LaneFloor();
@@ -65,9 +77,17 @@ namespace Nom.Import.Golden
             Console.WriteLine($"Lane {lane}, model {model} on {host}, prompt signature {signature}{(limit is { } n ? $", first {n} cases" : string.Empty)}{(split == ModelLanes.SplitAll ? string.Empty : $", {split} half")}");
             using var http = new HttpClient { Timeout = TimeSpan.FromMinutes(5) };
             IReadOnlyList<LaneCaseResult> results;
+            DietReaderRun? dietRun = null;
             try
             {
-                results = await ModelLanes.RunAsync(lane, goldenDir, http, ModelLanes.Config(host, model, Option(args, "--check-model"), Option(args, "--audit-model"), Option(args, "--trace")), limit, Console.Error.WriteLine, split: split);
+                if (lane == ModelLanes.DietSecondReaderLane)
+                {
+                    dietRun = Option(args, "--replay") is { } replay
+                        ? ModelLanes.DietReaderReplay(goldenDir, ModelLanes.ReadDietAnswers(replay), split)
+                        : await ModelLanes.DietReaderRunAsync(goldenDir, http, host, model, limit, Console.Error.WriteLine, default, split);
+                    results = ModelLanes.DietReaderResults(dietRun);
+                }
+                else results = await ModelLanes.RunAsync(lane, goldenDir, http, ModelLanes.Config(host, model, Option(args, "--check-model"), Option(args, "--audit-model"), Option(args, "--trace"), recipesOnly), limit, Console.Error.WriteLine, split: split);
             }
             catch (Exception ex) when (ex is HttpRequestException or TaskCanceledException or InvalidOperationException)
             {
@@ -85,7 +105,7 @@ namespace Nom.Import.Golden
             if (ModelLanes.FalseRefusals(lane, results) is { } refusals)
                 Console.WriteLine($"{(lane == ModelLanes.ProseAuditLane ? "False alarms" : "False refusals")} {refusals.Refused}/{refusals.Faithful} faithful rewrites ({(refusals.Faithful == 0 ? 0 : (double)refusals.Refused / refusals.Faithful):P1}); not part of the floor");
             if (ModelLanes.RewriteFigures(lane, results) is { } rewrites)
-                Console.WriteLine($"Recipes {rewrites.Recipes}: through the gate at the first attempt {rewrites.FirstTry}, on the rule rendering {rewrites.RuleRendered}, given up {rewrites.GaveUp}; {rewrites.Seconds:0.0} s a recipe");
+                Console.WriteLine($"Recipes {rewrites.Recipes}: through the gate after the first round {rewrites.FirstTry}, on the rule rendering {rewrites.RuleRendered}, given up {rewrites.GaveUp}; {rewrites.Seconds:0.0} s a recipe");
             if (score.Precision is { } precision)
                 Console.WriteLine($"Accepted {score.Accepted}/{score.Cases}; judged right among them {precision:P1}; floor {(floor.MinPrecision is { } minPrecision ? minPrecision.ToString("P1") : "none")}");
             foreach (var (judge, counts) in score.ByJudge) Console.WriteLine($"  judged by {judge}: {counts[0]}/{counts[1]}");
@@ -96,6 +116,17 @@ namespace Nom.Import.Golden
                 Console.WriteLine($"Recorded run: {recorded.Model}, signature {recorded.Signature}, score {recorded.Score:P1}, {recorded.ScoredAtUtc:u}");
                 Console.WriteLine($"Regressed since the recorded run: {regressed.Count}");
                 foreach (var r in regressed) Console.WriteLine($"  {r.Id}: expected {r.Expected}, got {r.Actual}");
+            }
+
+            if (dietRun != null)
+            {
+                if (Option(args, "--answers") is { } answersPath)
+                {
+                    ModelLanes.WriteDietAnswers(answersPath, dietRun.Answers);
+                    Console.WriteLine($"Answers written to {answersPath}");
+                }
+                var agree = Option(args, "--agree") is { } agreePath ? ModelLanes.ReadDietAnswers(agreePath) : null;
+                foreach (var line in DietReaderReport.Lines(dietRun, agree)) Console.WriteLine(line);
             }
 
             if (Option(args, "--out") is { } outPath)

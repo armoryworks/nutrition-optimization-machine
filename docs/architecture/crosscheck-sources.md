@@ -176,7 +176,8 @@ for each):
 - **Read for its text, then deleted; never served or kept.** The image is read with tesseract inside the
   `nom-hand-import` image; once the text step has stored the page's reading (`imageText` in the page's
   text file), it deletes the image and records the deletion in `manifest.jsonl`; the stored reading stays
-  on the page whatever later runs read. Part of an image is never kept: a failed download deletes it, and
+  on the page whatever later runs read. The enlarged crop of an amount cell read a second time (since staging
+  checkpoint 8) lives only in a temporary folder of that read and is deleted with it. Part of an image is never kept: a failed download deletes it, and
   one left by a stopped run is deleted at the start of the next run. An image is never a
   recipe's image, never staged, never sent to the NOM API and never published.
 

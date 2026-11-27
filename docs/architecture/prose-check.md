@@ -338,7 +338,10 @@ meal plans.
 - **Key facts and the source link** stand in for the method. The detail returns `keyFacts`, built by
   rule from the stored source method (`ProseKeyFacts`): each time, temperature and pan size in step
   order with its verb ("oven 350°F · 9 x 13-inch pan · bake 30 to 40 min · cool 30 min"), written in
-  one fixed form so no source wording is carried over. The recipe page shows them with "Full method
+  one fixed form so no source wording is carried over. Since staging checkpoint 8 a temperature never takes the verb of
+  work on a pan ("line 450°" was a pan lining read as an oven), and how long the dish keeps is no fact (a time in a
+  storing sentence after its storing word, or days and weeks with "store", "keeps", "lasts", or "up to" in the cold: "cover 4 days", "chill 2 weeks"; a bake time before "storing" and "marinate up to 2 days" stay facts). The
+  ingredient lines are served with their HTML entities read (`ProseWithholding.Shown`: "&frac14;" is ¼). The recipe page shows them with "Full method
   at example.com" and the note "We're writing this method in our own words."
   (`data-testid` `recipe-method-withheld`, `recipe-key-facts`, `recipe-key-fact`,
   `recipe-method-source-link`, `recipe-method-withheld-note`).
@@ -512,7 +515,9 @@ a passage in order: a formula the lane rewords passes, a formula kept word for w
   109 sentences rebuilt by hand in a first round, 51 are refused (47 %); rewriting the refused ones again, 16 of 116
   are refused in the second round and 8 in the third, so 14 of 21 recipes pass whole within the lane's three rounds.
 - `ProseReword.SentenceProblems` uses it for each reworded sentence (reason `copy`, "the wording follows the
-  published sentence too closely; rebuild it ..."), and the gate refuses a text with any sentence it reads as a copy.
+  published sentence too closely; ..." with which measure fired and the writer's own words that keep the published
+  order, `ProseReword.Followed`), and the gate refuses a text with any sentence it reads as a copy. The line is not
+  moved by the lane's prompt rounds.
 - The golden rows of `prose-check.tsv` hold it: every row judged to hold a copied sentence must be refused (all 450
   are, including the rows judged to hold none: the retry cost on old text).
 

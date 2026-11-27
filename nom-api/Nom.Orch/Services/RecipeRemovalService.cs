@@ -542,8 +542,9 @@ namespace Nom.Orch.Services
             void Add(string table, string columns, string action, int rows) => targets.Add(new RecipeRemovalTargetModel { Table = table, Columns = columns, Action = action, Rows = rows });
             Add("recipe.Ingredient", "Name, NameNormalized, PluralName, PluralNameNormalized, Description of the foods named from the purged lines that no other recipe uses",
                 "renamed by their food words where a household or another food holds them, otherwise cleared and the food retired", plan.Foods.Count);
-            Add("recipe.IngredientAlias", "AliasName of those foods, and the aliases a relink gave another food under the name of one of them (whole rows)", "deleted",
-                await _db.IngredientAliases.IgnoreQueryFilters().CountAsync(a => plan.Foods.Contains(a.IngredientId) || (a.SourceContext != null && plan.RetiredContexts.Contains(a.SourceContext)), cancellationToken));
+            Add("recipe.IngredientAlias", "AliasName of those foods, the aliases a relink gave another food under the name of one of them, and any alias whose name is a purged line's wording that no other recipe uses (whole rows)", "deleted",
+                await _db.IngredientAliases.IgnoreQueryFilters().CountAsync(a => plan.Foods.Contains(a.IngredientId) || (a.SourceContext != null && plan.RetiredContexts.Contains(a.SourceContext)), cancellationToken)
+                + (await WordedAliasesAsync(plan, cancellationToken)).Count);
             Add("recipe.IngredientWording, recipe.IngredientWordingRejection", "Wording of deleted rows and rejections on those foods (whole rows)", "deleted",
                 await _db.IngredientWordings.IgnoreQueryFilters().CountAsync(w => w.IsDeleted && w.IngredientId != null && plan.Foods.Contains(w.IngredientId.Value), cancellationToken)
                 + await _db.IngredientWordingRejections.IgnoreQueryFilters().CountAsync(w => w.IngredientId != null && plan.Foods.Contains(w.IngredientId.Value), cancellationToken));
@@ -948,7 +949,7 @@ namespace Nom.Orch.Services
             db.FoodCatalogProposals.IgnoreQueryFilters().Where(p => p.CurrentValue != null && texts.Contains(p.CurrentValue.ToLower().Trim())).Select(p => p.Id);
 
         /// <summary>What a purge of <paramref name="recipeIds"/> clears beyond the recipes' own rows (staging checkpoint 7, S20).</summary>
-        private sealed record WordingPlan(HashSet<long> Foods, HashSet<long> Held, HashSet<long> Proposals, HashSet<string> Texts, List<string> Subjects, List<string> RetiredContexts);
+        private sealed record WordingPlan(HashSet<long> Foods, HashSet<long> Held, HashSet<long> Proposals, HashSet<string> Texts, HashSet<string> Wordings, List<string> Subjects, List<string> RetiredContexts);
 
         /// <summary>
         /// The source's line wordings of <paramref name="recipeIds"/> that the purge follows out of the recipes' own rows: the foods
@@ -973,10 +974,14 @@ namespace Nom.Orch.Services
                     .Select(i => (i.Id, i.Name)));
 
             var texts = new HashSet<string>(StringComparer.Ordinal);
+            var wordings = new HashSet<string>(StringComparer.Ordinal);
             foreach (var (_, raw) in lines)
             {
-                if (Text(raw) is { } plain) texts.Add(plain);
-                if (Text(IngredientNameNormalizer.Normalize(raw)) is { } normalized) texts.Add(normalized);
+                var plain = Text(raw);
+                var normalized = Text(IngredientNameNormalizer.Normalize(raw));
+                if (plain is not null) texts.Add(plain);
+                if (normalized is not null) texts.Add(normalized);
+                if (plain is not null && (plain != Text(ProseWithholding.FoodWords(raw)) || IngredientNameNormalizer.TierKey(raw) is null)) wordings.Add(plain);
             }
             foreach (var (_, name) in lineFoods)
                 if (Text(name) is { } named) texts.Add(named);
@@ -1004,7 +1009,8 @@ namespace Nom.Orch.Services
             foreach (var chunk in freeKeys.ToList().Chunk(1000))
                 freeKeys.ExceptWith(await _db.IngredientWordings.Where(w => chunk.Contains(w.Wording)).Select(w => w.Wording).ToListAsync(cancellationToken));
             var subjects = freeKeys.Select(WordingTierLaneService.Subject).OrderBy(s => s, StringComparer.Ordinal).ToList();
-            return new WordingPlan(foods, await HeldAsync(foodList, cancellationToken), proposals, free, subjects, foodList.Select(RetiredAliasContext).ToList());
+            wordings.IntersectWith(free);
+            return new WordingPlan(foods, await HeldAsync(foodList, cancellationToken), proposals, free, wordings, subjects, foodList.Select(RetiredAliasContext).ToList());
 
             static string? Text(string? value) => string.IsNullOrWhiteSpace(value) ? null : value.Trim().ToLowerInvariant();
         }
@@ -1047,6 +1053,26 @@ namespace Nom.Orch.Services
         internal static IQueryable<IngredientAliasEntity> RetiredAliasesOf(ApplicationDbContext db, IReadOnlyCollection<string> contexts) =>
             db.IngredientAliases.IgnoreQueryFilters().Where(a => a.SourceContext != null && contexts.Contains(a.SourceContext));
 
+        /// <summary>The aliases, on any food, whose name (trimmed, lower case) is one of <paramref name="texts"/>.</summary>
+        internal static IQueryable<IngredientAliasEntity> AliasesWordedOf(ApplicationDbContext db, IReadOnlyCollection<string> texts) =>
+            db.IngredientAliases.IgnoreQueryFilters().Where(a => texts.Contains(a.AliasName.ToLower().Trim()));
+
+        /// <summary>
+        /// The aliases the purge's other alias rules leave whose name is a free line wording of the purged lines, a whole line
+        /// that is more than its food words (staging checkpoint 8, T17: a link lane gave a catalog food the line wording "For the
+        /// glaze" as an alias, with no retired-food context). A line's food words, or a line that is only food words and no
+        /// heading, name no alias here: a catalog food's alias "unsalted butter" serves every other recipe.
+        /// </summary>
+        private async Task<List<IngredientAliasEntity>> WordedAliasesAsync(WordingPlan plan, CancellationToken cancellationToken)
+        {
+            var aliases = new List<IngredientAliasEntity>();
+            foreach (var chunk in plan.Wordings.ToList().Chunk(1000))
+                aliases.AddRange(await AliasesWordedOf(_db, chunk)
+                    .Where(a => !plan.Foods.Contains(a.IngredientId) && (a.SourceContext == null || !plan.RetiredContexts.Contains(a.SourceContext)))
+                    .ToListAsync(cancellationToken));
+            return aliases;
+        }
+
         private static string RetiredAliasContext(long foodId) => LineRelinkService.RetiredContextPrefix + foodId.ToString(CultureInfo.InvariantCulture);
 
         private IQueryable<AuditLogEntryEntity> FoodAuditRows(WordingPlan plan)
@@ -1061,7 +1087,7 @@ namespace Nom.Orch.Services
         /// <summary>
         /// Clears what <see cref="WordingPlanAsync"/> found: a food a household or another food holds is renamed by its food words
         /// (made unique by its id when another food has that name); any other is given a purged placeholder name and retired; their
-        /// aliases, deleted wording rows and wording rejections are deleted; the proposals' text and the journal rows of those
+        /// aliases, deleted wording rows and wording rejections are deleted, and so is any alias of another food named by a free line wording; the proposals' text and the journal rows of those
         /// foods and proposals are replaced by a hash; the wording lanes' decisions about the texts are cleared and their subject
         /// replaced by a hash.
         /// </summary>
@@ -1099,6 +1125,7 @@ namespace Nom.Orch.Services
 
             foreach (var chunk in plan.RetiredContexts.Chunk(1000))
                 _db.IngredientAliases.RemoveRange(await RetiredAliasesOf(_db, chunk).Where(a => !foodList.Contains(a.IngredientId)).ToListAsync(cancellationToken));
+            _db.IngredientAliases.RemoveRange(await WordedAliasesAsync(plan, cancellationToken));
 
             var proposalList = plan.Proposals.ToList();
             foreach (var chunk in proposalList.Chunk(1000))

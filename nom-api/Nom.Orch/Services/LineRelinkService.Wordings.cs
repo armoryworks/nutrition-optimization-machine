@@ -36,8 +36,14 @@ namespace Nom.Orch.Services
                 TargetsUnusable = verified.Count - usable.Count,
             };
 
-            var (returning, heldReturns, removed) = await ReturnLandingsAsync(usable, apply, result);
             var keys = usable.Keys.ToList();
+            var rows = await _db.Ingredients.AsNoTracking()
+                .Where(i => !i.IsDeleted && i.FdcId == null && i.CurationStatusId != (long)CurationStatusEnum.Curated && keys.Contains(i.Name.ToLower()))
+                .Select(i => i.Id)
+                .ToListAsync();
+            var guard = await GuardAsync();
+            foreach (var id in rows) guard.ReadsVerified(id);
+            var (returning, heldReturns, removed) = await ReturnLandingsAsync(usable, apply, result);
             var sources = (await _db.Ingredients.AsNoTracking()
                     .Where(i => !i.IsDeleted && i.FdcId == null && i.CurationStatusId != (long)CurationStatusEnum.Curated
                         && keys.Contains(i.Name.ToLower()))

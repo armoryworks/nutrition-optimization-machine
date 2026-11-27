@@ -856,6 +856,53 @@ namespace Nom.Api.Tests.Services
         }
 
         [Fact]
+        public async Task A_purge_deletes_an_alias_of_a_catalog_food_named_by_a_purged_line_wording_no_other_recipe_uses()
+        {
+            await using var db = NewContext();
+            var w = await SeedAsync(db);
+            db.RecipeIngredients.Add(new RecipeIngredientEntity { RecipeId = w.Stew, IngredientId = w.CatalogFood, RawLine = "For the FREEALIAS glaze", Quantity = 0, SortOrder = 2 });
+            db.RecipeIngredients.Add(new RecipeIngredientEntity { RecipeId = w.Stew, IngredientId = w.CatalogFood, RawLine = "yellow FREEALIAS pepper, chopped or sliced", Quantity = 0, SortOrder = 3 });
+            db.IngredientAliases.Add(new IngredientAliasEntity { IngredientId = w.CatalogFood, AliasName = "For the FREEALIAS glaze" });
+            db.IngredientAliases.Add(new IngredientAliasEntity { IngredientId = w.CatalogFood, AliasName = "yellow FREEALIAS pepper, chopped or sliced", IsDeleted = true, DeletedAt = T0.AddDays(-3) });
+            db.IngredientAliases.Add(new IngredientAliasEntity { IngredientId = w.CatalogFood, AliasName = $"1 pound beef, {Marker} trimmed" });
+            await db.SaveChangesAsync();
+            await Removal(db).RetireAsync(null, apply: true, Admin, null);
+            db.ChangeTracker.Clear();
+
+            var dry = await Removal(db).PurgeAsync(null, apply: false, backupTaken: false, Admin);
+            await Removal(db).PurgeAsync(null, apply: true, backupTaken: true, Admin);
+            db.ChangeTracker.Clear();
+
+            dry.Targets.Single(t => t.Table == "recipe.IngredientAlias").Rows.Should().Be(2, "staging checkpoint 8, T17: two link-lane aliases kept line wordings of the purged recipes");
+            RowsAnywhere(db, "FREEALIAS").Should().BeEmpty();
+            (await db.IngredientAliases.IgnoreQueryFilters().Where(a => a.IngredientId == w.CatalogFood).Select(a => a.AliasName).ToListAsync())
+                .Should().Equal(new[] { $"1 pound beef, {Marker} trimmed" }, "a recipe not removed still holds that wording");
+            (await db.Ingredients.SingleAsync(i => i.Id == w.CatalogFood)).Name.Should().Be("Beef Stew Meat");
+        }
+
+        [Fact]
+        public async Task A_purge_keeps_a_catalog_foods_alias_that_is_only_a_purged_lines_food_words()
+        {
+            await using var db = NewContext();
+            var w = await SeedAsync(db);
+            db.RecipeIngredients.Add(new RecipeIngredientEntity { RecipeId = w.Stew, IngredientId = w.CatalogFood, RawLine = "1 cup semisweet chocolate chips", Quantity = 0, SortOrder = 2 });
+            db.RecipeIngredients.Add(new RecipeIngredientEntity { RecipeId = w.Stew, IngredientId = w.CatalogFood, RawLine = "unsalted butter", Quantity = 0, SortOrder = 3 });
+            db.IngredientAliases.Add(new IngredientAliasEntity { IngredientId = w.CatalogFood, AliasName = "semisweet chocolate chips" });
+            db.IngredientAliases.Add(new IngredientAliasEntity { IngredientId = w.CatalogFood, AliasName = "Unsalted Butter" });
+            await db.SaveChangesAsync();
+            await Removal(db).RetireAsync(null, apply: true, Admin, null);
+            db.ChangeTracker.Clear();
+
+            var dry = await Removal(db).PurgeAsync(null, apply: false, backupTaken: false, Admin);
+            await Removal(db).PurgeAsync(null, apply: true, backupTaken: true, Admin);
+            db.ChangeTracker.Clear();
+
+            dry.Targets.Single(t => t.Table == "recipe.IngredientAlias").Rows.Should().Be(0);
+            (await db.IngredientAliases.Where(a => a.IngredientId == w.CatalogFood).Select(a => a.AliasName).ToListAsync())
+                .Should().BeEquivalentTo(new[] { "semisweet chocolate chips", "Unsalted Butter" }, "a line's food words are no source wording, and every other recipe linked to the food matches by them");
+        }
+
+        [Fact]
         public async Task The_undo_of_an_earlier_retire_brings_back_a_food_a_later_retire_took_when_it_retired_the_foods_last_live_line()
         {
             await using var db = NewContext();

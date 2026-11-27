@@ -20,6 +20,7 @@ namespace Nom.Orch.Services.Support
         public const string WordingTiers = "wording-tiers";
         public const string ContainerSizes = "container-sizes";
         public const string WordingReaders = "wording-readers";
+        public const string DietSecondReader = "diet-second-reader";
 
         public static readonly IReadOnlyList<(string Lane, string Label)> All = new[]
         {
@@ -34,6 +35,7 @@ namespace Nom.Orch.Services.Support
             (WordingTiers, "deterministic wording tiers, with the link auditor and reader B"),
             (ContainerSizes, "container sizes scored against the stated sizes they would replace"),
             (WordingReaders, "two blind wording readers of different families, with their lexicon, the alcohol fixed readings and the link auditor"),
+            (DietSecondReader, "second diet reader in shadow: mistral-small and phi4 read the approved and waiting recipes for the severe diet types"),
         };
 
         public const string PauseAllKey = "ai-pause-all";

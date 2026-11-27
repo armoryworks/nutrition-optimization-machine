@@ -11,7 +11,7 @@ public class DietGateBuildEntityConfiguration : IEntityTypeConfiguration<DietGat
         builder.ToTable("DietGateBuild", schema: "plan");
 
         builder.HasKey(e => e.Id);
-        builder.Property(e => e.Version).IsRequired().HasMaxLength(255);
+        builder.Property(e => e.Version).IsRequired().HasMaxLength(1023);
         builder.Property(e => e.State).IsRequired().HasMaxLength(16);
         builder.Property(e => e.Note).HasMaxLength(2047);
         builder.HasIndex(e => new { e.State, e.Id });

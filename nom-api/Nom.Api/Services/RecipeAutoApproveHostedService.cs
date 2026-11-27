@@ -6,7 +6,9 @@ namespace Nom.Api.Services
     /// <summary>
     /// Sweeps NonCurated recipes in Id order and approves those meeting the auto-approval rules
     /// (public domain, or rewritten scrape with an image of our own; vetting clean; every ingredient
-    /// curated). Ingredients are curated continuously by other lanes, so once a sweep reaches the
+    /// curated; the stored diet gate has decided it, no severe diet type holds it as unknown and the
+    /// second diet reader's pair has read it, see DietApprovalHolds). Ingredients are curated
+    /// continuously by other lanes, so once a sweep reaches the
     /// end it waits and starts over, picking up recipes whose last ingredient has since been curated.
     ///
     /// Curation:AutoApprove:Enabled=false disables it; Curation:AutoApprove:BatchSize (default 200)

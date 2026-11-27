@@ -760,6 +760,270 @@ namespace Nom.Api.Tests.Services.MealPlan
 
         [DietStorePostgresFact]
         [Trait("Category", "Performance")]
+        public async Task A_verified_wording_or_a_model_pick_written_by_any_process_holds_the_recipes_whose_reading_it_changes_from_its_commit()
+        {
+            await SeedAsync();
+            var build = await ActiveBuildAsync();
+            var builder = new DietGateStoreBuilder();
+            await using (var db = NewContext()) await builder.RunAsync(db);
+            await using var connection = new NpgsqlConnection(ConnectionString);
+            await connection.OpenAsync();
+            async Task<List<long>> RecipesOnAsync(long food)
+            {
+                var ids = new List<long>();
+                await using var command = new NpgsqlCommand($"SELECT DISTINCT \"RecipeId\" FROM recipe.\"RecipeIngredient\" WHERE \"IngredientId\" = {food}", connection);
+                await using var reader = await command.ExecuteReaderAsync();
+                while (await reader.ReadAsync()) ids.Add(reader.GetInt64(0));
+                return ids;
+            }
+            async Task CycleAsync()
+            {
+                await using var db = NewContext();
+                await builder.RunChangesAsync(db);
+            }
+            var named = await ScalarAsync(connection, "SELECT min(i.\"Id\") FROM recipe.\"Ingredient\" i WHERE i.\"Name\" NOT LIKE '%''%' AND (SELECT count(DISTINCT ri.\"RecipeId\") FROM recipe.\"RecipeIngredient\" ri WHERE ri.\"IngredientId\" = i.\"Id\") BETWEEN 3 AND 300");
+            var picked = await ScalarAsync(connection, $"SELECT min(i.\"Id\") FROM recipe.\"Ingredient\" i WHERE i.\"Id\" <> {named} AND (SELECT count(DISTINCT ri.\"RecipeId\") FROM recipe.\"RecipeIngredient\" ri WHERE ri.\"IngredientId\" = i.\"Id\") BETWEEN 3 AND 300");
+            var onNamed = await RecipesOnAsync(named);
+            var onPicked = await RecipesOnAsync(picked);
+            (await StandingCountAsync(build, onNamed), await StandingCountAsync(build, onPicked)).Should().Be((onNamed.Count, onPicked.Count));
+
+            await ExecAsync(connection, $"INSERT INTO recipe.\"IngredientWording\" (\"Wording\", \"Verdict\", \"FdcCategoryId\", \"Source\", \"Batch\", \"CreatedDate\") SELECT lower(\"Name\"), 'category', 15, 'verified:ck19', 'ck19', now() FROM recipe.\"Ingredient\" WHERE \"Id\" = {named}");
+            (await StandingCountAsync(build, onNamed)).Should().Be(0, "staging checkpoint 8, T7: a category row read by the lines on the uncurated row of its wording holds them from the load's commit, not for the two minutes until the next whole cycle");
+            await CycleAsync();
+            (await StandingCountAsync(build, onNamed)).Should().Be(onNamed.Count, "the cycle decides them again");
+            await ExecAsync(connection, "DELETE FROM recipe.\"IngredientWording\" WHERE \"Batch\" = 'ck19'");
+            (await StandingCountAsync(build, onNamed)).Should().Be(0, "an unload holds them too: the verdict the category row gave is gone");
+            await CycleAsync();
+            (await StandingCountAsync(build, onNamed)).Should().Be(onNamed.Count);
+
+            await ExecAsync(connection, $"INSERT INTO curation.\"FoodCatalogProposal\" (\"Action\", \"Field\", \"CurrentValue\", \"ProposedValue\", \"Source\", \"Batch\", \"Status\", \"CreatedDate\") VALUES (1, 'fdc_link', 'ck19 trade name', '{picked}', 'ai:ck19', 'ck19', 4, now())");
+            (await StandingCountAsync(build, onPicked)).Should().Be(0, "an applied model pick joins the unproven links the reading reads by their words");
+            await CycleAsync();
+            (await StandingCountAsync(build, onPicked)).Should().Be(onPicked.Count);
+            await ExecAsync(connection, "UPDATE curation.\"FoodCatalogProposal\" SET \"IsDeleted\" = true WHERE \"Batch\" = 'ck19'");
+            (await StandingCountAsync(build, onPicked)).Should().Be(0, "a withdrawn pick leaves the unproven links");
+            await CycleAsync();
+            (await StandingCountAsync(build, onPicked)).Should().Be(onPicked.Count);
+            await ExecAsync(connection, "UPDATE curation.\"FoodCatalogProposal\" SET \"Reason\" = 'ck19' WHERE \"Batch\" = 'ck19'");
+            (await StandingCountAsync(build, onPicked)).Should().Be(onPicked.Count, "a write to a column the reading does not read holds nothing");
+            await ExecAsync(connection, "DELETE FROM curation.\"FoodCatalogProposal\" WHERE \"Batch\" = 'ck19'");
+
+            await ExecAsync(connection, "DELETE FROM plan.\"DietGateWrite\"");
+            await ExecAsync(connection, $"UPDATE nutrient.\"Nutrient\" SET \"Name\" = \"Name\" WHERE \"Id\" = {AlcoholNutrient}");
+            (await ScalarAsync(connection, "SELECT count(*) FROM plan.\"DietGateWrite\" WHERE \"RecipeId\" IS NULL AND \"IngredientId\" IS NULL")).Should().Be(1, "a nutrient's or a type's name is part of the criteria the sets are keyed by");
+            await CycleAsync();
+        }
+
+        [DietStorePostgresFact]
+        [Trait("Category", "Performance")]
+        public async Task A_second_reading_holds_its_recipe_from_its_commit_only_while_the_gate_setting_is_on_and_the_setting_is_decided_by_a_whole_cycle()
+        {
+            await SeedAsync();
+            var build = await ActiveBuildAsync();
+            var builder = new DietGateStoreBuilder();
+            await using var connection = new NpgsqlConnection(ConnectionString);
+            await connection.OpenAsync();
+            await ExecAsync(connection, $"DELETE FROM auth.\"PlatformFeature\" WHERE \"Key\" = '{DietSecondGate.FeatureKey}'");
+            await ExecAsync(connection, "DELETE FROM plan.\"RecipeDietReading\"");
+            await using (var db = NewContext()) await builder.RunAsync(db);
+            async Task CycleAsync()
+            {
+                await using var db = NewContext();
+                await builder.RunChangesAsync(db);
+            }
+            async Task<long> SecondFlagsAsync() => await ScalarAsync(connection, $"SELECT count(*) FROM plan.\"DietRecipeFlag\" f JOIN plan.\"DietGateSet\" s ON s.\"Id\" = f.\"SetId\" WHERE s.\"BuildId\" = {build} AND f.\"Reason\" IN (13, 14)");
+            var recipes = new List<long>();
+            await using (var command = new NpgsqlCommand("SELECT \"Id\" FROM recipe.\"Recipe\" WHERE NOT \"IsDeleted\" ORDER BY \"Id\" LIMIT 2", connection))
+            await using (var reader = await command.ExecuteReaderAsync())
+                while (await reader.ReadAsync()) recipes.Add(reader.GetInt64(0));
+            string Insert(long recipe, string model) =>
+                $"INSERT INTO plan.\"RecipeDietReading\" (\"RecipeId\", \"Model\", \"PromptSignature\", \"TextSignature\", \"StoreVersion\", \"Readable\", \"Complete\", \"Verdicts\", \"Seconds\", \"ReadAt\") " +
+                $"VALUES ({recipe}, '{model}', '{OllamaDietSecondReader.Signature}', 'x', '{DietSecondGate.Version}', true, true, 'fffffffffff', 1, now())";
+
+            await ExecAsync(connection, "DELETE FROM plan.\"DietGateWrite\"");
+            await ExecAsync(connection, Insert(recipes[0], DietSecondGate.Pair[0]));
+            (await ScalarAsync(connection, "SELECT count(*) FROM plan.\"DietGateWrite\"")).Should().Be(0, "with the setting off a reading holds nothing");
+            (await StandingCountAsync(build, recipes)).Should().Be(recipes.Count);
+
+            await ExecAsync(connection, $"INSERT INTO auth.\"PlatformFeature\" (\"Key\", \"IsEnabled\", \"CreatedDate\", \"IsDeleted\") VALUES ('{DietSecondGate.FeatureKey}', true, now(), false)");
+            (await ScalarAsync(connection, "SELECT count(*) FROM plan.\"DietGateWrite\" WHERE \"RecipeId\" IS NULL AND \"IngredientId\" IS NULL")).Should().Be(1, "turning the setting on logs a row, so the build job runs its next cycle");
+            var clock = Stopwatch.StartNew();
+            await CycleAsync();
+            _output.WriteLine($"Whole cycle after the setting was turned on: {clock.Elapsed.TotalSeconds:0.0} s");
+            (await SecondFlagsAsync()).Should().BeGreaterThan(0, "every recipe the rules find clear for a severe type of the reader is now held until both readers have read it");
+
+            await ExecAsync(connection, Insert(recipes[1], DietSecondGate.Pair[1]));
+            (await StandingCountAsync(build, new[] { recipes[1] })).Should().Be(0, "with the setting on a reading holds its recipe from its commit");
+            await CycleAsync();
+            (await StandingCountAsync(build, new[] { recipes[1] })).Should().Be(1);
+            await ExecAsync(connection, $"UPDATE plan.\"RecipeDietReading\" SET \"ReadAt\" = now() WHERE \"RecipeId\" = {recipes[1]}");
+            (await StandingCountAsync(build, new[] { recipes[1] })).Should().Be(1, "a write to a column the gate does not read holds nothing");
+            await ExecAsync(connection, $"UPDATE plan.\"RecipeDietReading\" SET \"Verdicts\" = 'mffffffffff' WHERE \"RecipeId\" = {recipes[1]}");
+            (await StandingCountAsync(build, new[] { recipes[1] })).Should().Be(0);
+            await CycleAsync();
+
+            await ExecAsync(connection, "DELETE FROM plan.\"RecipeDietReading\"");
+            await ExecAsync(connection, $"UPDATE auth.\"PlatformFeature\" SET \"IsEnabled\" = false WHERE \"Key\" = '{DietSecondGate.FeatureKey}'");
+            await CycleAsync();
+            (await SecondFlagsAsync()).Should().Be(0, "with the setting off again the build decides as before");
+            await ExecAsync(connection, $"DELETE FROM auth.\"PlatformFeature\" WHERE \"Key\" = '{DietSecondGate.FeatureKey}'");
+            await CycleAsync();
+        }
+
+        private static ApplicationDbContext NewClearingContext() =>
+            new(new DbContextOptionsBuilder<ApplicationDbContext>().UseNpgsql(ConnectionString, o => o.CommandTimeout(1200)).AddInterceptors(DietRecipeStateClearer.Shared).Options,
+                new HttpContextAccessor { HttpContext = new DefaultHttpContext() });
+
+        private static AlcoholRetentionService Retention(ApplicationDbContext db) =>
+            new(db, new RecipeNutritionService(db, NullLogger<RecipeNutritionService>.Instance), NullLogger<AlcoholRetentionService>.Instance);
+
+        [DietStorePostgresFact]
+        [Trait("Category", "Performance")]
+        public async Task The_alcohol_retention_apply_over_every_recipe_completes_beside_the_build_jobs_cycles_and_a_stopped_run_is_resumed_and_taken_back_whole()
+        {
+            await SeedAsync();
+            await ActiveBuildAsync();
+            await using var connection = new NpgsqlConnection(ConnectionString);
+            await connection.OpenAsync();
+            await ExecAsync(connection, $"DELETE FROM audit.\"AuditLogEntry\" WHERE \"ChangeType\" IN ('{AlcoholRetentionService.ChangeType}', '{AlcoholRetentionService.BatchChangeType}', '{AlcoholRetentionService.DoneChangeType}')");
+            await ExecAsync(connection, "UPDATE recipe.\"RecipeIngredient\" SET \"AlcoholRetention\" = NULL, \"AlcoholRetentionBasis\" = NULL WHERE \"AlcoholRetention\" IS NOT NULL");
+            Task<long> StoredAsync() => ScalarAsync(connection, "SELECT count(*) FROM recipe.\"RecipeIngredient\" WHERE \"AlcoholRetention\" IS NOT NULL");
+            Task<long> JournalAsync() => ScalarAsync(connection, $"SELECT count(*) FROM audit.\"AuditLogEntry\" WHERE \"ChangeType\" = '{AlcoholRetentionService.ChangeType}'");
+            await using (var db = NewContext()) await new DietGateStoreBuilder().RunChangesAsync(db);
+
+            using var stop = new System.Threading.CancellationTokenSource();
+            var cycles = 0;
+            var job = Task.Run(async () =>
+            {
+                var builder = new DietGateStoreBuilder();
+                while (!stop.IsCancellationRequested)
+                {
+                    await using var db = NewContext();
+                    await builder.RunChangesAsync(db);
+                    cycles++;
+                }
+            });
+
+            Nom.Orch.Models.Curation.AlcoholRetentionRunResult dry, applied;
+            var clock = Stopwatch.StartNew();
+            await using (var db = NewClearingContext()) dry = await Retention(db).RunAsync(apply: false, maxRecipes: 1_000_000, sampleSize: 0);
+            var dryTime = clock.Elapsed;
+            clock.Restart();
+            await using (var db = NewClearingContext()) applied = await Retention(db).RunAsync(apply: true, maxRecipes: 1_000_000, sampleSize: 0);
+            var applyTime = clock.Elapsed;
+            stop.Cancel();
+            await job;
+            _output.WriteLine($"retention: {dry.Lines:N0} lines in {dry.Recipes:N0} recipes, {dry.Batches} batches; dry run {dryTime.TotalSeconds:F0} s, apply {applyTime.TotalSeconds:F0} s beside {cycles} cycles of the build job; error: {applied.Error ?? "none"}");
+
+            applied.Error.Should().BeNull("staging checkpoint 8, T15: the apply failed with a concurrency error after ten minutes beside the build job's cycles");
+            applied.Completed.Should().BeTrue();
+            cycles.Should().BeGreaterThan(0);
+            (applied.Batches, applied.Lines, applied.Changed, applied.RecipesTouched, applied.UpperBound).Should().Be((dry.Batches, dry.Lines, dry.Changed, dry.RecipesTouched, dry.UpperBound), "the dry run counts what the whole apply does");
+            (await StoredAsync(), await JournalAsync()).Should().Be((applied.Changed, applied.Changed));
+            await using (var db = NewClearingContext())
+                (await Retention(db).UndoAsync(applied.StampUtc, apply: true)).Restored.Should().Be(applied.Changed);
+            (await StoredAsync(), await JournalAsync()).Should().Be((0, 0));
+
+            Nom.Orch.Models.Curation.AlcoholRetentionRunResult stopped, resumed;
+            await using (var db = NewClearingContext())
+            {
+                var failing = Retention(db);
+                failing.BeforeBatchCommit = index => index == 3 ? throw new DbUpdateConcurrencyException("ck19: the batch fails after its writes") : Task.CompletedTask;
+                stopped = await failing.RunAsync(apply: true, maxRecipes: 1_000_000, sampleSize: 0);
+            }
+            (stopped.Completed, stopped.BatchesWritten).Should().Be((false, 3));
+            var partial = await StoredAsync();
+            partial.Should().BeGreaterThan(0);
+            (await JournalAsync()).Should().Be(partial, "the failed batch's lines, journal entries, labels and mark were rolled back together; only whole batches stay");
+            (await ScalarAsync(connection, $"SELECT count(*) FROM audit.\"AuditLogEntry\" WHERE \"ChangeType\" = '{AlcoholRetentionService.BatchChangeType}'")).Should().Be(3);
+            await using (var db = NewClearingContext()) resumed = await Retention(db).RunAsync(apply: true, maxRecipes: 1_000_000, sampleSize: 0, resume: true);
+            (resumed.Completed, resumed.ResumedRunUtc).Should().Be((true, stopped.StampUtc));
+            (await StoredAsync(), await JournalAsync()).Should().Be((applied.Changed, applied.Changed));
+            await using (var db = NewClearingContext())
+                (await Retention(db).UndoAsync(stopped.StampUtc, apply: true)).Restored.Should().Be(applied.Changed, "the undo by the stopped run's stamp takes back its batches before the stop and after the resume");
+            (await StoredAsync(), await JournalAsync()).Should().Be((0, 0));
+            (await ScalarAsync(connection, $"SELECT count(*) FROM audit.\"AuditLogEntry\" WHERE \"EntityType\" = '{AlcoholRetentionService.RunEntityType}' AND \"Timestamp\" >= '{stopped.StampUtc:o}'")).Should().Be(0);
+            await using (var db = NewContext()) await new DietGateStoreBuilder().RunChangesAsync(db);
+        }
+
+        [DietStorePostgresFact]
+        [Trait("Category", "Performance")]
+        public async Task A_save_through_the_clearer_does_not_fail_when_the_build_job_replaces_the_recipes_state_meanwhile()
+        {
+            await SeedAsync();
+            var build = await ActiveBuildAsync();
+            await using (var db = NewContext()) await new DietGateStoreBuilder().RunChangesAsync(db);
+            await using var job = new NpgsqlConnection(ConnectionString);
+            await job.OpenAsync();
+            var recipe = await ScalarAsync(job, $"SELECT max(s.\"RecipeId\") FROM plan.\"DietRecipeState\" s WHERE s.\"BuildId\" = {build} AND EXISTS (SELECT 1 FROM recipe.\"RecipeIngredient\" ri WHERE ri.\"RecipeId\" = s.\"RecipeId\" AND NOT ri.\"IsDeleted\")");
+
+            await using var writer = NewClearingContext();
+            var line = await writer.RecipeIngredients.FirstAsync(ri => ri.RecipeId == recipe && !ri.IsDeleted);
+            line.AlcoholRetention = 0.5m;
+            line.AlcoholRetentionBasis = "ck19";
+            await using (var chunk = await job.BeginTransactionAsync())
+            {
+                await using (var command = new NpgsqlCommand($"WITH gone AS (DELETE FROM plan.\"DietRecipeState\" WHERE \"BuildId\" = {build} AND \"RecipeId\" = {recipe} RETURNING *) INSERT INTO plan.\"DietRecipeState\" SELECT * FROM gone", job, chunk))
+                    await command.ExecuteNonQueryAsync();
+                var save = writer.SaveChangesAsync();
+                await Task.Delay(1500);
+                await chunk.CommitAsync();
+                var failure = await Record.ExceptionAsync(() => save);
+                failure.Should().BeNull("staging checkpoint 8, T15: the clearer removed the state row it had read as a tracked entity, and when the build job replaced that row in its chunk transaction meanwhile, the save found it gone (\"expected to affect 1 row(s), but actually affected 0\")");
+            }
+            (await StandingAsync(build, recipe)).Should().BeFalse("the save holds the recipe through the write log from its commit");
+            await ExecAsync(job, $"UPDATE recipe.\"RecipeIngredient\" SET \"AlcoholRetention\" = NULL, \"AlcoholRetentionBasis\" = NULL WHERE \"AlcoholRetentionBasis\" = 'ck19'");
+            await using (var db = NewContext()) await new DietGateStoreBuilder().RunChangesAsync(db);
+        }
+
+        [DietStorePostgresFact]
+        [Trait("Category", "Performance")]
+        public async Task The_first_shuffle_after_a_new_build_switches_answers_under_a_second()
+        {
+            await SeedAsync();
+            await using (var db = NewContext())
+            {
+                await db.DietRecipeFlags.ExecuteDeleteAsync();
+                await db.DietRecipeStates.ExecuteDeleteAsync();
+                await db.DietFoodFacts.ExecuteDeleteAsync();
+                await db.DietFoodStates.ExecuteDeleteAsync();
+                await db.DietGateSets.ExecuteDeleteAsync();
+                await db.DietGateBuilds.ExecuteDeleteAsync();
+                await db.DietGateWrites.ExecuteDeleteAsync();
+            }
+            await using (var connection = new NpgsqlConnection(ConnectionString))
+            {
+                await connection.OpenAsync();
+                await ExecAsync(connection, "ANALYZE plan.\"DietRecipeFlag\", plan.\"DietRecipeState\", plan.\"DietFoodFact\", plan.\"DietFoodState\", plan.\"DietGateSet\", plan.\"DietGateWrite\"");
+            }
+            await SetRestrictionAsync(60800);
+            DietGateStoreBuilder.CycleReport first;
+            await using (var db = NewContext()) first = await new DietGateStoreBuilder().RunAsync(db);
+            first.Switched.Should().BeTrue();
+            first.WarmSeconds.Should().NotBeNull("the cycle that switches readies the new rows first");
+
+            var start = DateOnly.FromDateTime(DateTime.UtcNow.Date).AddDays(500);
+            var times = new List<TimeSpan>();
+            for (var i = 0; i < 3; i++)
+            {
+                await using var db = NewContext();
+                var clock = Stopwatch.StartNew();
+                await new MealPlanOrchestrationService(db, Mock.Of<IPolicyEnforcementService>()).ShuffleMealPlansAsync(
+                    new MealPlanShuffleModel { HouseholdId = HouseholdId, StartDate = start, EndDate = start.AddDays(2), ReplaceExisting = true }, PersonId);
+                times.Add(clock.Elapsed);
+            }
+            await SetRestrictionAsync(null);
+            await using (var connection = new NpgsqlConnection(ConnectionString))
+            {
+                await connection.OpenAsync();
+                await ExecAsync(connection, $"DELETE FROM plan.\"MealPlan\" WHERE \"HouseholdId\" = {HouseholdId}");
+            }
+            _output.WriteLine($"build {first.Seconds:F0} s, readied in {first.WarmSeconds:F1} s; shuffles after the switch: {string.Join(", ", times.Select(t => t.TotalMilliseconds.ToString("F0", System.Globalization.CultureInfo.InvariantCulture)))} ms");
+            times[0].Should().BeLessThan(TimeSpan.FromSeconds(1), "staging checkpoint 8, T6: the first shuffle after the switch took 18.7 s");
+        }
+
+        [DietStorePostgresFact]
+        [Trait("Category", "Performance")]
         public async Task A_line_written_while_a_cycle_reads_is_decided_again_by_the_next_cycle_and_a_cycle_over_one_change_holds_no_catalog()
         {
             await SeedAsync();

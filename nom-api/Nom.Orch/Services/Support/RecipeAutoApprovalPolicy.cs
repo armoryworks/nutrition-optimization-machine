@@ -10,8 +10,11 @@ namespace Nom.Orch.Services.Support
     /// Operator choices in the policy. <see cref="MaxUnquantifiedLines"/> is how many real ingredient
     /// lines may lack an amount (0: none; the label then marks them as not measured).
     /// <see cref="RequireOwnImageForUnknownLicense"/> keeps rule R2 waiting for a photo of our own.
+    /// <see cref="RequireDietUnderstood"/> keeps a recipe waiting while the stored diet gate has not decided it or a severe
+    /// diet type holds it as unknown, and <see cref="RequireSecondReading"/> while the second diet reader's pair has not read
+    /// it (<see cref="DietApprovalHolds"/>): approval follows understanding.
     /// </summary>
-    public sealed record AutoApprovalOptions(int MaxUnquantifiedLines = 0, bool RequireOwnImageForUnknownLicense = true)
+    public sealed record AutoApprovalOptions(int MaxUnquantifiedLines = 0, bool RequireOwnImageForUnknownLicense = true, bool RequireDietUnderstood = true, bool RequireSecondReading = true)
     {
         public static readonly AutoApprovalOptions Default = new();
     }

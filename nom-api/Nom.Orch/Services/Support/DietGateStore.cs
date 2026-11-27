@@ -60,7 +60,7 @@ namespace Nom.Orch.Services.Support
         public const string Superseded = "superseded";
 
         /// <summary>The rule version a build is made under: a change builds a new build beside the active one.</summary>
-        public static string Version => string.Join(';', StoreVersion, DietPatternRule.Version, StatementLabelTerms.Version, DietDishes.Version, DietVocabulary.Version, DietFoodWords.Version, DietRecipeText.Version, DietMeasureWords.Version, AlcoholLineContext.Version, IngredientStatementReader.Version);
+        public static string Version => string.Join(';', StoreVersion, DietPatternRule.Version, StatementLabelTerms.Version, DietDishes.Version, DietVocabulary.Version, DietFoodWords.Version, DietRecipeText.Version, DietMeasureWords.Version, AlcoholLineContext.Version, IngredientStatementReader.Version, BrandedConsensus.Signature, DietDishWords.Signature, IngredientLineParser.ReferralSignature, DietSecondGate.StoreEntry);
 
         /// <summary>The criteria of a set as the gate reads them, without the rule version.</summary>
         public static string CriteriaText(IEnumerable<DietDataCriterion> criteria) =>
@@ -99,7 +99,9 @@ namespace Nom.Orch.Services.Support
         /// The set each list of criteria reads in the build: the complete set of its key, or, while that set is not built
         /// (criteria changed by a deploy or an admin, review CK10S-2), the type's previous set of the same reading, which
         /// the build keeps until the new one is complete (a list of severe criteria only may read the type's whole set,
-        /// which holds more); null for a list of a type the build has never decided.
+        /// which holds more); null for a list of a type the build has never decided, and null for a severe type whose
+        /// criteria changed (an admin's edit, a renamed type or nutrient): its recipes are held until the new set is built,
+        /// since the previous set never read what the new criteria restrict (lead answer to CK19SM-3, wave 31).
         /// </summary>
         internal static async Task<List<(IReadOnlyList<DietDataCriterion> List, SetRow? Set)>> MatchAsync(ApplicationDbContext db, long build, IReadOnlyList<IReadOnlyList<DietDataCriterion>> lists)
         {
@@ -116,6 +118,7 @@ namespace Nom.Orch.Services.Support
         {
             var exact = rows.Where(r => r.State == Complete && string.Equals(r.CriteriaKey, key, StringComparison.Ordinal)).OrderByDescending(r => r.Id).FirstOrDefault();
             if (exact != null) return exact;
+            if (list.Any(c => c.Severity >= 4) || rows.Any(r => r.TypeId == list[0].RestrictionTypeId && r.Severe)) return null;
             var severeOnly = list.All(c => c.Severity >= 4);
             return rows
                 .Where(r => r.TypeId == list[0].RestrictionTypeId && !string.Equals(r.CriteriaKey, key, StringComparison.Ordinal) && (r.MinimumSeverity == 0 || severeOnly))
@@ -281,7 +284,7 @@ namespace Nom.Orch.Services.Support
                 if (set.Severe || list.Any(c => c.Severity >= 4))
                 {
                     var held = flags.Where(f => f.SetId == set.Id).Select(f => f.RecipeId).ToHashSet();
-                    foreach (var f in flags.Where(f => f.SetId == set.Id && f.Reason is DietFlagReason.Title or DietFlagReason.Method or DietFlagReason.UnknownWord or DietFlagReason.FoodWord))
+                    foreach (var f in flags.Where(f => f.SetId == set.Id && f.Reason is DietFlagReason.Title or DietFlagReason.Method or DietFlagReason.UnknownWord or DietFlagReason.FoodWord or DietFlagReason.Referral or DietFlagReason.SecondUnread or DietFlagReason.SecondReader))
                         textHeld[(type, f.RecipeId)] = (f.Reason, f.CriterionId);
                     held.UnionWith(recipes.Where(id => !decided.Contains(id)));
                     if (held.Count > 0) unknown[type] = held;
@@ -310,8 +313,11 @@ namespace Nom.Orch.Services.Support
     /// <param name="RecipesByMethod">Of the unknown recipes, those a book recipe's method holds (<see cref="DietFlagReason.Method"/>).</param>
     /// <param name="RecipesUnknownWord">Of the unknown recipes, those with a line no curated food decides that names a word the set does not understand (<see cref="DietFlagReason.UnknownWord"/>): the work list the wording and link lanes shrink.</param>
     /// <param name="RecipesByFoodWord">Of the flagged recipes, those a line's word flags that the curated catalog knows only on foods the set flags, or a processing kind (<see cref="DietFlagReason.FoodWord"/>).</param>
+    /// <param name="RecipesByReferral">Of the unknown recipes, those a line sends to another recipe or page of the book (<see cref="DietFlagReason.Referral"/>).</param>
+    /// <param name="RecipesNotReadBySecondReader">Of the unknown recipes, those the rules find clear and the second reader's pair has not read yet (<see cref="DietFlagReason.SecondUnread"/>, while its gate setting is on).</param>
+    /// <param name="RecipesHeldBySecondReader">Of the unknown recipes, those the rules find clear and a stored reading of the pair does not call clearly free (<see cref="DietFlagReason.SecondReader"/>).</param>
     public sealed record DietStoredTypeCount(long TypeId, string Name, string Reading, int Severity, bool Severe, long SetId, string State, int Foods, int RecipesByFood, int RecipesByText, int RecipesUnknown, int RecipesNotDecided, int RecipesHeld, int RecipesHeldOnlyForUnknown,
-        int RecipesNoLine, int RecipesUnknownFood, int RecipesByTitle, int RecipesByMethod, int RecipesUnknownWord = 0, int RecipesByFoodWord = 0);
+        int RecipesNoLine, int RecipesUnknownFood, int RecipesByTitle, int RecipesByMethod, int RecipesUnknownWord = 0, int RecipesByFoodWord = 0, int RecipesByReferral = 0, int RecipesNotReadBySecondReader = 0, int RecipesHeldBySecondReader = 0);
 
     /// <summary>The count of every set of the active build over the live recipes, with the build it was read from; <see cref="Types"/> is empty before the first build is complete.</summary>
     public sealed record DietStoredCountsReport(int Recipes, long? BuildId, string? Version, DateTime? CompletedAt, DateTime? LastCycleAt, IReadOnlyList<DietStoredTypeCount> Types);
@@ -363,7 +369,8 @@ namespace Nom.Orch.Services.Support
                 types.Add(new DietStoredTypeCount(set.RestrictionTypeId, names.GetValueOrDefault(set.RestrictionTypeId) ?? "#" + set.RestrictionTypeId, set.MinimumSeverity >= 4 ? "severe" : "all",
                     severities.GetValueOrDefault(set.RestrictionTypeId), set.Severe, set.Id, set.State, foods.GetValueOrDefault(set.Id), byFood, byText, unknown, notDecided, byFood + byText + onlyUnknown, onlyUnknown,
                     Unknown(DietFlagReason.NoLine), Unknown(DietFlagReason.UnknownFood), Unknown(DietFlagReason.Title), Unknown(DietFlagReason.Method), Unknown(DietFlagReason.UnknownWord),
-                    mine.Where(f => f.Verdict == DietVerdict.Contains && f.Reason == DietFlagReason.FoodWord).Sum(f => f.Count)));
+                    mine.Where(f => f.Verdict == DietVerdict.Contains && f.Reason == DietFlagReason.FoodWord).Sum(f => f.Count), Unknown(DietFlagReason.Referral),
+                    Unknown(DietFlagReason.SecondUnread), Unknown(DietFlagReason.SecondReader)));
 
                 int Unknown(DietFlagReason reason) => mine.Where(f => f.Verdict == DietVerdict.Unknown && f.Reason == reason).Sum(f => f.Count);
             }

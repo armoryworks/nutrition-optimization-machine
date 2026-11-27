@@ -15,8 +15,11 @@ using Nom.Orch.Services.Support;
 namespace Nom.Orch.Services
 {
     /// <summary>
-    /// Curation:AutoApprove:MaxUnquantifiedLines (default 0) and Curation:AutoApprove:RequireOwnImage
-    /// (default true) set the <see cref="AutoApprovalOptions"/> the sweep evaluates with.
+    /// Curation:AutoApprove:MaxUnquantifiedLines (default 0), Curation:AutoApprove:RequireOwnImage
+    /// (default true), Curation:AutoApprove:RequireDietUnderstood (default true) and
+    /// Curation:AutoApprove:RequireSecondReading (default true) set the <see cref="AutoApprovalOptions"/> the sweep
+    /// evaluates with. A recipe the policy and vetting pass still waits, counted by its reason, while the diet gate does
+    /// not understand it (<see cref="DietApprovalHolds"/>); a recipe already approved is never taken back.
     /// </summary>
     public class RecipeAutoCurationService : IRecipeAutoCurationService
     {
@@ -40,19 +43,37 @@ namespace Nom.Orch.Services
             _vetting = vetting;
             _logger = logger;
             _features = features;
-            _options = configuration == null ? AutoApprovalOptions.Default : new AutoApprovalOptions(
-                Math.Max(0, configuration.GetValue("Curation:AutoApprove:MaxUnquantifiedLines", 0)),
-                configuration.GetValue("Curation:AutoApprove:RequireOwnImage", true));
+            _options = OptionsFrom(configuration);
         }
+
+        /// <summary>The <see cref="AutoApprovalOptions"/> the Curation:AutoApprove settings give (the defaults without a configuration).</summary>
+        public static AutoApprovalOptions OptionsFrom(IConfiguration? configuration) =>
+            configuration == null ? AutoApprovalOptions.Default : new AutoApprovalOptions(
+                Math.Max(0, configuration.GetValue("Curation:AutoApprove:MaxUnquantifiedLines", 0)),
+                configuration.GetValue("Curation:AutoApprove:RequireOwnImage", true),
+                configuration.GetValue("Curation:AutoApprove:RequireDietUnderstood", true),
+                configuration.GetValue("Curation:AutoApprove:RequireSecondReading", true));
 
         public AutoApprovalOptions Options => _options;
 
         public async Task<AutoApproveBatchResult> AutoApproveBatchAsync(long afterRecipeId, int batchSize, CancellationToken cancellationToken = default)
         {
-            var requireImage = _options.RequireOwnImageForUnknownLicense;
-            var query = _db.Recipes
-                .Where(r => r.Id > afterRecipeId
-                    && r.CurationStatusId == (long)CurationStatusEnum.NonCurated
+            var query = Candidates(_db, _options.RequireOwnImageForUnknownLicense)
+                .Where(r => r.Id > afterRecipeId)
+                .OrderBy(r => r.Id)
+                .Take(batchSize)
+                .Include(r => r.RecipeIngredients!).ThenInclude(ri => ri.Ingredient)
+                .Include(r => r.RecipeSteps);
+            var recipes = _db.Database.IsRelational()
+                ? await query.AsSplitQuery().ToListAsync(cancellationToken)
+                : await query.ToListAsync(cancellationToken);
+            return await ApproveAsync(recipes, afterRecipeId, cancellationToken);
+        }
+
+        /// <summary>The recipes the sweep examines: public, never reviewed, with no vetting issue, no source prose and no withheld prose, of an auto-approvable licence, every line on a curated food or exempt.</summary>
+        public static IQueryable<RecipeEntity> Candidates(ApplicationDbContext db, bool requireImage) =>
+            db.Recipes
+                .Where(r => r.CurationStatusId == (long)CurationStatusEnum.NonCurated
                     && r.Visibility == RecipeVisibilityEnum.Public
                     && r.DateCurationCompleted == null
                     && r.VettingIssues == null
@@ -62,31 +83,42 @@ namespace Nom.Orch.Services
                         || (r.LicenseStatus == RecipeLicenseStatus.Unknown && r.ScrapedAtUtc != null && (!requireImage || (r.Image != null && r.Image != ""))))
                     && r.RecipeIngredients!.All(ri => ri.Ingredient.CurationStatusId == (long)CurationStatusEnum.Curated
                         || (ri.LineKind != null && ExemptLineKinds.Contains(ri.LineKind))
-                        || ri.Quantity <= 0))
-                .OrderBy(r => r.Id)
-                .Take(batchSize)
-                .Include(r => r.RecipeIngredients!).ThenInclude(ri => ri.Ingredient)
-                .Include(r => r.RecipeSteps);
-            var recipes = _db.Database.IsRelational()
-                ? await query.AsSplitQuery().ToListAsync(cancellationToken)
-                : await query.ToListAsync(cancellationToken);
+                        || ri.Quantity <= 0));
+
+        /// <summary>The key of the policy's or vetting's refusal of a loaded recipe (its lines with their foods, and its steps), or null when both pass it.</summary>
+        public static Task<string?> RefusalAsync(RecipeEntity recipe, AutoApprovalOptions options, IRecipeVettingService vetting) =>
+            RefusalAsync(recipe, RecipeAutoApprovalPolicy.Evaluate(recipe, options), vetting);
+
+        private static async Task<string?> RefusalAsync(RecipeEntity recipe, AutoApprovalDecision decision, IRecipeVettingService vetting)
+        {
+            if (!decision.Eligible) return decision.Key ?? "policy";
+            return (await vetting.VetAsync(ScrapedRecipeRepairService.ToVettable(recipe))).Count > 0 ? "vetting" : null;
+        }
+
+        private async Task<AutoApproveBatchResult> ApproveAsync(List<RecipeEntity> recipes, long afterRecipeId, CancellationToken cancellationToken)
+        {
             if (recipes.Count == 0) return new AutoApproveBatchResult(0, 0, afterRecipeId);
 
             var approved = 0;
             var refusals = new Dictionary<string, int>();
+            var passed = new List<(RecipeEntity Recipe, AutoApprovalDecision Decision)>();
             foreach (var recipe in recipes)
             {
                 var decision = RecipeAutoApprovalPolicy.Evaluate(recipe, _options);
-                if (!decision.Eligible)
+                if (await RefusalAsync(recipe, decision, _vetting) is { } refusal)
                 {
-                    Tally(refusals, decision.Key ?? "policy");
+                    Tally(refusals, refusal);
                     continue;
                 }
+                passed.Add((recipe, decision));
+            }
 
-                var issues = await _vetting.VetAsync(ScrapedRecipeRepairService.ToVettable(recipe));
-                if (issues.Count > 0)
+            var waiting = await DietApprovalHolds.ReasonsAsync(_db, passed.Select(p => p.Recipe).ToList(), _options, cancellationToken);
+            foreach (var (recipe, decision) in passed)
+            {
+                if (waiting.TryGetValue(recipe.Id, out var hold))
                 {
-                    Tally(refusals, "vetting");
+                    Tally(refusals, hold);
                     continue;
                 }
 

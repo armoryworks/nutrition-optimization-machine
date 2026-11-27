@@ -44,6 +44,7 @@ namespace Nom.Api.Tests.Golden
             ModelLanes.WordingLexiconLane => ModelLanes.LexiconCases(GoldenSet.Folder).Select(c => c.Id),
             ModelLanes.AlcoholReadingLane => ModelLanes.AlcoholReadingCases(GoldenSet.Folder).Select(c => c.Id),
             ModelLanes.LinkAuditLane => ModelLanes.AuditCases(GoldenSet.Folder).Select(c => c.Id),
+            ModelLanes.DietSecondReaderLane => ModelLanes.DietReaderCases(GoldenSet.Folder).Where(c => c.Scored).Select(c => c.Id),
             _ => Enumerable.Empty<string>(),
         };
 
@@ -151,6 +152,25 @@ namespace Nom.Api.Tests.Golden
             ids.Should().OnlyContain(id => ModelLanes.InSplit(id, ModelLanes.SplitAll));
             var other = () => ModelLanes.RunAsync(ModelLanes.LineClassify, GoldenSet.Folder, null!, null!, null, _ => { }, split: ModelLanes.SplitWorking);
             await other.Should().ThrowAsync<ArgumentException>();
+        }
+
+        [Fact]
+        public void The_prose_writers_figures_count_a_recipe_through_the_gate_after_its_first_reword_round_as_through_at_the_first_try()
+        {
+            static Nom.Orch.Services.Support.ProseAttempt Attempt(int n, string style, params string[] reasons) => new(n, style, reasons);
+            var first = new Nom.Orch.Services.Support.ProseLaneOutcome(new Nom.Orch.Services.Support.RewriteFidelity.SourceText(string.Empty, new[] { "a" }),
+                new[] { Attempt(1, Nom.Orch.Services.Support.ProseReword.StyleReword), Attempt(2, "gate") }, false, null, null, 1);
+            var third = first with { Attempts = new[] { Attempt(1, Nom.Orch.Services.Support.ProseReword.StyleReword, "copy"), Attempt(2, Nom.Orch.Services.Support.ProseReword.StyleReword), Attempt(3, "judge", "judge:missing"), Attempt(4, Nom.Orch.Services.Support.ProseReword.StyleReword), Attempt(5, "gate") } };
+            var lane = ModelLanes.ProseRewriteLane;
+            var results = new[]
+            {
+                new LaneCaseResult(ModelLanes.RecipeCase(lane, "a"), true, false, false, "a rewrite through the gate", ModelLanes.RewriteActual(first, 40), "rule:end-to-end"),
+                new LaneCaseResult(ModelLanes.RecipeCase(lane, "b"), true, false, false, "a rewrite through the gate", ModelLanes.RewriteActual(third, 80), "rule:end-to-end"),
+            };
+
+            results[0].Actual.Should().StartWith("rewritten in round 1,");
+            results[1].Actual.Should().StartWith("rewritten in round 3,");
+            ModelLanes.RewriteFigures(lane, results).Should().Be((2, 1, 0, 0, 60.0));
         }
 
         [Fact]

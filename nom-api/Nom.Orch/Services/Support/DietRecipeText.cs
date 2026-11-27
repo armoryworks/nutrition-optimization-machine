@@ -25,7 +25,7 @@ namespace Nom.Orch.Services.Support
     /// </summary>
     public static class DietRecipeText
     {
-        public const string Version = "recipe-text/5";
+        public const string Version = "recipe-text/9";
 
         /// <summary>The terms the method is not read for: words a method uses as a verb, a shape, a meat's juices or a word for what a line already names more often than as the food ("roll it in a cloth", "make into little flat cakes", "the pig's own gravy", "a smooth batter of rice", "a dough of peanut butter", "mix the nuts" of walnut meats).</summary>
         public static readonly IReadOnlyList<string> MethodSkips = new[] { "roll", "cake", "gravy", "batter", "dough", "paste", "nut", "sandwich" };
@@ -78,6 +78,27 @@ namespace Nom.Orch.Services.Support
 
         private static readonly Regex NutIngredient = new(@"(?<![\p{L}])(?:(?:(?:chopped|broken|whole|halved|blanched|salted|toasted|roasted|shelled|ground|grated|pounded|minced|sliced|mixed|some|few|any|with|and|or|add|added|adding)\s+)+(?:\p{L}+\s+)?nuts(?:\s*meats?)?|nut\s*meats?|nut\s+(?:butter|filling|paste|cream)|nuts\s+(?:are|may|can|should)\s+(?:be\s+)?(?:added|used|sprinkled|put))(?![\p{L}])", RegexOptions.IgnoreCase | RegexOptions.CultureInvariant | RegexOptions.Compiled);
 
+        private static readonly Regex TitleNut = new(@"(?<![\p{L}])(?:(?<before>\p{L}+)[\s-]+)?nuts?(?:\s*meats?)?(?![\p{L}])", RegexOptions.IgnoreCase | RegexOptions.CultureInvariant | RegexOptions.Compiled);
+
+        private static readonly HashSet<string> NoNut = new(StringComparer.OrdinalIgnoreCase) { "dough", "ginger", "butter" };
+
+        private static readonly Regex TitleButternut = new(@"(?<![\p{L}])butter[\s-]*nuts?(?![\p{L}])(?![\s-]*squash)", RegexOptions.IgnoreCase | RegexOptions.CultureInvariant | RegexOptions.Compiled);
+
+        private static readonly Regex NoNutWord = new(@"(?<![\p{L}])(?:cocoa?[\s-]*nuts?|dough[\s-]*nuts?|ginger[\s-]*nuts?|butter[\s-]*nuts?(?=[\s-]*squash)|water[\s-]+chestnuts?|(?:corn|maize|wheat|rice|grain|popcorn|hominy|barley)[\s-]+kernels?)(?![\p{L}])", RegexOptions.IgnoreCase | RegexOptions.CultureInvariant | RegexOptions.Compiled);
+
+        /// <summary>The nuts a book recipe's title names, each with the word before it, where no line and no sentence of the method names a nut (<see cref="NutWord"/>): "Nut" of "Nut and Asparagus Soup" (97393, staging checkpoint 8, T10), whose lines are asparagus, stock and salt. Each is read as a line would be, so an unnamed nut holds the recipe for Peanut Allergy and Tree Nut Allergy alike, as "nuts" in a line does, and a named one ("Hickory Nut Cake") only for what names it. A butter nut ("Butter Nut Cake", "Butter-Nut Taffy") is the butternut, the white walnut of the old American books, and is read as "butternut", as a line reads it; a butternut squash is no nut. A nut that is no nut ("Dough Nuts", "Ginger Nuts") is not one. Empty when the lines or the method name a nut; a word that only looks like one there (coconut, doughnut, ginger nut, butternut squash, water chestnut, corn kernels) names none, so it does not stand for the title's nut (review ck19w31-1, ck19w31-2).</summary>
+        public static IReadOnlyList<string> LostNuts(string? title, IEnumerable<string?> rawLines, string? method = null)
+        {
+            if (string.IsNullOrWhiteSpace(title)) return Array.Empty<string>();
+            var read = Title(title);
+            var found = TitleNut.Matches(read).Where(m => !NoNut.Contains(m.Groups["before"].Value)).Select(m => m.Value)
+                .Concat(TitleButternut.Matches(read).Select(_ => "butternut")).ToList();
+            if (found.Count == 0 || rawLines.Any(l => l != null && NamesNut(l)) || (!string.IsNullOrWhiteSpace(method) && NamesNut(method))) return Array.Empty<string>();
+            return found;
+        }
+
+        private static bool NamesNut(string text) => NutWord.IsMatch(NoNutWord.Replace(text, " "));
+
         private static readonly Regex NutWord = new(@"(?<![\p{L}])(?:\p{L}*nuts?|nut\s*meats?|almonds?|pecans?|pistachios?|filberts?|cashews?|macadamias?|pignoli\p{L}*|pine\s+kernels?|kernels?)(?![\p{L}])", RegexOptions.IgnoreCase | RegexOptions.CultureInvariant | RegexOptions.Compiled);
 
         private static readonly Regex FatWord = new(@"(?<![\p{L}])(?:butter|lard|shortening|fat|oil|margarine|oleomargarine|crisco|drippings?|suet|ghee|cottolene|snowdrift|spry)(?![\p{L}])", RegexOptions.IgnoreCase | RegexOptions.CultureInvariant | RegexOptions.Compiled);
@@ -120,14 +141,16 @@ namespace Nom.Orch.Services.Support
         private static readonly Regex DoughWord = new(@"(?<![\p{L}])(?:\p{L}*flour|\p{L}*meal|starch|cornstarch|farina|paste|pastry|pastries|crusts?|doughs?|\p{L}*breads?|biscuits?|crackers?|\p{L}*crumbs?|wafers?|macaroni|maccaroni|maccheroni|spaghetti|vermicelli|noodles?|pasta|lasagna|lasagne|ravioli|tortillas?|rolls?|toast|shells?|cases?)(?![\p{L}])", RegexOptions.IgnoreCase | RegexOptions.CultureInvariant | RegexOptions.Compiled);
 
         /// <summary>Whether a book recipe's title names, as its last food word, a dish made in a crust, a dough or bread by its definition (<see cref="DoughTerms"/>: "CRANBERRY TART", "Rhubarb Pies") while no line names a flour, a meal, a starch, a paste, a crust, a dough, a bread or the pasta (proof draw 2 of ck17: 103893 Cranberry Tart, whose lines are cranberries and water): the dough the dish is made in is not in the lines, so what it holds is not known to any severe set. A title that names the dish only as what an accompaniment is for ("Pie Filling") is not read.</summary>
-        public static bool DoughLost(string? title, IEnumerable<string?> rawLines)
+        public static bool DoughLost(string? title, IEnumerable<string?> rawLines) =>
+            DoughTitled(title) && !rawLines.Any(l => l != null && DoughWord.IsMatch(l));
+
+        /// <summary>Whether a title names, as its last food word, a dish made in a crust, a dough or bread (<see cref="DoughTerms"/> and <see cref="DoughTitles"/>), and not only as what an accompaniment is for.</summary>
+        public static bool DoughTitled(string? title)
         {
             if (string.IsNullOrWhiteSpace(title)) return false;
             var words = DietFoodWords.AllWords(Title(title));
             if (words.Count == 0 || !DoughWordSet.Value.Contains(words[^1])) return false;
-            var rule = DietPatternRule.For("%" + words[^1] + "%");
-            if (Accompanies(title, rule)) return false;
-            return !rawLines.Any(l => l != null && DoughWord.IsMatch(l));
+            return !Accompanies(title, DietPatternRule.For("%" + words[^1] + "%"));
         }
 
         private static readonly Regex InPaste = new(@"(?<![\p{L}])(?:bake|baked|bakes|boil|boiled|put|line|lined|lines|cover|covered|enclose|enclosed|wrap|wrapped|roll|rolled)\s+(?:(?:it|them|this|the\s+[\p{L}-]+)\s+)?(?:in|with|into)\s+(?:a\s+|the\s+|some\s+)?(?:(?:puff|rich|good|light|short|plain|thin|nice|crisp)\s+)?(?:paste|crust|pastry)(?![\p{L}])", RegexOptions.IgnoreCase | RegexOptions.CultureInvariant | RegexOptions.Compiled);

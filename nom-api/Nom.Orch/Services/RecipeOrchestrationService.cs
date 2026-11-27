@@ -904,12 +904,15 @@ namespace Nom.Orch.Services
         /// <summary>The note a recipe page gives a severe restriction that could not decide the recipe.</summary>
         public const string DietUnknownNote = "The recipe has no ingredient list the diet check can read, or one of its foods is not checked yet, so it is kept out for this restriction.";
 
-        /// <summary>The name a recipe page gives a severe restriction that holds the recipe because its title or method names a food its ingredient lines do not list (staging checkpoint 6, R3), or a line names a word the check does not understand or knows only on foods the restriction keeps out (staging checkpoint 7, S3).</summary>
+        /// <summary>The name a recipe page gives a severe restriction that holds the recipe because its title or method names a food its ingredient lines do not list (staging checkpoint 6, R3), a line names a word the check does not understand or knows only on foods the restriction keeps out (staging checkpoint 7, S3), or a line sends the cook to another recipe of the book (staging checkpoint 8, T11).</summary>
         public static string DietTextName(Nom.Data.Plan.DietFlagReason reason) => reason switch
         {
             Nom.Data.Plan.DietFlagReason.Title => "Named in the title",
             Nom.Data.Plan.DietFlagReason.UnknownWord => "Ingredient not understood",
             Nom.Data.Plan.DietFlagReason.FoodWord => "Named by an ingredient",
+            Nom.Data.Plan.DietFlagReason.Referral => "Refers to another recipe",
+            Nom.Data.Plan.DietFlagReason.SecondUnread => "Not yet read by the second reader",
+            Nom.Data.Plan.DietFlagReason.SecondReader => "Not clearly free to the second reader",
             _ => "Named in the method",
         };
 
@@ -917,6 +920,9 @@ namespace Nom.Orch.Services
         public static string DietTextNote(Nom.Data.Plan.DietFlagReason reason, string? named) =>
             reason == Nom.Data.Plan.DietFlagReason.UnknownWord ? "An ingredient line names a food the diet check does not know yet, so the recipe is kept out for this restriction until that food is linked to a checked one."
             : reason == Nom.Data.Plan.DietFlagReason.FoodWord ? "An ingredient line names a food that the checked foods know only as holding what this restriction keeps out, so the recipe is kept out for this restriction."
+            : reason == Nom.Data.Plan.DietFlagReason.Referral ? "An ingredient line sends the cook to another recipe or page of the book, whose ingredients are not listed here, so the recipe is kept out for this restriction."
+            : reason == Nom.Data.Plan.DietFlagReason.SecondUnread ? "The diet check finds the recipe clear, but the second reader has not read it yet, so the recipe is kept out for this restriction until it has."
+            : reason == Nom.Data.Plan.DietFlagReason.SecondReader ? "The diet check finds the recipe clear, but the second reader does not find it clearly free of what this restriction keeps out, so the recipe is kept out for this restriction."
             : "The recipe's " + (reason == Nom.Data.Plan.DietFlagReason.Title ? "title" : "method") + " names " + (string.IsNullOrWhiteSpace(named) ? "a food" : "\"" + named + "\"")
             + ", which this restriction keeps out, and its ingredient lines, read from an old book's text, do not list it, so the recipe is kept out for this restriction.";
 

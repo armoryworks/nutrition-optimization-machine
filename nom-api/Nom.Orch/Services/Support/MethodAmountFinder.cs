@@ -23,7 +23,7 @@ namespace Nom.Orch.Services.Support
     /// nothing; "add to two quarts of" and "seven to eight cups of" are amounts, not proportions; a liquid another
     /// ingredient is dissolved, softened, soaked or steeped in gives nothing ("dissolved in one teaspoon of
     /// hot water"); a vessel or a length
-    /// ("a kettle of water", "1-inch of water", "a water bath"), a utensil line ("tin plate"), the vessel a food is put
+    /// ("a kettle of water", "1-inch of water", "a water bath"), a utensil line ("tin plate", "tin cover": staging checkpoint 8, T1), the vessel a food is put
     /// into ("Put into a tumbler ... syrup"), washing water ("three or four waters"),
     /// an alternative ("..., or four fresh tomatoes"), a temperature the line contradicts ("cold
     /// vinegar" against "boiling vinegar"), an oven or fat temperature ("to 350C for frying") and a line that names
@@ -128,7 +128,7 @@ namespace Nom.Orch.Services.Support
         private static readonly HashSet<string> Utensils = new(StringComparer.OrdinalIgnoreCase)
         {
             "plate", "plates", "platter", "platters", "mould", "moulds", "mold", "molds", "tin", "tins", "skillet", "skillets", "griddle",
-            "spider", "sheet", "sheets", "tumbler", "tumblers", "glass", "glasses", "cloth", "sieve", "colander",
+            "spider", "sheet", "sheets", "tumbler", "tumblers", "glass", "glasses", "cloth", "sieve", "colander", "cover", "covers", "lid", "lids",
         };
 
         private static readonly HashSet<string> Into = new(StringComparer.OrdinalIgnoreCase) { "in", "into", "inside" };

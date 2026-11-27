@@ -112,6 +112,12 @@
     "minScore": 0.75,
     "note": "The audit check of the link re-check, the wording tiers and the wording readers (plan C0.3): the auditor (the model scored, the roster's auditor phi4) reads 400 known-bad (wrong, near, compound) and 400 known-good pairs of link-pairs.tsv with the same-food judge, and the check model (--check-model, the roster's reader B) re-reads the pairs it flags; a pair counts as flagged only when both find it wrong. A case agrees when a bad pair is flagged or a good one is not; a false accept is a bad pair left unflagged. The record names both models (model, checkModel) and carries the known-bad and known-good flags of the combined check, which WordingTierAuditRecord gives the lane frame to correct the re-check sets' and wording tiers' audited error with (Rogan-Gladen), and the auditor's flags alone (auditorKnownBad and so on), which correct the reader tiers' (reader B made those decisions, so it may not confirm their flags); without a current record (signature, the roster's auditor and reader B, this floor) no re-check set, wording tier or reader tier can leave shadow. The pairs are judged by agent-review-2026-11-13, a model reviewer, not a person."
   },
+  "diet-second-reader": {
+    "scorer": true,
+    "required": false,
+    "minScore": 0,
+    "note": "The second diet reader (OllamaDietSecondReader, plan item ck20) on diet-second-reader.tsv: one call per recipe with its title, lines and method, no rule verdict shown, answering contains, may or free for each of the eleven severe types. A contains row (contains or may contain the type's food) passes when it is not read free and is a false accept when it is; a safe row passes when it is read free; doubtful rows are reported, not scored. The scorer also prints the measuring figures (misses the reader would catch by kind, the shown coverage it would cost, the unknown holds it would release, the bar of the draws frame with its Wilson interval, seconds per recipe; --answers and --agree for two readers). Rows are cookbook recipes judged by agent reviewers in the diet proof draws and checkpoints (agent-*), split by a hash of the recipe id. The reader is unwired: no lane, gate or service takes it, it writes nothing and authors no nutrition number; no floor and no record until the owner sets a bar (docs/architecture/diet-second-reader.md)."
+  },
   "dish-grouping": {
     "scorer": false,
     "required": false,

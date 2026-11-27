@@ -48,6 +48,18 @@ namespace Nom.Api.Tests.Services
         }
 
         [Fact]
+        public void A_sign_of_doneness_the_rewrite_step_leaves_out_is_flagged_by_rule()
+        {
+            var lost = ProseAudit.ByRule(Pair(Original[0], "Toast the seeds for 3 to 4 minutes."));
+
+            lost!.ByRule.Should().BeTrue();
+            lost.Flagged.Should().Equal(2);
+            lost.Note.Should().Contain("cue missing");
+            ProseAudit.ByRule(Pair(Original[0], "Toast the seeds for 3 to 4 minutes, so they turn golden.")).Should().BeNull();
+            ProseAudit.ByRule(Pair(Original[0], "Toast the seeds for 3 to 4 minutes, until they colour.")).Should().BeNull("a rewrite that still says until is left to the model");
+        }
+
+        [Fact]
         public void Only_changed_steps_are_read_and_each_message_holds_the_lines_the_method_and_the_rules_notes()
         {
             var pair = Pair(Original[0], "Toast the seeds 4 minutes, until golden.");
@@ -68,6 +80,51 @@ namespace Nom.Api.Tests.Services
             ProseAudit.ParseStep("{\"differences\":[],\"verdict\":\"differs\"}")!.Differs.Should().BeTrue();
             ProseAudit.ParseStep("{\"differences\":[]}").Should().BeNull();
             ProseAudit.ParseStep("not json").Should().BeNull();
+        }
+
+        [Fact]
+        public void A_step_that_differs_only_in_articles_punctuation_or_a_word_said_twice_is_not_read()
+        {
+            ProseAudit.ChangedSteps(Pair("Melt 2 tablespoons butter in skillet over low heat", "Toast seeds for 3 to 4 minutes minutes until golden.")).Should().BeEmpty();
+            ProseAudit.ChangedSteps(Pair(Original[0], "Toast the seeds for 3 to 4 minutes, until brown.")).Should().Equal(2);
+        }
+
+        [Fact]
+        public void A_difference_a_rule_finds_in_the_other_step_is_wording_only_and_a_new_word_a_lost_word_or_a_new_order_stands()
+        {
+            var pair = Pair(Original[0], "Toast the seeds 3 to 4 minutes, until they turn golden, then season with a pinch of salt.");
+            static ProseAudit.Difference D(string what, string original, string rewrite) => new(what, original, rewrite);
+            var reading = new ProseAudit.StepReading(true, new[]
+            {
+                D(ProseAudit.LeftOut, "until golden", string.Empty),
+                D(ProseAudit.Changed, "for 3 to 4 minutes", "3 to 4 minutes"),
+                D(ProseAudit.Added, string.Empty, "season with a pinch of salt"),
+            });
+
+            ProseAudit.Standing(pair, 2, reading).Select(d => d.What).Should().Equal(ProseAudit.Added);
+
+            var cue = Pair(Original[0], "Toast the seeds for 3 to 4 minutes, until they smell nutty.");
+            ProseAudit.Standing(cue, 2, new ProseAudit.StepReading(true, new[] { D(ProseAudit.Changed, "until golden", "until they smell nutty") })).Should().ContainSingle();
+            ProseAudit.Standing(cue, 2, new ProseAudit.StepReading(true, new[] { D(ProseAudit.LeftOut, "until crisp", string.Empty) })).Should().ContainSingle("words not in the original step are not checked by rule");
+            ProseAudit.Standing(cue, 2, new ProseAudit.StepReading(true, System.Array.Empty<ProseAudit.Difference>())).Should().ContainSingle();
+
+            var brown = new ProseAuditPair("Toast", Lines, new[] { "Toast the bread until deep brown." }, new[] { "Toast the bread until brown." });
+            ProseAudit.Standing(brown, 1, new ProseAudit.StepReading(true, new[] { D(ProseAudit.Changed, "until deep brown", "until brown") })).Should().ContainSingle("a word of size or manner must be found too");
+            ProseAudit.Standing(pair, 2, new ProseAudit.StepReading(true, new[] { D(ProseAudit.Changed, "until golden", "golden") })).Should().BeEmpty();
+            var jar = new ProseAuditPair("Oats", Lines, new[] { "Cover the jar." }, new[] { "Cover the mixture with a jar." });
+            ProseAudit.Standing(jar, 1, new ProseAudit.StepReading(true, new[] { D(ProseAudit.Changed, "Cover the jar.", "Cover the mixture with a jar.") })).Should().ContainSingle("the rewrite's words name a thing the original step does not");
+
+            var order = new ProseAuditPair("Scones", Lines, new[] { "Mix and sift the flour and the salt." }, new[] { "Sift and mix the flour and the salt." });
+            ProseAudit.Standing(order, 1, new ProseAudit.StepReading(true, new[] { D(ProseAudit.Changed, "Mix and sift", "Sift and mix") })).Should().ContainSingle();
+        }
+
+        [Fact]
+        public async Task A_step_whose_every_listed_difference_is_wording_only_is_not_flagged()
+        {
+            var handler = new Answering(_ => "{\"differences\":[{\"what\":\"left out\",\"original\":\"until golden\",\"rewrite\":\"\"}],\"verdict\":\"differs\"}");
+            var auditor = new OllamaProseAuditor(new HttpClient(handler), "http://auditor.invalid", "phi4");
+
+            (await auditor.AuditAsync(Pair(Original[0], "Toast the seeds 3 to 4 minutes, until they turn golden."), CancellationToken.None))!.Faithful.Should().BeTrue();
         }
 
         [Fact]

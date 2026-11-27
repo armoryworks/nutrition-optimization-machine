@@ -10,7 +10,7 @@ namespace Nom.Api.Controllers
     /// <summary>
     /// Admin re-check of the scraped recipes whose prose is shown, with the withholding of the ones
     /// that fail, the undo of the clean-room rewrite lane, the step-marker cleanup, and the
-    /// stock-phrase index of the prose check. Curation-gated throughout.
+    /// stock-phrase index of the prose check, and the reword lane's queue. Curation-gated throughout.
     /// </summary>
     [Authorize(Policy = "CanManageCuration")]
     public class ProseRewriteController : BaseApiController
@@ -19,13 +19,25 @@ namespace Nom.Api.Controllers
         private readonly IProseStockService _stock;
         private readonly IProseMarkerService _markers;
         private readonly IProseRewriteUndoService _undo;
+        private readonly Nom.Orch.Services.ProseLaneService _lane;
+        private readonly IConfiguration _configuration;
 
-        public ProseRewriteController(IProseRecheckService recheck, IProseStockService stock, IProseMarkerService markers, IProseRewriteUndoService undo)
+        public ProseRewriteController(IProseRecheckService recheck, IProseStockService stock, IProseMarkerService markers, IProseRewriteUndoService undo,
+            Nom.Orch.Services.ProseLaneService lane, IConfiguration configuration)
         {
             _recheck = recheck;
             _stock = stock;
             _markers = markers;
             _undo = undo;
+            _lane = lane;
+            _configuration = configuration;
+        }
+
+        /// <summary>The reword lane's queue under its current version, in the lane's order: counts by tier, by source class and by approval, the recipes kept out because their source is permission-needed or forbidden, and the first recipes (sample, at most 500). Reads only.</summary>
+        [HttpGet("queue")]
+        public async Task<ActionResult<ProseQueueResult>> Queue([FromQuery] int sample = 50, CancellationToken cancellationToken = default)
+        {
+            return Ok(await _lane.QueueAsync(ProseLaneModels.From(_configuration).Version, sample, cancellationToken));
         }
 
         /// <summary>Checks every shown scraped recipe against its stored source with the prose check of the given version (only the current one runs) and, with apply=true, withholds the prose of up to maxRecipes failing ones, approved first; a dry run unless apply=true, and each one withheld is written to the audit log.</summary>

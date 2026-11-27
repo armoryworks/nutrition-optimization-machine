@@ -216,7 +216,7 @@ namespace Nom.Orch.Services.Support
                     continue;
                 }
 
-                var verdict = await judge.JudgeAsync(method.Steps.Select(s => s.Original).ToList(), steps, cancellationToken);
+                var verdict = await judge.JudgeAsync(method.Steps.Select(s => s.Original).ToList(), steps, cancellationToken, input.Dish);
                 lastVerdict = verdict;
                 if (verdict == null)
                 {
@@ -284,8 +284,9 @@ namespace Nom.Orch.Services.Support
         /// <summary>
         /// The rule audit of a model-free rendering, read back from its written text alone: masked again
         /// against the recipe's lines, it must hold one step per source step, and each step every ingredient,
-        /// every amount as the source states it and every cooking verb of its source step. Empty when it
-        /// does. No model reads either text.
+        /// every amount as the source states it and every cooking verb of its source step; in the written text a
+        /// masked food or amount reads as a word of its own, so a verb after a named food ("let the butter melt")
+        /// is not read as a noun after "the". Empty when it does. No model reads either text.
         /// </summary>
         public static IReadOnlyList<string> RuleOnlyAudit(IReadOnlyList<string> sourceSteps, IReadOnlyList<string> written, IReadOnlyList<string> lines, ProseVerbLexicon? verbs = null)
         {
@@ -311,7 +312,7 @@ namespace Nom.Orch.Services.Support
                 var got = read.Amounts.Concat(read.Conversions).Select(id => Amount(back.Amounts[id])).OrderBy(a => a, StringComparer.Ordinal).ToList();
                 if (!want.SequenceEqual(got, StringComparer.Ordinal))
                     problems.Add($"{label} states {(got.Count == 0 ? "no amount" : string.Join(", ", got))} for {(want.Count == 0 ? "no amount" : string.Join(", ", want))}");
-                var groups = verbs.GroupsIn(ProsePhrases.Words(ProseMasking.TokenPattern.Replace(read.Text, " ")));
+                var groups = verbs.GroupsIn(ProsePhrases.Words(ProseMasking.TokenPattern.Replace(read.Text, " it ")));
                 foreach (var verb in verbs.VerbsIn(ProsePhrases.Words(ProseMasking.TokenPattern.Replace(step.Text, " "))))
                 {
                     if (!verb.Overlaps(groups)) problems.Add($"{label} leaves out the action \"{string.Join("/", verb.OrderBy(g => g, StringComparer.Ordinal))}\"");
@@ -323,15 +324,18 @@ namespace Nom.Orch.Services.Support
 
         /// <summary>
         /// The gate a rewrite passes (the judge alone when a planted rewrite is checked): the prose
-        /// check against the source, then the judge, which also reads a rewrite the check is only
-        /// unsure of. Returns the reasons it was refused, empty when both accept it.
+        /// check against the source, then the cut rule (<see cref="MannerProblems"/>: a step that
+        /// leaves out how a food is cut is refused by rule), then the judge, which also reads a rewrite
+        /// the check is only unsure of. Returns the reasons it was refused, empty when all accept it.
         /// </summary>
         public static async Task<IReadOnlyList<string>> GateAsync(ProseLaneInput input, RewriteFidelity.SourceText rewrite, IProseJudge judge, CancellationToken cancellationToken)
         {
             var finding = ProseCheck.Check(input.Source, rewrite, input.Lines, input.Stock);
             if (finding.Failed) return finding.FailReasons.ToList();
             var original = input.Source.Steps.Select(ProseQuantities.Prepare).Where(s => s.Length > 0).ToList();
-            var verdict = await judge.JudgeAsync(original, rewrite.Steps, cancellationToken);
+            if (original.Count == rewrite.Steps.Count && original.Where((s, i) => MannerProblems(s, rewrite.Steps[i]).Count > 0).Any())
+                return new[] { MannerReason };
+            var verdict = await judge.JudgeAsync(original, rewrite.Steps, cancellationToken, input.Dish);
             if (verdict == null) return new[] { JudgeUnreadable };
             return verdict.Faithful ? Array.Empty<string>() : verdict.Steps.Where(s => !s.Same).SelectMany(s => s.Faults()).Distinct().Select(f => JudgeReason + ":" + f).ToList();
         }
@@ -420,6 +424,28 @@ namespace Nom.Orch.Services.Support
             foreach (var scale in ProseJudgeRules.HeatsLost(source, written)) problems.Add($"leaves out the heat; write \"{Phrase(scale)}\" as the sheet gives it");
             if (ProseJudgeRules.OvenLost(source, written)) problems.Add("leaves out the oven; name the oven");
             return problems;
+        }
+
+        public const string MannerReason = "cut";
+
+        /// <summary>The words that say how a food is cut, each with the plain word a rewrite may keep it by ("thinly" or "thin").</summary>
+        public static readonly IReadOnlyList<(string Manner, string Plain)> CutManners = new[]
+        {
+            ("thinly", "thin"), ("finely", "fine"), ("coarsely", "coarse"), ("roughly", "rough"), ("thickly", "thick"),
+        };
+
+        /// <summary>
+        /// The cut rule: each word of <see cref="CutManners"/> a source step or sentence states that the written one keeps
+        /// in neither form, as what to keep. Slicing thinly and slicing are other cuts, so a rewrite that drops the
+        /// manner leaves out a fact however the judge reads it. Empty when every cut keeps its manner.
+        /// </summary>
+        public static IReadOnlyList<string> MannerProblems(string source, string written)
+        {
+            static HashSet<string> Words(string text) => System.Text.RegularExpressions.Regex.Matches(text.ToLowerInvariant(), @"\p{L}+").Select(m => m.Value).ToHashSet(StringComparer.Ordinal);
+            var said = Words(source);
+            var kept = Words(written);
+            return CutManners.Where(m => said.Contains(m.Manner) && !kept.Contains(m.Manner) && !kept.Contains(m.Plain))
+                .Select(m => $"leaves out how the food is cut; keep \"{m.Manner}\"").ToList();
         }
 
         /// <summary>The fact sheets built by rule from the masked method: each step's verbs as they stand, its ingredient tokens, its amount tokens, its heats and the oven when it names one, with no other equipment and no cues.</summary>

@@ -195,6 +195,136 @@ BEGIN
 END;
 $$;
 
+CREATE OR REPLACE FUNCTION plan."DietGateHoldRecipes"(recipe_ids bigint[]) RETURNS void
+    LANGUAGE plpgsql AS $$
+BEGIN
+    IF recipe_ids IS NULL OR cardinality(recipe_ids) = 0 THEN
+        RETURN;
+    END IF;
+    INSERT INTO plan."DietGateWrite" ("RecipeId")
+    SELECT DISTINCT r FROM unnest(recipe_ids) r WHERE r IS NOT NULL ORDER BY 1;
+END;
+$$;
+
+CREATE OR REPLACE FUNCTION plan."DietGateWordingsWritten"() RETURNS trigger
+    LANGUAGE plpgsql AS $$
+DECLARE
+    wordings text[];
+    foods bigint[];
+BEGIN
+    IF TG_OP = 'INSERT' THEN
+        wordings := ARRAY(SELECT DISTINCT lower(n."Wording") FROM new_rows n);
+        foods := ARRAY(SELECT DISTINCT n."IngredientId" FROM new_rows n WHERE n."IngredientId" IS NOT NULL);
+    ELSIF TG_OP = 'DELETE' THEN
+        wordings := ARRAY(SELECT DISTINCT lower(o."Wording") FROM old_rows o);
+        foods := ARRAY(SELECT DISTINCT o."IngredientId" FROM old_rows o WHERE o."IngredientId" IS NOT NULL);
+    ELSE
+        wordings := ARRAY(
+            SELECT DISTINCT lower(x."Wording") FROM new_rows n JOIN old_rows o ON o."Id" = n."Id"
+                CROSS JOIN LATERAL (VALUES (o."Wording", o."IngredientId"), (n."Wording", n."IngredientId")) x("Wording", "IngredientId")
+            WHERE (o."Wording", o."Verdict", o."IngredientId", o."FdcCategoryId", o."CategoryHead", o."IsDeleted")
+                  IS DISTINCT FROM (n."Wording", n."Verdict", n."IngredientId", n."FdcCategoryId", n."CategoryHead", n."IsDeleted"));
+        foods := ARRAY(
+            SELECT DISTINCT x."IngredientId" FROM new_rows n JOIN old_rows o ON o."Id" = n."Id"
+                CROSS JOIN LATERAL (VALUES (o."IngredientId"), (n."IngredientId")) x("IngredientId")
+            WHERE x."IngredientId" IS NOT NULL
+              AND (o."Wording", o."Verdict", o."IngredientId", o."FdcCategoryId", o."CategoryHead", o."IsDeleted")
+                  IS DISTINCT FROM (n."Wording", n."Verdict", n."IngredientId", n."FdcCategoryId", n."CategoryHead", n."IsDeleted"));
+    END IF;
+    IF cardinality(wordings) = 0 THEN
+        RETURN NULL;
+    END IF;
+    foods := ARRAY(
+        SELECT f FROM unnest(foods) f
+        WHERE EXISTS (SELECT 1 FROM curation."FoodCatalogProposal" p
+                      WHERE p."ProposedValue" = f::text AND p."Field" = 'fdc_link' AND p."Status" = 4 AND p."Source" LIKE 'ai:%' AND NOT p."IsDeleted"));
+    PERFORM plan."DietGateHoldRecipes"(ARRAY(
+        SELECT ri."RecipeId" FROM recipe."RecipeIngredient" ri JOIN recipe."Ingredient" i ON i."Id" = ri."IngredientId"
+        WHERE lower(i."Name") = ANY (wordings)
+        UNION
+        SELECT ri."RecipeId" FROM recipe."RecipeIngredient" ri WHERE ri."IngredientId" = ANY (foods)));
+    RETURN NULL;
+END;
+$$;
+
+CREATE OR REPLACE FUNCTION plan."DietGateProposalsWritten"() RETURNS trigger
+    LANGUAGE plpgsql AS $$
+DECLARE
+    picked text[];
+BEGIN
+    IF TG_OP = 'INSERT' THEN
+        picked := ARRAY(SELECT n."ProposedValue" FROM new_rows n
+                        WHERE n."Field" = 'fdc_link' AND n."Status" = 4 AND n."Source" LIKE 'ai:%' AND NOT n."IsDeleted");
+    ELSIF TG_OP = 'DELETE' THEN
+        picked := ARRAY(SELECT o."ProposedValue" FROM old_rows o
+                        WHERE o."Field" = 'fdc_link' AND o."Status" = 4 AND o."Source" LIKE 'ai:%' AND NOT o."IsDeleted");
+    ELSE
+        picked := ARRAY(
+            SELECT x."ProposedValue" FROM new_rows n JOIN old_rows o ON o."Id" = n."Id"
+                CROSS JOIN LATERAL (VALUES (o."ProposedValue"), (n."ProposedValue")) x("ProposedValue")
+            WHERE ((o."Field" = 'fdc_link' AND o."Status" = 4 AND o."Source" LIKE 'ai:%' AND NOT o."IsDeleted")
+                   OR (n."Field" = 'fdc_link' AND n."Status" = 4 AND n."Source" LIKE 'ai:%' AND NOT n."IsDeleted"))
+              AND (o."Field", o."Status", o."Source", o."CurrentValue", o."ProposedValue", o."IsDeleted")
+                  IS DISTINCT FROM (n."Field", n."Status", n."Source", n."CurrentValue", n."ProposedValue", n."IsDeleted"));
+    END IF;
+    IF cardinality(picked) = 0 THEN
+        RETURN NULL;
+    END IF;
+    PERFORM plan."DietGateHoldRecipes"(ARRAY(
+        SELECT ri."RecipeId" FROM recipe."RecipeIngredient" ri
+        WHERE ri."IngredientId" = ANY (ARRAY(SELECT DISTINCT v::bigint FROM unnest(picked) v WHERE v ~ '^[0-9]{1,18}$'))));
+    RETURN NULL;
+END;
+$$;
+
+CREATE OR REPLACE FUNCTION plan."DietGateReadingsWritten"() RETURNS trigger
+    LANGUAGE plpgsql AS $$
+BEGIN
+    IF NOT EXISTS (SELECT 1 FROM auth."PlatformFeature" f
+                   WHERE f."Key" = 'diet-second-reader-gate' AND f."IsEnabled" AND NOT f."IsDeleted") THEN
+        RETURN NULL;
+    END IF;
+    IF TG_OP = 'INSERT' THEN
+        PERFORM plan."DietGateHoldRecipes"(ARRAY(SELECT n."RecipeId" FROM new_rows n));
+    ELSIF TG_OP = 'DELETE' THEN
+        PERFORM plan."DietGateHoldRecipes"(ARRAY(SELECT o."RecipeId" FROM old_rows o));
+    ELSE
+        PERFORM plan."DietGateHoldRecipes"(ARRAY(
+            SELECT n."RecipeId" FROM new_rows n JOIN old_rows o ON o."RecipeId" = n."RecipeId" AND o."Model" = n."Model"
+            WHERE (o."PromptSignature", o."TextSignature", o."Readable", o."Verdicts")
+                  IS DISTINCT FROM (n."PromptSignature", n."TextSignature", n."Readable", n."Verdicts")
+            UNION
+            SELECT n."RecipeId" FROM new_rows n
+            WHERE NOT EXISTS (SELECT 1 FROM old_rows o WHERE o."RecipeId" = n."RecipeId" AND o."Model" = n."Model")
+            UNION
+            SELECT o."RecipeId" FROM old_rows o
+            WHERE NOT EXISTS (SELECT 1 FROM new_rows n WHERE n."RecipeId" = o."RecipeId" AND n."Model" = o."Model")));
+    END IF;
+    RETURN NULL;
+END;
+$$;
+
+CREATE OR REPLACE FUNCTION plan."DietGateFeaturesWritten"() RETURNS trigger
+    LANGUAGE plpgsql AS $$
+DECLARE
+    moved boolean;
+BEGIN
+    IF TG_OP = 'INSERT' THEN
+        moved := EXISTS (SELECT 1 FROM new_rows n WHERE n."Key" = 'diet-second-reader-gate');
+    ELSIF TG_OP = 'DELETE' THEN
+        moved := EXISTS (SELECT 1 FROM old_rows o WHERE o."Key" = 'diet-second-reader-gate');
+    ELSE
+        moved := EXISTS (SELECT 1 FROM new_rows n FULL JOIN old_rows o ON o."Id" = n."Id"
+                         WHERE 'diet-second-reader-gate' IN (n."Key", o."Key")
+                           AND (o."Key", o."IsEnabled", o."IsDeleted") IS DISTINCT FROM (n."Key", n."IsEnabled", n."IsDeleted"));
+    END IF;
+    IF moved THEN
+        INSERT INTO plan."DietGateWrite" ("RecipeId", "IngredientId") VALUES (NULL, NULL);
+    END IF;
+    RETURN NULL;
+END;
+$$;
+
 CREATE OR REPLACE FUNCTION plan."DietGateUnitsWritten"() RETURNS trigger
     LANGUAGE plpgsql AS $$
 BEGIN
@@ -288,3 +418,51 @@ CREATE TRIGGER "DietGateStatementsUpdated" AFTER UPDATE ON recipe."IngredientCon
 DROP TRIGGER IF EXISTS "DietGateStatementsDeleted" ON recipe."IngredientContents";
 CREATE TRIGGER "DietGateStatementsDeleted" AFTER DELETE ON recipe."IngredientContents"
     REFERENCING OLD TABLE AS old_rows FOR EACH STATEMENT EXECUTE FUNCTION plan."DietGateStatementsWritten"();
+
+DROP TRIGGER IF EXISTS "DietGateWordingsInserted" ON recipe."IngredientWording";
+CREATE TRIGGER "DietGateWordingsInserted" AFTER INSERT ON recipe."IngredientWording"
+    REFERENCING NEW TABLE AS new_rows FOR EACH STATEMENT EXECUTE FUNCTION plan."DietGateWordingsWritten"();
+DROP TRIGGER IF EXISTS "DietGateWordingsUpdated" ON recipe."IngredientWording";
+CREATE TRIGGER "DietGateWordingsUpdated" AFTER UPDATE ON recipe."IngredientWording"
+    REFERENCING OLD TABLE AS old_rows NEW TABLE AS new_rows FOR EACH STATEMENT EXECUTE FUNCTION plan."DietGateWordingsWritten"();
+DROP TRIGGER IF EXISTS "DietGateWordingsDeleted" ON recipe."IngredientWording";
+CREATE TRIGGER "DietGateWordingsDeleted" AFTER DELETE ON recipe."IngredientWording"
+    REFERENCING OLD TABLE AS old_rows FOR EACH STATEMENT EXECUTE FUNCTION plan."DietGateWordingsWritten"();
+
+DROP TRIGGER IF EXISTS "DietGateProposalsInserted" ON curation."FoodCatalogProposal";
+CREATE TRIGGER "DietGateProposalsInserted" AFTER INSERT ON curation."FoodCatalogProposal"
+    REFERENCING NEW TABLE AS new_rows FOR EACH STATEMENT EXECUTE FUNCTION plan."DietGateProposalsWritten"();
+DROP TRIGGER IF EXISTS "DietGateProposalsUpdated" ON curation."FoodCatalogProposal";
+CREATE TRIGGER "DietGateProposalsUpdated" AFTER UPDATE ON curation."FoodCatalogProposal"
+    REFERENCING OLD TABLE AS old_rows NEW TABLE AS new_rows FOR EACH STATEMENT EXECUTE FUNCTION plan."DietGateProposalsWritten"();
+DROP TRIGGER IF EXISTS "DietGateProposalsDeleted" ON curation."FoodCatalogProposal";
+CREATE TRIGGER "DietGateProposalsDeleted" AFTER DELETE ON curation."FoodCatalogProposal"
+    REFERENCING OLD TABLE AS old_rows FOR EACH STATEMENT EXECUTE FUNCTION plan."DietGateProposalsWritten"();
+
+DROP TRIGGER IF EXISTS "DietGateNutrientNamesWritten" ON nutrient."Nutrient";
+CREATE TRIGGER "DietGateNutrientNamesWritten" AFTER UPDATE OR DELETE ON nutrient."Nutrient"
+    FOR EACH STATEMENT EXECUTE FUNCTION plan."DietGateCriteriaWritten"();
+
+DROP TRIGGER IF EXISTS "DietGateTypeNamesWritten" ON reference."Reference";
+CREATE TRIGGER "DietGateTypeNamesWritten" AFTER UPDATE OR DELETE ON reference."Reference"
+    FOR EACH STATEMENT EXECUTE FUNCTION plan."DietGateCriteriaWritten"();
+
+DROP TRIGGER IF EXISTS "DietGateReadingsInserted" ON plan."RecipeDietReading";
+CREATE TRIGGER "DietGateReadingsInserted" AFTER INSERT ON plan."RecipeDietReading"
+    REFERENCING NEW TABLE AS new_rows FOR EACH STATEMENT EXECUTE FUNCTION plan."DietGateReadingsWritten"();
+DROP TRIGGER IF EXISTS "DietGateReadingsUpdated" ON plan."RecipeDietReading";
+CREATE TRIGGER "DietGateReadingsUpdated" AFTER UPDATE ON plan."RecipeDietReading"
+    REFERENCING OLD TABLE AS old_rows NEW TABLE AS new_rows FOR EACH STATEMENT EXECUTE FUNCTION plan."DietGateReadingsWritten"();
+DROP TRIGGER IF EXISTS "DietGateReadingsDeleted" ON plan."RecipeDietReading";
+CREATE TRIGGER "DietGateReadingsDeleted" AFTER DELETE ON plan."RecipeDietReading"
+    REFERENCING OLD TABLE AS old_rows FOR EACH STATEMENT EXECUTE FUNCTION plan."DietGateReadingsWritten"();
+
+DROP TRIGGER IF EXISTS "DietGateFeaturesInserted" ON auth."PlatformFeature";
+CREATE TRIGGER "DietGateFeaturesInserted" AFTER INSERT ON auth."PlatformFeature"
+    REFERENCING NEW TABLE AS new_rows FOR EACH STATEMENT EXECUTE FUNCTION plan."DietGateFeaturesWritten"();
+DROP TRIGGER IF EXISTS "DietGateFeaturesUpdated" ON auth."PlatformFeature";
+CREATE TRIGGER "DietGateFeaturesUpdated" AFTER UPDATE ON auth."PlatformFeature"
+    REFERENCING OLD TABLE AS old_rows NEW TABLE AS new_rows FOR EACH STATEMENT EXECUTE FUNCTION plan."DietGateFeaturesWritten"();
+DROP TRIGGER IF EXISTS "DietGateFeaturesDeleted" ON auth."PlatformFeature";
+CREATE TRIGGER "DietGateFeaturesDeleted" AFTER DELETE ON auth."PlatformFeature"
+    REFERENCING OLD TABLE AS old_rows FOR EACH STATEMENT EXECUTE FUNCTION plan."DietGateFeaturesWritten"();

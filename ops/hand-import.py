@@ -34,8 +34,11 @@ RULES
    pacing shared with www.loc.gov; anything else is refused and named. The next text run, in the
    image, reads it with tesseract for its words, boxes and confidence and sets its ingredient tables
    back row by row (an amount not read with confidence carries the unread mark, and its recipe is
-   never kept or sent to the model), keeps the more readable of the two texts, stores the image's
-   reading on the page and deletes the image. A page image is read for its text only: never kept,
+   never kept or sent to the model; every amount it keeps is read again, its cell cropped from the
+   image and enlarged, and an amount that second reading does not confirm, or a lone figure as wide
+   as a fraction sign, carries the mark too), keeps the text with fewer garbled lines (a line that
+   only carries the unread mark is no garbled line), stores the image's reading on the page and
+   deletes the image. A page image is read for its text only: never kept,
    served or sent anywhere.
 4. Extraction: VA recipe cards and NHLBI pages are read by rule; Library of Congress books first by
    rule (title, ingredient list or dot-leader table, method in prose: ops/cookbook-extract.py's
@@ -976,15 +979,53 @@ def tesseract_page(path: str, number: int, runner: Runner = run) -> str | None:
         return runner(["tesseract", prefix + ".png", "stdout", "-l", "eng"])
 
 
-def tesseract_image(path: str, runner: Runner = run, words: frozenset[str] | set[str] | None = None) -> str | None:
+def tesseract_image(path: str, runner: Runner = run, words: frozenset[str] | set[str] | None = None,
+                    reread: Callable[[list["Word"]], str | None] | None = None) -> str | None:
     """A page image read by tesseract for its words, their boxes and confidence (sparse text, --psm 11, as TSV) and set
-    back into lines by table_text, its ingredient tables row by row; None when tesseract is not installed."""
+    back into lines by table_text, its ingredient tables row by row, every amount it keeps read again from its cell
+    (cell_reader); None when tesseract is not installed."""
     if not have("tesseract"):
         return None
-    return table_text(tsv_words(runner(["tesseract", path, "stdout", "-l", "eng", "--psm", "11", "tsv"])), dictionary=words)
+    return table_text(tsv_words(runner(["tesseract", path, "stdout", "-l", "eng", "--psm", "11", "tsv"])), dictionary=words,
+                      reread=reread if reread is not None else cell_reader(path, runner))
+
+
+CELL_SCALE = 3
+
+
+def cell_reader(path: str, runner: Runner = run) -> Callable[[list["Word"]], str | None]:
+    """A second reading of an amount cell of a page image (staging checkpoint 8, T18: a half cup read as "2 Cup" at the
+    confidence bar): the cell's words cropped from the image with a margin of half a line, enlarged CELL_SCALE times and
+    read by tesseract as one line (--psm 7). Reads None for every cell when the image cannot be opened (no Pillow, an
+    unreadable file), so no amount is confirmed."""
+    try:
+        from PIL import Image
+    except ImportError:
+        return lambda cell: None
+
+    def read(cell: list["Word"]) -> str | None:
+        if not cell:
+            return None
+        height = max(w.height for w in cell)
+        try:
+            with Image.open(path) as image:
+                box = (max(0, min(w.left for w in cell) - height // 2), max(0, min(w.top for w in cell) - height // 2),
+                       min(image.width, max(w.left + w.width for w in cell) + height // 2),
+                       min(image.height, max(w.top + w.height for w in cell) + height // 2))
+                crop = image.crop(box).convert("L")
+                crop = crop.resize((crop.width * CELL_SCALE, crop.height * CELL_SCALE), Image.LANCZOS)
+                with tempfile.TemporaryDirectory() as folder:
+                    out = os.path.join(folder, "cell.png")
+                    crop.save(out)
+                    return runner(["tesseract", out, "stdout", "-l", "eng", "--psm", "7"]).strip()
+        except (OSError, ValueError, subprocess.CalledProcessError):
+            return None
+
+    return read
 
 
 OCR_BAR = 90
+FRACTION_WIDTH = 0.8
 AMOUNT_CELL = re.compile(rf"(?:\d{{1,3}}(?:\s?[{cookbook.VULGAR}])?|[{cookbook.VULGAR}]|\d{{1,2}}/\d{{1,2}})(?:\s+[^\W\d_]{{1,12}}\.?)?")
 
 
@@ -1030,8 +1071,23 @@ def _name_run(row: list[Word], bar: float) -> int:
     return named
 
 
+def confirmed(cell: list[Word], height: float, reread: Callable[[list[Word]], str | None] | None) -> bool:
+    """Whether an amount the first reading kept may be written (staging checkpoint 8, T18: "Butter . . . 2 Cup" where the
+    page prints a half cup). A lone figure whose box is as wide as a fraction sign (FRACTION_WIDTH of the line's height:
+    a printed half is about as wide as it is high, a figure about half) is never confirmed; otherwise, with a second
+    reader, the cell read again must give the same number (a fraction sign, "%" or another figure refuses it). With no
+    second reader the first reading stands."""
+    number = cell[0]
+    if re.fullmatch(r"\d", number.text) and number.height >= height / 2 and number.width >= FRACTION_WIDTH * number.height:
+        return False
+    if reread is None:
+        return True
+    again = (reread(cell) or "").split()
+    return bool(again) and again[0].rstrip(".,") == number.text
+
+
 def table_row(row: list[Word], height: float, edge: float, middle: float, bar: float = OCR_BAR,
-              dictionary: frozenset[str] | set[str] | None = None) -> str | None:
+              dictionary: frozenset[str] | set[str] | None = None, reread: Callable[[list[Word]], str | None] | None = None) -> str | None:
     """A row of an ingredient table set with dot leaders, as "name . . . . . . amount", or None when the row is not one.
     The name is the row's first run of words read with confidence at the bar or above. A row is a table row when it
     starts in the left quarter of the text (a centred title does not) and reaches past the middle, and after its name come either at most three words beyond a
@@ -1042,7 +1098,7 @@ def table_row(row: list[Word], height: float, edge: float, middle: float, bar: f
     sign or both) and at most one word, the word after the name is no known word cut by the leaders ("crumbs...."), and
     no confident word lies between them; otherwise the unread mark stands in place of what was not read, so the recipe
     is never kept by rule or sent to the model, and a number the page does not hold (a fraction read as "%", a figure
-    below the bar) is never written."""
+    below the bar) is never written. An amount kept must also be confirmed (confirmed: a second reading of its cell)."""
     if len(row) < 2 or row[0].left - edge >= (middle - edge) / 2 or row[-1].left + row[-1].width <= middle:
         return None
     named = _name_run(row, bar)
@@ -1062,7 +1118,8 @@ def table_row(row: list[Word], height: float, edge: float, middle: float, bar: f
     first = re.match(r"[^\W\d_]{3,}", between[0].text) if between else None
     cut = bool(first) and dictionary is not None and cookbook.known_word(first.group(0).lower(), dictionary)
     sure_name = bool(name_text) and not cut and not any(w.conf >= bar and re.fullmatch(r"[^\W\d_]{3,}", w.text) for w in between)
-    sure_amount = bool(amount_text) and row[amount_at].left >= middle and bool(AMOUNT_CELL.fullmatch(amount_text))
+    sure_amount = bool(amount_text) and row[amount_at].left >= middle and bool(AMOUNT_CELL.fullmatch(amount_text)) \
+        and confirmed(row[amount_at:], height, reread)
     return f"{name_text if sure_name else cookbook.UNREAD} . . . . . . {amount_text if sure_name and sure_amount else cookbook.UNREAD}"
 
 
@@ -1070,19 +1127,47 @@ FIGURE = re.compile(rf"[\d{cookbook.VULGAR}]")
 SIGN = re.compile(r"[^\w\s.,;:!?'\"()\-–—’‘“”]")
 
 
-def _unsure(row: list[Word], i: int, bar: float) -> bool:
+MEASURE_WORD = re.compile(r"(?:cups?|cupfuls?|pints?|quarts?|gills?|gallons?|pounds?|ounces?|lbs?|oz|teaspoons?(?:fuls?)?|"
+                          r"tablespoons?(?:fuls?)?|tsps?|tbsps?|teacups?(?:fuls?)?|spoonfuls?|saltspoons?(?:fuls?)?|wineglass(?:es|fuls?)?|"
+                          r"dozen|pinch|quarter)\.?,?", re.I)
+OLD_ONE = re.compile(r"[Il|]")
+
+
+def _unsure(row: list[Word], i: int, bar: float, height: float = 0.0,
+            reread: Callable[[list[Word]], str | None] | None = None) -> bool:
     word = row[i]
+    after = row[i + 1].text if i + 1 < len(row) else ""
+    if OLD_ONE.fullmatch(word.text) and MEASURE_WORD.fullmatch(after):
+        return True
     if word.conf >= bar:
-        return False
+        return bool(re.fullmatch(r"\d{1,3}", word.text)) and bool(MEASURE_WORD.fullmatch(after)) and not confirmed(row[i:i + 2], height, reread)
     beside = [row[j].text for j in (i - 1, i + 1) if 0 <= j < len(row)]
     return i == 0 or bool(FIGURE.search(word.text) or SIGN.search(word.text) or any(FIGURE.search(b) for b in beside))
 
 
-def table_text(words: list[Word], bar: float = OCR_BAR, dictionary: frozenset[str] | set[str] | None = None) -> str:
+def _columns(rows: list[list[Word]], height: float, middle: float) -> list[list[Word]]:
+    """The rows with a row of a two-column page (an index) cut where the right column starts: at a gap wider than three
+    letters across the middle, after which a name starts with a capital and ends in a page number. The two halves are
+    read as rows of their own, so a name never takes the other column's number (staging checkpoint 8, T18: "Sally Lunn
+    25" where the book prints 16)."""
+    out = []
+    for row in rows:
+        cut = next((i for i in range(1, len(row))
+                    if row[i].left - (row[i - 1].left + row[i - 1].width) > 3 * height
+                    and row[i - 1].left + row[i - 1].width < middle + height and row[i].left > middle - height
+                    and re.match(r"[A-Z]", row[i].text) and len(row) - i >= 2 and re.fullmatch(r"\d{1,4}\.?", row[-1].text)), None)
+        out.extend([row[:cut], row[cut:]] if cut else [row])
+    return out
+
+
+def table_text(words: list[Word], bar: float = OCR_BAR, dictionary: frozenset[str] | set[str] | None = None,
+               reread: Callable[[list[Word]], str | None] | None = None) -> str:
     """A page's words set back into lines, top to bottom: a row of an ingredient table as one line (table_row), any
     other line as its words, a word read with confidence below the bar replaced by the unread mark where it may be or
     cut an amount: one that holds a figure or a sign that is no letter or punctuation (a fraction read as "%" or "Y%"),
-    stands next to a word with a figure, or starts the line. A short line that
+    stands next to a word with a figure, or starts the line; and, read with confidence or not, an old-style one read as
+    a letter ("I cup", "l pint") and a figure before a measure word that its second reading does not confirm
+    (confirmed). A two-column row is read as two rows (_columns). A short line that
     starts where a neighbouring table row starts and ends left of the middle, between two table rows or beside one with
     no sentence end, is a table row whose amount was not read at all, and gets the unread mark as its amount. A blank
     line goes before a centred line (a title) and after it, before an indented line that is not a table row (a
@@ -1093,8 +1178,8 @@ def table_text(words: list[Word], bar: float = OCR_BAR, dictionary: frozenset[st
     height = sorted(lettered)[len(lettered) // 2]
     left, right = min(w.left for w in words), max(w.left + w.width for w in words)
     middle = left + (right - left) / 2
-    rows = _rows(words, height)
-    tabled = [table_row(row, height, left, middle, bar, dictionary) for row in rows]
+    rows = _columns(_rows(words, height), height, middle)
+    tabled = [table_row(row, height, left, middle, bar, dictionary, reread) for row in rows]
     for i, row in enumerate(rows):
         if tabled[i] is not None or row[-1].left + row[-1].width >= middle:
             continue
@@ -1115,7 +1200,7 @@ def table_text(words: list[Word], bar: float = OCR_BAR, dictionary: frozenset[st
         if lines and lines[-1] and (centred or indented or wide):
             lines.append("")
         lines.append(table if table is not None else
-                     " ".join(cookbook.UNREAD if _unsure(row, i, bar) else w.text for i, w in enumerate(row)))
+                     " ".join(cookbook.UNREAD if _unsure(row, i, bar, height, reread) else w.text for i, w in enumerate(row)))
         if centred:
             lines.append("")
         previous = centre
@@ -1123,9 +1208,13 @@ def table_text(words: list[Word], bar: float = OCR_BAR, dictionary: frozenset[st
 
 
 def page_reading(text: str, words: frozenset[str] | set[str]) -> dict:
-    """How readable a page's text is: its short lines with letters and how many fail the readability test."""
+    """How readable a page's text is: its short lines with letters, how many fail the readability test, and of those how
+    many carry the unread mark and pass without it (marked, not garbled: the image reading marks what it did not read
+    with confidence)."""
     short = [line for line in text.split("\n") if line.strip() and len(line.strip()) <= 60 and re.search(r"[^\W\d_]", line)]
-    return {"shortLines": len(short), "unreadable": sum(1 for line in short if cookbook.unreadable(line, words))}
+    failing = [line for line in short if cookbook.unreadable(line, words)]
+    marked = [line for line in failing if cookbook.UNREAD in line and not cookbook.unreadable(line.replace(cookbook.UNREAD, " "), words)]
+    return {"shortLines": len(short), "unreadable": len(failing), "marked": len(marked)}
 
 
 def loc_pages(path: str, words: frozenset[str] | set[str] | None = None, images: dict[int, str] | None = None,
@@ -1138,8 +1227,9 @@ def loc_pages(path: str, words: frozenset[str] | set[str] | None = None, images:
     checkpoint 7, S22) is marked needsImage. Where its page image was fetched (the images step), it is read by
     tesseract (tesseract_image) and the page stores that reading as imageText, so the image can be deleted; a page
     whose image is gone takes its stored reading (earlier, the page as the earlier text step wrote it) instead. The
-    more readable of the two texts is the page's: loc-image-ocr when the image's reading has fewer unreadable short
-    lines, the Library's otherwise; both readings' counts are kept on the page. A stored reading always stays on its
+    more readable of the two texts is the page's: loc-image-ocr when the image's reading has fewer garbled short lines
+    (a line that only carries the unread mark is not garbled: staging checkpoint 8, T18, p. 25 kept the Library's
+    garbled table though the image named every row), the Library's otherwise; both readings' counts are kept on the page. A stored reading always stays on its
     page, so the image is never fetched again: with no word list the page keeps the earlier step's choice, and a page
     that no longer fails the test keeps the reading beside the Library's text."""
     with open(path, encoding="utf-8") as handle:
@@ -1171,7 +1261,7 @@ def loc_pages(path: str, words: frozenset[str] | set[str] | None = None, images:
                     image = page_reading(read, words)
                     page["imageReading"] = image
                     page["imageText"] = read
-                    if read.strip() and image["unreadable"] < library["unreadable"]:
+                    if read.strip() and image["unreadable"] - image["marked"] < library["unreadable"]:
                         page.update(method="loc-image-ocr", text=read, needsImage=cookbook.unreadable_block(read, words))
         if stored is not None and "imageText" not in page:
             page["imageText"] = stored
@@ -1543,6 +1633,28 @@ def name_problem(name: str, page: str) -> str | None:
     return f"a word of the name not on the page: {', '.join(missing[:3])}" if missing else None
 
 
+LIST_HEADING = re.compile(r"(?:FOR\s+(?:THE\s+)?)?[A-Z][A-Z'&\- ]{2,40}:?")
+SIDEBAR_TIP = re.compile(r"[B-HJ-Z]\s+[A-Z][a-z]")
+BROKEN_WORD = re.compile(r"\b([^\W\d_]+)[\u00ad\u2013\u2010]([^\W\d_]+)\b")
+
+
+def joined(text: str, words: frozenset[str] | set[str] | None) -> str:
+    """The text with a soft hyphen taken out, and a word the page breaks with a dash joined again where the joined word
+    is known and its halves are not both words ("min–utes" is "minutes"; "low-fat" stays)."""
+    text = text.replace("\u00ad", "")
+    if words is None:
+        return text
+
+    def join(found: re.Match) -> str:
+        left, right = found.group(1), found.group(2)
+        whole = (left + right).lower()
+        if cookbook.known_word(whole, words) and not (cookbook.known_word(left.lower(), words) and cookbook.known_word(right.lower(), words)):
+            return left + right
+        return found.group(0)
+
+    return BROKEN_WORD.sub(join, text)
+
+
 def paged_record(recipe: dict, page: str, words: frozenset[str] | set[str] | None = None) -> tuple[dict | None, str | None]:
     """The record of a model answer for a page that holds one recipe, or why it is dropped: the number check on every
     line and step against the page, and every line of the page that starts with an amount (a bare step number and the
@@ -1550,10 +1662,12 @@ def paged_record(recipe: dict, page: str, words: frozenset[str] | set[str] | Non
     wrapped line ("10-ounce baby lima" / "beans (frozen)") counts once and no listed ingredient is left out. The name is
     the title the page prints, read by rule (page_heading), when it can be read, else the model's with each word on the
     page; the yield is the page's "Makes ..." line, and a step that is only that sentence is no step; with a word list,
-    every line and step must be readable (staging checkpoint 7, S23)."""
+    every line and step must be readable (staging checkpoint 7, S23). A list heading in capitals ("DRESSING", "FOR THE
+    TOPPING:") is no ingredient line, a sidebar tip set after its icon letter ("Z To reduce sodium, ...") is no step, and
+    a word the page breaks with a soft hyphen is joined again ("min-utes" is "minutes") (staging checkpoint 8, T19)."""
     name = recipe.get("name") if isinstance(recipe.get("name"), str) else None
-    ingredients = [i for i in recipe.get("ingredients") or [] if isinstance(i, str) and i.strip()]
-    steps = [s for s in recipe.get("steps") or [] if isinstance(s, str) and s.strip()]
+    ingredients = [joined(i, words) for i in recipe.get("ingredients") or [] if isinstance(i, str) and i.strip() and not LIST_HEADING.fullmatch(i.strip())]
+    steps = [joined(s, words) for s in recipe.get("steps") or [] if isinstance(s, str) and s.strip() and not SIDEBAR_TIP.match(s.strip())]
     if not name or not ingredients:
         return None, "no name or no ingredient line"
     title, title_lines = page_heading(page, words)
@@ -1570,7 +1684,7 @@ def paged_record(recipe: dict, page: str, words: frozenset[str] | set[str] | Non
         record["recipeYield"] = printed
         if re.search(r"\bserv", printed, re.I) and servings(printed) is not None:
             record["recipeServings"] = servings(printed)
-    problem = number_check(record, page)
+    problem = number_check(record, joined(page, words))
     if problem:
         return None, problem
     if words is not None:

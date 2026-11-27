@@ -148,6 +148,12 @@ namespace Nom.Import
                 return;
             }
 
+            if (Array.IndexOf(args, "--dish-words") >= 0)
+            {
+                await RunDishWordsAsync(host, args);
+                return;
+            }
+
             var contentsFlag = Array.IndexOf(args, "--prepared-contents");
             if (contentsFlag >= 0)
             {
@@ -521,6 +527,26 @@ namespace Nom.Import
                 Console.WriteLine($"Run stamp:        {runStamp:O} (take this run back with --branded-lift --undo {runStamp:O})");
         }
 
+        private static async Task RunDishWordsAsync(IHost host, string[] args)
+        {
+            string? Value(string name)
+            {
+                var i = Array.IndexOf(args, name);
+                return i >= 0 && i + 1 < args.Length && !args[i + 1].StartsWith("--", StringComparison.Ordinal) ? args[i + 1] : null;
+            }
+            var output = Value("--out");
+            if (output == null)
+            {
+                Console.WriteLine("Usage: --dish-words --out <diet-dish-words.tsv> [--corpus <what the database is a copy of>] [--no-statements]   (reads the recipes, writes the file only)");
+                return;
+            }
+            using var scope = host.Services.CreateScope();
+            var db = scope.ServiceProvider.GetRequiredService<ApplicationDbContext>();
+            var text = await Nom.Orch.Services.Support.DietDishWordsDerivation.DeriveAsync(db, Value("--corpus") ?? "the database read", statements: Array.IndexOf(args, "--no-statements") < 0);
+            await File.WriteAllTextAsync(output, text);
+            Console.WriteLine($"Rows written: {text.Split('\n').Count(l => l.Length > 0 && !l.StartsWith('#')) - 1} to {output} (nothing written to the database)");
+        }
+
         private static async Task RunBrandedConsensusAsync(IHost host, string[] args, int flag)
         {
             string? Value(string name)
@@ -558,7 +584,8 @@ namespace Nom.Import
             var heads = rows.Select(r => Nom.Orch.Services.Support.BrandedConsensus.HeadOf(string.IsNullOrWhiteSpace(r.Description) ? r.Name ?? string.Empty : r.Description!))
                 .OfType<string>().ToHashSet(StringComparer.Ordinal);
             var matches = Nom.Orch.Services.Support.BrandedConsensus.Match(foods, products, heads);
-            var tallies = Nom.Orch.Services.Support.BrandedConsensus.Tally(matches);
+            var ground = Nom.Orch.Services.Support.BrandedConsensus.GroundWords(rows.Select(r => (r.FdcCategoryId, string.IsNullOrWhiteSpace(r.Description) ? r.Name ?? string.Empty : r.Description!)));
+            var tallies = Nom.Orch.Services.Support.BrandedConsensus.Tally(matches, ground);
             var consensus = Nom.Orch.Services.Support.BrandedConsensus.Rows(foods, tallies);
             await File.WriteAllTextAsync(output, Nom.Orch.Services.Support.BrandedConsensus.Write(consensus, new DirectoryInfo(dir).Name));
             if (Value("--matches") is { } matchFile)
@@ -566,7 +593,7 @@ namespace Nom.Import
                     .Select(p => string.Join('	', f.Id, f.Name, p.FdcId, p.Description.Replace('	', ' '), p.Category ?? string.Empty))));
             if (Value("--tallies") is { } tallyFile)
                 await File.WriteAllLinesAsync(tallyFile, foods.Where(f => tallies.ContainsKey(f.Id)).Select(f => string.Join('	', f.Id, f.Name, f.CategoryId, tallies[f.Id].Matched, tallies[f.Id].Read,
-                    string.Join(' ', Nom.Orch.Services.Support.DietVocabulary.Classes.Select(c => c.Name + "=" + (tallies[f.Id].Stating.GetValueOrDefault(c.Name)?.Count ?? 0))))));
+                    string.Join(' ', Nom.Orch.Services.Support.DietVocabulary.Classes.Select(c => c.Name + "=" + (tallies[f.Id].Stating.GetValueOrDefault(c.Name)?.Count ?? 0))), tallies[f.Id].Single)));
             Console.WriteLine($"Foods with a match: {matches.Count(m => m.Value.Count > 0)}; with at least {Nom.Orch.Services.Support.BrandedConsensus.MinProducts} read statements: {tallies.Count(t => t.Value.Read >= Nom.Orch.Services.Support.BrandedConsensus.MinProducts)}");
             foreach (var g in consensus.GroupBy(r => (r.Class, r.Verdict)).OrderBy(g => g.Key.Class, StringComparer.Ordinal).ThenBy(g => g.Key.Verdict, StringComparer.Ordinal))
                 Console.WriteLine($"  {g.Key.Class} {g.Key.Verdict}: {g.Count()}");
