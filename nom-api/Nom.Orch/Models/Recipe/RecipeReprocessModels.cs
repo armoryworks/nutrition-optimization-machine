@@ -120,12 +120,16 @@ namespace Nom.Orch.Models.Recipe
         /// <summary>The held amounts by the guard's reason.</summary>
         public Dictionary<string, int> GuardHeldByReason { get; set; } = new(StringComparer.Ordinal);
 
+        /// <summary>Stored amounts emptied on a recipe the rebuild held, because each is only the number of the recipe or page its line refers to.</summary>
+        public int ReferralsCleared { get; set; }
+
         /// <summary>Adds only the line guard's counts, as for a recipe left unchanged because every line that differs is kept or held.</summary>
         public void AddGuard(RecipeReprocessChangeCounts other)
         {
             GuardKept += other.GuardKept;
             GuardReplaced += other.GuardReplaced;
             GuardHeld += other.GuardHeld;
+            ReferralsCleared += other.ReferralsCleared;
             foreach (var (reason, count) in other.GuardHeldByReason) GuardHeldByReason[reason] = GuardHeldByReason.GetValueOrDefault(reason) + count;
         }
 
@@ -167,6 +171,9 @@ namespace Nom.Orch.Models.Recipe
         public long? JournalId { get; set; }
         public RecipeReprocessChangeCounts Counts { get; set; } = new();
         public List<RecipeReprocessLineDiff> Lines { get; set; } = new();
+
+        /// <summary>On a held recipe, the lines whose stored amount is, or would be, emptied as only a referred recipe's or page's number.</summary>
+        public List<RecipeReprocessLineDiff> ReferralLines { get; set; } = new();
     }
 
     /// <summary>The answer of a rebuild or an order-only pass over a batch of recipes.</summary>
@@ -255,6 +262,9 @@ namespace Nom.Orch.Models.Recipe
 
         /// <summary>Foods a rebuild created that something still references or someone changed since; kept.</summary>
         public int FoodsKept { get; set; }
+
+        /// <summary>Deleted foods whose name a rebuild freed for a food it created ("name (deleted #id)"), given their name back once that food is removed (staging checkpoint 9, U10).</summary>
+        public int NamesRestored { get; set; }
 
         public Dictionary<string, int> RestoredByKind { get; set; } = new();
         public List<long> SkippedRecipeIds { get; set; } = new();
@@ -355,6 +365,7 @@ namespace Nom.Orch.Models.Recipe
         public int StateKept { get; set; }
         public int FoodsRemoved { get; set; }
         public int FoodsKept { get; set; }
+        public int NamesRestored { get; set; }
 
         /// <summary>Entries reached that something else had taken back before their batch was read.</summary>
         public int AlreadyUndone { get; set; }

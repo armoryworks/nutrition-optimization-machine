@@ -957,8 +957,11 @@ namespace Nom.Orch.Services
         /// text below, under that name or its tombstoned "X (deleted #id)" name) that no line of any other recipe names, live or
         /// retired; the line texts no line of any other recipe holds and no other live food is named by; the link proposals on
         /// those foods or whose current value is such a text; and the wording lanes' decisions about such a text's key when the key
-        /// is free too and no live verified wording has it. Read before the recipes' lines are deleted, so a food two purged
-        /// batches share goes with the later one.
+        /// is free too and no live verified wording has it. A line's wording, more than its food words, is its whole text and also
+        /// its normalised form ("yellow pepper, chopped or sliced" of "1 yellow pepper, chopped or sliced", the form a link lane gave
+        /// an alias, staging checkpoint 9, U14); the normalised form counts only when it names an alias and no line of another
+        /// recipe holds it anywhere in its text. Read before the recipes' lines are deleted, so a food two purged batches share
+        /// goes with the later one.
         /// </summary>
         private async Task<WordingPlan> WordingPlanAsync(List<long> recipeIds, CancellationToken cancellationToken)
         {
@@ -975,6 +978,7 @@ namespace Nom.Orch.Services
 
             var texts = new HashSet<string>(StringComparer.Ordinal);
             var wordings = new HashSet<string>(StringComparer.Ordinal);
+            var normalizedWordings = new HashSet<string>(StringComparer.Ordinal);
             foreach (var (_, raw) in lines)
             {
                 var plain = Text(raw);
@@ -982,6 +986,7 @@ namespace Nom.Orch.Services
                 if (plain is not null) texts.Add(plain);
                 if (normalized is not null) texts.Add(normalized);
                 if (plain is not null && (plain != Text(ProseWithholding.FoodWords(raw)) || IngredientNameNormalizer.TierKey(raw) is null)) wordings.Add(plain);
+                if (normalized is not null && normalized != plain && normalized != Text(ProseWithholding.FoodWords(normalized))) normalizedWordings.Add(normalized);
             }
             foreach (var (_, name) in lineFoods)
                 if (Text(name) is { } named) texts.Add(named);
@@ -1010,6 +1015,12 @@ namespace Nom.Orch.Services
                 freeKeys.ExceptWith(await _db.IngredientWordings.Where(w => chunk.Contains(w.Wording)).Select(w => w.Wording).ToListAsync(cancellationToken));
             var subjects = freeKeys.Select(WordingTierLaneService.Subject).OrderBy(s => s, StringComparer.Ordinal).ToList();
             wordings.IntersectWith(free);
+            normalizedWordings.IntersectWith(free);
+            normalizedWordings.ExceptWith(wordings);
+            foreach (var chunk in normalizedWordings.ToList().Chunk(1000))
+                foreach (var text in await AliasesWordedOf(_db, chunk).Select(a => a.AliasName.ToLower().Trim()).Distinct().ToListAsync(cancellationToken))
+                    if (!await _db.RecipeIngredients.IgnoreQueryFilters().AnyAsync(l => !recipeIds.Contains(l.RecipeId) && l.RawLine.ToLower().Contains(text), cancellationToken))
+                        wordings.Add(text);
             return new WordingPlan(foods, await HeldAsync(foodList, cancellationToken), proposals, free, wordings, subjects, foodList.Select(RetiredAliasContext).ToList());
 
             static string? Text(string? value) => string.IsNullOrWhiteSpace(value) ? null : value.Trim().ToLowerInvariant();

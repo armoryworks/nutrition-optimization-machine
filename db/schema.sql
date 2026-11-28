@@ -2,7 +2,7 @@
 -- PostgreSQL database dump
 --
 
-\restrict nMR2ripFsRzk3FDBkcFxB6ebja9f0CO2Bt6PYbbOFH68QVVPGXXR4Uuz44IiAev
+\restrict EFuImgenWVSPYYCpr8p0lP90bRUKDiaik7SZ34MC31pDrQjnCHK2zb3ph6aQMqd
 
 -- Dumped from database version 16.15 (Debian 16.15-1.pgdg13+2)
 -- Dumped by pg_dump version 16.15 (Ubuntu 16.15-0ubuntu0.24.04.1)
@@ -265,6 +265,31 @@ $$;
 
 
 --
+-- Name: DietGateJudgedHoldsWritten(); Type: FUNCTION; Schema: plan; Owner: -
+--
+
+CREATE FUNCTION plan."DietGateJudgedHoldsWritten"() RETURNS trigger
+    LANGUAGE plpgsql
+    AS $$
+BEGIN
+    IF TG_OP = 'INSERT' THEN
+        PERFORM plan."DietGateHoldRecipes"(ARRAY(SELECT n."RecipeId" FROM new_rows n));
+    ELSIF TG_OP = 'DELETE' THEN
+        PERFORM plan."DietGateHoldRecipes"(ARRAY(SELECT o."RecipeId" FROM old_rows o));
+    ELSE
+        PERFORM plan."DietGateHoldRecipes"(ARRAY(
+            SELECT n."RecipeId" FROM new_rows n JOIN old_rows o ON o."Id" = n."Id"
+            WHERE (o."RecipeId", o."RestrictionTypeId") IS DISTINCT FROM (n."RecipeId", n."RestrictionTypeId")
+            UNION
+            SELECT o."RecipeId" FROM new_rows n JOIN old_rows o ON o."Id" = n."Id"
+            WHERE (o."RecipeId", o."RestrictionTypeId") IS DISTINCT FROM (n."RecipeId", n."RestrictionTypeId")));
+    END IF;
+    RETURN NULL;
+END;
+$$;
+
+
+--
 -- Name: DietGateLinesWritten(); Type: FUNCTION; Schema: plan; Owner: -
 --
 
@@ -498,34 +523,40 @@ DECLARE
     foods bigint[];
 BEGIN
     IF TG_OP = 'INSERT' THEN
-        wordings := ARRAY(SELECT DISTINCT lower(n."Wording") FROM new_rows n);
-        foods := ARRAY(SELECT DISTINCT n."IngredientId" FROM new_rows n WHERE n."IngredientId" IS NOT NULL);
+        wordings := ARRAY(SELECT DISTINCT lower(n."Wording") FROM new_rows n WHERE n."Verdict" = 'category' AND NOT n."IsDeleted");
+        foods := ARRAY(SELECT DISTINCT n."IngredientId" FROM new_rows n WHERE n."Verdict" = 'food' AND n."IngredientId" IS NOT NULL AND NOT n."IsDeleted");
     ELSIF TG_OP = 'DELETE' THEN
-        wordings := ARRAY(SELECT DISTINCT lower(o."Wording") FROM old_rows o);
-        foods := ARRAY(SELECT DISTINCT o."IngredientId" FROM old_rows o WHERE o."IngredientId" IS NOT NULL);
+        wordings := ARRAY(SELECT DISTINCT lower(o."Wording") FROM old_rows o WHERE o."Verdict" = 'category' AND NOT o."IsDeleted");
+        foods := ARRAY(SELECT DISTINCT o."IngredientId" FROM old_rows o WHERE o."Verdict" = 'food' AND o."IngredientId" IS NOT NULL AND NOT o."IsDeleted");
     ELSE
         wordings := ARRAY(
             SELECT DISTINCT lower(x."Wording") FROM new_rows n JOIN old_rows o ON o."Id" = n."Id"
-                CROSS JOIN LATERAL (VALUES (o."Wording", o."IngredientId"), (n."Wording", n."IngredientId")) x("Wording", "IngredientId")
-            WHERE (o."Wording", o."Verdict", o."IngredientId", o."FdcCategoryId", o."CategoryHead", o."IsDeleted")
+                CROSS JOIN LATERAL (VALUES (o."Wording", o."Verdict", o."IsDeleted"), (n."Wording", n."Verdict", n."IsDeleted")) x("Wording", "Verdict", "IsDeleted")
+            WHERE x."Verdict" = 'category' AND NOT x."IsDeleted"
+              AND (o."Wording", o."Verdict", o."IngredientId", o."FdcCategoryId", o."CategoryHead", o."IsDeleted")
                   IS DISTINCT FROM (n."Wording", n."Verdict", n."IngredientId", n."FdcCategoryId", n."CategoryHead", n."IsDeleted"));
         foods := ARRAY(
             SELECT DISTINCT x."IngredientId" FROM new_rows n JOIN old_rows o ON o."Id" = n."Id"
-                CROSS JOIN LATERAL (VALUES (o."IngredientId"), (n."IngredientId")) x("IngredientId")
-            WHERE x."IngredientId" IS NOT NULL
+                CROSS JOIN LATERAL (VALUES (o."IngredientId", o."Verdict", o."IsDeleted"), (n."IngredientId", n."Verdict", n."IsDeleted")) x("IngredientId", "Verdict", "IsDeleted")
+            WHERE x."Verdict" = 'food' AND x."IngredientId" IS NOT NULL AND NOT x."IsDeleted"
               AND (o."Wording", o."Verdict", o."IngredientId", o."FdcCategoryId", o."CategoryHead", o."IsDeleted")
                   IS DISTINCT FROM (n."Wording", n."Verdict", n."IngredientId", n."FdcCategoryId", n."CategoryHead", n."IsDeleted"));
     END IF;
-    IF cardinality(wordings) = 0 THEN
+    IF coalesce(current_setting('nom.diet_wording_holds', true), '') = 'writer' THEN
+        foods := '{}';
+    ELSE
+        foods := ARRAY(
+            SELECT f FROM unnest(foods) f
+            WHERE EXISTS (SELECT 1 FROM curation."FoodCatalogProposal" p
+                          WHERE p."ProposedValue" = f::text AND p."Field" = 'fdc_link' AND p."Status" = 4 AND p."Source" LIKE 'ai:%' AND NOT p."IsDeleted"));
+    END IF;
+    IF cardinality(wordings) = 0 AND cardinality(foods) = 0 THEN
         RETURN NULL;
     END IF;
-    foods := ARRAY(
-        SELECT f FROM unnest(foods) f
-        WHERE EXISTS (SELECT 1 FROM curation."FoodCatalogProposal" p
-                      WHERE p."ProposedValue" = f::text AND p."Field" = 'fdc_link' AND p."Status" = 4 AND p."Source" LIKE 'ai:%' AND NOT p."IsDeleted"));
     PERFORM plan."DietGateHoldRecipes"(ARRAY(
-        SELECT ri."RecipeId" FROM recipe."RecipeIngredient" ri JOIN recipe."Ingredient" i ON i."Id" = ri."IngredientId"
-        WHERE lower(i."Name") = ANY (wordings)
+        SELECT ri."RecipeId" FROM unnest(wordings) w("Wording")
+            JOIN recipe."Ingredient" i ON i."Name" ILIKE replace(replace(replace(w."Wording", '\', '\\'), '%', '\%'), '_', '\_') AND lower(i."Name") = w."Wording"
+            JOIN recipe."RecipeIngredient" ri ON ri."IngredientId" = i."Id"
         UNION
         SELECT ri."RecipeId" FROM recipe."RecipeIngredient" ri WHERE ri."IngredientId" = ANY (foods)));
     RETURN NULL;
@@ -2591,6 +2622,37 @@ CREATE TABLE plan."PolicyContractVersion" (
 
 ALTER TABLE plan."PolicyContractVersion" ALTER COLUMN "Id" ADD GENERATED BY DEFAULT AS IDENTITY (
     SEQUENCE NAME plan."PolicyContractVersion_Id_seq"
+    START WITH 1
+    INCREMENT BY 1
+    NO MINVALUE
+    NO MAXVALUE
+    CACHE 1
+);
+
+
+--
+-- Name: RecipeDietJudgedHold; Type: TABLE; Schema: plan; Owner: -
+--
+
+CREATE TABLE plan."RecipeDietJudgedHold" (
+    "Id" bigint NOT NULL,
+    "RecipeId" bigint NOT NULL,
+    "RestrictionTypeId" bigint NOT NULL,
+    "Food" character varying(100) NOT NULL,
+    "JudgedBy" character varying(100) NOT NULL,
+    "JudgedAt" timestamp with time zone NOT NULL,
+    "Evidence" character varying(255) NOT NULL,
+    "LoadedAt" timestamp with time zone NOT NULL,
+    "LoadedByPersonId" bigint NOT NULL
+);
+
+
+--
+-- Name: RecipeDietJudgedHold_Id_seq; Type: SEQUENCE; Schema: plan; Owner: -
+--
+
+ALTER TABLE plan."RecipeDietJudgedHold" ALTER COLUMN "Id" ADD GENERATED BY DEFAULT AS IDENTITY (
+    SEQUENCE NAME plan."RecipeDietJudgedHold_Id_seq"
     START WITH 1
     INCREMENT BY 1
     NO MINVALUE
@@ -6078,6 +6140,14 @@ ALTER TABLE ONLY plan."PolicyContractVersion"
 
 
 --
+-- Name: RecipeDietJudgedHold PK_RecipeDietJudgedHold; Type: CONSTRAINT; Schema: plan; Owner: -
+--
+
+ALTER TABLE ONLY plan."RecipeDietJudgedHold"
+    ADD CONSTRAINT "PK_RecipeDietJudgedHold" PRIMARY KEY ("Id");
+
+
+--
 -- Name: RecipeDietReading PK_RecipeDietReading; Type: CONSTRAINT; Schema: plan; Owner: -
 --
 
@@ -7615,6 +7685,20 @@ CREATE INDEX "IX_Plan_ParentPlanId" ON plan."Plan" USING btree ("ParentPlanId");
 
 
 --
+-- Name: IX_RecipeDietJudgedHold_LoadedAt; Type: INDEX; Schema: plan; Owner: -
+--
+
+CREATE INDEX "IX_RecipeDietJudgedHold_LoadedAt" ON plan."RecipeDietJudgedHold" USING btree ("LoadedAt");
+
+
+--
+-- Name: IX_RecipeDietJudgedHold_RecipeId_RestrictionTypeId; Type: INDEX; Schema: plan; Owner: -
+--
+
+CREATE UNIQUE INDEX "IX_RecipeDietJudgedHold_RecipeId_RestrictionTypeId" ON plan."RecipeDietJudgedHold" USING btree ("RecipeId", "RestrictionTypeId");
+
+
+--
 -- Name: IX_RecipeDietReading_ReadAt; Type: INDEX; Schema: plan; Owner: -
 --
 
@@ -8872,6 +8956,27 @@ CREATE TRIGGER "DietGateNutrientsUpdated" AFTER UPDATE ON nutrient."IngredientNu
 --
 
 CREATE TRIGGER "DietGateCriteriaWritten" AFTER INSERT OR DELETE OR UPDATE ON plan."RestrictionCriterion" FOR EACH STATEMENT EXECUTE FUNCTION plan."DietGateCriteriaWritten"();
+
+
+--
+-- Name: RecipeDietJudgedHold DietGateJudgedHoldsDeleted; Type: TRIGGER; Schema: plan; Owner: -
+--
+
+CREATE TRIGGER "DietGateJudgedHoldsDeleted" AFTER DELETE ON plan."RecipeDietJudgedHold" REFERENCING OLD TABLE AS old_rows FOR EACH STATEMENT EXECUTE FUNCTION plan."DietGateJudgedHoldsWritten"();
+
+
+--
+-- Name: RecipeDietJudgedHold DietGateJudgedHoldsInserted; Type: TRIGGER; Schema: plan; Owner: -
+--
+
+CREATE TRIGGER "DietGateJudgedHoldsInserted" AFTER INSERT ON plan."RecipeDietJudgedHold" REFERENCING NEW TABLE AS new_rows FOR EACH STATEMENT EXECUTE FUNCTION plan."DietGateJudgedHoldsWritten"();
+
+
+--
+-- Name: RecipeDietJudgedHold DietGateJudgedHoldsUpdated; Type: TRIGGER; Schema: plan; Owner: -
+--
+
+CREATE TRIGGER "DietGateJudgedHoldsUpdated" AFTER UPDATE ON plan."RecipeDietJudgedHold" REFERENCING OLD TABLE AS old_rows NEW TABLE AS new_rows FOR EACH STATEMENT EXECUTE FUNCTION plan."DietGateJudgedHoldsWritten"();
 
 
 --
@@ -10887,5 +10992,5 @@ ALTER TABLE ONLY shopping."ShoppingTrip"
 -- PostgreSQL database dump complete
 --
 
-\unrestrict nMR2ripFsRzk3FDBkcFxB6ebja9f0CO2Bt6PYbbOFH68QVVPGXXR4Uuz44IiAev
+\unrestrict EFuImgenWVSPYYCpr8p0lP90bRUKDiaik7SZ34MC31pDrQjnCHK2zb3ph6aQMqd
 

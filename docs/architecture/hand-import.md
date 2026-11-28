@@ -362,6 +362,23 @@ application server, in the `nom-hand-import` image, staging first (see "Where it
    URL is on its domain out of search, suggestions, meal plans and cookbooks, journaled; release or
    the journal's undo brings them back.
 
+## Page images read by their layout (staging checkpoint 9, U17)
+
+The one-book proof read 4 of 20 pages wrong: an index page's names took the other column's page numbers ("Waffles
+26" where the book prints 16) and whole method lines were dropped without a mark. `table_text` now reads a page by
+its layout (`page_layout`):
+
+- **Two columns** (a gutter at least two letters wide down the middle that no word of the body crosses, at least
+  three rows on each side, most right-hand rows starting with a letter): the heading rows above the first two-sided
+  row are read first, then the left column, then the right one, each as a page of its own, so a name only ever meets
+  the numbers of its own column.
+- **A page whose rows cannot be assigned to one column** (a few body rows cross the gutter of a page set in two
+  columns) is refused: the reading is `COLUMNS_REFUSED`, the page keeps the Library's text, is marked
+  `imageRefused: columns` and stays `needsImage`, so no record is taken from it by rule or by the model.
+- **A line the reading lost is marked:** a wide gap inside a paragraph (the line before goes on with no sentence end
+  or ends with a hyphen, or the line after starts in lower case) gets a line of the unread mark, so the recipe is
+  unreadable by rule and never kept with a step missing.
+
 ## Page images: the one-book proof on staging
 
 Before any larger run, one Library book is taken through the page images on staging, with the

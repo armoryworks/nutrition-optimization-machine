@@ -8,7 +8,8 @@ namespace Nom.Data.Plan
     /// (title, lines and method), the store version it was written under, whether the reply was readable and whether the
     /// reader found the recipe whole, and one letter per type (<c>c</c> contains, <c>m</c> may, <c>f</c> free) in the
     /// reader's type order. A reading whose prompt or text signature is not the current one is not read by anything; the lane
-    /// reads the recipe again. Only the lane writes a row, and a row never holds a nutrition number.
+    /// reads the recipe again. Only the lane writes a row, or the journaled import of readings made elsewhere under the
+    /// same prompt and text signatures, and a row never holds a nutrition number.
     /// </summary>
     public class RecipeDietReadingEntity
     {

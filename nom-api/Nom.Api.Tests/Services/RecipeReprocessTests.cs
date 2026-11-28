@@ -43,9 +43,12 @@ namespace Nom.Api.Tests.Services
             public string RequiredUserId => "operator";
         }
 
-        private static async Task<ApplicationDbContext> SeededAsync()
+        private static async Task<ApplicationDbContext> SeededAsync(bool softDeletes = false)
         {
-            var db = new ApplicationDbContext(new DbContextOptionsBuilder<ApplicationDbContext>().UseInMemoryDatabase(Guid.NewGuid().ToString()).Options);
+            var options = new DbContextOptionsBuilder<ApplicationDbContext>().UseInMemoryDatabase(Guid.NewGuid().ToString()).Options;
+            var db = softDeletes
+                ? new ApplicationDbContext(options, new Microsoft.AspNetCore.Http.HttpContextAccessor { HttpContext = new Microsoft.AspNetCore.Http.DefaultHttpContext() })
+                : new ApplicationDbContext(options);
             db.Measurements.AddRange(
                 new BaseMeasurementEntity { Id = Piece, Name = "Piece", Symbol = "pc", MeasurementCategoryId = 3 },
                 new BaseMeasurementEntity { Id = Cup, Name = "Cup", Symbol = "cup", MeasurementCategoryId = 2 },
@@ -1104,6 +1107,33 @@ namespace Nom.Api.Tests.Services
         [Theory]
         [InlineData(true)]
         [InlineData(false)]
+        public async Task The_undo_of_a_rebuild_gives_a_deleted_food_back_the_name_the_rebuild_freed_for_a_food_it_created(bool softDeletes)
+        {
+            using var db = await SeededAsync(softDeletes);
+            var butter = await FoodAsync(db, "butter");
+            var holder = new IngredientEntity { Name = "young fowls", CurationStatusId = (long)CurationStatusEnum.NonCurated, IsDeleted = true, DeletedAt = Imported };
+            db.Ingredients.Add(holder);
+            await db.SaveChangesAsync();
+            var first = await RecipeAsync(db, Record("First", new[] { "2 oz. butter", "1 cup young fowls" }), new[] { new Row(butter, "2 oz. butter", 2, Ounce) });
+
+            var rebuilt = await Service(db).RebuildAsync(For(first.Id), apply: true);
+            db.ChangeTracker.Clear();
+            (await db.Ingredients.IgnoreQueryFilters().SingleAsync(i => i.Id == holder.Id)).Name.Should().Be($"young fowls (deleted #{holder.Id})", "the rebuild freed the name for the food it created");
+            var dry = await Service(db).UndoAsync(null, rebuilt.BatchId);
+            var undone = await Service(db).UndoAsync(null, rebuilt.BatchId, apply: true);
+            db.ChangeTracker.Clear();
+
+            (dry.FoodsRemoved, dry.NamesRestored).Should().Be((1, 1));
+            (undone.Restored, undone.FoodsRemoved, undone.NamesRestored).Should().Be((1, 1, 1));
+            var back = await db.Ingredients.IgnoreQueryFilters().AsNoTracking().SingleAsync(i => i.Id == holder.Id);
+            (back.Name, back.IsDeleted).Should().Be(("young fowls", true), "staging checkpoint 9, U10: six soft-deleted foods kept the \"(deleted #id)\" name the rebuild's apply gave them after its undo");
+            (await db.AuditLogEntries.AnyAsync(a => a.ChangeType == RecipeScrapingService.NameFreedChangeType && a.EntityId == holder.Id)).Should().BeFalse("the holder's freed name is taken back with its entry");
+            (await db.Ingredients.IgnoreQueryFilters().CountAsync(i => i.Name == "young fowls")).Should().Be(1);
+        }
+
+        [Theory]
+        [InlineData(true)]
+        [InlineData(false)]
         public async Task The_undo_of_a_rebuild_keeps_a_food_it_created_while_a_later_rebuild_would_put_a_line_back_on_it(bool olderFirst)
         {
             using var db = await SeededAsync();
@@ -1360,6 +1390,51 @@ namespace Nom.Api.Tests.Services
             pairs[0].Should().BeSameAs(flour);
             pairs[1].Should().BeSameAs(fold);
             pairs[2].Should().BeSameAs(fold);
+        }
+
+        [Fact]
+        public async Task A_held_recipe_keeps_its_lines_but_a_referred_number_stored_as_its_amount_is_emptied_and_the_rebuild_undo_takes_it_back()
+        {
+            using var db = await SeededAsync();
+            var composto = await FoodAsync(db, "composto");
+            var eggs = await FoodAsync(db, "uova");
+            var recipe = await RecipeAsync(db, null, new[]
+            {
+                new Row(composto, "composto N. 374", 374, Piece), new Row(eggs, "Uova N. 2", 2, Piece, SortOrder: 1),
+            });
+
+            var dry = await Service(db).RebuildAsync(For(recipe.Id));
+            dry.HeldByReason.Should().ContainKey(RecipeReprocessHold.NoSource);
+            dry.Counts.ReferralsCleared.Should().Be(1, "staging checkpoint 9, U8: a referral number on a held recipe stayed stored as 374 pieces");
+            dry.Results.Single().ReferralLines.Should().ContainSingle(l => l.RawLine == "composto N. 374" && l.NewQuantity == 0m && l.GuardReason == LineAmountGuard.Reasons.Referral);
+            (await LinesAsync(db, recipe.Id)).Select(l => l.Quantity).Should().Equal(374m, 2m);
+
+            var applied = await Service(db).RebuildAsync(For(recipe.Id), apply: true);
+
+            applied.Held.Should().Be(1);
+            (await LinesAsync(db, recipe.Id)).Select(l => l.Quantity).Should().Equal(0m, 2m);
+            (await db.RecipeReprocessJournals.SingleAsync()).Kind.Should().Be(RecipeReprocessKind.Referral);
+
+            var undo = await Service(db).UndoAsync(null, applied.BatchId, RecipeReprocessKind.Rebuild, apply: true);
+
+            undo.RestoredByKind.Should().ContainKey(RecipeReprocessKind.Referral);
+            (await LinesAsync(db, recipe.Id)).Select(l => l.Quantity).Should().Equal(374m, 2m);
+        }
+
+        [Fact]
+        public async Task A_person_edited_recipe_keeps_even_a_referred_number()
+        {
+            using var db = await SeededAsync();
+            var composto = await FoodAsync(db, "composto");
+            var recipe = await RecipeAsync(db, null, new[] { new Row(composto, "composto N. 374", 374, Piece) });
+            var tracked = await db.Recipes.SingleAsync();
+            tracked.Version = 2;
+            await db.SaveChangesAsync();
+
+            var result = await Service(db).RebuildAsync(For(recipe.Id), apply: true);
+
+            result.Counts.ReferralsCleared.Should().Be(0);
+            (await LinesAsync(db, recipe.Id)).Single().Quantity.Should().Be(374m);
         }
     }
 }

@@ -52,11 +52,17 @@ namespace Nom.Orch.Services
         public const string RejectionEntityType = "IngredientWordingRejection";
         public const string RejectionLiftChangeType = "WordingRejectionLift";
 
+        /// <summary>The rows a load or an unload writes in one transaction (staging checkpoint 9, U11: the w01 unload of 232 rows ran past the 30 s command timeout as one save).</summary>
+        public const int Chunk = 50;
+
         private const int BusiestFoodCount = 20;
         private static readonly string[] PromotableDataTypes = { "foundation_food", "sr_legacy_food" };
 
         private readonly ApplicationDbContext _db;
         private readonly ICurrentUserService _currentUser;
+
+        /// <summary>A hook a test sets to fail a load's or an unload's batch (the batch's index) before it saves anything.</summary>
+        internal Func<int, Task>? BeforeBatchSave { get; set; }
 
         public VerifiedWordingService(ApplicationDbContext db, ICurrentUserService currentUser)
         {
@@ -286,79 +292,203 @@ namespace Nom.Orch.Services
                 .Take(BusiestFoodCount)
                 .ToList();
 
+            result.Batches = (writes.Count + Chunk - 1) / Chunk;
             if (!apply || writes.Count == 0) return result;
 
             var personId = _currentUser.PersonIdOrSystem;
-            var now = DateTime.UtcNow;
-            await using var tx = _db.Database.IsRelational() ? await _db.Database.BeginTransactionAsync() : null;
-
-            foreach (var rejection in lifted)
+            var liftedDone = new HashSet<long>();
+            var curatedDone = new HashSet<long>();
+            var held = new HashSet<long>();
+            var index = -1;
+            foreach (var part in writes.Chunk(Chunk))
             {
-                _db.AuditLogEntries.Add(Journal(RejectionEntityType, rejection.Id, RejectionLiftChangeType, nameof(IngredientWordingRejectionEntity.Reason),
-                    rejection.Reason, null, now, personId));
-                rejection.IsDeleted = true;
-                rejection.DeletedAt = now;
-                rejection.DeletedByPersonId = personId;
-            }
-
-            foreach (var food in await _db.Ingredients.Where(i => promoted.Contains(i.Id)).ToListAsync())
-            {
-                _db.AuditLogEntries.Add(Journal(CurateEntityType, food.Id, CurateChangeType, nameof(IngredientEntity.CurationStatusId),
-                    Status(food.CurationStatusId), Status((long)CurationStatusEnum.Curated), now, personId));
-                food.CurationStatusId = (long)CurationStatusEnum.Curated;
-                food.LastModifiedDate = now;
-                food.LastModifiedByPersonId = personId;
-            }
-
-            var journaled = new List<(IngredientWordingEntity Row, Replaced? Old)>();
-            foreach (var (entry, existingRow, old) in writes)
-            {
-                var row = existingRow;
-                if (row == null)
+                index++;
+                var now = DateTime.UtcNow;
+                await using var tx = _db.Database.IsRelational() ? await _db.Database.BeginTransactionAsync() : null;
+                var lifts = part.SelectMany(w => w.Entry.Lifts).Where(r => !liftedDone.Contains(r.Id)).Distinct().ToList();
+                foreach (var rejection in lifts)
                 {
-                    row = new IngredientWordingEntity { Wording = entry.Wording, CreatedDate = now, CreatedByPersonId = personId };
-                    _db.IngredientWordings.Add(row);
-                }
-                else
-                {
-                    row.IsDeleted = false;
-                    row.DeletedAt = null;
-                    row.DeletedByPersonId = null;
-                    row.LastModifiedDate = now;
-                    row.LastModifiedByPersonId = personId;
+                    _db.AuditLogEntries.Add(Journal(RejectionEntityType, rejection.Id, RejectionLiftChangeType, nameof(IngredientWordingRejectionEntity.Reason),
+                        rejection.Reason, null, now, personId));
+                    rejection.IsDeleted = true;
+                    rejection.DeletedAt = now;
+                    rejection.DeletedByPersonId = personId;
                 }
 
-                row.Verdict = entry.Verdict;
-                row.IngredientId = entry.Food?.Id;
-                row.FdcCategoryId = entry.CategoryId;
-                row.CategoryHead = entry.CategoryHead;
-                row.Batch = batch;
-                row.Source = Truncate(rowSource, 255);
-                row.Note = entry.Row.Note == null ? null : Truncate(entry.Row.Note.Trim(), 1023);
-                journaled.Add((row, old));
+                var promote = part.Where(w => w.Entry.Food != null && promoted.Contains(w.Entry.Food.Id) && !curatedDone.Contains(w.Entry.Food.Id))
+                    .Select(w => w.Entry.Food!.Id).Distinct().ToList();
+                foreach (var food in await _db.Ingredients.Where(i => promote.Contains(i.Id) && i.CurationStatusId != (long)CurationStatusEnum.Curated).ToListAsync())
+                {
+                    _db.AuditLogEntries.Add(Journal(CurateEntityType, food.Id, CurateChangeType, nameof(IngredientEntity.CurationStatusId),
+                        Status(food.CurationStatusId), Status((long)CurationStatusEnum.Curated), now, personId));
+                    food.CurationStatusId = (long)CurationStatusEnum.Curated;
+                    food.LastModifiedDate = now;
+                    food.LastModifiedByPersonId = personId;
+                }
+
+                var holds = await DietGateWordingHolds.HoldAsync(_db, part.SelectMany(w => new[]
+                {
+                    new DietGateWordingHolds.Written(w.Entry.Wording, w.Row?.Verdict, w.Row?.IngredientId, w.Row?.IsDeleted ?? true),
+                    new DietGateWordingHolds.Written(w.Entry.Wording, w.Entry.Verdict, w.Entry.Food?.Id, false),
+                }));
+
+                var journaled = new List<(IngredientWordingEntity Row, Replaced? Old)>();
+                foreach (var (entry, existingRow, old) in part)
+                {
+                    var row = existingRow;
+                    if (row == null)
+                    {
+                        row = new IngredientWordingEntity { Wording = entry.Wording, CreatedDate = now, CreatedByPersonId = personId };
+                        _db.IngredientWordings.Add(row);
+                    }
+                    else
+                    {
+                        row.IsDeleted = false;
+                        row.DeletedAt = null;
+                        row.DeletedByPersonId = null;
+                        row.LastModifiedDate = now;
+                        row.LastModifiedByPersonId = personId;
+                    }
+
+                    row.Verdict = entry.Verdict;
+                    row.IngredientId = entry.Food?.Id;
+                    row.FdcCategoryId = entry.CategoryId;
+                    row.CategoryHead = entry.CategoryHead;
+                    row.Batch = batch;
+                    row.Source = Truncate(rowSource, 255);
+                    row.Note = entry.Row.Note == null ? null : Truncate(entry.Row.Note.Trim(), 1023);
+                    journaled.Add((row, old));
+                }
+
+                if (BeforeBatchSave != null) await BeforeBatchSave(index);
+                await _db.SaveChangesAsync();
+                foreach (var (row, old) in journaled)
+                {
+                    _db.AuditLogEntries.Add(Journal(WordingEntityType, row.Id, VerifyChangeType, nameof(IngredientWordingEntity.IngredientId),
+                        old?.Value, Value(row.Verdict, row.IngredientId), now, personId));
+                    if (old?.Group != null || row.FdcCategoryId != null)
+                        _db.AuditLogEntries.Add(Journal(WordingEntityType, row.Id, VerifyChangeType, nameof(IngredientWordingEntity.FdcCategoryId), old?.Group, GroupOf(row), now, personId));
+                    if (old == null) continue;
+                    _db.AuditLogEntries.Add(Journal(WordingEntityType, row.Id, VerifyChangeType, nameof(IngredientWordingEntity.Batch), old.Batch, row.Batch, now, personId));
+                    _db.AuditLogEntries.Add(Journal(WordingEntityType, row.Id, VerifyChangeType, nameof(IngredientWordingEntity.Note), old.Note, row.Note, now, personId));
+                }
+
+                await _db.SaveChangesAsync();
+                if (tx != null) await tx.CommitAsync();
+                liftedDone.UnionWith(lifts.Select(r => r.Id));
+                curatedDone.UnionWith(promote);
+                held.UnionWith(holds);
+                result.RecipesHeld = held.Count;
+                result.BatchesWritten++;
             }
 
-            await _db.SaveChangesAsync();
-            foreach (var (row, old) in journaled)
-            {
-                _db.AuditLogEntries.Add(Journal(WordingEntityType, row.Id, VerifyChangeType, nameof(IngredientWordingEntity.IngredientId),
-                    old?.Value, Value(row.Verdict, row.IngredientId), now, personId));
-                if (old?.Group != null || row.FdcCategoryId != null)
-                    _db.AuditLogEntries.Add(Journal(WordingEntityType, row.Id, VerifyChangeType, nameof(IngredientWordingEntity.FdcCategoryId), old?.Group, GroupOf(row), now, personId));
-                if (old == null) continue;
-                _db.AuditLogEntries.Add(Journal(WordingEntityType, row.Id, VerifyChangeType, nameof(IngredientWordingEntity.Batch), old.Batch, row.Batch, now, personId));
-                _db.AuditLogEntries.Add(Journal(WordingEntityType, row.Id, VerifyChangeType, nameof(IngredientWordingEntity.Note), old.Note, row.Note, now, personId));
-            }
-
-            await _db.SaveChangesAsync();
-            if (tx != null) await tx.CommitAsync();
             return result;
         }
 
         public async Task<VerifiedWordingUnloadResult> UnloadAsync(string batch, bool apply = false, bool withLines = false)
         {
             batch = (batch ?? string.Empty).Trim();
-            var rows = await _db.IngredientWordings.Where(w => w.Batch == batch).ToListAsync();
+            var rows = (await _db.IngredientWordings.Where(w => w.Batch == batch).ToListAsync()).OrderBy(r => r.Id).ToList();
+            var result = new VerifiedWordingUnloadResult { Applied = apply, Batches = (rows.Count + Chunk - 1) / Chunk };
+            if (!apply)
+            {
+                var whole = await UnloadPlanAsync(rows, batch);
+                (result.Removed, result.Restored, result.Demoted) = (rows.Count - whole.Earlier.Count, whole.Earlier.Count, whole.Demote.Count);
+                if (withLines) result.Lines = await Relink().UndoForSourcesAsync(Scopes(rows, whole.Earlier), apply: false);
+                return result;
+            }
+
+            var personId = _currentUser.PersonIdOrSystem;
+            var held = new HashSet<long>();
+            var index = -1;
+            foreach (var part in rows.Chunk(Chunk))
+            {
+                index++;
+                var chunk = part.ToList();
+                var now = DateTime.UtcNow;
+                try
+                {
+                    await using var tx = _db.Database.IsRelational() ? await _db.Database.BeginTransactionAsync() : null;
+                    var plan = await UnloadPlanAsync(chunk, batch);
+                    var lines = withLines ? await Relink().UndoForSourcesAsync(Scopes(chunk, plan.Earlier), apply: true) : null;
+                    var holds = await DietGateWordingHolds.HoldAsync(_db, chunk.SelectMany(r => new[]
+                    {
+                        new DietGateWordingHolds.Written(r.Wording, r.Verdict, r.IngredientId, false),
+                        plan.Earlier.TryGetValue(r.Id, out var back)
+                            ? new DietGateWordingHolds.Written(r.Wording, back.Verdict, back.IngredientId, false)
+                            : new DietGateWordingHolds.Written(r.Wording, r.Verdict, r.IngredientId, true),
+                    }));
+                    foreach (var row in chunk)
+                    {
+                        if (plan.Earlier.TryGetValue(row.Id, out var back))
+                        {
+                            _db.AuditLogEntries.Add(Journal(WordingEntityType, row.Id, VerifyChangeType, nameof(IngredientWordingEntity.IngredientId),
+                                Value(row.Verdict, row.IngredientId), Value(back.Verdict, back.IngredientId), now, personId));
+                            if (row.FdcCategoryId != null || back.Group != null)
+                                _db.AuditLogEntries.Add(Journal(WordingEntityType, row.Id, VerifyChangeType, nameof(IngredientWordingEntity.FdcCategoryId), GroupOf(row), back.Group, now, personId));
+                            row.Verdict = back.Verdict;
+                            row.IngredientId = back.IngredientId;
+                            var earlierGroup = WordingCategory.Parse(back.Group);
+                            row.FdcCategoryId = earlierGroup?.CategoryId;
+                            row.CategoryHead = earlierGroup?.Head;
+                            row.Batch = back.Batch;
+                            row.Source = back.Batch == null ? row.Source : Truncate(SourcePrefix + back.Batch, 255);
+                            row.Note = back.Note;
+                            row.LastModifiedDate = now;
+                            row.LastModifiedByPersonId = personId;
+                            continue;
+                        }
+
+                        _db.AuditLogEntries.Add(Journal(WordingEntityType, row.Id, VerifyChangeType, nameof(IngredientWordingEntity.IngredientId),
+                            Value(row.Verdict, row.IngredientId), null, now, personId));
+                        row.IsDeleted = true;
+                        row.DeletedAt = now;
+                        row.DeletedByPersonId = personId;
+                    }
+
+                    foreach (var food in plan.Demote)
+                    {
+                        var promotion = plan.CuratedByLoad.Where(a => a.EntityId == food.Id).OrderByDescending(a => a.Id).First();
+                        food.CurationStatusId = long.TryParse(promotion.OldValue, NumberStyles.None, CultureInfo.InvariantCulture, out var was)
+                            ? was : (long)CurationStatusEnum.PendingCuration;
+                        food.LastModifiedDate = now;
+                        food.LastModifiedByPersonId = personId;
+                    }
+
+                    _db.AuditLogEntries.RemoveRange(plan.CuratedByLoad.Where(a => plan.Demote.Any(f => f.Id == a.EntityId)));
+                    if (BeforeBatchSave != null) await BeforeBatchSave(index);
+                    await _db.SaveChangesAsync();
+                    if (tx != null) await tx.CommitAsync();
+                    if (lines != null) (result.Lines ??= new WordingLinesUndoResult()).Add(lines);
+                    held.UnionWith(holds);
+                    result.RecipesHeld = held.Count;
+                    result.Removed += chunk.Count - plan.Earlier.Count;
+                    result.Restored += plan.Earlier.Count;
+                    result.Demoted += plan.Demote.Count;
+                    result.BatchesWritten++;
+                }
+                catch (Exception ex) when (_db.Database.IsRelational() && ex is not OperationCanceledException)
+                {
+                    _db.ChangeTracker.Clear();
+                    result.Completed = false;
+                    result.Error = ex.GetBaseException().Message;
+                    break;
+                }
+            }
+
+            return result;
+        }
+
+        private sealed record UnloadPlan(Dictionary<long, Earlier> Earlier, List<AuditLogEntryEntity> CuratedByLoad, List<IngredientEntity> Demote);
+
+        /// <summary>
+        /// For rows of a batch taken out together: the earlier verdict each goes back to, and the foods a load curated that no
+        /// other live wording row, and no earlier verdict the rows go back to, points at, which go back to awaiting curation
+        /// unless the admission rule admits them by itself. Rows of the batch not among them still point at their foods, so a
+        /// food leaves with the last batch that points at it.
+        /// </summary>
+        private async Task<UnloadPlan> UnloadPlanAsync(List<IngredientWordingEntity> rows, string batch)
+        {
             var foodIds = rows.Where(r => r.IngredientId != null).Select(r => r.IngredientId!.Value).Distinct().ToList();
             var rowIds = rows.Select(r => r.Id).ToList();
             var earlier = await EarlierAsync(rows, batch);
@@ -379,56 +509,7 @@ namespace Nom.Orch.Services
                     && !(i.AdmissionReason == null && i.FdcId != null && PromotableDataTypes.Contains(i.FdcDataType)
                         && (i.EnergyCheck == EnergyCheckOutcome.OwnFactors || i.EnergyCheck == EnergyCheckOutcome.General || i.EnergyCheck == EnergyCheckOutcome.ExemptSmall)))
                 .ToListAsync();
-
-            var result = new VerifiedWordingUnloadResult { Applied = apply, Removed = rows.Count - earlier.Count, Restored = earlier.Count, Demoted = demote.Count };
-            if (withLines && !apply) result.Lines = await Relink().UndoForSourcesAsync(Scopes(rows, earlier), apply: false);
-            if (!apply || rows.Count == 0) return result;
-
-            var personId = _currentUser.PersonIdOrSystem;
-            var now = DateTime.UtcNow;
-            await using var tx = _db.Database.IsRelational() ? await _db.Database.BeginTransactionAsync() : null;
-            if (withLines) result.Lines = await Relink().UndoForSourcesAsync(Scopes(rows, earlier), apply: true);
-            foreach (var row in rows)
-            {
-                if (earlier.TryGetValue(row.Id, out var back))
-                {
-                    _db.AuditLogEntries.Add(Journal(WordingEntityType, row.Id, VerifyChangeType, nameof(IngredientWordingEntity.IngredientId),
-                        Value(row.Verdict, row.IngredientId), Value(back.Verdict, back.IngredientId), now, personId));
-                    if (row.FdcCategoryId != null || back.Group != null)
-                        _db.AuditLogEntries.Add(Journal(WordingEntityType, row.Id, VerifyChangeType, nameof(IngredientWordingEntity.FdcCategoryId), GroupOf(row), back.Group, now, personId));
-                    row.Verdict = back.Verdict;
-                    row.IngredientId = back.IngredientId;
-                    var earlierGroup = WordingCategory.Parse(back.Group);
-                    row.FdcCategoryId = earlierGroup?.CategoryId;
-                    row.CategoryHead = earlierGroup?.Head;
-                    row.Batch = back.Batch;
-                    row.Source = back.Batch == null ? row.Source : Truncate(SourcePrefix + back.Batch, 255);
-                    row.Note = back.Note;
-                    row.LastModifiedDate = now;
-                    row.LastModifiedByPersonId = personId;
-                    continue;
-                }
-
-                _db.AuditLogEntries.Add(Journal(WordingEntityType, row.Id, VerifyChangeType, nameof(IngredientWordingEntity.IngredientId),
-                    Value(row.Verdict, row.IngredientId), null, now, personId));
-                row.IsDeleted = true;
-                row.DeletedAt = now;
-                row.DeletedByPersonId = personId;
-            }
-
-            foreach (var food in demote)
-            {
-                var promotion = curatedByLoad.Where(a => a.EntityId == food.Id).OrderByDescending(a => a.Id).First();
-                food.CurationStatusId = long.TryParse(promotion.OldValue, NumberStyles.None, CultureInfo.InvariantCulture, out var was)
-                    ? was : (long)CurationStatusEnum.PendingCuration;
-                food.LastModifiedDate = now;
-                food.LastModifiedByPersonId = personId;
-            }
-
-            _db.AuditLogEntries.RemoveRange(curatedByLoad.Where(a => demote.Any(f => f.Id == a.EntityId)));
-            await _db.SaveChangesAsync();
-            if (tx != null) await tx.CommitAsync();
-            return result;
+            return new UnloadPlan(earlier, curatedByLoad, demote);
         }
 
         public async Task<WordingRetractResult?> RetractAsync(long id, string reason, bool apply = false, string? evidenceKey = null)
@@ -452,6 +533,11 @@ namespace Nom.Orch.Services
             var now = DateTime.UtcNow;
             await using var tx = _db.Database.IsRelational() ? await _db.Database.BeginTransactionAsync() : null;
             result.Lines = await Relink().UndoForSourcesAsync(Scopes(new[] { row }), apply: true);
+            await DietGateWordingHolds.HoldAsync(_db, new[]
+            {
+                new DietGateWordingHolds.Written(row.Wording, row.Verdict, row.IngredientId, false),
+                new DietGateWordingHolds.Written(row.Wording, row.Verdict, row.IngredientId, true),
+            });
 
             _db.AuditLogEntries.Add(Journal(WordingEntityType, row.Id, LineRelinkService.WordingRetractChangeType, nameof(IngredientWordingEntity.IngredientId),
                 Value(row.Verdict, row.IngredientId), null, now, personId));

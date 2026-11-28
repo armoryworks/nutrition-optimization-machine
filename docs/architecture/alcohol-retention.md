@@ -280,6 +280,15 @@ with its labels, and removes the run's marks (`runMarksRemoved`) so no later res
 Proved on the production-sized generated data beside the build job's cycles
 (`DietGateStorePostgresTests.The_alcohol_retention_apply_over_every_recipe_completes_beside_the_build_jobs_cycles_and_a_stopped_run_is_resumed_and_taken_back_whole`).
 
+**After a purge (staging checkpoint 9, U18).** A purge replaces the journal values of a purged recipe's rows with its
+marker (`(purged with the recipe, sha256:...)`), and the undo failed with HTTP 500 on the first one (`FormatException` in
+`ReadJournalValue`), so once any purge had run the retention apply had no undo. The undo now skips, and names, every entry
+of a recipe whose removal row is purged or whose value carries the marker (`skippedByReason`
+`purged: its source wording is deleted for good, so it cannot be put back`, the recipes in `purgedRecipeIds`), and any
+entry whose value another step rewrote into something that is no retention (`its journal value was rewritten by another
+step`); it never fails on such a value. `UndoAfterPurgeTests` runs every undo handle of the data order, in checkpoint 9's
+order, as a dry run and an apply after a purge.
+
 Operator notes (staging checkpoint 2): on the 2026-11-20 production data after the admission (66
 more alcoholic foods than the design counted) the dry run reads about 14,048 lines in 12,832
 recipes, not about 10,184 recipes. The factor and basis are kept by an order-only reprocess pass
@@ -378,9 +387,35 @@ cookbook text: 73317 port hashed with gravy, up to 85 %; 73581 and 17191, whose 
 100 % by the text; 74008 pigeons done a quarter of an hour in the wine pickle, 40 %; 74884 brandy and sherry stirred
 into the sauce just thickened over the fire, 85 %. The apply stays held: the bar is not met.
 
+### Staging checkpoint 9: alternatives added up, bounds too high where every part is baked (`alcohol-retention/11`)
+
+U12 found one reading on the low side in 20 fresh recipes: 32511 baked 18 to 25 minutes and offered 30 minutes for a
+firmer result, read as 48 minutes, 35 %. The full dry run over the staging copy (11,639 recipes, 12,614 drink lines, read
+offline through the read-only role with the old and the new reader) found eight more of that kind (brownies baked
+35 to 40 minutes, or 30 to 35 for a softer middle, read as 65 minutes, 25 %). The rules of `/11`:
+
+| Kind | Rule |
+|---|---|
+| A time offered for another result ("For a firmer bar, bake for 30 minutes", "For gooier brownies", "For a darker crust"; a comparative after "for" or "if you like") | The sentence is a choice: it is left out of the certain run, its time is never added to the time before it, and a reading timed before it becomes an upper bound with reason `choice` at the shorter of the two times: when the sentence offers a shorter time by the same heat ("Bake for 30 minutes. For a softer cookie, bake for 15 minutes"), the bound is at the shorter time (`cut`); a time it adds ("5 minutes more") or a heat of another kind ("For a crisper top, broil it 1 minute" after a bake) cuts nothing. |
+| A conditional sentence that offers a shorter time as enough ("If not thick, an hour or an hour and a half will be sufficient") | The shorter time counts (`cut`), as a `choice` bound. A conditional sentence about something else ("If the crust darkens early, lay foil over it after 20 minutes") offers no time. |
+| A new preparation that its own sentence adds back into the run's mass ("Beat the whites ..., and add them ... with the rest of the flour"; "Chop the apples and stir them into the bowl of oats") | The run goes on from the clause that adds it back, into "the bowl", "the mixture", "the batter", "the dough" or a food the run named; the heat of the preparation before that clause ("Melt the gelatine in boiling water and stir it into the cream") is not the drink's. A preparation added to something the run never named still ends the run. |
+| Scraps of the dough put back in the fridge; a dough frozen "for later use" as the alternative to chilling | A rest of the same dough, and no choice of heat: the dough is baked either way. |
+| "Do not cook", "do not boil" inside a sentence ("Stir thoroughly but do not cook"; a pickle "but do not boil it at all") | No heat. "Do not let it boil" still says the dish is on the heat, below a boil. |
+| A mould laid with the soaked food, filled with a part made next and boiled or steamed ("lay them in a mould ... Make a custard ... Fill up the mould ... boil or steam it for an hour") | The run goes on, past the part that fills the mould, to the sentence that boils or steams it; a soak keeps the reading a bound (`marinade`). |
+
+What the full dry run changes (lines whose factor or basis moves against `/10`, before any new apply): 23 lines on 23
+recipes of 12,614 drink lines; the build report `ck23-readers.md` lists every one with its reading. Seven go up (three
+summed alternatives now read as the shorter time, as a bound; two "do not cook" or "do not boil" read as no heat; an
+egg-nog whose milk is added "hot or cold" now an upper bound of all; one choice bound of 70 % now 100 %), fourteen
+bounds of 100 % or 85 % come down to the heat every part gets (85 %, 45 %, 35 %, 25 %, 20 %), and two keep their factor
+with a new basis. A fresh draw of 40 recipes read against their steps on the final code: none on the low side, no
+single value wrong, one bound clearly too high (a mixture warmed on the stove, then baked with no time: up to 85 %
+where the bake gives 45 %), two doubtful.
+The rule rows ar-ck23r-01 to -07 and -11 pin the kinds (each fails on `/10`); -08 to -10 and -12 are boundaries.
+
 ## Golden set and scorer
 
-`alcohol-retention.tsv` (241 rows since `alcohol-retention/10`: the 189 below, 49 of them changed by hand to the upper
+`alcohol-retention.tsv` (260 rows since `alcohol-retention/11`: ar-ck23r-01 to -12 rule-given; 241 rows since `alcohol-retention/10`: the 189 below, 49 of them changed by hand to the upper
 bound (the note of each says what it was), ar-ck15-01 to ar-ck15-20 (rule-given, step texts written for the rule) and
 32 cookbook recipes of the fresh draws, `agent-review-alcohol-retention-2026-11-24-ck15`, `agent`; earlier: 189 rows since `alcohol-retention/9`: 162 rule-given, `rule:alcohol-retention`, `ok`, ar-ck10s-01 to ar-ck10s-11 from staging checkpoint 5 and its review, ar-ck11-01 to ar-ck11-15 from staging checkpoint 6, ar-ck12a-01 to ar-ck12a-36 from the fresh draws and their review; 9 realistic methods
 judged by the builder, `agent-review-alcohol-retention-2026-11-21`, `agent`, and 17 cookbook recipes from the fresh

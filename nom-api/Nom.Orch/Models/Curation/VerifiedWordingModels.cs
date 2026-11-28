@@ -65,6 +65,12 @@ namespace Nom.Orch.Models.Curation
         public List<VerifiedWordingProblem> Problems { get; set; } = new();
         /// <summary>The foods receiving the most wordings in this load, most first.</summary>
         public List<VerifiedWordingFood> BusiestFoods { get; set; } = new();
+        /// <summary>The batches of <see cref="Nom.Orch.Services.VerifiedWordingService.Chunk"/> rows the apply writes, each in its own transaction with its own journal time.</summary>
+        public int Batches { get; set; }
+        /// <summary>On apply: the batches committed. A batch that fails writes nothing and raises its error; the batches before it stay, and the same load again finds them unchanged and writes the rest.</summary>
+        public int BatchesWritten { get; set; }
+        /// <summary>The recipes the apply held in the diet gate from its commits because the rows it wrote change their reading, each counted once however many batches held it.</summary>
+        public int RecipesHeld { get; set; }
     }
 
     public class VerifiedWordingUnloadResult
@@ -75,8 +81,18 @@ namespace Nom.Orch.Models.Curation
         public int Restored { get; set; }
         /// <summary>Foods a load curated that no wording points at any more and go back to awaiting curation.</summary>
         public int Demoted { get; set; }
-        /// <summary>With withLines: the batch's lines, sources, proposals, picks and import landings taken back first.</summary>
+        /// <summary>With withLines: the batch's lines, sources, proposals, picks and import landings taken back first; on apply, those of the committed batches only.</summary>
         public WordingLinesUndoResult? Lines { get; set; }
+        /// <summary>The batches of <see cref="Nom.Orch.Services.VerifiedWordingService.Chunk"/> rows the apply takes out, each in its own transaction with its lines and its own journal time.</summary>
+        public int Batches { get; set; }
+        /// <summary>On apply: the batches committed.</summary>
+        public int BatchesWritten { get; set; }
+        /// <summary>On apply: false when a batch failed; nothing of it was written, the batches before it stay, and the same unload again goes on with the rows still in the batch.</summary>
+        public bool Completed { get; set; } = true;
+        /// <summary>The failure that stopped the apply.</summary>
+        public string? Error { get; set; }
+        /// <summary>The recipes the apply held in the diet gate from its commits because the rows it took out change their reading, each counted once however many batches held it.</summary>
+        public int RecipesHeld { get; set; }
     }
 
     public class VerifiedWordingLinkResult
@@ -171,6 +187,45 @@ namespace Nom.Orch.Models.Curation
         public int LandingsSkippedRebuilt { get; set; }
         /// <summary>Line moves and import landings left where they are, with their entries, because moving them back would lower a recipe's diet flags (<see cref="Nom.Orch.Services.Support.LineMoveDietGuard"/>); counted by a dry run too.</summary>
         public int HeldByDiet { get; set; }
+
+        /// <summary>Adds what one batch of an unload took back to the unload's whole.</summary>
+        public void Add(WordingLinesUndoResult part)
+        {
+            Applied |= part.Applied;
+            SourceIds.AddRange(part.SourceIds);
+            LineMoves += part.LineMoves;
+            Retirements += part.Retirements;
+            ProposalWithdrawals += part.ProposalWithdrawals;
+            PickWithdrawals += part.PickWithdrawals;
+            ImportLandings += part.ImportLandings;
+            OnRebuiltRecipes += part.OnRebuiltRecipes;
+            LandingsMovedBack += part.LandingsMovedBack;
+            LandingsKept += part.LandingsKept;
+            LandingsSkipped += part.LandingsSkipped;
+            LandingsSkippedRebuilt += part.LandingsSkippedRebuilt;
+            HeldByDiet += part.HeldByDiet;
+            if (part.Undone == null) return;
+            if (Undone == null)
+            {
+                Undone = part.Undone;
+                return;
+            }
+            Undone.Applied |= part.Undone.Applied;
+            Undone.Restored += part.Undone.Restored;
+            Undone.FoodsRestored += part.Undone.FoodsRestored;
+            Undone.Refolded += part.Undone.Refolded;
+            Undone.Unsplit += part.Undone.Unsplit;
+            Undone.AlternativesPutBack += part.Undone.AlternativesPutBack;
+            Undone.PicksRestored += part.Undone.PicksRestored;
+            Undone.ProposalsRestored += part.Undone.ProposalsRestored;
+            Undone.Skipped += part.Undone.Skipped;
+            Undone.SkippedRebuilt += part.Undone.SkippedRebuilt;
+            Undone.HeldByDiet += part.Undone.HeldByDiet;
+            Undone.DietHolds.AddRange(part.Undone.DietHolds);
+            Undone.RestoreLowered |= part.Undone.RestoreLowered;
+            Undone.RestoredLowering += part.Undone.RestoredLowering;
+            Undone.LoweringMoves.AddRange(part.Undone.LoweringMoves);
+        }
     }
 
     public class WordingRetractResult

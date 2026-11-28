@@ -157,7 +157,8 @@ namespace Nom.Orch.Services.Support
     /// food whose own name ends in a variety word the wording lacks (chorizo for "pork
     /// sausage"); a state, form or part one side has and the other lacks (sprouted, roast before the
     /// food, green pods or shelled fresh seeds against mature seeds, bones against a bone-in cut; the
-    /// leaves of a leaf food are the food); a fresh herb or root ("fresh ginger"), or a produce cue on
+    /// leaves of a leaf food are the food); a shell, husk, cob or pit at the wording's head, which is not eaten ("oyster
+    /// shells" to bake in), where a state the recipe brings the food to ("whites beaten dry") is never a product form; a fresh herb or root ("fresh ginger"), or a produce cue on
     /// any spice, for the dried spice; a marked variant, a percent variant or a salted/sweetened polarity; one generic
     /// word for one of many varieties, a number such as "00" counting as a variety the wording
     /// lacks; a group word the target's USDA category contradicts; a line
@@ -169,7 +170,7 @@ namespace Nom.Orch.Services.Support
     /// </summary>
     public static class LinkGate
     {
-        public const string Version = "link-gate/14";
+        public const string Version = "link-gate/15";
 
         public const string Heading = "heading";
         public const string Compound = "compound";
@@ -320,6 +321,30 @@ namespace Nom.Orch.Services.Support
         internal const string ProductOfFoodRule = "an oil, flour, butter or milk of a food is not the food";
 
         internal const string MadeProductRule = "a bare made-product word is no evidence for one particular product";
+
+        internal const string NotEatenRule = "a shell, husk, cob or pit, which is not eaten, is not the food";
+
+        /// <summary>Parts of a food that are not eaten, or hold it ("oyster shells" to bake in, "corn husks" to wrap): as a wording's head noun they are not the food unless the food names them.</summary>
+        private static readonly HashSet<string> NotEaten = new(StringComparer.Ordinal) { "shell", "husk", "cob", "pit" };
+
+        /// <summary>Words before "shell" or the like that make it a food's shape, which is eaten ("pastry shells", "taco shells", "pasta shells").</summary>
+        private static readonly HashSet<string> EatenShapes = new(StringComparer.Ordinal)
+        {
+            "pastry", "pie", "tart", "taco", "pasta", "patty", "puff", "phyllo", "filo", "chocolate", "meringue", "wonton", "jumbo", "manicotti",
+            "crust", "sponge", "waffle", "cone", "tostada", "vol", "conchiglie", "sugar", "candy", "cookie",
+        };
+
+        /// <summary>A food served or sold in its shell, husk or on its cob ("oysters on the half shell", "peanuts in the shell", "corn on the cob"): the part is not what the wording names.</summary>
+        private static readonly Regex InTheShell = new(@"\b(?:on|in)\s+(?:the\s+|their\s+|its\s+)?(?:half[\s-]+)?(?:shells?|husks?|cobs?)\b", RegexOptions.IgnoreCase | RegexOptions.CultureInvariant | RegexOptions.Compiled);
+
+        /// <summary>
+        /// A state the recipe brings the food to, said after the verb that brings it ("whites beaten dry", "beaten stiff",
+        /// "patted dry"): it is no product form, so its word never meets a form or state of the food (staging checkpoint 9,
+        /// U3: "Whites of 3 eggs beaten dry" is no dried egg white).
+        /// </summary>
+        private static readonly Regex ReachedState = new(
+            @"\b(?:beaten|beat|whipped|whip|whisked|whisk|patted|pat|wiped|squeezed|blotted|pressed|rubbed|shaken|spun|towel(?:l?ed)?)\s+(?:very\s+|quite\s+|until\s+|till\s+|nearly\s+|perfectly\s+|thoroughly\s+)?(?:dry|stiff|firm)\b",
+            RegexOptions.IgnoreCase | RegexOptions.CultureInvariant | RegexOptions.Compiled);
 
         private static readonly HashSet<string> DriedCues = new(StringComparer.Ordinal) { "dried", "dry", "ground", "grated", "grate", "grates", "grating", "powdered", "powder" };
 
@@ -482,7 +507,8 @@ namespace Nom.Orch.Services.Support
         {
             var holds = new List<GateHold>();
             var target = pair.Target;
-            var raw = pair.Wording ?? string.Empty;
+            var original = pair.Wording ?? string.Empty;
+            var raw = AsNamed(original);
             var wording = IngredientNameNormalizer.Normalize(raw);
             var text = target.Text;
             var segments = Plain(text).Split(',').Select(s => s.Trim()).Where(s => s.Length > 0).ToList();
@@ -531,7 +557,7 @@ namespace Nom.Orch.Services.Support
 
             void Add(string code, string rule, string? detail = null) => holds.Add(new GateHold(code, rule, detail));
 
-            if (HeadingPattern.IsMatch(raw) || raw.TrimEnd().EndsWith(':')) Add(Heading, "a heading, not a food");
+            if (HeadingPattern.IsMatch(original) || original.TrimEnd().EndsWith(':')) Add(Heading, "a heading, not a food");
             if (LinkAutoApplyGuard.IsCompound(wording) || Slash.IsMatch(wording)) Add(Compound, LinkAutoApplyGuard.CompoundRule);
 
             if (target.Deleted) Add(Retired, "target retired");
@@ -545,8 +571,8 @@ namespace Nom.Orch.Services.Support
             if (Incompleteness(target, lead, catalog) is { } incomplete) Add(Incomplete, "nutrients incomplete", incomplete);
 
             var readings = pair.Lines is { Count: > 0 } senseLines
-                ? senseLines.Select(l => l.Sense is { } fixedSense ? new AlcoholReading(fixedSense, AlcoholLineContext.KindOf(fixedSense), "a fixed reading") : AlcoholLineContext.Read(l.Raw ?? raw, l.Recipe))
-                : new[] { AlcoholLineContext.Read(raw) };
+                ? senseLines.Select(l => l.Sense is { } fixedSense ? new AlcoholReading(fixedSense, AlcoholLineContext.KindOf(fixedSense), "a fixed reading") : AlcoholLineContext.Read(l.Raw ?? original, l.Recipe))
+                : new[] { AlcoholLineContext.Read(original) };
             foreach (var reading in readings)
             {
                 if (AlcoholLineContext.Refuse(reading, target.FdcId, text) is not { } refusal) continue;
@@ -554,12 +580,12 @@ namespace Nom.Orch.Services.Support
                 break;
             }
 
-            var senseCredit = AlcoholIdentity(pair, raw, catalog);
+            var senseCredit = AlcoholIdentity(pair, original, catalog);
             var senseIdentity = senseCredit != SenseCredit.None;
 
             if (LineRelinkService.TargetFor(wording, target.Id, target.Name.Trim(), catalog.Curated) is { } other && other != pair.SourceId)
                 Add(OtherFood, LinkAutoApplyGuard.OtherFoodRule, catalog.CuratedNames.TryGetValue(other, out var otherName) ? otherName : "#" + other);
-            if (catalog.TrustedAliases.TryGetValue(IngredientNameNormalizer.WordingKey(raw), out var aliasOwner) && aliasOwner != target.Id && aliasOwner != pair.SourceId)
+            if (catalog.TrustedAliases.TryGetValue(IngredientNameNormalizer.WordingKey(original), out var aliasOwner) && aliasOwner != target.Id && aliasOwner != pair.SourceId)
                 Add(OtherAlias, "trusted alias of another food", "#" + aliasOwner);
 
             if (!headDefault)
@@ -605,6 +631,9 @@ namespace Nom.Orch.Services.Support
 
             if (senseCredit != SenseCredit.First && identity.Count >= 2 && ProductsOfFood.Contains(identity[^1]) && !Medium(raw, identity[^1]) && !NamesProduct(target, identity[^1]))
                 Add(HeadNoun, ProductOfFoodRule, identity[^1]);
+
+            if (identity.Count >= 2 && NotEaten.Contains(identity[^1]) && !EatenShapes.Contains(identity[^2]) && !foodWords.Contains(identity[^1]) && !InTheShell.IsMatch(raw))
+                Add(Part, NotEatenRule, identity[^1]);
 
             if (!headDefault && BareMadeProduct(identity) is { } made && MadeProductQualifier(target, made, folded) is { } madeQualifier)
                 Add(Generic, MadeProductRule, $"{made}: {madeQualifier}");
@@ -1042,6 +1071,22 @@ namespace Nom.Orch.Services.Support
 
         private static readonly Regex AlternativeSplit = new(@"\s+or\s+|\s*/\s*", RegexOptions.IgnoreCase | RegexOptions.CultureInvariant | RegexOptions.Compiled);
 
+        /// <summary>
+        /// The wording as it names its food: a state the recipe brings it to is left out (<see cref="ReachedState"/>), and so
+        /// are leading comma parts that hold only qualifiers ("large, smooth oyster shells" names smooth oyster shells), so
+        /// the rules read the part that names the food rather than nothing (staging checkpoint 9, U3).
+        /// </summary>
+        private static string AsNamed(string wording)
+        {
+            var text = ReachedState.Replace(wording, " ");
+            var segments = text.Split(',');
+            var skip = 0;
+            while (skip < segments.Length - 1 && Words(segments[skip]).ToList() is { Count: > 0 } words
+                && words.All(w => Filler.Contains(w.ToLowerInvariant()) || FoodNameMatcher.Noise.Contains(w.ToLowerInvariant())))
+                skip++;
+            return skip == 0 ? text : string.Join(",", segments.Skip(skip)).Trim();
+        }
+
         private static List<string> IdentityWords(string wording)
         {
             var first = wording.Split(',')[0];
@@ -1383,6 +1428,7 @@ namespace Nom.Orch.Services.Support
             Table("fresh", FreshWords);
             Table("ratio", RatioWords);
             Table("products-of-food", ProductsOfFood);
+            Table("not-eaten", NotEaten.Concat(EatenShapes.Select(w => "shape=" + w)).Append("reached=" + ReachedState).Append("in-shell=" + InTheShell));
             Table("neutral-spice", SpiceNeutral);
             Table("neutral-flour", FlourNeutral);
             Table("neutral-drink", DrinkNeutral);

@@ -63,5 +63,8 @@ namespace Nom.Data.Recipe
 
         /// <summary>The recipe was soft-deleted as a second copy of another recipe.</summary>
         public const string DuplicateRetire = "duplicate-retire";
+
+        /// <summary>On a recipe the rebuild held, only the stored amounts that are the number of the recipe or page a line refers to were emptied.</summary>
+        public const string Referral = "referral";
     }
 }

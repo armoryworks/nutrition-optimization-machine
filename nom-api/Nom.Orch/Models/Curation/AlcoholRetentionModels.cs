@@ -99,5 +99,11 @@ namespace Nom.Orch.Models.Curation
 
         /// <summary>The run marks (batch and end) at or after the given time the undo takes out with the lines, so a later resume does not go on with a run taken back.</summary>
         public int RunMarksRemoved { get; set; }
+
+        /// <summary>Skipped entries by their reason: a purged recipe, or a journal value another step rewrote (staging checkpoint 9, U18).</summary>
+        public Dictionary<string, int> SkippedByReason { get; set; } = new();
+
+        /// <summary>The purged recipes whose entries were skipped, at most 500.</summary>
+        public List<long> PurgedRecipeIds { get; set; } = new();
     }
 }

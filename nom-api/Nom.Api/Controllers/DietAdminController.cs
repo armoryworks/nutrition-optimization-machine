@@ -37,6 +37,50 @@ namespace Nom.Api.Controllers
         public async Task<ActionResult<Nom.Orch.Services.DietSecondProgress>> GetSecondReader([FromServices] Nom.Orch.Services.DietSecondReaderLaneService lane, CancellationToken cancellationToken)
             => Ok(await lane.ProgressAsync(cancellationToken));
 
+        /// <summary>A page of the second reader's stored readings (recipe id, model, prompt and text signatures, the answer per type), by recipe id after <paramref name="after"/>; currentOnly (default) gives only readable readings under the current prompt.</summary>
+        [HttpGet("second-reader/readings")]
+        public async Task<ActionResult<Nom.Orch.Services.DietReadingExportPage>> ExportReadings([FromServices] Nom.Orch.Services.DietSecondReaderLaneService lane,
+            [FromQuery] long after = 0, [FromQuery] int recipes = 1000, [FromQuery] bool currentOnly = true, CancellationToken cancellationToken = default)
+            => Ok(await lane.ExportAsync(after, recipes, currentOnly, cancellationToken));
+
+        /// <summary>Takes readings made elsewhere where the model, the prompt signature and the recipe's text signature match exactly; a dry run unless apply=true, and every reading taken is written to the audit log under the returned stamp.</summary>
+        [HttpPost("second-reader/readings/import")]
+        public async Task<ActionResult<Nom.Orch.Services.DietReadingImportReport>> ImportReadings([FromServices] Nom.Orch.Services.DietSecondReaderLaneService lane,
+            [FromBody] List<Nom.Orch.Services.DietReadingImportItem> items, [FromQuery] bool apply = false, CancellationToken cancellationToken = default)
+        {
+            if (items == null || items.Count == 0 || items.Count > Nom.Orch.Services.DietSecondReaderLaneService.MaxImport)
+                return BadRequest($"Send between 1 and {Nom.Orch.Services.DietSecondReaderLaneService.MaxImport} readings.");
+            return Ok(await lane.ImportAsync(items, apply, GetCurrentPersonIdRequired(), cancellationToken));
+        }
+
+        /// <summary>Takes back the readings an import with the given stamp took; a reading changed since is skipped. A dry run unless apply=true.</summary>
+        [HttpPost("second-reader/readings/import/undo")]
+        public async Task<ActionResult<Nom.Orch.Services.DietReadingUndoReport>> UndoImportReadings([FromServices] Nom.Orch.Services.DietSecondReaderLaneService lane,
+            [FromQuery, System.ComponentModel.DataAnnotations.Required] DateTime stamp, [FromQuery] bool apply = false, CancellationToken cancellationToken = default)
+            => Ok(await lane.UndoImportAsync(Utc(stamp), apply, GetCurrentPersonIdRequired(), cancellationToken));
+
+        /// <summary>Every judged hold: a recipe people judged to hold a food a restriction type keeps out, flagged by the gate as "Judged to contain".</summary>
+        [HttpGet("judged-holds")]
+        public async Task<ActionResult<DietJudgedHoldListModel>> GetJudgedHolds([FromServices] IDietJudgedHoldService holds, CancellationToken cancellationToken)
+            => Ok(await holds.ListAsync(cancellationToken));
+
+        /// <summary>Loads the judged holds ops/diet-judged-holds.py sends; a dry run unless apply=true, and every hold added is written to the audit log under the returned stamp.</summary>
+        [HttpPost("judged-holds")]
+        public async Task<ActionResult<DietJudgedHoldLoadReport>> LoadJudgedHolds([FromServices] IDietJudgedHoldService holds, [FromBody] List<DietJudgedHoldInput> rows,
+            [FromQuery] bool apply = false, CancellationToken cancellationToken = default)
+        {
+            if (rows == null || rows.Count == 0 || rows.Count > 5000) return BadRequest("Send between 1 and 5000 rows.");
+            return Ok(await holds.LoadAsync(rows, apply, GetCurrentPersonIdRequired(), cancellationToken));
+        }
+
+        /// <summary>Takes back the holds the load with the given stamp added; a row removed or changed since is skipped. A dry run unless apply=true.</summary>
+        [HttpPost("judged-holds/undo")]
+        public async Task<ActionResult<DietJudgedHoldUndoReport>> UndoJudgedHolds([FromServices] IDietJudgedHoldService holds,
+            [FromQuery, System.ComponentModel.DataAnnotations.Required] DateTime stamp, [FromQuery] bool apply = false, CancellationToken cancellationToken = default)
+            => Ok(await holds.UndoAsync(Utc(stamp), apply, GetCurrentPersonIdRequired(), cancellationToken));
+
+        private static DateTime Utc(DateTime stamp) => DateTime.SpecifyKind(stamp.Kind == DateTimeKind.Local ? stamp.ToUniversalTime() : stamp, DateTimeKind.Utc);
+
         [HttpGet("groups")]
         public async Task<ActionResult<List<RestrictionGroupModel>>> GetGroups()
             => Ok(await _dietAdminService.GetGroupsAsync());

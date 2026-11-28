@@ -857,7 +857,7 @@ namespace Nom.Orch.Services
                             IngredientId = drink.IngredientId,
                             IngredientName = factsOnly.Contains(recipeId)
                                 ? shown.GetValueOrDefault((recipeId, drink.IngredientId)) ?? names.GetValueOrDefault((recipeId, drink.IngredientId)) ?? drink.FoodName ?? string.Empty
-                                : !string.IsNullOrWhiteSpace(drink.RawLine) ? drink.RawLine.Trim() : names.GetValueOrDefault((recipeId, drink.IngredientId)) ?? drink.FoodName ?? string.Empty,
+                                : !string.IsNullOrWhiteSpace(drink.RawLine) ? Support.ProseWithholding.Shown(drink.RawLine)!.Trim() : names.GetValueOrDefault((recipeId, drink.IngredientId)) ?? drink.FoodName ?? string.Empty,
                             Notes = over ?? notes
                         }));
                     }
@@ -877,7 +877,8 @@ namespace Nom.Orch.Services
                     foreach (var recipeId in held)
                     {
                         var text = !page.PendingTypes.Contains(r.TypeId) && page.TextHeld.TryGetValue((r.TypeId, recipeId), out var t) ? t : ((Nom.Data.Plan.DietFlagReason, long?)?)null;
-                        var named = text?.Item2 is { } criterionId ? type.FirstOrDefault(c => c.Id == criterionId)?.LikePattern?.Trim('%') : null;
+                        var named = text?.Item1 == Nom.Data.Plan.DietFlagReason.Judged ? page.JudgedFoods.GetValueOrDefault((r.TypeId, recipeId))
+                            : text?.Item2 is { } criterionId ? type.FirstOrDefault(c => c.Id == criterionId)?.LikePattern?.Trim('%') : null;
                         byStore.Add((recipeId, new RecipeDietMatchModel
                         {
                             RestrictionName = r.Name,
@@ -913,6 +914,7 @@ namespace Nom.Orch.Services
             Nom.Data.Plan.DietFlagReason.Referral => "Refers to another recipe",
             Nom.Data.Plan.DietFlagReason.SecondUnread => "Not yet read by the second reader",
             Nom.Data.Plan.DietFlagReason.SecondReader => "Not clearly free to the second reader",
+            Nom.Data.Plan.DietFlagReason.Judged => "Judged to contain",
             _ => "Named in the method",
         };
 
@@ -923,6 +925,7 @@ namespace Nom.Orch.Services
             : reason == Nom.Data.Plan.DietFlagReason.Referral ? "An ingredient line sends the cook to another recipe or page of the book, whose ingredients are not listed here, so the recipe is kept out for this restriction."
             : reason == Nom.Data.Plan.DietFlagReason.SecondUnread ? "The diet check finds the recipe clear, but the second reader has not read it yet, so the recipe is kept out for this restriction until it has."
             : reason == Nom.Data.Plan.DietFlagReason.SecondReader ? "The diet check finds the recipe clear, but the second reader does not find it clearly free of what this restriction keeps out, so the recipe is kept out for this restriction."
+            : reason == Nom.Data.Plan.DietFlagReason.Judged ? "People who read this recipe judged that it holds " + (string.IsNullOrWhiteSpace(named) ? "a food" : "\"" + named + "\"") + ", which this restriction keeps out, although its ingredient lines do not show it, so the recipe is kept out for this restriction."
             : "The recipe's " + (reason == Nom.Data.Plan.DietFlagReason.Title ? "title" : "method") + " names " + (string.IsNullOrWhiteSpace(named) ? "a food" : "\"" + named + "\"")
             + ", which this restriction keeps out, and its ingredient lines, read from an old book's text, do not list it, so the recipe is kept out for this restriction.";
 

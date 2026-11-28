@@ -340,8 +340,14 @@ meal plans.
   order with its verb ("oven 350°F · 9 x 13-inch pan · bake 30 to 40 min · cool 30 min"), written in
   one fixed form so no source wording is carried over. Since staging checkpoint 8 a temperature never takes the verb of
   work on a pan ("line 450°" was a pan lining read as an oven), and how long the dish keeps is no fact (a time in a
-  storing sentence after its storing word, or days and weeks with "store", "keeps", "lasts", or "up to" in the cold: "cover 4 days", "chill 2 weeks"; a bake time before "storing" and "marinate up to 2 days" stay facts). The
-  ingredient lines are served with their HTML entities read (`ProseWithholding.Shown`: "&frac14;" is ¼). The recipe page shows them with "Full method
+  storing sentence after its storing word, or days and weeks with "store", "keeps", "lasts", or "up to" in the cold: "cover 4 days", "chill 2 weeks"; a bake time before "storing" and "marinate up to 2 days" stay facts). Since staging
+  checkpoint 9 (U16) the most heat a pan, paper or dish is safe up to is no fact ("baking paper ... safe up to 450 F"
+  gave a bare `450°`), when only joining words ("up to", "for temperatures of") or units stand between the
+  word of being safe and the temperature; a heat the sentence names after an oven-safe pan stays a fact ("In an
+  oven-safe skillet, bake at 400°F"), and a time of thawing is named "thaw", never by a freezing word of its sentence ("After freezing
+  it ..., let it thaw for about 10-15 minutes" gave `freeze 10 to 15 min`). The
+  ingredient lines are served with their HTML entities read (`ProseWithholding.Shown`: "&frac14;" is ¼), and so are
+  the drink lines of the alcohol note and the diet match (U15: the note served "1 &frac12; ounces clear rum"). The recipe page shows them with "Full method
   at example.com" and the note "We're writing this method in our own words."
   (`data-testid` `recipe-method-withheld`, `recipe-key-facts`, `recipe-key-fact`,
   `recipe-method-source-link`, `recipe-method-withheld-note`).

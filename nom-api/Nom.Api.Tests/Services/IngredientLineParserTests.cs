@@ -372,6 +372,8 @@ namespace Nom.Api.Tests.Services
         [InlineData("1 can (No. 2) tomatoes", "2")]
         [InlineData("1 No. 10 tin apricots", "10")]
         [InlineData("1 No. 2 can corn", "2")]
+        [InlineData("1 (No. 2-1/2) can fruit cocktail", "2½")]
+        [InlineData("1 (No. 2) can peas", "2")]
         public void A_numbered_can_is_a_count_of_cans_and_its_number_is_kept(string raw, string number)
         {
             IngredientLineParser.Parse(raw)!.MeasurementName.Should().Be("Can");
@@ -557,6 +559,38 @@ namespace Nom.Api.Tests.Services
         public void A_bare_recipe_number_that_ends_its_phrase_is_a_referral(string raw, double number)
         {
             IngredientLineParser.ReferredNumbers(raw).Should().Equal((decimal)number);
+        }
+
+        [Theory]
+        [InlineData("1 (No. 2-1/2) can fruit cocktail")]
+        [InlineData("1 (No. 2) can peas")]
+        [InlineData("1 can (No. 303) peas")]
+        public void A_can_number_in_brackets_is_no_referral_and_no_amount(string raw)
+        {
+            IngredientLineParser.ReferredNumbers(raw).Should().BeEmpty("staging checkpoint 9, U9: '1 (No. 2-1/2) can' was read as 1.5 pieces");
+            IngredientLineParser.Parse(raw).Should().Be(new ParsedQuantity(1m, "Can"));
+        }
+
+        [Theory]
+        [InlineData("composto N. 374", 374)]
+        [InlineData("Gelatina di Ribes N. 739", 739)]
+        [InlineData("Composto dei cappelletti N. 7", 7)]
+        [InlineData("Pasta frolla N. 589 (quantitativo della ricetta A)", 589)]
+        public void An_italian_preparation_named_by_its_number_is_a_referral(string raw, double number)
+        {
+            IngredientLineParser.ReferredNumbers(raw).Should().Contain((decimal)number, "staging checkpoint 9, U8: Artusi's 'composto N. 374' stayed 374 pieces");
+            IngredientLineParser.Parse(raw).Should().BeNull();
+            IngredientLineParser.Normalize((decimal)number, null, raw).Should().BeNull();
+        }
+
+        [Theory]
+        [InlineData("Uova N. 2", 2)]
+        [InlineData("Uova, N. 9", 9)]
+        [InlineData("fegatini di pollo N. 3", 3)]
+        public void An_italian_count_of_a_food_stays_a_count(string raw, double count)
+        {
+            IngredientLineParser.ReferredNumbers(raw).Should().BeEmpty();
+            IngredientLineParser.Parse(raw).Should().Be(new ParsedQuantity((decimal)count, "Piece"));
         }
 
         [Fact]

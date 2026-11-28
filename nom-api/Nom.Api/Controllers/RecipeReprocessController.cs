@@ -122,9 +122,9 @@ namespace Nom.Api.Controllers
                 return BadRequest(new { message = "Give sinceUtc, batchId or runId." });
             }
 
-            if (kind != null && kind is not (RecipeReprocessKind.Rebuild or RecipeReprocessKind.Order or RecipeReprocessKind.RuleReject or RecipeReprocessKind.DuplicateRetire))
+            if (kind != null && kind is not (RecipeReprocessKind.Rebuild or RecipeReprocessKind.Order or RecipeReprocessKind.RuleReject or RecipeReprocessKind.DuplicateRetire or RecipeReprocessKind.Referral))
             {
-                return BadRequest(new { message = "Unknown kind.", kinds = new[] { RecipeReprocessKind.Rebuild, RecipeReprocessKind.Order, RecipeReprocessKind.RuleReject, RecipeReprocessKind.DuplicateRetire } });
+                return BadRequest(new { message = "Unknown kind.", kinds = new[] { RecipeReprocessKind.Rebuild, RecipeReprocessKind.Order, RecipeReprocessKind.RuleReject, RecipeReprocessKind.DuplicateRetire, RecipeReprocessKind.Referral } });
             }
 
             var since = sinceUtc == null ? (DateTime?)null : DateTime.SpecifyKind(sinceUtc.Value, DateTimeKind.Utc);

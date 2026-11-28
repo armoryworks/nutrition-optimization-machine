@@ -251,6 +251,20 @@ describe('PipelineAdmin', () => {
     put.flush({ ...gate(), pauseAll: true });
   });
 
+  it('says which lanes the pause-all switch does not stop and warns on such a lane while it runs', () => {
+    const body = status();
+    const reader = { ...gate().lanes[0], lane: 'diet-second-reader', label: 'second diet reader', heldByPauseAll: false };
+    body.gate = { ...gate(), pauseAll: true, lanes: [...gate().lanes, reader] };
+    body.status.lanes = [...body.status.lanes, { ...body.status.lanes[0], key: 'diet-second-reader', name: 'Second diet reader', gateLane: 'diet-second-reader', switches: [], caps: [] }];
+    const el = loaded(body).nativeElement as HTMLElement;
+
+    expect(el.textContent).not.toContain('Stops every model lane within');
+    expect(byId(el, 'pipeline-pause-all-not-held')?.textContent).toContain('diet-second-reader');
+    expect(byId(el, 'pipeline-pause-all-not-held')?.textContent).not.toContain('link');
+    expect(byId(el, 'pipeline-lane-diet-second-reader-not-held')?.textContent).toContain('Still running while all AI lanes are paused');
+    expect(byId(el, 'pipeline-lane-ingredient-link-not-held')).toBeNull();
+  });
+
   it('says only a user-roles admin can turn a pause off and puts the switch back', () => {
     const body = status();
     body.gate = gate(true);

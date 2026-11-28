@@ -46,7 +46,8 @@ namespace Nom.Orch.Services.Support
     /// the drink: the reader overstates rather than hides alcohol, the safe side for a No Alcohol
     /// household. A step that names the drink only as "liquor", "spirits" or "alcohol" with no
     /// determiner ("add the spice and liquor"; "the liquor" is most often a cooking liquid) names it.
-    /// When a step names some other drink word ("pour the spirits over"), the highest factor of
+    /// "Do not cook" or "do not boil" inside a sentence is no heat ("Stir thoroughly but do not cook": staging checkpoint
+    /// 9, a fresh draw of ck23), while "do not let it boil" still says the dish is on the heat. When a step names some other drink word ("pour the spirits over"), the highest factor of
     /// reading from each such step and of the "up to" reading is kept. When the steps name no drink
     /// word at all, a step that mixes all the ingredients together, or the wet, icing, filling or
     /// sauce ingredients, holds it, and of several such steps the highest reading is kept (the USDA rows
@@ -66,7 +67,7 @@ namespace Nom.Orch.Services.Support
     /// </summary>
     public static class AlcoholRetention
     {
-        public const string Version = "alcohol-retention/10";
+        public const string Version = "alcohol-retention/11";
         public const string ResourceName = "Nom.Orch.Nutrition.usda-retention-r6-alcohol.tsv";
 
         /// <summary>Kilocalories per gram of alcohol, the FDC calorie factor; energy falls by this much for each gram of alcohol that does not stay.</summary>
@@ -117,7 +118,7 @@ namespace Nom.Orch.Services.Support
         private static readonly Regex SentenceSplit = new(@"(?<=[.!?;]\)?)\s+|\n+", Options);
 
         private static readonly Regex NotHeating = new(
-            @"\bheat\s*treated\b|\bkeep\s+(?:it\s+|them\s+|the\s+\p{L}+\s+)?warm\b[^.;]*|\b(?:the|in|with|of|and|add|fold\s+in|stir\s+in|top\s+with)\s+(?:\p{L}+\s+)?(?:roasted|toasted|baked|grilled|fried|cooked|boiled|steamed|poached|caramelized|browned)\s+(?!(?:for|until|till|in|on|at|about|over|under|with|and|then|to)\b)\p{L}+|\b(?:double\s+)?boilers?\b|\bfor\s+(?:later|future)\s+(?:baking|cooking|use)\b|\b(?:later|future)\s+(?:baking|cooking)\b|\b(?:microwave|heat|warm)\w*\b(?=[^.;]*?\b\d+(?:\s*(?:-|to)\s*\d+)?[\s-]*seconds?\b)(?![^.;]*\b(?:minutes?|boil\w*|simmer\w*)\b)|\b(?:has|have|had|is|are|was|were|gets?|got|becomes?|it)\s+(?:\p{L}+\s+)?thicken\w*|\bthickened\s+up\b|\bthickens?\s+(?:up\s+)?(?:as\s+it\s+(?:cools|sits|stands)|in\s+the\s+(?:fridge|refrigerator))|\b(?:reduc|lower|increas)\w*\s+(?:the\s+)?(?:mixer\s+)?(?:speed|to\s+(?:low|medium|high)\s+speed)\b|\breduced\s+(?!(?:by|to|until|till|heat|over|for|in|and|slightly)\b)\p{L}+|\bpre\s*baked\b|\bbaked\s+(?:pie\s+|tart\s+)?(?:crusts?|shells?|cases?)\b|\bunbaked\b|\b(?:remove|removed|removing|take|taken|taking|lift|lifted|move|moved|set|pull)\s+(?:it\s+|them\s+|the\s+\p{L}+\s+|from\s+)?(?:from|off)\s+(?:the\s+)?(?:heat|fire|stove|burner|flame|hob)\b|\boff\s+(?:the\s+)?(?:heat|fire|flame|stove|hob)\b|\baway from (?:the )?(?:heat|fire)\b|\bpre ?heat\w*\s+(?:the\s+|your\s+|an\s+)?oven\b|\bheat\s+(?:the\s+|your\s+)?oven\s+to\b|\bpre ?heat\w*\b|\bboiled\s+(?:icing|frosting|dressing)\b|\bblanched\b|\bbaking\s+(?:soda|powder|dish|pans?|sheets?|tins?|paper|trays?|parchment|mats?|stones?|steel|spray|cups?|liners?)\b|\broasting\s+(?:pans?|tins?|dish|racks?)\b|\b(?:oven|heat)\s*(?:proof|safe)\b|\bovenproof\b|\bcooking spray\b|\bcooking liquid\b|\bboiled cider\b|\bhard ?boiled\b|\bcooled\b|\b(?:turn|turns|turned|switch|switches|switched)\s+off\s+(?:the\s+)?oven\b|\bboil(?:s|ed|ing)?\s+(?:enough\s+|some\s+)?(?:hot\s+)?water\s+(?:to|for)\b|\bwater\s+bath\b|\b(?:before|after)\s+(?:\p{L}+\s+and\s+)?(?:baking|cooking|roasting|frying|grilling)\b|\boven\s+(?:heats|is\s+heating|preheats)\b|\b(?:reduc|lower)\w*\s+(?:the\s+)?(?:oven(?:\s+temperature)?|temperature)\b|\b(?:total\s+)?(?:baking|cooking|bake|cook)\s+times?\b|\bblanch(?:ed)?\s+(?:and\s+\p{L}+\s+)?(?:the\s+)?(?:almonds|nuts|pistachios|walnuts|filberts)\b|\b(?:out\s+of|from)\s+(?:the\s+)?oven\b|\bbaked\s+goods\b|\bfor\s+the\s+(?:first|last|final)\s+\d+(?:\s*(?:-|to)\s*\d+)?\s+minutes\b|\bby\s+boiling\s+water\b|\b(?:pour|add)\w*\s+(?:in\s+)?(?:the\s+)?boiling\s+water\s+in(?:to)?\s+the\s+(?:\p{L}+\s+)?pan\b|\bover\s*(?:bak|cook)\w*\b|\b(?:turn|turns|turned|switch|switches|switched)\s+(?:(?:the\s+)?(?:oven|heat)\s+off|off\s+(?:the\s+)?(?:oven|heat))\b[^.;]*|\bafter\s+(?:about\s+)?(?:an?|one|\d+)\s+(?:\p{L}+\s+)?(?:of\s+)?(?:baking|cooking)\b|\bif\s+(?:you\s+are\s+)?bak\w*\b|\bno[\s-]+bak\w*\b|\bstewed\s+(?:apricots|prunes|fruits?|apples|peaches|figs|tomatoes|cherries|pears|plums|rhubarb|raisins)\b|\b(?:pour|pours|poured|put|puts)\s+(?:on|in|over|upon)?\s*(?:\p{L}+\s+){0,3}?boiling\s+water\b|\breduc\w*\s+(?:the\s+|its\s+)?(?:strength|quantity|amount|sweetness)\b|\breduc\w*\s+(?:the\s+)?\p{L}+\s+by\s+\S+\s+(?:tablespoons?|teaspoons?|cups?|ounces?|grams?|ml)\b",
+            @"\bheat\s*treated\b|\bkeep\s+(?:it\s+|them\s+|the\s+\p{L}+\s+)?warm\b[^.;]*|\b(?:the|in|with|of|and|add|fold\s+in|stir\s+in|top\s+with)\s+(?:\p{L}+\s+)?(?:roasted|toasted|baked|grilled|fried|cooked|boiled|steamed|poached|caramelized|browned)\s+(?!(?:for|until|till|in|on|at|about|over|under|with|and|then|to)\b)\p{L}+|\b(?:double\s+)?boilers?\b|\bfor\s+(?:later|future)\s+(?:baking|cooking|use)\b|\b(?:later|future)\s+(?:baking|cooking)\b|\b(?:microwave|heat|warm)\w*\b(?=[^.;]*?\b\d+(?:\s*(?:-|to)\s*\d+)?[\s-]*seconds?\b)(?![^.;]*\b(?:minutes?|boil\w*|simmer\w*)\b)|\b(?:has|have|had|is|are|was|were|gets?|got|becomes?|it)\s+(?:\p{L}+\s+)?thicken\w*|\bthickened\s+up\b|\bthickens?\s+(?:up\s+)?(?:as\s+it\s+(?:cools|sits|stands)|in\s+the\s+(?:fridge|refrigerator))|\b(?:reduc|lower|increas)\w*\s+(?:the\s+)?(?:mixer\s+)?(?:speed|to\s+(?:low|medium|high)\s+speed)\b|\breduced\s+(?!(?:by|to|until|till|heat|over|for|in|and|slightly)\b)\p{L}+|\bpre\s*baked\b|\bbaked\s+(?:pie\s+|tart\s+)?(?:crusts?|shells?|cases?)\b|\bunbaked\b|\b(?:remove|removed|removing|take|taken|taking|lift|lifted|move|moved|set|pull)\s+(?:it\s+|them\s+|the\s+\p{L}+\s+|from\s+)?(?:from|off)\s+(?:the\s+)?(?:heat|fire|stove|burner|flame|hob)\b|\boff\s+(?:the\s+)?(?:heat|fire|flame|stove|hob)\b|\baway from (?:the )?(?:heat|fire)\b|\bpre ?heat\w*\s+(?:the\s+|your\s+|an\s+)?oven\b|\bheat\s+(?:the\s+|your\s+)?oven\s+to\b|\bpre ?heat\w*\b|\bboiled\s+(?:icing|frosting|dressing)\b|\bblanched\b|\bbaking\s+(?:soda|powder|dish|pans?|sheets?|tins?|paper|trays?|parchment|mats?|stones?|steel|spray|cups?|liners?)\b|\broasting\s+(?:pans?|tins?|dish|racks?)\b|\b(?:oven|heat)\s*(?:proof|safe)\b|\bovenproof\b|\bcooking spray\b|\bcooking liquid\b|\bboiled cider\b|\bhard ?boiled\b|\bcooled\b|\b(?:turn|turns|turned|switch|switches|switched)\s+off\s+(?:the\s+)?oven\b|\bboil(?:s|ed|ing)?\s+(?:enough\s+|some\s+)?(?:hot\s+)?water\s+(?:to|for)\b|\bwater\s+bath\b|\b(?:before|after)\s+(?:\p{L}+\s+and\s+)?(?:baking|cooking|roasting|frying|grilling)\b|\boven\s+(?:heats|is\s+heating|preheats)\b|\b(?:reduc|lower)\w*\s+(?:the\s+)?(?:oven(?:\s+temperature)?|temperature)\b|\b(?:total\s+)?(?:baking|cooking|bake|cook)\s+times?\b|\bblanch(?:ed)?\s+(?:and\s+\p{L}+\s+)?(?:the\s+)?(?:almonds|nuts|pistachios|walnuts|filberts)\b|\b(?:out\s+of|from)\s+(?:the\s+)?oven\b|\bbaked\s+goods\b|\bfor\s+the\s+(?:first|last|final)\s+\d+(?:\s*(?:-|to)\s*\d+)?\s+minutes\b|\bby\s+boiling\s+water\b|\b(?:pour|add)\w*\s+(?:in\s+)?(?:the\s+)?boiling\s+water\s+in(?:to)?\s+the\s+(?:\p{L}+\s+)?pan\b|\bover\s*(?:bak|cook)\w*\b|\b(?:turn|turns|turned|switch|switches|switched)\s+(?:(?:the\s+)?(?:oven|heat)\s+off|off\s+(?:the\s+)?(?:oven|heat))\b[^.;]*|\bafter\s+(?:about\s+)?(?:an?|one|\d+)\s+(?:\p{L}+\s+)?(?:of\s+)?(?:baking|cooking)\b|\bif\s+(?:you\s+are\s+)?bak\w*\b|\bno[\s-]+bak\w*\b|\bstewed\s+(?:apricots|prunes|fruits?|apples|peaches|figs|tomatoes|cherries|pears|plums|rhubarb|raisins)\b|\b(?:pour|pours|poured|put|puts)\s+(?:on|in|over|upon)?\s*(?:\p{L}+\s+){0,3}?boiling\s+water\b|\breduc\w*\s+(?:the\s+|its\s+)?(?:strength|quantity|amount|sweetness)\b|\breduc\w*\s+(?:the\s+)?\p{L}+\s+by\s+\S+\s+(?:tablespoons?|teaspoons?|cups?|ounces?|grams?|ml)\b|\b(?:do\s+not|don'?t|never)\s+(?:cook|boil|heat|bake|simmer|scald)\w*\b",
             Options);
 
         private static readonly Regex OffHeat = new(
@@ -204,7 +205,7 @@ namespace Nom.Orch.Services.Support
             @"\b(?:stir|stirs|stirred|pour|pours|poured|add|adds|added|put|mix|mixes|mixed)\s+(?:it|them|this|the\s+mixture)\s+(?:in|into|to|with)\s+the\s+(?:sauce|gravy|soup|broth|stock|custard)\b",
             Options);
 
-        private static readonly Regex Alternative = new(@"\bif\s+(?:using|you\s+(?:use|are\s+using|make|bake)|making|baking)\b|\bfor\s+(?:smaller|larger|mini|individual)\b|^\W*or\b", Options);
+        private static readonly Regex Alternative = new(@"\bif\s+(?:using|you\s+(?:use|are\s+using|make|bake)|making|baking)\b|\bfor\s+(?:smaller|larger|mini|individual)\b|^\W*or\b|^\W*(?:for|if\s+you\s+(?:like|prefer|want))\s+(?:a\s+|an\s+)?(?:more|less|extra|softer|firmer|crisper|crispier|chewier|gooier|fudgier|darker|lighter|browner|thicker|thinner|deeper|richer|drier|moister)\b", Options);
 
         private static readonly Regex WetHalf = new(@"\bwet\s+(?:ingredients|mixture)\b", Options);
 
@@ -252,6 +253,12 @@ namespace Nom.Orch.Services.Support
 
         private static readonly Regex OptionalPart = new(@"\boptional\b", Options);
 
+        private static readonly Regex AltPurpose = new(@"^\W*(?:for|if\s+you\s+(?:like|prefer|want))\s+(?:a\s+|an\s+)?(?:more|less|extra|softer|firmer|crisper|crispier|chewier|gooier|fudgier|darker|lighter|browner|thicker|thinner|deeper|richer|drier|moister)\b", Options);
+
+        private static readonly Regex AddedTime = new(@"\b(?:minutes?|mins?|hours?)\s+(?:more|longer)\b|\b\d+\s+more\s+(?:minutes?|mins?|hours?)\b|\b(?:another|additional|an?\s+extra|further)\s+(?:\d|\p{L}+\s+(?:minutes?|mins?|hours?))", Options);
+
+        private static readonly Regex SameHeat = new(@"\b(?<v>bak|roast|broil|grill|simmer|boil|cook|steam|poach|stew|toast|fr)(?:e|es|ed|ing|s|y|ying|ied|ies)?\b", Options);
+
         private static readonly Regex ShortOvernight = new(@"\b(?:\d+|one|two|three|four|five|six|seven|eight|nine|ten|eleven|twelve|several|a\s+few|an?)\s+(?:to\s+(?:\d+|\p{L}+)\s+)?hours?\s*,?\s+(?:or|and|preferably|ideally)\s+(?:up\s+to\s+)?(?:over ?night|\d+\s+days?|a\s+day)\b|\(?\s*,?\s*(?:and\s+|or\s+)?up\s+to\s+(?:\d+\s*(?:-|to)?\s*\d*\s+(?:hours?|days?)|over ?night)", Options);
 
         private static readonly Regex ColdAct = new(@"\b(?:cold|cool|cooled|chilled|lukewarm|tepid|iced)\b(?!\s+water\b)", Options);
@@ -268,7 +275,7 @@ namespace Nom.Orch.Services.Support
 
         private static readonly Regex AndThenCold = new(@"\s+and\s+(?:then\s+)?(?:cool|chill|refrigerat|freez|let|leave|set|pour|spread)\w*\b", Options);
 
-        private static readonly Regex PlacedInPan = new(@"\b(?:press|spread|pour|transfer|spoon|scrape)\w*\b[^.;]*\b(?:into|in|onto|over)\s+(?:the|a|an)\s+(?:[\p{L}\d-]+\s+){0,3}?(?:pan|dish|tin|crust|mould|mold)\b", Options);
+        private static readonly Regex PlacedInPan = new(@"\b(?:press|spread|pour|transfer|spoon|scrape|lay|laid|pack|arrang)\w*\b[^.;]*\b(?:into|in|onto|over)\s+(?:the|a|an)\s+(?:[\p{L}\d-]+\s+){0,3}?(?:pan|dish|tin|crust|mould|mold)\b", Options);
 
         private static readonly Regex NewVessel = new(@"^\W*(?:\p{L}+\s+){0,4}?(?:in|into)\s+(?:a|another)\s+(?:[\p{L}-]+\s+){0,2}(?:bowl|saucepan|pot|skillet|mug|jar)\b", Options);
 
@@ -296,7 +303,15 @@ namespace Nom.Orch.Services.Support
 
         private static readonly Regex SidePart = new(@"\b(?:the|a|an|this|your|for\s+the|to\s+the|into\s+the)\s+(?:\p{L}+\s+)?(?:icing|frosting|glaze|filling|topping|(?<!\b(?:soy|fish|oyster|hot|worcestershire|chil[il]i?|hoisin|tabasco|tomato|apple|cranberry|pepper)\s)sauce|dressing|(?<!\b(?:maple|corn|golden|agave|date|rice|simple)\s)syrup|custard|streusel|crumble|marinade|meringue)\b", Options);
 
-        private static readonly Regex OntoDish = new(@"\b(?:over|onto|on\s+top\s+of|into|in)\s+the\s+(?:\p{L}+\s+)?(?:batter|cake|dough|filling|pan|dish|crust|mixture)\b", Options);
+        private static readonly Regex OntoDish = new(@"\b(?:over|onto|on\s+top\s+of|into|in)\s+the\s+(?:\p{L}+\s+)?(?:batter|cake|dough|filling|pan|dish|crust|mixture)\b|\bfill\w*\s+(?:up\s+)?the\s+(?:\p{L}+\s+)?(?:mould|mold|dish|pan|tin|basin|crust|shell)\b", Options);
+
+        private static readonly Regex JoinedHere = new(@"\b(?:add|adds|added|stir|stirs|stirred|fold|folds|folded|mix|mixes|mixed|toss|tosses|tossed|pour|pours|poured)\s+(?:(?:it|them|this|these|all)\s+)?(?:in\s+)?(?:(?!(?:and|then|bake|boil|cook|put|pour)\b)\p{L}+\s+){0,3}?(?:(?:in)?to|with)\s+the\s+(?:rest\s+of\s+the\s+|remaining\s+)?(?<w>\p{L}+)", Options);
+
+        private static readonly Regex VesselHeated = new(@"\b(?:boil|steam|simmer|stew|bake|cook)\w*\s+(?:or\s+\p{L}+\s+)?(?:it|them|the\s+(?:mould|mold|basin|pudding|dish|tin))\b", Options);
+
+        private static readonly Regex Sufficient = new(@"\b(?:will|would|should|may|might)\s+(?:be\s+)?(?:quite\s+)?(?:sufficient|enough|suffice|do)\b|\bsuffices?\b|\b(?:is|are)\s+(?:quite\s+)?(?:sufficient|enough)\b", Options);
+
+        private static readonly Regex LaterUse = new(@"\bfor\s+(?:later|future)\s+(?:use|baking|cooking)\b|\bto\s+bake\s+later\b|\bbake\s+(?:them\s+|it\s+)?later\b", Options);
 
         private static readonly Regex SplitUse = new(@"\b(?:serve|serving|pass|top|drizzle|spoon)\w*\b[^.;]*\b(?:extra|remaining|reserved|rest\s+of\s+the|leftover|more|additional)\s+(?:\p{L}+\s+)?(?<n>sauce|glaze|syrup|dressing|marinade|icing|frosting|gravy|custard)\b|\b(?:reserve|save)\w*\s+(?:about\s+|some\s+|half\s+|a\s+(?:little|quarter|third|cup)\s+)?(?:of\s+)?(?:the\s+)?(?:\p{L}+\s+)?(?<n>sauce|glaze|syrup|dressing|marinade|mixture|gravy)\b", Options);
 
@@ -304,7 +319,7 @@ namespace Nom.Orch.Services.Support
 
         private static readonly Regex AddedTo = new(@"^\W*(?:then\s+)?(?:add|stir|fold|pour|mix|whisk|beat)\w*\s+(?:(?:it|them|this|these|the\s+\p{L}+(?:\s+\p{L}+)?)\s+)?(?:in)?to\s+the\s+(?:\p{L}+\s+)?(?:mixture|batter|dough)\b", Options);
 
-        private static readonly Regex OverCrust = new(@"\b(?:pour|spoon|spread|scrape|transfer)\w*\b[^.;]*\b(?:over|into|onto|in)\s+(?:the\s+)?(?:\p{L}+\s+){0,2}?(?:crusts?|shells?|pastry|base)\b", Options);
+        private static readonly Regex OverCrust = new(@"\b(?:pour|spoon|spread|scrape|transfer|put)\w*\b[^.;]*\b(?:over|into|onto|in)\s+(?:the\s+)?(?:\p{L}+\s+){0,2}?(?:crusts?|shells?|pastry|base)\b", Options);
 
         private static readonly Regex ThenGoesOn = new(@"\b(?:cool|rest|stand|sit)\w*\b[^.;]*?,?\s*(?:and\s+)?then\s+(?:mix|add|stir|fold|whisk|beat|combine|pour|spread|roll|shape|scoop|knead)\w*\b", Options);
 
@@ -324,7 +339,7 @@ namespace Nom.Orch.Services.Support
 
         private static readonly Regex Seconds = new(@"\b\d+(?:\s*(?:-|to)\s*\d+)?\s*(?:seconds?|secs?)\b", Options);
 
-        private static readonly Regex ChoiceLead = new(@"^\W*(?:if|optional(?:ly)?|alternatively|or|for\s+(?:smaller|larger|mini|individual))\b|^\W*\(", Options);
+        private static readonly Regex ChoiceLead = new(@"^\W*(?:if|optional(?:ly)?|alternatively|or|for\s+(?:smaller|larger|mini|individual))\b|^\W*\(|^\W*(?:for|if\s+you\s+(?:like|prefer|want))\s+(?:a\s+|an\s+)?(?:more|less|extra|softer|firmer|crisper|crispier|chewier|gooier|fudgier|darker|lighter|browner|thicker|thinner|deeper|richer|drier|moister)\b", Options);
 
         private static readonly Regex MixOn = new(@"^(?:together|up|until|till|on|at|for|with|gently|just|briefly|again|slowly|by|thoroughly|to|in|everything|all|it|them|well|lightly)\b", Options);
 
@@ -337,7 +352,7 @@ namespace Nom.Orch.Services.Support
             Options);
 
         private static readonly Regex Choice = new(
-            @"\bif\s+(?:using|desired|preferred|you\s+(?:use|are\s+using|make|bake|prefer|like|want|wish|have)|making|baking|serving)\b|^\W*(?:alternatively|or|optional(?:ly)?)\b|^\W*if\b|^\W*\(\s*optional\w*|\bfor\s+(?:smaller|larger|mini|individual|a\s+(?:crisp|softer|firmer|crispier))\b|^\W*to\s+(?:bake|cook|make)\s+(?:it\s+|them\s+)?(?:in|on)\s+(?:the|an?)\s+\p{L}+",
+            @"\bif\s+(?:using|desired|preferred|you\s+(?:use|are\s+using|make|bake|prefer|like|want|wish|have)|making|baking|serving)\b|^\W*(?:alternatively|or|optional(?:ly)?)\b|^\W*if\b|^\W*\(\s*optional\w*|\bfor\s+(?:smaller|larger|mini|individual|a\s+(?:crisp|softer|firmer|crispier))\b|^\W*(?:for|if\s+you\s+(?:like|prefer|want))\s+(?:a\s+|an\s+)?(?:more|less|extra|softer|firmer|crisper|crispier|chewier|gooier|fudgier|darker|lighter|browner|thicker|thinner|deeper|richer|drier|moister)\b|^\W*to\s+(?:bake|cook|make)\s+(?:it\s+|them\s+)?(?:in|on)\s+(?:the|an?)\s+\p{L}+",
             Options);
 
         private static readonly Regex PanVessel = new(@"\b(?:saucepan|sauce\s*pan|stewpan|pot|skillet|frying\s+pan|double\s+boiler|over\s+(?:low|medium|high|medium[\s-]+low|medium[\s-]+high|moderate|gentle|a\s+low|a\s+medium)\s+(?:heat|flame|fire))\b", Options);
@@ -360,7 +375,7 @@ namespace Nom.Orch.Services.Support
 
         private static readonly Regex NotServed = new(@"\bserving\s+(?:size|spoon|pieces)\b|\b(?:before|ready\s+to|until)\s+serv\w*\b", Options);
 
-        private static readonly Regex SameRest = new(@"\b(?:chill(?:s|ed)?|refrigerat\w*|cover(?:s|ed)?|rest|rests|rise|rises|freez(?:e|es)|stand|stands|sit|sits)\b", Options);
+        private static readonly Regex SameRest = new(@"\b(?:chill(?:s|ed)?|refrigerat\w*|cover(?:s|ed)?|rest|rests|rise|rises|freez(?:e|es)|stand|stands|sit|sits)\b|\b(?:back\s+)?in(?:to)?\s+the\s+(?:fridge|refrigerator)\b", Options);
 
         private static readonly Regex SetAside = new(@"\bset\s+(?:it\s+|them\s+|this\s+|the\s+(?:\p{L}+\s+){1,2})?aside\b|\breserv\w*\b|\bfor\s+later\b|\buntil\s+(?:ready|needed)\b", Options);
 
@@ -768,11 +783,12 @@ namespace Nom.Orch.Services.Support
         {
             var sentence = sentences[index];
             var clauseStart = ClauseStart(sentence, position);
-            var after = CertainSegment(sentences, index, OwnClause(sentence, clauseStart), out var stop, out var end, out var cut);
+            var after = CertainSegment(sentences, index, OwnClause(sentence, clauseStart), out var stop, out var end, out var cut, out var alternative);
             var scan = Scan(after, true);
             var reading = Interpret(sentences, index, position, clauseStart, after, scan);
             if (cut > 0 && reading.Kind is Timed or UpTo && reading.Minutes is { } minutes)
                 reading = Bound(Of(Timed, scan.Oven ? Bake : reading.Method, Math.Max(0, minutes - cut)), ReasonChoice);
+            else if (alternative && reading.Kind is Timed) reading = Bound(reading, ReasonChoice);
             return new Certain(reading, stop, end, scan.Flame);
         }
 
@@ -845,6 +861,9 @@ namespace Nom.Orch.Services.Support
             return segment;
         }
 
+        /// <summary>The first heat verb of a sentence, lower case ("bak" for "Bake"), null when it has none.</summary>
+        private static string? HeatVerb(string sentence) => SameHeat.Match(sentence) is { Success: true } m ? m.Groups["v"].Value.ToLowerInvariant() : null;
+
         /// <summary>
         /// The run of the method that certainly cooks the drink: its clause and the sentences after it while they go on
         /// with the same mixture. The run ends before a separate preparation, a new bowl or pan, a new part ("For the
@@ -853,14 +872,22 @@ namespace Nom.Orch.Services.Support
         /// ("Bake the shortcakes"), and, for a drink in a side part (an icing, sauce, filling, whipped cream and the like),
         /// before any heat that does not name that part or go on with it on the stove; and after a sentence that sets the
         /// mixture aside, chills, cools or serves it, unless it only rests or chills the same dough or mixture before it
-        /// goes on uncooked. A sentence that offers a choice (another method, "if using", an optional part) is left out.
+        /// goes on uncooked. A sentence that offers a choice (another method, "if using", an optional part, another time
+        /// for another result: "For a firmer bar, bake for 30 minutes") is left out, and its time is never added to
+        /// the time before it: a shorter time it offers for another result by the same heat (not one it adds: "5 minutes more", nor "For a crisper top, broil it 1 minute" after a bake) or as enough in a conditional sentence ("If not thick, an hour will be
+        /// sufficient"; not "If the crust darkens, lay foil over it after 20 minutes") is taken as <paramref name="cut"/>, and a time offered for another result makes the reading an
+        /// upper bound (<paramref name="alternative"/>; staging checkpoint 9, U12: 18 and 30 minutes were read as 48). A
+        /// sentence that starts a new preparation but adds it, in a later clause, back into the run's mass goes on with
+        /// the run from that clause on, the heat of what was prepared before it not being the drink's (<see cref="JoinAt"/>),
+        /// and so does a dough put back in the fridge or frozen for later use.
         /// <paramref name="stop"/> is why the run ended early (<see cref="ReasonParts"/>, <see cref="ReasonPause"/> or
         /// <see cref="ReasonChoice"/>), null when it reached the end or the dish was cooked; <paramref name="end"/> is the
         /// index of the last sentence it read.
         /// </summary>
-        private static List<string> CertainSegment(List<string> sentences, int index, string clause, out string? stop, out int end, out int cut)
+        private static List<string> CertainSegment(List<string> sentences, int index, string clause, out string? stop, out int end, out int cut, out bool alternative)
         {
             cut = 0;
+            alternative = false;
             string? lastHeat = Heats(clause) ? clause : null;
             if (lastHeat != null && (ChoiceTime.IsMatch(clause) || OrMethod.IsMatch(clause)) && TimesIn(clause) is { } own0 && AllMinutes(clause) is { Count: > 0 } offered0)
                 cut += Math.Max(0, own0.Low - (Seconds.IsMatch(clause) ? 0 : offered0.Min()));
@@ -884,7 +911,7 @@ namespace Nom.Orch.Services.Support
                 var s = sentences[i];
                 var mass = segment.Prepend(sentence).Concat(sentences.Skip(Math.Max(0, index - 3)).Take(Math.Min(3, index))).ToList();
                 var text = string.Join(" ", mass);
-                if (AltMethod.IsMatch(s) && !Heats(s) && !Frozen.IsMatch(s)) continue;
+                if (AltMethod.IsMatch(s) && !Heats(s) && (!Frozen.IsMatch(s) || LaterUse.IsMatch(s))) continue;
                 if (AltMethod.IsMatch(s))
                 {
                     choice = true;
@@ -895,6 +922,12 @@ namespace Nom.Orch.Services.Support
                     choice |= Heats(s);
                     if (lastHeat != null && ChoiceTime.IsMatch(s) && !NotCooking.IsMatch(s) && AllMinutes(s) is { Count: > 0 } offered && TimesIn(lastHeat) is { } counted)
                         cut += Math.Max(0, counted.Low - offered.Min());
+                    else if (lastHeat != null && Conditional.IsMatch(s) && Sufficient.IsMatch(s) && !Heats(s) && !NotCooking.IsMatch(s) && AllMinutes(s) is { Count: > 0 } shorter && TimesIn(lastHeat) is { } before)
+                        cut += Math.Max(0, before.Low - shorter.Min());
+                    else if (lastHeat != null && Heats(s) && AltPurpose.IsMatch(s) && !AddedTime.IsMatch(s) && HeatVerb(s) is { } verb && verb == HeatVerb(lastHeat)
+                        && AllMinutes(s) is { Count: > 0 } other && TimesIn(lastHeat) is { } first)
+                        cut += Math.Max(0, first.Low - other.Min());
+                    if (lastHeat != null && Heats(s) && AltPurpose.IsMatch(s) && AllMinutes(s).Count > 0) alternative = true;
                     continue;
                 }
                 if (SetAsideRest.IsMatch(s) || Storage.IsMatch(s)) continue;
@@ -907,6 +940,8 @@ namespace Nom.Orch.Services.Support
                     && !(JoinsBack(s, mass) && !(floured && DryJoin.IsMatch(s))) && !(DryJoin.IsMatch(s) && !floured);
                 if (!heated && mixed && DryOnly(s) && !SeparateStep.IsMatch(s) && !NewVessel.IsMatch(s) && !floured)
                     mixed = false;
+                if ((prep || mixed) && !SeparateStep.IsMatch(s) && !NewVessel.IsMatch(s) && JoinAt(s, text) is var join and > 0)
+                    (prep, mixed, s) = (false, false, s[join..]);
                 if (SeparateStep.IsMatch(s) || (NewVessel.IsMatch(s) && !own && (VesselFirst.IsMatch(s) || !Heats(s) || !(HeatObjectAny.Match(s) is { Success: true } ho && Regex.Match(ho.Groups["o"].Value, @"\p{L}+$").Value is var hn && (DishNoun.IsMatch(hn) || Regex.IsMatch(text, @"\b" + WordForms(hn) + @"\b", Options))))) || prep || mixed)
                 {
                     if (!heated && !floured && DryOnly(s) && i + 1 < sentences.Count && (JoinsBack(sentences[i + 1], mass) || DryJoin.IsMatch(sentences[i + 1])))
@@ -988,8 +1023,10 @@ namespace Nom.Orch.Services.Support
         /// (whatever it calls the dish), provided any part made in between was put over or into the dish first
         /// ("For the topping ... Sprinkle over the cake. Bake for 35 minutes"). When the run has already cooked the dish
         /// (a crust baked before its filling), only that later oven sentence counts, and only after a sentence puts a part
-        /// over or into the dish ("Pour the filling over the warm crust"). Null when a sentence serves the dish or offers
-        /// another method first, or nothing is found.
+        /// over or into the dish ("Pour the filling over the warm crust"). A run that laid its food in a mould or the like goes
+        /// on, past a part that fills that mould ("Make a custard ... Fill up the mould with the custard"), to the sentence
+        /// that boils or steams it ("tie it down with a cloth, and boil or steam it for an hour": staging checkpoint 9, U12).
+        /// Null when a sentence serves the dish or offers another method first, or nothing is found.
         /// </summary>
         private static int? Return(List<string> sentences, int from, List<string> segment, string sentence, bool heated, bool side)
         {
@@ -1010,6 +1047,7 @@ namespace Nom.Orch.Services.Support
                 if (NewComponent.IsMatch(s) || Heading.IsMatch(s) || SeparateStep.IsMatch(s) || NewVessel.IsMatch(s)) crossed = true;
                 if (Strewn.IsMatch(s) || OntoDish.IsMatch(s)) crossed = false;
                 if (inPan && !crossed && Oven.IsMatch(NotHeating.Replace(s, " ")) && !NotHeatingSentence.IsMatch(s) && !Choice.IsMatch(s)) return j;
+                if (inPan && !crossed && !heated && Heats(s) && !Oven.IsMatch(NotHeating.Replace(s, " ")) && (ThisPart.IsMatch(s) || VesselHeated.IsMatch(s)) && !NotHeatingSentence.IsMatch(s) && !Choice.IsMatch(s)) return j;
             }
             return null;
         }
@@ -1181,6 +1219,19 @@ namespace Nom.Orch.Services.Support
             }
             return null;
         }
+
+        /// <summary>
+        /// Where a sentence that starts a new preparation adds what it makes, in a later clause of its own, back into the
+        /// run's mass: into "the bowl", "the mixture", "the batter" or "the dough", or into or with a food the run named
+        /// ("Chop the apples and stir them into the bowl of oats"; "Beat the whites ..., and add them ... with the rest of
+        /// the flour"), so the run goes on with it from there (staging checkpoint 9, U12: bounds too high where every part is
+        /// baked); the heat of the preparation before that clause ("Melt the gelatine in boiling water and stir it into the
+        /// cream") is not the drink's. -1 when it adds nothing back.
+        /// </summary>
+        private static int JoinAt(string sentence, string run) =>
+            JoinedHere.Matches(sentence).FirstOrDefault(m => m.Index > 0
+                && (m.Groups["w"].Value.ToLowerInvariant() is "bowl" or "mixture" or "batter" or "dough"
+                    || Regex.IsMatch(run, @"\b" + WordForms(m.Groups["w"].Value) + @"\b", Options)))?.Index ?? -1;
 
         private static string WordForms(string word) =>
             "(?:" + Regex.Escape(word) + "(?:s|es)?" + (word.EndsWith('y') ? "|" + Regex.Escape(word[..^1]) + "ies" : string.Empty) + ")";
@@ -1423,7 +1474,7 @@ namespace Nom.Orch.Services.Support
         internal static string SignatureSource()
         {
             var text = new StringBuilder(Version);
-            foreach (var regex in new[] { SentenceSplit, NotHeating, OffHeat, GasFlame, TimeOnly, NotCooking, Served, NewComponent, HotInto, HotThrough, SauceMade, NewMixtureVerb, BackReference, WorkedCold, LastClause, PartNoun, Protein, Coated, LeadVerb, Stove, GenericHeat, Oven, Flame, OvernightWords, Duration, MoreMinutes, SeparateStep, PauseStep, Frozen, Cold, Storage, OwnPart, PauseObject, HotJoin, Alternative, WetHalf, ChillPause, Vessel, Ratio, TheMixture, ThenClause, HeatNoun, RestClause, NoHeatChoice, Sealed, SetAsideRest, Continued, BareFlavour, FlavourNoun, JoinMixture, LaterPart, OptionalPart, ShortOvernight, ColdAct, ForLater, OrBetween, AltMethod, CoolsInOven, NextMorning, AndThenCold, PlacedInPan, NewVessel, IntoTheMixture, NotHeatingSentence, NotPause, Conditional, FromCold, MeltedFat, UsedInstead, AppliedPart, HalfHourRange, Held, HeldList, PriorHeat, AddedAgain, ItsMixture, ClauseVerb, DryHalf, Mixture, Soak, ClauseBreak, AddVerb, DrinkGeneric, GenericMention, MixAll, DryIngredients, NotMention, EveryBefore, Marinade, Choice, PanVessel, DryJoin, HeatObject, DishNoun, ThisPart, NotServed, SameRest, SetAside, WetWords, WhippedCream, NewPrep, AppliedCold, OwnMass, MixOn, Strewn, SetFirm, Heading, IntoPan, TheMass, OntoDish, LineAmount, SidePart, ChoiceLead, ChoiceTime, OrMethod, Seconds, SplitUse, Portion, AddedTo, OverCrust, ThenGoesOn, WarmOnly, VesselFirst, HeatObjectAny, DryWord, LiquorWord })
+            foreach (var regex in new[] { SentenceSplit, NotHeating, OffHeat, GasFlame, TimeOnly, NotCooking, Served, NewComponent, HotInto, HotThrough, SauceMade, NewMixtureVerb, BackReference, WorkedCold, LastClause, PartNoun, Protein, Coated, LeadVerb, Stove, GenericHeat, Oven, Flame, OvernightWords, Duration, MoreMinutes, SeparateStep, PauseStep, Frozen, Cold, Storage, OwnPart, PauseObject, HotJoin, Alternative, WetHalf, ChillPause, Vessel, Ratio, TheMixture, ThenClause, HeatNoun, RestClause, NoHeatChoice, Sealed, SetAsideRest, Continued, BareFlavour, FlavourNoun, JoinMixture, LaterPart, OptionalPart, ShortOvernight, ColdAct, ForLater, OrBetween, AltMethod, CoolsInOven, NextMorning, AndThenCold, PlacedInPan, NewVessel, IntoTheMixture, NotHeatingSentence, NotPause, Conditional, FromCold, MeltedFat, UsedInstead, AppliedPart, HalfHourRange, Held, HeldList, PriorHeat, AddedAgain, ItsMixture, ClauseVerb, DryHalf, Mixture, Soak, ClauseBreak, AddVerb, DrinkGeneric, GenericMention, MixAll, DryIngredients, NotMention, EveryBefore, Marinade, Choice, PanVessel, DryJoin, HeatObject, DishNoun, ThisPart, NotServed, SameRest, SetAside, WetWords, WhippedCream, NewPrep, AppliedCold, OwnMass, MixOn, Strewn, SetFirm, Heading, IntoPan, TheMass, OntoDish, LineAmount, SidePart, ChoiceLead, ChoiceTime, OrMethod, Seconds, SplitUse, Portion, AddedTo, OverCrust, ThenGoesOn, WarmOnly, VesselFirst, HeatObjectAny, DryWord, LiquorWord, JoinedHere, LaterUse, AltPurpose, VesselHeated, Sufficient, AddedTime, SameHeat })
                 text.Append('\n').Append(regex);
             text.Append('\n').Append(BareExtract);
             foreach (var (pattern, replacement) in Phrases) text.Append('\n').Append(pattern).Append('=').Append(replacement);

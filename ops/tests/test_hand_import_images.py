@@ -489,6 +489,74 @@ class TableRowTests(unittest.TestCase):
                          [("unreadable", "unreadable text: the page image was read, but not every amount with confidence")])
 
 
+class PageLayoutTests(unittest.TestCase):
+    """Staging checkpoint 9, U17: an index set in two columns read across them gave names the other column's page
+    numbers ("Waffles 26" where the book prints 16), and whole method lines were dropped with no mark. A page is read
+    by its layout, column by column; a page whose rows cannot be assigned to one column is refused; a line the reading
+    lost is marked."""
+
+    @staticmethod
+    def index_words(cross=False):
+        left = [("Mutton", "Chops", "26"), ("Roast", "Pork", "30"), ("Kidney", "Stew", "31"), ("Bean", "Soup", "33"),
+                ("Fish", "Pie", "40"), ("Veal", "Loaf", "41"), ("Pea", "Soup", "44"), ("Hash", "Balls", "47")]
+        right = [("Waffles", "Batter", None), ("Crab", "Apple", "91"), ("Corn", "Bread", "17"), ("Graham", "Gems", "18"),
+                 ("Rice", "Cakes", "19"), ("Lemon", "Pie", "92"), ("Plum", "Jam", "95"), ("Ginger", "Snaps", "96")]
+        words = [word(900, "INDEX.", top=40)]
+        for i, (a, b, n) in enumerate(left):
+            top = 100 + 60 * i
+            words += [word(250, a, top=top), word(420, b, top=top), word(1100, n, top=top)]
+        for i, (a, b, n) in enumerate(right):
+            top = 112 + 60 * i
+            words += [word(1450, a, top=top), word(1650, b, top=top)]
+            if n:
+                words.append(word(2200, n, top=top))
+        if cross:
+            words.append(word(1050, "Fritters-and-Sauce", top=580))
+        return words
+
+    def test_a_two_column_index_is_read_column_by_column_so_a_name_keeps_its_own_number(self):
+        text = hand.table_text(self.index_words(), dictionary=WORDS)
+        lines = [line for line in text.split("\n") if line.strip()]
+        self.assertTrue(any(line.startswith("INDEX") for line in lines[:1]), lines)
+        self.assertTrue(any("Mutton Chops" in line and "26" in line for line in lines), lines)
+        self.assertFalse(any("Waffles" in line and "26" in line for line in lines), "staging checkpoint 9, U17: 'Waffles 26' where the book prints 16")
+        self.assertLess(lines.index(next(l for l in lines if "Bean Soup" in l)), lines.index(next(l for l in lines if "Waffles" in l)),
+                        "the left column is read before the right one")
+
+    def test_a_page_whose_rows_cannot_be_assigned_to_one_column_is_refused(self):
+        text = hand.table_text(self.index_words(cross=True), dictionary=WORDS)
+        self.assertEqual(text, hand.COLUMNS_REFUSED + "\n")
+        with tempfile.TemporaryDirectory() as folder:
+            path = os.path.join(folder, "text.json")
+            garbled = "INDEX.\n\n" + "\n".join(["ELI aa a as I pint", "Shy SS 0 Ut ee ae ay cee ise cecil (Oude B:",
+                                                  "ALIN Gg | 0) Ea aaa ian a ne I pint", "BI ttace ee Sore Semel arg ys 1 ae 3 qts."]) + "\n"
+            with open(path, "w", encoding="utf-8") as handle:
+                json.dump({"127": {"fulltext": garbled}}, handle)
+            pages, _ = hand.loc_pages(path, WORDS, {127: "p.jpg"}, lambda p: text)
+        self.assertEqual((pages[0]["method"], pages[0]["imageRefused"], pages[0]["text"]), ("loc-ocr", "columns", garbled))
+        self.assertTrue(pages[0]["needsImage"])
+
+    def test_a_table_with_its_amounts_on_the_right_is_one_column(self):
+        words = []
+        for i, (name, amount) in enumerate([("Flour", "2"), ("Sugar", "1"), ("Butter", "3"), ("Milk", "1")]):
+            top = 100 + 60 * i
+            words += [word(250, name, top=top), word(1500, amount, top=top), word(1560, "cups", top=top)]
+        layout = hand.page_layout(words, 40)
+        self.assertEqual(layout.kind, "one")
+
+    def test_a_line_the_reading_lost_inside_a_paragraph_is_marked_never_dropped(self):
+        def line(top, *texts, left=250):
+            return [word(left + 160 * i, t, top=top) for i, t in enumerate(texts)]
+        words = (line(100, "Beat", "the", "eggs", "and", "add", "the", "flour") + line(160, "slowly", "and", "the", "milk.")
+                 + line(220, "Bake", "in", "gem", "pans", "until", "brown,", "and") + line(340, "serve", "at", "once", "with", "butter."))
+        text = hand.table_text(words, dictionary=WORDS)
+        lines = text.split("\n")
+        self.assertIn(cookbook.UNREAD, lines, "staging checkpoint 9, U17: 'gether and bake on hot, well greased griddle' dropped with no mark")
+        self.assertEqual(lines.index(cookbook.UNREAD), lines.index(next(l for l in lines if l.startswith("serve"))) - 1)
+        whole = (line(100, "Beat", "the", "eggs", "and", "add", "the", "flour.") + line(220, "Bake", "in", "gem", "pans", "until", "brown.", left=290))
+        self.assertNotIn(cookbook.UNREAD, hand.table_text(whole, dictionary=WORDS), "a paragraph break after a sentence end is no lost line")
+
+
 def recorded(page):
     with open(os.path.join(FIXTURES, page["file"].replace(".jpg", ".tsv")), encoding="utf-8") as handle:
         return hand.tsv_words(handle.read())

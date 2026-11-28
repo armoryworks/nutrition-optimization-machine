@@ -405,6 +405,27 @@ held (`lines-differ`), as is a copy that is itself referenced (`referenced`) or 
 (`person-edit`). Journal kind `duplicate-retire`, with the kept recipe, and a `DuplicateRetire`
 row in `audit.AuditLogEntry`.
 
+## Referral numbers on held recipes (`line-builder/15`, staging checkpoint 9, U8 and U9)
+
+After the T11 rebuild 27 of 105 clear referral numbers were still stored as amounts. The kinds and their rules:
+
+- **The guard reads the referral first.** A rebuilt row with no amount empties a stored amount that is only the
+  referred number (`LineAmountGuard`, reason `referral`) before any grounding is read, so a method sentence that names
+  "No. 218" no longer holds it as `rebuilt-empty-method`.
+- **Italian preparations named by their number** ("composto N. 374", "Gelatina di Ribes N. 739", "Pasta frolla N.
+  589"): a number after "N." that follows the word of a preparation of the book (composto, gelatina, pasta, frolla,
+  sfoglia, balsamella, salsa, sugo, brodo, ripieno, crema and the like, with no comma between) is a referral;
+  "Uova N. 2" and "Uova, N. 2" stay a count of two eggs.
+- **A held recipe keeps its lines but not a referred number.** When the rebuild holds a recipe whole (no stored
+  source, a compound split, an approved recipe the rebuild would make worse, a planned recipe and the like; never a
+  rejected recipe or one a person edited), each live line whose stored amount is only its referred number is emptied,
+  and nothing else; the recipe stays held with its reason, the lines are listed in `referralLines` and counted in
+  `counts.referralsCleared`, and the write is journaled with kind `referral`, which `undo?kind=rebuild` takes back with
+  the rebuilds. An approved recipe is no longer held `approved-fewer-amounts` for the referral amounts the rebuild
+  empties.
+- **A numbered can in brackets is no referral** ("1 (No. 2-1/2) can fruit cocktail" is one can, "1 can (No. 303)
+  peas" too); it was read as 1.5 pieces.
+
 ## Journal and undo
 
 Every write is one transaction and one row of `recipe."RecipeReprocessJournal"`: `RecipeId`,
@@ -462,6 +483,13 @@ journal existed (the 18 of checkpoint 1) are not touched. A food is kept too whi
 would put a line back on it: the rows before of another reprocess not undone in the same call, or the
 place before of a line relink or an applied link. Undoing that later write first, or both in one call,
 frees it.
+
+A food the rebuild created under a name a soft-deleted food held had that name freed first: the line builder renames the
+holder "name (deleted #id)" and journals it (`NameFreed`). The undo gives the holder its name back when it removes the
+created food (`namesRestored`, counted by the dry run too): the created food, deleted, takes the "(deleted #id)" form
+itself first, journaled the same way, since the name is unique among deleted rows too, and the holder's entry is taken
+out. A name another food took since is left (staging checkpoint 9, U10: six deleted foods kept the suffix after the
+undo, `Farina finissima (deleted #2995)`, `good cognac (deleted #113835)` ...).
 
 Each recipe's journal row, header and new rows carry the time that recipe was written, not the
 start of the batch, so a lane entry written on a recipe while the batch was still working through

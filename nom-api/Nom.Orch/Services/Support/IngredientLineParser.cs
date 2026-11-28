@@ -151,23 +151,28 @@ namespace Nom.Orch.Services.Support
             RegexOptions.Compiled | RegexOptions.IgnoreCase | RegexOptions.CultureInvariant);
 
         private static readonly Regex NumberedRecipe = new(
-            @"\s*\(?\s*(?:see\s+)?(?:\b(?:recipe\s+)?(?:No\.|Nr\.|number)\s*\d+|\brecipe\s+\d+(?=\s*(?:$|[),;:]|\.(?!\d)|(?:or|and)\b))|\b(?:pages?|pp?\.)\s*\d+)(?:\s*(?:,\s*or|,|or|and)\s*(?:page\s+)?\d+)*(?![\d½]|\s*(?:[-\s]\s*1/2\s*)?(?:size\s+)?(?:cans?|tins?)\b)\s*\)?",
+            @"\s*\(?\s*(?:see\s+)?(?<!\b(?:cans?|tins?)\s*\(\s*)(?:\b(?:recipe\s+)?(?:No\.|Nr\.|number)\s*\d+|\brecipe\s+\d+(?=\s*(?:$|[),;:]|\.(?!\d)|(?:or|and)\b))|\b(?:pages?|pp?\.)\s*\d+)(?:\s*(?:,\s*or|,|or|and)\s*(?:page\s+)?\d+)*(?![\d½]|\s*(?:[-\s]\s*1/2\s*)?\)?\s*(?:size\s+)?(?:cans?|tins?)\b)\s*\)?",
+            RegexOptions.Compiled | RegexOptions.IgnoreCase | RegexOptions.CultureInvariant);
+
+        private static readonly Regex PreparationNumber = new(
+            @"(?<=\b(?:composto|gelatina|pasta|sfoglia|frolla|balsamella|besciamella|salsa|sugo|brodo|ripieno|crema|marzapane|pastella|rag[uù]|intingolo|conserva|battuto|glassa)\b[^,;:()]{0,40}?)\s*\bN\.\s*\d+",
             RegexOptions.Compiled | RegexOptions.IgnoreCase | RegexOptions.CultureInvariant);
 
         private static readonly Regex ReferredNumber = new(@"\d+", RegexOptions.Compiled | RegexOptions.CultureInvariant);
 
         /// <summary>
         /// The numbers a line names another recipe or page of its book by ("ingredients mentioned in No. 218", "the same
-        /// stock as number 184", "apple marmalade made by recipe No. 1395", "sauce, see page 19", "descritto al N. 579"):
-        /// such a number is never an amount. A numbered can ("1 No. 2 can") names none, and neither does a size or count
-        /// after "recipe" ("1 recipe 9-inch pie crust", "half recipe 3 egg sponge cake"). Empty when the line refers to
-        /// nothing.
+        /// stock as number 184", "apple marmalade made by recipe No. 1395", "sauce, see page 19", "descritto al N. 579",
+        /// an Italian preparation named by its number, "composto N. 374", "Gelatina di Ribes N. 739"): such a number is
+        /// never an amount. A numbered can ("1 No. 2 can", "1 (No. 2-1/2) can", "1 can (No. 303)") names none, an Italian
+        /// count of a food ("Uova N. 2", "Uova, N. 2") is a count, and neither does a size or count after "recipe" ("1
+        /// recipe 9-inch pie crust", "half recipe 3 egg sponge cake"). Empty when the line refers to nothing.
         /// </summary>
         public static IReadOnlyList<decimal> ReferredNumbers(string? rawLine)
         {
             if (string.IsNullOrWhiteSpace(rawLine)) return Array.Empty<decimal>();
             var line = System.Net.WebUtility.HtmlDecode(rawLine);
-            return CrossReference.Matches(line).Concat(NumberedRecipe.Matches(line))
+            return CrossReference.Matches(line).Concat(NumberedRecipe.Matches(line)).Concat(PreparationNumber.Matches(line))
                 .SelectMany(m => ReferredNumber.Matches(m.Value))
                 .Select(n => decimal.Parse(n.Value, CultureInfo.InvariantCulture))
                 .ToList();
@@ -191,10 +196,10 @@ namespace Nom.Orch.Services.Support
         /// </summary>
         public static string ReferralSignature => ReferralSignatureOf.Value;
 
-        private const string ReferralVersion = "referral/1";
+        private const string ReferralVersion = "referral/2";
 
         private static readonly Lazy<string> ReferralSignatureOf = new(() =>
-            ReferralVersion + ":" + DietTextSignature.Of(System.Text.Encoding.UTF8.GetBytes(CrossReference + "\n" + NumberedRecipe))[..8]);
+            ReferralVersion + ":" + DietTextSignature.Of(System.Text.Encoding.UTF8.GetBytes(CrossReference + "\n" + NumberedRecipe + "\n" + PreparationNumber))[..8]);
 
         /// <summary>
         /// Whether a quantity is only the number of the recipe or page the line refers to: the line names that number
@@ -208,7 +213,7 @@ namespace Nom.Orch.Services.Support
         }
 
         /// <summary>The text with every reference to another recipe or page by number taken out (<see cref="ReferredNumbers"/>).</summary>
-        internal static string WithoutReferrals(string text) => NumberedRecipe.Replace(CrossReference.Replace(text, " "), " ");
+        internal static string WithoutReferrals(string text) => NumberedRecipe.Replace(PreparationNumber.Replace(CrossReference.Replace(text, " "), " "), " ");
 
         private static readonly Regex Price = new(
             @"\bcents?'?\s+worth\b|\b(?:penny|pennies|dime|nickel|shilling|sixpence|sixpenny)(?:'s|s')?\s+worth\b",
@@ -308,7 +313,7 @@ namespace Nom.Orch.Services.Support
             sized = false;
             containers = null;
             if (string.IsNullOrWhiteSpace(rawLine)) return null;
-            rawLine = NumberedRecipe.Replace(CrossReference.Replace(IngredientNameNormalizer.PlainFractions(rawLine), string.Empty), string.Empty);
+            rawLine = NumberedRecipe.Replace(PreparationNumber.Replace(CrossReference.Replace(IngredientNameNormalizer.PlainFractions(rawLine), string.Empty), string.Empty), string.Empty);
             if (string.IsNullOrWhiteSpace(rawLine) || IsElliptical(rawLine)) return null;
             if (SizedUtensil.IsMatch(rawLine) || TinUtensil.IsMatch(rawLine) || Price.IsMatch(rawLine) || Proportion.IsMatch(rawLine) || Unmeasured.IsMatch(rawLine)) return null;
             if (SumOfAmounts.Match(rawLine) is { Success: true } sum && IsBareAmount(sum.Groups["a"].Value)

@@ -150,5 +150,34 @@ namespace Nom.Api.Tests.Services.Curation
             result.Approved.Should().Be(0, "a severe set being built has decided nothing, so no recipe is known to be understood by its type");
             result.Refusals.Should().Contain(DietApprovalHolds.NotDecidedKey, 4);
         }
+
+        [Fact]
+        public async Task The_dry_run_of_the_waiting_reasons_counts_every_candidate_by_reason_and_writes_nothing()
+        {
+            using var db = await SeedAsync();
+            await new DietGateStoreBuilder().RunAsync(db);
+            ReadByPair(db, 11, "Baked Rice");
+            ReadByPair(db, 12, "Rice Custard");
+            var celiac = await db.DietGateSets.Where(s => s.RestrictionTypeId == CeliacRef && s.Severe).Select(s => s.Id).ToListAsync();
+            foreach (var set in celiac) db.DietRecipeFlags.Add(new DietRecipeFlagEntity { SetId = set, RecipeId = 12, Verdict = DietVerdict.Unknown, Reason = DietFlagReason.UnknownWord });
+            var unmeasured = await db.RecipeIngredients.SingleAsync(ri => ri.RecipeId == 13 && ri.SortOrder == 1);
+            unmeasured.Quantity = 0m;
+            unmeasured.RawLine = "milk";
+            await db.SaveChangesAsync();
+            db.ChangeTracker.Clear();
+
+            var report = await Service(db).WaitingAsync(sample: 5);
+
+            report.Candidates.Should().Be(4, "the approved recipe is no candidate");
+            report.Refused.Should().Be(1);
+            report.RefusedBy.Values.Sum().Should().Be(1, "the recipe with an unmeasured line is refused by the policy");
+            report.Passing.Should().Be(3);
+            report.WaitingBy.Should().Contain(DietApprovalHolds.UnknownKey, 1).And.Contain(DietApprovalHolds.UnreadKey, 1);
+            report.WouldApprove.Should().Be(1);
+            report.Samples[RecipeAutoCurationService.WouldApproveKey].Should().Equal(11L);
+            report.Samples[DietApprovalHolds.UnreadKey].Should().Equal(10L);
+            report.RequireSecondReading.Should().BeTrue();
+            (await db.Recipes.CountAsync(r => r.CurationStatusId == (long)CurationStatusEnum.Curated)).Should().Be(1, "a dry run approves nothing");
+        }
     }
 }

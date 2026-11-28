@@ -140,6 +140,27 @@ namespace Nom.Api.Tests.Services
         }
 
         [Fact]
+        public async Task The_all_switch_does_not_hold_a_lane_that_only_reads_while_its_own_switch_does()
+        {
+            using var rig = NewRig();
+            async Task SetAsync(string key, bool on) => await rig.WithDbAsync(async db =>
+                await new PlatformFeatureService(db, rig.Provider.GetRequiredService<Microsoft.Extensions.Caching.Memory.IMemoryCache>(), NullLogger<PlatformFeatureService>.Instance)
+                    .SetAsync(key, on, 4));
+            await SetAsync(AiLanes.PauseAllKey, true);
+
+            AiLanes.ReadingLanes.Should().Equal(new[] { AiLanes.DietSecondReader }, "plan item ck23, U4: only the second diet reader reads without writing to a recipe");
+            (await PassesWithinAsync(rig.Gate, AiLanes.DietSecondReader)).Should().BeTrue("the operator steps keep ai-pause-all on for every lane that writes");
+            (await rig.Gate.PausedAsync(AiLanes.DietSecondReader)).Should().BeFalse();
+            (await PassesWithinAsync(rig.Gate, AiLanes.Link)).Should().BeFalse();
+            (await PassesWithinAsync(rig.Gate, AiLanes.ProseRewrite)).Should().BeFalse();
+
+            await SetAsync(AiLanes.PauseKey(AiLanes.DietSecondReader), true);
+            (await PassesWithinAsync(rig.Gate, AiLanes.DietSecondReader)).Should().BeFalse();
+            (await rig.Gate.PausedAsync(AiLanes.DietSecondReader)).Should().BeTrue();
+            Status(rig.Gate, AiLanes.DietSecondReader).StateReason.Should().Contain("ai-pause-diet-second-reader");
+        }
+
+        [Fact]
         public async Task A_daily_cap_counts_the_lanes_own_rows_of_the_last_24_hours()
         {
             using var rig = NewRig(new() { [$"Ai:Lanes:{AiLanes.Repair}:MaxItemsPerDay"] = "2" });

@@ -20,8 +20,14 @@ namespace Nom.Orch.Services
     /// <summary>One batch of the second reader's shadow lane: the recipes it read, the readings it stored, and how many of those the host gave no readable reply for.</summary>
     public sealed record DietSecondBatch(int Recipes, int Readings, int Unreadable);
 
-    /// <summary>One model's part of the lane's progress: readings current for the recipe's text and prompt, readings stale (older text or prompt), unreadable replies, recipes left, and the hours left at its seconds per recipe.</summary>
-    public sealed record DietSecondModelProgress(string Model, int Current, int Stale, int Unreadable, int Left, double SecondsPerRecipe, bool SecondsMeasured, double HoursLeft);
+    /// <summary>
+    /// One model's part of the lane's progress: readings current for the recipe's text and prompt, readings stale (older text
+    /// or prompt), unreadable replies, recipes left, the hours left at its seconds per recipe (the mean of its latest timed
+    /// readings once there are 20, ck20's measure until then), the lane's own readings of the last 24 hours and its latest one
+    /// (from its decision journal, so an imported reading is not counted as read by the lane).
+    /// </summary>
+    public sealed record DietSecondModelProgress(string Model, int Current, int Stale, int Unreadable, int Left, double SecondsPerRecipe, bool SecondsMeasured, double HoursLeft,
+        int ReadLast24h = 0, DateTime? LastReadAt = null);
 
     /// <summary>
     /// The lane's progress over its scope (<c>GET /api/DietAdmin/second-reader</c>): the approved recipes (the public pool) and
@@ -34,7 +40,8 @@ namespace Nom.Orch.Services
     /// <summary>
     /// The second diet reader as a shadow lane (plan item ck21, lane diet-second-reader): it reads, with both models of
     /// <see cref="DietSecondGate.Pair"/>, every approved recipe of the public pool and then every recipe waiting for
-    /// approval that only the second reading keeps waiting (<see cref="ApprovableAsync"/>), and stores each model's reading per recipe (<see cref="RecipeDietReadingEntity"/>) with the model, the
+    /// approval that only the second reading keeps waiting (<see cref="ApprovableAsync"/>), a batch at a time with one model
+    /// and then the same batch with the other, since the host holds one model at a time (plan item ck23, U4), and stores each model's reading per recipe (<see cref="RecipeDietReadingEntity"/>) with the model, the
     /// reader's prompt signature, the signature of the text it was shown and the store version, journaling each in
     /// curation.LaneDecision (mode shadow; it writes nothing a household sees). It never reads a recipe again while its text,
     /// the prompt and the model are unchanged, so a stopped lane resumes where it was; a reply the host did not give in a
@@ -44,7 +51,7 @@ namespace Nom.Orch.Services
     /// <see cref="DietSecondGate.FeatureKey"/> is on. The host is DietSecondReader:OllamaUrl, else Ai:BatchOllamaUrl, else
     /// Ai:OllamaUrl.
     /// </summary>
-    public class DietSecondReaderLaneService
+    public partial class DietSecondReaderLaneService
     {
         /// <summary>The seconds per recipe measured in ck20 on the shared host, used for the hours left until the lane has measured its own.</summary>
         public static readonly IReadOnlyDictionary<string, double> MeasuredSeconds = new Dictionary<string, double>(StringComparer.Ordinal)
@@ -54,6 +61,9 @@ namespace Nom.Orch.Services
         };
 
         private const int Chunk = 1000;
+
+        /// <summary>The latest timed readings per model the seconds per recipe are the mean of.</summary>
+        public const int SecondsWindow = 500;
 
         private readonly ApplicationDbContext _db;
         private readonly IReadOnlyList<OllamaDietSecondReader> _readers;
@@ -76,14 +86,22 @@ namespace Nom.Orch.Services
 
         public bool IsConfigured => _readers.All(r => r.IsConfigured);
 
-        /// <summary>The public pool: the recipes households see (<c>RecipeVisibilityExtensions.VisibleTo</c>'s public part).</summary>
-        public static IQueryable<RecipeEntity> Approved(ApplicationDbContext db) =>
-            db.Recipes.IgnoreQueryFilters().AsNoTracking().Where(r => !r.IsDeleted && r.Visibility == RecipeVisibilityEnum.Public
-                && r.CurationStatusId == (long)CurationStatusEnum.Curated && !r.ContainsSourceProse && r.SourceWithheldById == null);
+        /// <summary>
+        /// The recipes the lane may read at all: live (not deleted, so not retired), of no source an admin withheld, and of no
+        /// source whose rights class is forbidden (its recipes wait to be retired and no household is to see them; plan item
+        /// ck23: the endpoint counted 22,934 approved recipes on a copy where 21,920 were the pool).
+        /// </summary>
+        public static IQueryable<RecipeEntity> InScope(IQueryable<RecipeEntity> recipes) =>
+            recipes.Where(r => !r.IsDeleted && r.SourceWithheldById == null && r.SourceRights != SourceRightsRule.Forbidden);
 
-        /// <summary>The recipes waiting for approval: those the auto-approval sweep examines (<see cref="RecipeAutoCurationService.Candidates"/>).</summary>
+        /// <summary>The public pool: the recipes households see (<c>RecipeVisibilityExtensions.VisibleTo</c>'s public part), within <see cref="InScope"/>.</summary>
+        public static IQueryable<RecipeEntity> Approved(ApplicationDbContext db) =>
+            InScope(db.Recipes.IgnoreQueryFilters().AsNoTracking()).Where(r => r.Visibility == RecipeVisibilityEnum.Public
+                && r.CurationStatusId == (long)CurationStatusEnum.Curated && !r.ContainsSourceProse);
+
+        /// <summary>The recipes waiting for approval: those the auto-approval sweep examines (<see cref="RecipeAutoCurationService.Candidates"/>), within <see cref="InScope"/>.</summary>
         public static IQueryable<RecipeEntity> Waiting(ApplicationDbContext db, bool requireImage = true) =>
-            RecipeAutoCurationService.Candidates(db, requireImage).AsNoTracking();
+            InScope(RecipeAutoCurationService.Candidates(db, requireImage)).AsNoTracking();
 
         /// <summary>
         /// The waiting recipes the lane reads, by id: those the sweep examines under the configured Curation:AutoApprove
@@ -167,16 +185,13 @@ namespace Nom.Orch.Services
             return !row.Readable && now - row.ReadAt >= _retryUnreadable;
         }
 
-        /// <summary>
-        /// Reads the next recipes of the scope that a model of the pair must read, at most <paramref name="maxRecipes"/>, and
-        /// stores each reading as it comes. <paramref name="paused"/> is asked before each recipe, so a pause stops the batch
-        /// at the next recipe.
-        /// </summary>
-        public async Task<DietSecondBatch> RunBatchAsync(int maxRecipes, Func<Task<bool>>? paused = null, CancellationToken cancellationToken = default)
+        private sealed record Due(long Id, DietSecondRecipe Recipe, string Signature, HashSet<string> Models);
+
+        /// <summary>The next recipes of the scope, in its order, that a model of the pair must read, at most <paramref name="maxRecipes"/>.</summary>
+        private async Task<List<Due>> NextAsync(int maxRecipes, CancellationToken cancellationToken)
         {
-            if (!IsConfigured) throw new InvalidOperationException("No Ollama URL configured for the second diet reader (DietSecondReader:OllamaUrl, Ai:BatchOllamaUrl or Ai:OllamaUrl).");
-            int recipes = 0, readings = 0, unreadable = 0;
-            async Task<bool> ReadIdsAsync(List<long> ids)
+            var result = new List<Due>();
+            async Task<bool> TakeAsync(List<long> ids)
             {
                 foreach (var chunk in ids.Chunk(Chunk))
                 {
@@ -185,24 +200,43 @@ namespace Nom.Orch.Services
                     var now = DateTime.UtcNow;
                     foreach (var id in chunk)
                     {
-                        if (recipes >= maxRecipes) return false;
+                        if (result.Count >= maxRecipes) return false;
                         if (!texts.TryGetValue(id, out var text)) continue;
-                        var due = _readers.Where(r => Needs(rows.GetValueOrDefault(id), r.ModelName, text.Signature, now)).ToList();
-                        if (due.Count == 0) continue;
-                        if (paused != null && await paused()) return false;
-                        foreach (var reader in due)
-                        {
-                            var readable = await ReadAndStoreAsync(reader, id, text.Recipe, text.Signature, cancellationToken);
-                            readings++;
-                            if (!readable) unreadable++;
-                        }
-                        recipes++;
+                        var models = _readers.Where(r => Needs(rows.GetValueOrDefault(id), r.ModelName, text.Signature, now)).Select(r => r.ModelName).ToHashSet(StringComparer.Ordinal);
+                        if (models.Count > 0) result.Add(new Due(id, text.Recipe, text.Signature, models));
                     }
                 }
                 return true;
             }
-            if (await ReadIdsAsync(await ApprovedIdsAsync(cancellationToken))) await ReadIdsAsync(await ApprovableAsync(cancellationToken));
-            return new DietSecondBatch(recipes, readings, unreadable);
+            if (await TakeAsync(await ApprovedIdsAsync(cancellationToken))) await TakeAsync(await ApprovableAsync(cancellationToken));
+            return result;
+        }
+
+        /// <summary>
+        /// Reads the next recipes of the scope that a model of the pair must read, at most <paramref name="maxRecipes"/>: the
+        /// whole batch with the first model of the pair, then the same batch with the second, so the host loads each model once
+        /// a batch instead of once a recipe (plan item ck23, U4). Each reading is stored as it comes, so a batch stopped between
+        /// the two models resumes with the second (the first model's readings are current). <paramref name="paused"/> is asked
+        /// before each reading, so a pause stops the batch at the next one.
+        /// </summary>
+        public async Task<DietSecondBatch> RunBatchAsync(int maxRecipes, Func<Task<bool>>? paused = null, CancellationToken cancellationToken = default)
+        {
+            if (!IsConfigured) throw new InvalidOperationException("No Ollama URL configured for the second diet reader (DietSecondReader:OllamaUrl, Ai:BatchOllamaUrl or Ai:OllamaUrl).");
+            var batch = await NextAsync(maxRecipes, cancellationToken);
+            var read = new HashSet<long>();
+            int readings = 0, unreadable = 0;
+            foreach (var reader in _readers)
+            {
+                foreach (var item in batch.Where(b => b.Models.Contains(reader.ModelName)))
+                {
+                    if (paused != null && await paused()) return new DietSecondBatch(read.Count, readings, unreadable);
+                    var readable = await ReadAndStoreAsync(reader, item.Id, item.Recipe, item.Signature, cancellationToken);
+                    readings++;
+                    if (!readable) unreadable++;
+                    read.Add(item.Id);
+                }
+            }
+            return new DietSecondBatch(read.Count, readings, unreadable);
         }
 
         private static bool HostFault(HttpRequestException ex) => ex.StatusCode == null || (int)ex.StatusCode >= 500;
@@ -307,20 +341,24 @@ namespace Nom.Orch.Services
                     if (approvedSet.Contains(id)) approvedByPair++;
                 }
             }
-            var seconds = await _db.RecipeDietReadings.AsNoTracking().Where(r => r.Readable && DietSecondGate.Pair.Contains(r.Model))
-                .GroupBy(r => r.Model).Select(g => new { Model = g.Key, Count = g.Count(), Mean = g.Average(r => r.Seconds) }).ToListAsync(cancellationToken);
             var models = new List<DietSecondModelProgress>();
+            var dayAgo = DateTime.UtcNow.AddHours(-24);
             foreach (var model in DietSecondGate.Pair)
             {
-                var own = seconds.FirstOrDefault(s => s.Model == model);
-                var measured = own != null && own.Count >= 20;
-                var perRecipe = measured ? own!.Mean : MeasuredSeconds.GetValueOrDefault(model, 20.0);
+                var timed = await _db.RecipeDietReadings.AsNoTracking().Where(r => r.Model == model && r.Readable && r.Seconds > 0)
+                    .OrderByDescending(r => r.ReadAt).Take(SecondsWindow).Select(r => r.Seconds).ToListAsync(cancellationToken);
+                var measured = timed.Count >= 20;
+                var perRecipe = measured ? timed.Average() : MeasuredSeconds.GetValueOrDefault(model, 20.0);
+                var recent = await LaneReads().CountAsync(d => d.Tier == model && d.CreatedDate >= dayAgo, cancellationToken);
+                var lastOf = await LaneReads().Where(d => d.Tier == model).OrderByDescending(d => d.CreatedDate).Select(d => (DateTime?)d.CreatedDate).FirstOrDefaultAsync(cancellationToken);
                 var p = perModel[model];
-                models.Add(new DietSecondModelProgress(model, p.Current, p.Stale, p.Unreadable, p.Left, Math.Round(perRecipe, 1), measured, Math.Round(p.Left * perRecipe / 3600.0, 1)));
+                models.Add(new DietSecondModelProgress(model, p.Current, p.Stale, p.Unreadable, p.Left, Math.Round(perRecipe, 1), measured, Math.Round(p.Left * perRecipe / 3600.0, 1), recent, lastOf));
             }
-            var last = await _db.RecipeDietReadings.AsNoTracking().OrderByDescending(r => r.ReadAt).Select(r => (DateTime?)r.ReadAt).FirstOrDefaultAsync(cancellationToken);
+            var last = await LaneReads().OrderByDescending(d => d.CreatedDate).Select(d => (DateTime?)d.CreatedDate).FirstOrDefaultAsync(cancellationToken);
             return new DietSecondProgress(await DietSecondGate.OnAsync(_db, cancellationToken), OllamaDietSecondReader.Signature, DietSecondGate.Pair, approved.Count, waiting.Count,
                 approved.Count + waiting.Count, byPair, approvedByPair, models, Math.Round(models.Sum(m => m.HoursLeft), 1), last);
         }
+
+        private IQueryable<LaneDecisionEntity> LaneReads() => _db.LaneDecisions.AsNoTracking().Where(d => d.Lane == AiLanes.DietSecondReader);
     }
 }

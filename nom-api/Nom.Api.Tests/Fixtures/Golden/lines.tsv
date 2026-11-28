@@ -158,3 +158,8 @@ ck19s-referral-no	referral	ingredients mentioned in No. 218	-	-	-	*	*	ok	-	rule:
 ck19s-referral-number	referral	the same stock as number 184	-	-	-	*	*	ok	-	rule:construction	checkpoint 8, T11 (the shape of #101175, "number" written out): a referred recipe by number is no amount
 ck19s-referral-page	referral	sauce, see page 19	-	-	-	*	*	ok	-	rule:construction	constructed (T11): a page reference is no amount
 ck19s-tin-cover	utensil	a tin cover	-	-	-	*	*	ok	-	rule:construction	checkpoint 8, T1 (#133368): a tin before a utensil is no can
+ck23r-can-bracket	numbered-can	1 (No. 2-1/2) can fruit cocktail	1	Can	-	*	*	ok	-	rule:construction	checkpoint 9, U9 (#124717): a can number in brackets is no amount and no referral (was read as 1.5 pieces)
+ck23r-can-after	numbered-can	1 can (No. 303) peas	1	Can	-	*	*	ok	-	rule:construction	constructed (U9): a can number in brackets after the can is no referral
+ck23r-referral-composto	referral	composto N. 374	-	-	-	*	*	ok	-	rule:construction	checkpoint 9, U8 (#18564): an Italian preparation named by its number is a referral, never 374 pieces
+ck23r-referral-gelatina	referral	Gelatina di Ribes N. 739	-	-	-	*	*	ok	-	rule:construction	checkpoint 9, U8 (#18881): the currant jelly of recipe 739 is a referral
+ck23r-italian-count	referral	Uova N. 2	2	Piece	-	*	*	ok	-	rule:construction	constructed (U8): an Italian count of a food stays a count

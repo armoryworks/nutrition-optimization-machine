@@ -70,6 +70,62 @@ namespace Nom.Orch.Services
             return await ApproveAsync(recipes, afterRecipeId, cancellationToken);
         }
 
+        public async Task<AutoApproveWaitingReport> WaitingAsync(int sample = 20, CancellationToken cancellationToken = default)
+        {
+            sample = Math.Clamp(sample, 0, 1000);
+            var refused = new Dictionary<string, int>();
+            var waiting = new Dictionary<string, int>();
+            var samples = new Dictionary<string, List<long>>();
+            int candidates = 0, passing = 0, approve = 0;
+            void Count(Dictionary<string, int> tally, string key, long id)
+            {
+                Tally(tally, key);
+                if (!samples.TryGetValue(key, out var ids)) samples[key] = ids = new List<long>();
+                if (ids.Count < sample) ids.Add(id);
+            }
+            long after = 0;
+            while (true)
+            {
+                var query = Candidates(_db, _options.RequireOwnImageForUnknownLicense).AsNoTracking()
+                    .Where(r => r.Id > after)
+                    .OrderBy(r => r.Id)
+                    .Take(500)
+                    .Include(r => r.RecipeIngredients!).ThenInclude(ri => ri.Ingredient)
+                    .Include(r => r.RecipeSteps);
+                var recipes = _db.Database.IsRelational()
+                    ? await query.AsSplitQuery().ToListAsync(cancellationToken)
+                    : await query.ToListAsync(cancellationToken);
+                if (recipes.Count == 0) break;
+                after = recipes[^1].Id;
+                candidates += recipes.Count;
+                var passed = new List<RecipeEntity>();
+                foreach (var recipe in recipes)
+                {
+                    if (await RefusalAsync(recipe, _options, _vetting) is { } refusal) Count(refused, refusal, recipe.Id);
+                    else passed.Add(recipe);
+                }
+                passing += passed.Count;
+                var holds = await DietApprovalHolds.ReasonsAsync(_db, passed, _options, cancellationToken);
+                foreach (var recipe in passed)
+                {
+                    if (holds.TryGetValue(recipe.Id, out var hold)) Count(waiting, hold, recipe.Id);
+                    else
+                    {
+                        approve++;
+                        if (!samples.TryGetValue(WouldApproveKey, out var ids)) samples[WouldApproveKey] = ids = new List<long>();
+                        if (ids.Count < sample) ids.Add(recipe.Id);
+                    }
+                }
+                _db.ChangeTracker.Clear();
+            }
+            return new AutoApproveWaitingReport(candidates, refused.Values.Sum(), refused, passing, waiting.Values.Sum(), waiting, approve,
+                samples.ToDictionary(p => p.Key, p => (IReadOnlyList<long>)p.Value), _options.MaxUnquantifiedLines, _options.RequireOwnImageForUnknownLicense,
+                _options.RequireDietUnderstood, _options.RequireSecondReading);
+        }
+
+        /// <summary>The key of the sample of recipes the sweep would approve now, in <see cref="AutoApproveWaitingReport.Samples"/>.</summary>
+        public const string WouldApproveKey = "would be approved";
+
         /// <summary>The recipes the sweep examines: public, never reviewed, with no vetting issue, no source prose and no withheld prose, of an auto-approvable licence, every line on a curated food or exempt.</summary>
         public static IQueryable<RecipeEntity> Candidates(ApplicationDbContext db, bool requireImage) =>
             db.Recipes

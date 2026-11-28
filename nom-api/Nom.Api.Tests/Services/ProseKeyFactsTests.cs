@@ -41,6 +41,30 @@ namespace Nom.Api.Tests.Services
         }
 
         [Fact]
+        public void The_most_heat_a_pan_or_paper_is_safe_up_to_is_no_step()
+        {
+            ProseKeyFacts.Build(Method("Preheat oven to 450 degrees.", "Cover two trays with baking paper (pick a kind that is safe up to 450 F / 232 C) and oil them."))
+                .Should().Equal(new[] { "oven 450°" }, "staging checkpoint 9, U16: a bare 450° came from the pan lining's sentence");
+            ProseKeyFacts.Build(Method("Use a skillet that is oven-safe to 500°F.")).Should().BeEmpty();
+        }
+
+        [Fact]
+        public void A_heat_named_after_an_oven_safe_pan_is_a_step()
+        {
+            ProseKeyFacts.Build(Method("In an oven-safe skillet, bake at 400°F for 20 minutes."))
+                .Should().Contain(f => f.EndsWith("400°F", StringComparison.Ordinal), "the pan's being oven-safe is no limit on the heat the sentence names");
+            ProseKeyFacts.Build(Method("Use a dish rated for temperatures of 450°F.")).Should().BeEmpty();
+        }
+
+        [Fact]
+        public void A_thaw_time_is_named_a_thaw_never_by_the_freezing_of_its_sentence()
+        {
+            ProseKeyFacts.Build(Method("After freezing it overnight, let it thaw for about 10-15 minutes before you scoop it."))
+                .Should().Equal(new[] { "thaw 10 to 15 min" }, "staging checkpoint 9, U16: 'freeze 10 to 15 min' for a thaw");
+            ProseKeyFacts.Build(Method("Freeze for 2 hours.")).Should().ContainSingle(f => f.EndsWith("2 hr", StringComparison.Ordinal) && !f.StartsWith("thaw", StringComparison.Ordinal));
+        }
+
+        [Fact]
         public void How_long_the_dish_keeps_is_no_step()
         {
             ProseKeyFacts.Build(Method("Bake for 25 minutes.", "Cover and chill up to 4 days.", "Leftovers keep in the fridge for 2 weeks."))

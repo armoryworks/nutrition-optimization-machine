@@ -64,12 +64,21 @@ namespace Nom.Orch.Services
             factor == null ? string.Empty : string.Create(CultureInfo.InvariantCulture, $"{factor.Value:0.0000}|{basis}");
 
         /// <summary>The factor and basis of a journal value; (null, null) for an empty one.</summary>
-        public static (decimal? Factor, string? Basis) ReadJournalValue(string? value)
+        public static (decimal? Factor, string? Basis) ReadJournalValue(string? value) =>
+            TryReadJournalValue(value, out var read) ? read : throw new FormatException($"'{value}' is not a retention journal value.");
+
+        /// <summary>
+        /// The factor and basis of a journal value, or false when another step rewrote it into something else, such as the
+        /// marker a purge leaves in place of a purged recipe's journal values (staging checkpoint 9, U18).
+        /// </summary>
+        public static bool TryReadJournalValue(string? value, out (decimal? Factor, string? Basis) read)
         {
-            if (string.IsNullOrEmpty(value)) return (null, null);
+            read = (null, null);
+            if (string.IsNullOrEmpty(value)) return true;
             var bar = value.IndexOf('|');
-            var factor = decimal.Parse(bar < 0 ? value : value[..bar], NumberStyles.AllowDecimalPoint, CultureInfo.InvariantCulture);
-            return (factor, bar < 0 ? null : value[(bar + 1)..]);
+            if (!decimal.TryParse(bar < 0 ? value : value[..bar], NumberStyles.AllowDecimalPoint, CultureInfo.InvariantCulture, out var factor)) return false;
+            read = (factor, bar < 0 ? null : value[(bar + 1)..]);
+            return true;
         }
 
         public async Task<AlcoholRetentionRunResult> RunAsync(bool apply, int maxRecipes = 20000, long afterRecipeId = 0, int sampleSize = 50, bool resume = false, CancellationToken cancellationToken = default)
@@ -306,6 +315,9 @@ namespace Nom.Orch.Services
                 .ToListAsync(cancellationToken);
             var result = new AlcoholRetentionUndoResult { Applied = apply, Entries = entries.Count };
             var restored = new Dictionary<(long RecipeId, long IngredientId, int SortOrder), (decimal? Factor, string? Basis)>();
+            var purged = new HashSet<long>();
+            foreach (var chunk in entries.Select(e => e.EntityId).Distinct().Chunk(5000))
+                purged.UnionWith(await _db.RecipeRemovals.AsNoTracking().Where(r => chunk.Contains(r.RecipeId) && r.PurgedAtUtc != null).Select(r => r.RecipeId).ToListAsync(cancellationToken));
 
             foreach (var chunk in entries.Chunk(500))
             {
@@ -322,6 +334,11 @@ namespace Nom.Orch.Services
                 var now = DateTime.UtcNow;
                 foreach (var entry in chunk)
                 {
+                    if (purged.Contains(entry.EntityId) || IsPurgedValue(entry.OldValue) || IsPurgedValue(entry.NewValue))
+                    {
+                        Skip(result, PurgedSkip, entry.EntityId);
+                        continue;
+                    }
                     if (rebuilt.TryGetValue(entry.EntityId, out var rebuiltAt) && rebuiltAt > entry.Timestamp)
                     {
                         result.Skipped++;
@@ -329,7 +346,12 @@ namespace Nom.Orch.Services
                         continue;
                     }
                     var key = Key(entry.PropertyName);
-                    var (newFactor, newBasis) = ReadJournalValue(entry.NewValue);
+                    if (!TryReadJournalValue(entry.NewValue, out var written) || !TryReadJournalValue(entry.OldValue, out var earlierValue))
+                    {
+                        Skip(result, UnreadableSkip, entry.EntityId);
+                        continue;
+                    }
+                    var (newFactor, newBasis) = written;
                     if (key == null || trail.Follow(entry.EntityId, key.Value.IngredientId, key.Value.SortOrder, entry.Timestamp) is not { } at
                         || !rows.TryGetValue((entry.EntityId, key.Value.IngredientId, at), out var row))
                     {
@@ -345,7 +367,7 @@ namespace Nom.Orch.Services
                     }
 
                     result.Restored++;
-                    var (oldFactor, oldBasis) = ReadJournalValue(entry.OldValue);
+                    var (oldFactor, oldBasis) = earlierValue;
                     restored[lineKey] = (oldFactor, oldBasis);
                     trail.Carry(entry.EntityId, entry.Timestamp, key.Value.IngredientId, key.Value.SortOrder, r => r with { AlcoholRetention = oldFactor, AlcoholRetentionBasis = oldBasis });
                     if (!apply) continue;
@@ -383,6 +405,21 @@ namespace Nom.Orch.Services
                 result.RunMarksRemoved = await _db.AuditLogEntries.CountAsync(a => a.EntityType == RunEntityType && a.Timestamp >= sinceUtc, cancellationToken);
             }
             return result;
+        }
+
+        /// <summary>Why an entry of a recipe whose source wording a purge deleted for good is skipped, as the retire undo names it.</summary>
+        public const string PurgedSkip = "purged: its source wording is deleted for good, so it cannot be put back";
+
+        /// <summary>Why an entry whose old or new value another step rewrote into something that is no retention is skipped.</summary>
+        public const string UnreadableSkip = "its journal value was rewritten by another step";
+
+        private static bool IsPurgedValue(string? value) => value != null && value.StartsWith(RecipeRemovalService.PurgedValuePrefix, StringComparison.Ordinal);
+
+        private static void Skip(AlcoholRetentionUndoResult result, string reason, long recipeId)
+        {
+            result.Skipped++;
+            result.SkippedByReason[reason] = result.SkippedByReason.GetValueOrDefault(reason) + 1;
+            if (reason == PurgedSkip && !result.PurgedRecipeIds.Contains(recipeId) && result.PurgedRecipeIds.Count < 500) result.PurgedRecipeIds.Add(recipeId);
         }
 
         private static (long IngredientId, int SortOrder)? Key(string? propertyName)

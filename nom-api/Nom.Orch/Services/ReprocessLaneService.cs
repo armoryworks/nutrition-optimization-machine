@@ -499,7 +499,7 @@ namespace Nom.Orch.Services
         {
             var kinds = tier == ReprocessTier.Order
                 ? new[] { RecipeReprocessKind.Order }
-                : new[] { RecipeReprocessKind.RuleReject, RecipeReprocessKind.Rebuild };
+                : new[] { RecipeReprocessKind.RuleReject, RecipeReprocessKind.Rebuild, RecipeReprocessKind.Referral };
             var recipes = new HashSet<long>();
             var result = await _reprocess.UndoAsync(sinceUtc, null, tier == ReprocessTier.Order ? RecipeReprocessKind.Order : RecipeReprocessKind.Rebuild, apply, laneOnly: true);
             if (apply)

@@ -177,7 +177,7 @@ namespace Nom.Api.Tests.Services
             var source = LinkGate.SignatureSource();
             source.Should().Contain("colours:").And.Contain("entry-words:").And.Contain("ratio:").And.Contain("dry-goods=16|").And.Contain("unsweetened-food=not sweetened|")
                 .And.Contain("products-of-food:butter|flour|milk|oil|");
-            LinkGate.Version.Should().Be("link-gate/14");
+            LinkGate.Version.Should().Be("link-gate/15");
         }
     }
 }

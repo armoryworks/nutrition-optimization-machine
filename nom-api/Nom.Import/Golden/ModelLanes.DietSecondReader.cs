@@ -121,15 +121,35 @@ namespace Nom.Import.Golden
         public static DietSecondReading? ReadingOf(IReadOnlyDictionary<long, DietSecondRead?> answers, DietReaderCase c) =>
             answers.TryGetValue(c.RecipeId, out var a) && a?.Answers.FirstOrDefault(x => x.Type == c.Type) is { } answer ? answer.Reading : null;
 
-        /// <summary>Writes a run's answers as JSON lines, one per recipe: {"recipe":1,"unlisted":[...],"complete":true,"answers":{"Celiac Disease":["free",""],...}} (null for an unreadable reply).</summary>
-        public static void WriteDietAnswers(string path, IReadOnlyDictionary<long, DietSecondRead?> answers) =>
-            File.WriteAllLines(path, answers.OrderBy(a => a.Key).Select(a => JsonSerializer.Serialize(new
-            {
-                recipe = a.Key,
-                unlisted = a.Value?.Unlisted,
-                complete = a.Value?.Complete,
-                answers = a.Value?.Answers.ToDictionary(x => x.Type, x => new[] { OllamaDietSecondReader.WordOf(x.Reading), x.Food }),
-            })));
+        /// <summary>
+        /// Writes a run's answers as JSON lines, one per recipe: {"recipe":1,"unlisted":[...],"complete":true,"answers":{"Celiac Disease":["free",""],...}} (null for an unreadable reply).
+        /// A run that asked a model (<paramref name="model"/> and its <paramref name="cases"/>) also writes on each line the model,
+        /// the reader's prompt signature and the signature of the recipe text it was shown (<see cref="DietSecondGate.TextSignature"/>),
+        /// so the readings can be imported where the recipe's text is the same (<c>POST /api/DietAdmin/second-reader/readings/import</c>, ops/diet-readings.py).
+        /// </summary>
+        public static void WriteDietAnswers(string path, IReadOnlyDictionary<long, DietSecondRead?> answers, string? model = null, IReadOnlyList<DietReaderCase>? cases = null)
+        {
+            var texts = cases == null ? new Dictionary<long, string>() : cases.GroupBy(c => c.RecipeId)
+                .ToDictionary(g => g.Key, g => DietSecondGate.TextSignature(g.First().Recipe.Title, g.First().Recipe.Lines, g.First().Recipe.Method));
+            File.WriteAllLines(path, answers.OrderBy(a => a.Key).Select(a => model != null && texts.TryGetValue(a.Key, out var text)
+                ? JsonSerializer.Serialize(new
+                {
+                    recipe = a.Key,
+                    unlisted = a.Value?.Unlisted,
+                    complete = a.Value?.Complete,
+                    answers = a.Value?.Answers.ToDictionary(x => x.Type, x => new[] { OllamaDietSecondReader.WordOf(x.Reading), x.Food }),
+                    model,
+                    prompt = OllamaDietSecondReader.Signature,
+                    text,
+                })
+                : JsonSerializer.Serialize(new
+                {
+                    recipe = a.Key,
+                    unlisted = a.Value?.Unlisted,
+                    complete = a.Value?.Complete,
+                    answers = a.Value?.Answers.ToDictionary(x => x.Type, x => new[] { OllamaDietSecondReader.WordOf(x.Reading), x.Food }),
+                })));
+        }
 
         /// <summary>Reads answers written by <see cref="WriteDietAnswers"/> (another model's run, for --agree).</summary>
         public static IReadOnlyDictionary<long, DietSecondRead?> ReadDietAnswers(string path)

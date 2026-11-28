@@ -1656,6 +1656,15 @@ is with its entry (`lines.heldByDiet`, counted by the dry run too), so an unload
 the row leave the lines as they were (staging checkpoint 5, Q21; `link-recheck.md`, "Every other path that
 moves a line").
 
+An unload and a load write in batches of `VerifiedWordingService.Chunk` (50) rows (`batches`, `batchesWritten` in the
+answer), each in its own transaction with its own journal time; an unload with lines takes back each batch's lines in
+that batch's transaction. A failed batch writes nothing; an unload then answers `completed: false` with the `error`, and
+the same call again takes out the rows still in the batch; a load raises the error, and the same load again finds the
+batches it wrote unchanged and writes the rest.
+`recipesHeld` counts the recipes the write held in the diet gate because their reading changes (`diet-gate.md`, "A
+wording batch write"). Staging checkpoint 9, U11: the w01 unload with lines, one save of 232 rows, failed on the 30 s
+command timeout where its dry run succeeded.
+
 **Retract one wording.** `POST api/FoodCatalog/wordings/{id}/retract?reason=<why>&apply=false&evidenceKey=`
 takes one live row back with everything it did, found by the journal rather than by time
 (`LineRelinkService.UndoForSourcesAsync`): its sources (uncurated ingredients named with the

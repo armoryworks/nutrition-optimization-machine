@@ -17,8 +17,8 @@ namespace Nom.Api.Controllers
     /// <summary>The pause switches and the live state of every model lane and model host, and whether recipe auto-approval is paused (platform feature pause-auto-approve).</summary>
     public sealed record PipelineGateStatus(bool PauseAll, IReadOnlyList<PipelineGateLane> Lanes, IReadOnlyList<AiHostStatusModel> Hosts, bool AutoApprovePaused = false);
 
-    /// <summary>One model lane: its pause switch (platform feature ai-pause-{lane}) and its state.</summary>
-    public sealed record PipelineGateLane(string Lane, string Label, bool Paused, AiLaneStatusModel Status);
+    /// <summary>One model lane: its pause switch (platform feature ai-pause-{lane}), its state, and whether ai-pause-all holds it (not for a lane that only reads).</summary>
+    public sealed record PipelineGateLane(string Lane, string Label, bool Paused, AiLaneStatusModel Status, bool HeldByPauseAll = true);
 
     public sealed class SetPipelinePauseRequest
     {

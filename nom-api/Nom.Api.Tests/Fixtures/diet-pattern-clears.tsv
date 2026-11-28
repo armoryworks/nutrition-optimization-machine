@@ -241,6 +241,7 @@ cream	creamy almond butter	Dairy-Free, Ethical Vegan, Lactose Intolerance, Lacto
 cream	creamy cashew butter	Dairy-Free, Ethical Vegan, Lactose Intolerance, Lactose-Intolerant, Milk Allergy, Paleo, Plant-Based, Raw Vegan, Vegan, Whole30
 cream	creamy natural peanut butter	Dairy-Free, Ethical Vegan, Lactose Intolerance, Lactose-Intolerant, Milk Allergy, Plant-Based, Raw Vegan, Vegan
 cream	creamy nut butter	Dairy-Free, Ethical Vegan, Lactose Intolerance, Lactose-Intolerant, Milk Allergy, Paleo, Plant-Based, Raw Vegan, Vegan, Whole30
+cream	creamy or crunchy	Dairy-Free, Ethical Vegan, Lactose Intolerance, Lactose-Intolerant, Milk Allergy, Paleo, Plant-Based, Raw Vegan, Vegan, Whole30
 cream	creamy peanut butter	Dairy-Free, Ethical Vegan, Lactose Intolerance, Lactose-Intolerant, Milk Allergy, Plant-Based, Raw Vegan, Vegan
 cream	creamy seed butter	Dairy-Free, Ethical Vegan, Lactose Intolerance, Lactose-Intolerant, Milk Allergy, Paleo, Plant-Based, Raw Vegan, Vegan, Whole30
 cream	creamy sunflower butter	Dairy-Free, Ethical Vegan, Lactose Intolerance, Lactose-Intolerant, Milk Allergy, Paleo, Plant-Based, Raw Vegan, Vegan, Whole30
@@ -366,6 +367,8 @@ flour	cornflour	Celiac Disease, Gluten Sensitivity, Gluten-Free, Wheat Allergy
 flour	cottonseed flour	Celiac Disease, Gluten Sensitivity, Gluten-Free, Grain-Free, Paleo, Wheat Allergy, Whole30
 flour	flournoy	Celiac Disease, Gluten Sensitivity, Gluten-Free, Grain-Free, Paleo, Wheat Allergy, Whole30
 flour	floury	Celiac Disease, Gluten Sensitivity, Gluten-Free, Grain-Free, Paleo, Wheat Allergy, Whole30
+flour	garbanzo bean flour	Celiac Disease, Gluten Sensitivity, Gluten-Free, Grain-Free, Wheat Allergy
+flour	garbanzo flour	Celiac Disease, Gluten Sensitivity, Gluten-Free, Grain-Free, Wheat Allergy
 flour	gluten free flour	Celiac Disease, Gluten Sensitivity, Gluten-Free
 flour	hazelnut flour	Celiac Disease, Gluten Sensitivity, Gluten-Free, Grain-Free, Paleo, Wheat Allergy, Whole30
 flour	lupin flour	Celiac Disease, Gluten Sensitivity, Gluten-Free, Grain-Free, Wheat Allergy
@@ -601,6 +604,10 @@ mussel	musselman	Buddhist Vegetarian, Ethical Vegan, Gout, Hemochromatosis, Hind
 mustard	mustardspoon	Mustard Allergy
 mustard	mustardspoonful	Mustard Allergy
 mustard	mustardspoonfuls	Mustard Allergy
+noix	noix de boeuf	Nut Allergy, Tree Nut Allergy
+noix	noix de jambon	Nut Allergy, Tree Nut Allergy
+noix	noix de porc	Nut Allergy, Tree Nut Allergy
+noix	noix de veau	Nut Allergy, Tree Nut Allergy
 noodle	bean thread noodle	Celiac Disease, Gluten Sensitivity, Gluten-Free, Grain-Free, Wheat Allergy
 noodle	cellophane noodle	Celiac Disease, Gluten Sensitivity, Gluten-Free, Grain-Free, Wheat Allergy
 noodle	glass noodle	Celiac Disease, Gluten Sensitivity, Gluten-Free, Grain-Free, Wheat Allergy
@@ -686,6 +693,7 @@ nut	pinon nut	Peanut Allergy
 nut	pinyon nut	Peanut Allergy
 nut	pistachio nut	Peanut Allergy
 nut	roasting nut	Nut Allergy, Peanut Allergy, Tree Nut Allergy
+nut	rye nut	Nut Allergy, Peanut Allergy, Tree Nut Allergy
 nut	shea nut	Peanut Allergy
 nut	size of a nut	Nut Allergy, Peanut Allergy, Tree Nut Allergy
 nut	size of a small nut	Nut Allergy, Peanut Allergy, Tree Nut Allergy

@@ -263,6 +263,7 @@ export interface PipelineGateLane {
   label: string;
   paused: boolean;
   status: AiLaneStatus;
+  heldByPauseAll?: boolean;
 }
 
 export interface PipelineGate {

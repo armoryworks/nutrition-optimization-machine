@@ -15,8 +15,11 @@ namespace Nom.Orch.Services.Support
     /// names. Numbers and units are written in one fixed form ("bake 30 to 40 min", "oven 350°F",
     /// "9 x 13-inch pan"), so no wording of the source is carried over: these are facts, not
     /// expression. Amounts of ingredients, counts and bracketed conversions are left out (the
-    /// ingredient list states them), and so is how long the dish keeps (a time in a storing sentence); a
-    /// temperature never takes the verb of work on a pan ("line", "grease"). Text only: no database and no model.
+    /// ingredient list states them), and so is how long the dish keeps (a time in a storing sentence) and the most heat a
+    /// pan, paper or dish is safe up to ("baking paper ... safe up to 450 F"); a temperature never takes the verb of work on a
+    /// pan ("line", "grease"), and a time of thawing is named so, never by a freezing word of its sentence ("After
+    /// freezing it ..., let it thaw for about 10-15 minutes" is "thaw 10 to 15 min"; staging checkpoint 9, U16). Text only: no database
+    /// and no model.
     /// </summary>
     public static class ProseKeyFacts
     {
@@ -93,6 +96,7 @@ namespace Nom.Orch.Services.Support
                 }
 
                 if (q.Family == ProseQuantities.Time && Stored(q, words, sentenceStart, sentenceEnd)) continue;
+                if (q.Family == ProseQuantities.Temperature && Limit(q, words, sentenceStart)) continue;
                 var inOven = q.Family == ProseQuantities.Temperature
                     && words.Any(w => w.Start >= sentenceStart && w.Start < sentenceEnd && w.Text == "oven");
                 var verb = inOven ? "oven" : VerbFor(words, texts, q, sentenceStart, sentenceEnd, verbs, q.Family == ProseQuantities.Temperature ? PanWork : null);
@@ -126,6 +130,7 @@ namespace Nom.Orch.Services.Support
             for (var i = words.Count - 1; i >= 0; i--)
             {
                 if (words[i].Start >= q.Start || words[i].Start < sentenceStart || never?.Contains(words[i].Text) == true) continue;
+                if (q.Family == ProseQuantities.Time && ThawWords.Contains(words[i].Text)) return Thaw;
                 if (verbs.GroupsAt(texts, i) is { } groups) return GroupName(groups, words[i].Text);
             }
 
@@ -144,6 +149,36 @@ namespace Nom.Orch.Services.Support
             "line", "lines", "lined", "lining", "grease", "greased", "greasing", "butter", "buttered", "oil", "oiled", "spray", "sprayed",
             "flour", "floured", "cover", "covered", "wrap", "wrapped", "set", "place", "arrange", "arranged",
         };
+
+        private const string Thaw = "thaw";
+
+        /// <summary>Words of thawing a frozen dish: the time they take is a thaw, not the freezing their sentence also names.</summary>
+        private static readonly HashSet<string> ThawWords = new(StringComparer.Ordinal)
+        {
+            "thaw", "thaws", "thawed", "thawing", "defrost", "defrosts", "defrosted", "defrosting",
+        };
+
+        /// <summary>Words that make a temperature the most heat a pan, paper or dish takes ("safe up to 450 F", "oven-safe to 500°F"), not a step.</summary>
+        private static readonly HashSet<string> LimitWords = new(StringComparer.Ordinal) { "safe", "rated", "withstand", "withstands", "tolerate", "tolerates" };
+
+        /// <summary>Words that join a word of being safe to the temperature it is safe up to ("safe up to", "rated for temperatures of").</summary>
+        private static readonly HashSet<string> LimitLinks = new(StringComparer.Ordinal)
+        {
+            "up", "to", "for", "of", "at", "about", "around", "least", "max", "maximum", "temperature", "temperatures",
+            "f", "c", "degree", "degrees", "fahrenheit", "celsius",
+        };
+
+        /// <summary>
+        /// Whether a temperature is a limit: a word of being safe up to it stands within the six words before it in its sentence,
+        /// with only words that join the two ("up to", "for temperatures of") or units between them. A heat the sentence goes
+        /// on to name for the dish is no limit ("In an oven-safe skillet, bake at 400°F").
+        /// </summary>
+        private static bool Limit(ProseQuantity q, IReadOnlyList<Word> words, int sentenceStart)
+        {
+            var before = words.Where(w => w.Start >= sentenceStart && w.Start < q.Start).TakeLast(6).ToList();
+            var last = before.FindLastIndex(w => LimitWords.Contains(w.Text));
+            return last >= 0 && before.Skip(last + 1).All(w => LimitLinks.Contains(w.Text) || IsUnitWord(w.Text));
+        }
 
         private static readonly HashSet<string> StorageWords = new(StringComparer.Ordinal)
         {

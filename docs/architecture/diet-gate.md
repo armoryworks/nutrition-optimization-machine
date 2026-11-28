@@ -120,7 +120,10 @@ a recipe line and a prepared meal's statement (`DietPatternRule`, `diet-patterns
   Disease Foundation), "peanut butter" not dairy (21 CFR 164.150), "coconut milk" not milk, "water
   chestnut" not a tree nut, "nutmeg" and "coconut" not tree nuts (FDA, Questions and Answers Regarding
   Food Allergens, edition 5, 2025), "scalloped potatoes" not scallops, "oyster mushroom" not an oyster,
-  "shellfish" not a fish for Fish Allergy (FALCPA names them apart), "sweetbreads" not bread. An
+  "shellfish" not a fish for Fish Allergy (FALCPA names them apart), "sweetbreads" not bread; since staging
+  checkpoint 9 (U2, U13) "rye nuts" not nuts, "noix de veau" not walnuts, garbanzo flour no gluten flour (for the
+  gluten and wheat types and Grain-Free only: Paleo, Whole30 and the FODMAP types keep it), a "nondairy" or
+  "plant based" milk no milk, and "creamy or crunchy peanut butter" no cream. An
   exception blanks only its phrase: "1 cup coconut milk or whole milk" still names milk;
 - a term of two words matches across any spaces or punctuation ("brazil-nut"), but an exception's
   words only across spaces or hyphens: "2 cups cooked rice, flour for dusting" is two foods, not rice
@@ -1094,6 +1097,31 @@ and a severe type holds every recipe until then (lead answer to CK19SM-3, wave 3
 branded consensus is a file, not a table: it reaches the reading through the build's version. The wording rejections
 are not read by the reading.
 
+**A wording batch write (staging checkpoint 9, U1 and U11; `cleanup2/ck23-store-undo`).** The trigger held every recipe
+with a line on any food of a written row that carries an applied model pick (Salt, Sugar, Flour, Eggs ...), once per
+statement: the w02 load held 100,187 of 122,580 recipes for about two minutes and took 26.6 s, and the w01 unload with its
+lines (232 rows, one save of one statement per row, each inserting the recipes of its food again) ran past the 30 s
+command timeout, so nothing of it was written. What a food row changes is narrower: it proves (or, taken out, unproves)
+the applied picks of its food whose wording key is the row's wording (`DietGateStoreBuilder.UnprovenAsync`), and that
+changes the reading only of the lines on that food whose text names the pick's wording (`OnUnprovenLink`). The trigger
+cannot read a line's wording as the reading does, so the writer does: `DietGateWordingHolds.HoldAsync` holds exactly those
+recipes in the writer's transaction and sets the transaction-local `nom.diet_wording_holds = writer`, and
+`DietGateWordingsWritten` then leaves its food part out. A writer that does not (raw SQL, another process) still holds
+every recipe on the picked food, as before. The trigger now also reads only what the reading reads: the name part only for
+a live category row (before or after the write), the food part only for a live food row, and its name lookup uses the
+trigram index (`ILIKE`, then `lower(Name) =`) instead of lowering every food's name. The load, unload and retract use the
+precise holds; a load and an unload write in batches of `VerifiedWordingService.Chunk` (50) rows, each in its own
+transaction with its own journal time and, for an unload with lines, that batch's lines; a failed batch writes nothing.
+An unload then answers `completed: false` with the `error`, and the same call again goes on with the rows still in the
+batch; a load raises the error (the lanes that load through it see it as before), and the same load again finds the
+batches it wrote unchanged and writes the rest. On the generated production-sized data with 20,000
+more recipes, 80,000 lines on eight picked staples (`DietGateStorePostgresTests.A_wording_batch_of_staging_size_...`): before the change the
+load took 31.3 s and the unload with lines failed with staging's `Timeout during reading attempt`; with it the load takes
+8.4 s, the unload with lines 30.1 s in five batches, the reload 6.6 s, the unload holds 2,732 recipes instead of all
+20,000 on the batch's foods, every one of the 2,320 recipes whose stored flags the unload changed was held from its
+commit, and the round trip (load, relink, re-check marks on ten rows, unload with lines, reload, relink) ends
+byte-identical in lines, foods, aliases, proposals, wording rows and stored flags, with no move held by a mark (T14).
+
 The list of tables is no longer written by hand. `DietGateWritersTests.Every_table_the_gate_reads_has_a_trigger_for_every_write_that_makes_what_it_touched_undecided`
 runs a whole cycle and a cycle over the changes of the build job on a kitchen that reaches every part of the reading,
 takes every table its queries root at (an EF query expression interceptor, mapped to tables by the Postgres model), and
@@ -1164,8 +1192,12 @@ yet read until the lane reads it again. `gate-counts` gives `recipesNotReadBySec
 `recipesHeldBySecondReader` per set.
 
 **The shadow lane** (`DietSecondReaderLaneService`, run by `DietSecondReaderHostedService`, lane `diet-second-reader`):
-off unless `DietSecondReader:Enabled=true`, and held by `ai-pause-diet-second-reader`, `ai-pause-all`, quiet hours and the
-host breaker (`AiLaneGate`), the pause read again before each recipe. It reads the approved pool first, then the recipes
+off unless `DietSecondReader:Enabled=true`, and held by its own switch `ai-pause-diet-second-reader`, quiet hours and the
+host breaker (`AiLaneGate`), the switch and the quiet hours read again before each reading. Since plan item ck23 (U4) it
+is **not held by `ai-pause-all`**: it only reads and stores readings in `plan."RecipeDietReading"` and never writes to a
+recipe, a line or a food, so it is no writing lane (`AiLanes.ReadingLanes`; the Pipeline status shows
+`heldByPauseAll: false` for it). `ai-pause-all` stays the switch that holds every lane that writes; an operator lets the
+reader run with `ai-pause-all` on by leaving `ai-pause-diet-second-reader` off, and stops it with that switch alone. It reads the approved pool first, then the recipes
 waiting for approval that nothing but the reading keeps waiting (`ApprovableAsync`: the sweep's candidates under the
 configured `Curation:AutoApprove` options that pass its policy and vetting and that `DietApprovalHolds` holds for no other
 reason; a recipe waiting for an unmeasured line or held as unknown is read once it is understood), each with both models, one call per recipe and model at
@@ -1175,12 +1207,20 @@ the prompt and the model are unchanged, so a stopped lane resumes where it was; 
 HttpClient's 300 s, a reply missing a type, a request the host refuses with a 4xx status) is stored as unreadable, holds
 the recipe, and is read again after `DietSecondReader:RetryUnreadableHours` (24). A host fault (the host marked down, no
 connection, a 5xx status) is not a reply: the pass stops with the fault, stores nothing for that recipe and backs off
-five minutes, so an outage leaves no recipe unread for a day. `DietSecondReader:BatchSize` (10) recipes per pass,
+five minutes, so an outage leaves no recipe unread for a day. **Batches by model** (ck23, U4): the production model host holds one model at a time (ck22: in 1,270 `/api/ps` samples two
+models were never loaded at once), so a pass takes the next `DietSecondReader:BatchSize` (100, at most 1,000) recipes of
+the scope that a model must read and reads the whole batch with mistral-small, then the same batch with phi4: one model
+load a batch instead of one a recipe (about 52,000 swaps over the pool before). Each reading is stored as it comes, so a
+pass stopped between the models (a pause, quiet hours, a restart) resumes with phi4 on the recipes mistral-small has read.
 `DietSecondReader:PauseSeconds` (5), `DietSecondReader:IdleMinutes` (60). The host is `DietSecondReader:OllamaUrl`, else
 `Ai:BatchOllamaUrl`, else `Ai:OllamaUrl`. `GET /api/DietAdmin/second-reader` gives the scope (approved, waiting as above), the
-recipes read by the pair, per model the current, stale and unreadable readings and the recipes left, and the hours of
-model time left at each model's mean seconds per recipe (ck20's 22.1 s and 13.1 s until the lane has 20 readings of its
-own). The only types that take the reader are this lane and `DietSecondGate` (its prompt signature and type order); the
+recipes read by the pair, per model the current, stale and unreadable readings, the recipes left, the readings of the last
+24 hours and the latest, and the hours of model time left at each model's mean seconds over its latest 500 timed readings
+(an imported reading without a time does not count; ck20's 22.1 s and 13.1 s until a model has 20). **The scope** counts only
+recipes a household can see or that wait for approval: live (a retired recipe is deleted), of no source an admin withheld,
+and of no source whose rights class is `forbidden` (`DietSecondReaderLaneService.InScope`); on checkpoint 9's copy the
+endpoint counted 22,934 approved recipes where 21,920 were the pool, the difference being the forbidden hosts' recipes not
+yet retired. The only types that take the reader are this lane and `DietSecondGate` (its prompt signature and type order); the
 IL test of `GoldenDietSecondReaderTests` holds that only the lane builds one.
 
 **Approval follows understanding** (`DietApprovalHolds`, read by `RecipeAutoCurationService`): a recipe the auto-approval
@@ -1193,10 +1233,59 @@ policy and vetting pass still waits, counted in the sweep's refusals by reason, 
 - the pair has not read its current text (`not yet read by the second reader`).
 
 `Curation:AutoApprove:RequireDietUnderstood` and `Curation:AutoApprove:RequireSecondReading` (both true) turn either off.
+`GET /api/Pipeline/auto-approve/waiting?sample=20` (ck23, U7) is the sweep's dry run: every candidate under the configured
+options, as the sweep would decide it now and also while it is paused, counted by reason (refused by the policy or vetting
+by rule, waiting as not yet decided, held as unknown by a severe type, or not yet read by the second reader) with the
+number it would approve now and the first recipe ids of each reason. It writes nothing.
 A recipe already approved is never taken back; it stays held for the severe types that do not understand it. On a
 database where the stored gate is not in use (in-memory, no build) nothing waits. The sweep's change signal
 (`AutoApproveChangeSignal`) moves with a reading, a recipe state the active build decides, a write logged or consumed
 and a set being built, not with a gate cycle that changes nothing, so an idle database still skips sweeps.
+
+## Judged holds (plan item ck23, `cleanup2/ck23-second-reader`)
+
+Every draw and checkpoint has judged rows of one kind: a recipe the rules show to a type, which a person (or the agent
+judging the draw) read and found to hide a food of that type: a lost base fat, a crust no line names, a dish named only by
+its icing, figs cooked from dry. Checkpoint 9 (U5) found seven Approved recipes of earlier draws still shown (26393, 101944,
+130715, 124919, 29073, 105702, 113768) because no wave had a rule for their kind. A judged hold keeps every such miss held by
+its id, whatever the rules do afterwards.
+
+**The table** `plan."RecipeDietJudgedHold"` (`RecipeDietJudgedHoldEntity`): the recipe, the restriction type, a short word for
+the food (never recipe text), who judged it and when, the name of the evidence file, the load's stamp and person; one row
+per recipe and type. No nutrition number.
+
+**How the gate reads it.** Every cycle loads the table (a few hundred rows) and folds each recipe's judged types into its
+fingerprint, so a load or an undo moves the fingerprint and the recipe is decided again. For every set of a judged type,
+severe or not, a recipe the rules do not flag as containing is flagged `DietFlagReason.Judged` (15, contains, "Judged to
+contain"; the recipe page names the food: "People who read this recipe judged that it holds ..."). The rules' own flag
+stands where they flag it; an unknown hold of the rules becomes the judged flag, which is stronger. A judged hold only
+holds: nothing in it clears a recipe, and it does not keep a recipe from auto-approval (it is understood). `gate-counts`
+gives `recipesJudged` per set. The store version is unchanged: with the table empty every fingerprint and flag is what it
+was, so no new build is needed.
+
+**Triggers** (`db/custom-objects.sql`): an insert or delete of a row, and an update of its recipe or type, hold the recipe
+through the write log (`plan."DietGateJudgedHoldsWritten"`, three statement triggers); an update of the food word,
+judge or evidence holds nothing.
+
+**The load** (`IDietJudgedHoldService`, `POST /api/DietAdmin/judged-holds?apply=`, `GET` lists, `POST .../undo?stamp=`):
+a dry run unless `apply=true`; a type that is no restriction type, a recipe that is not live, a missing or long food word,
+judge, date or evidence, and a row given twice are refused; a recipe and type already held is left as it is, so the same
+file loads twice to the same table. A food judged for one type is held as well for every type that keeps out what that type
+keeps out (`DietJudgedHoldService.Implied`): a wheat food holds gluten, so a Wheat Allergy hold also holds Celiac Disease,
+Gluten Sensitivity and Gluten-Free, and a hold of one gluten type holds the others; its evidence reads "...; implied by
+Wheat Allergy", and the report counts it under `implied`. Nothing implies Wheat Allergy, since gluten also comes from barley
+and rye: a gluten food that is wheat is given for Wheat Allergy in the file. Every added row, implied or not, is a
+`DietJudgedHoldLoad` entry in `audit."AuditLogEntry"` under the load's stamp, written in the same save as the rows (a load cut
+off while journaling stores no hold the undo could not find), and the undo by that stamp deletes the rows that load added
+that are unchanged since.
+`ops/diet-judged-holds.py` sends a judged-holds TSV (recipe, type, food, judged_by, judged_at, evidence) in batches of
+5,000. The judged files hold web recipe text and stay in the evidence folder outside the repo;
+`ops/diet-judged-holds/judged-misses.tsv` holds ids, types, food words and file names only: every judged hidden-food miss
+of checkpoints 6 to 8, the ck16 measuring rows, draws 6 to 24 and the ck20 measuring set (78 recipe and type rows; the food
+words were taken from the judges' notes), and a Wheat Allergy row for each of the 20 Celiac misses whose judged food is made
+of wheat (bread, toast, cake, crust, pasta, flour, a flour-thickened sauce or gravy, wheat gluten), 98 rows in all. Sixteen referral misses whose judge named no food of the type (a recipe made "as
+the last", "finish same as peaches") are not in it: their content is unknown, not judged to contain the food, and the
+referral rules hold them as unknown already.
 
 ## Golden set
 
@@ -1535,3 +1624,23 @@ rule change. On staging, with the setting off:
 3. Only once `readByPair` covers the approved pool (`approvedReadByPair` equal to `approved`): turn the setting on, wait for
    the whole cycle, and read `gate-counts`' `recipesNotReadBySecondReader` (expect only the waiting recipes not yet read)
    and `recipesHeldBySecondReader` (the pair's price, about one shown recipe in six of what the rules show).
+
+### The reader's batches, its own pause, readings that travel and judged holds (since `cleanup2/ck23-second-reader`)
+
+One table (`plan."RecipeDietJudgedHold"`), one function (`plan."DietGateJudgedHoldsWritten"`) and three triggers:
+`./db/apply.sh --dry-run` shows those and nothing else. The store version does not change, so no new build runs. On
+staging, first:
+
+1. The read-only role needs `SELECT` on `plan."RecipeDietReading"` and `plan."RecipeDietJudgedHold"` (neither is named
+   `Diet%`).
+2. Load the judged holds: `./ops/diet-judged-holds.py ops/diet-judged-holds/judged-misses.tsv` (dry run: expect 98 sent, more added by implication, and
+   refusals only for recipes not live on that copy), then with `--apply`; keep the stamp. After the next cycle,
+   `gate-counts` shows `recipesJudged` per set and the seven U5 recipes are flagged "Judged to contain" for their types.
+   Undo: `--undo <stamp> [--apply]`.
+3. The second reader with `ai-pause-all` on: `DietSecondReader:Enabled=true`, the host, and `ai-pause-diet-second-reader`
+   off. Watch `GET /api/DietAdmin/second-reader` (per model the lane's own readings of the last 24 hours, from its decision journal, so an import does not count, and hours left) and the host's
+   `/api/ps` (one model loaded at a time, a swap per batch of 100).
+4. Readings made once are taken again: `./ops/diet-readings.py export --out readings.jsonl` on one copy, then
+   `./ops/diet-readings.py import readings.jsonl` (dry run: the counts by reason) and `--apply` on the other; the offline
+   scorer's answers files the same way (an older file with `--model`, `--prompt` and `--set`). Undo by the stamp.
+5. `GET /api/Pipeline/auto-approve/waiting` gives the waiting reasons the checkpoint 9 harness gave, without a harness.

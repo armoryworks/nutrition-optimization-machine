@@ -52,6 +52,16 @@ namespace Nom.Api.Tests.Services
                 .Should().Be(new Decision(Verdict.Replace, Reasons.Referral), "staging checkpoint 8, T11: the rebuild kept these as stored-grounded");
         }
 
+        [Theory]
+        [InlineData("ingredients mentioned in No. 218", 218, "Mix the ingredients mentioned in No. 218.")]
+        [InlineData("Bechamel sauce, No. 367", 367, "Add the sauce of No. 367 and stir.")]
+        [InlineData("Yeast dough like No. 8", 8, "Make a dough like No. 8 and let it rise.")]
+        public void A_referred_number_is_emptied_even_where_a_method_sentence_names_it(string line, double quantity, string step)
+        {
+            LineAmountGuard.Judge(line, A((decimal)quantity, "Piece", null), A(0, null, null), new[] { step })
+                .Should().Be(new Decision(Verdict.Replace, Reasons.Referral), "staging checkpoint 9, U8: 72301 kept 218 pieces as rebuilt-empty-method");
+        }
+
         [Fact]
         public void A_stated_amount_beside_a_referred_recipe_is_still_never_emptied()
         {

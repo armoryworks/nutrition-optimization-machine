@@ -57,6 +57,9 @@ namespace Nom.Data.Plan
 
         /// <summary>The rules find the recipe clear, but a stored reading of the second reader does not call it clearly free of what the set restricts (a severe set of the reader's types, while the platform setting diet-second-reader-gate is on).</summary>
         SecondReader = 14,
+
+        /// <summary>People judged the recipe to hold a food the set restricts (<see cref="RecipeDietJudgedHoldEntity"/>) while the rules do not flag it: flagged as containing, for every set of the type.</summary>
+        Judged = 15,
     }
 
     /// <summary>

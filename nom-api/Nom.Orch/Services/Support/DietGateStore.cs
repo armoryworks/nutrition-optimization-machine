@@ -224,6 +224,9 @@ namespace Nom.Orch.Services.Support
         public sealed record PageReading(Dictionary<long, DietCriteriaMatcher.TypeProbe> Probes, HashSet<long> PendingTypes, Dictionary<long, HashSet<long>> UnknownByType)
         {
             public Dictionary<(long Type, long Recipe), (DietFlagReason Reason, long? CriterionId)> TextHeld { get; } = new();
+
+            /// <summary>The food word of each judged hold among the recipes, by type and recipe (<see cref="DietFlagReason.Judged"/>).</summary>
+            public Dictionary<(long Type, long Recipe), string> JudgedFoods { get; } = new();
         }
 
         /// <summary>The recipe page's reading from the store, or null when requests do not read the store.</summary>
@@ -248,8 +251,13 @@ namespace Nom.Orch.Services.Support
                 .ToListAsync();
             var recipes = recipeIds.Distinct().ToList();
             var flags = setIds.Count == 0 || recipes.Count == 0 ? new List<DietRecipeFlagEntity>() : await db.DietRecipeFlags.AsNoTracking()
-                .Where(f => setIds.Contains(f.SetId) && recipes.Contains(f.RecipeId) && (f.Verdict == DietVerdict.Unknown || f.Reason == DietFlagReason.FoodWord))
+                .Where(f => setIds.Contains(f.SetId) && recipes.Contains(f.RecipeId) && (f.Verdict == DietVerdict.Unknown || f.Reason == DietFlagReason.FoodWord || f.Reason == DietFlagReason.Judged))
                 .ToListAsync();
+            var judgedFoods = !flags.Any(f => f.Reason == DietFlagReason.Judged) ? new Dictionary<(long, long), string>() : (await db.RecipeDietJudgedHolds.AsNoTracking()
+                    .Where(h => recipes.Contains(h.RecipeId))
+                    .Select(h => new { h.RestrictionTypeId, h.RecipeId, h.Food })
+                    .ToListAsync())
+                .ToDictionary(h => (h.RestrictionTypeId, h.RecipeId), h => h.Food);
             var decided = recipes.Count == 0 ? new HashSet<long>() : (await db.DietRecipeStates.AsNoTracking().Standing(db)
                     .Where(s => s.BuildId == build && recipes.Contains(s.RecipeId))
                     .Select(s => s.RecipeId)
@@ -284,14 +292,20 @@ namespace Nom.Orch.Services.Support
                 if (set.Severe || list.Any(c => c.Severity >= 4))
                 {
                     var held = flags.Where(f => f.SetId == set.Id).Select(f => f.RecipeId).ToHashSet();
-                    foreach (var f in flags.Where(f => f.SetId == set.Id && f.Reason is DietFlagReason.Title or DietFlagReason.Method or DietFlagReason.UnknownWord or DietFlagReason.FoodWord or DietFlagReason.Referral or DietFlagReason.SecondUnread or DietFlagReason.SecondReader))
+                    foreach (var f in flags.Where(f => f.SetId == set.Id && f.Reason is DietFlagReason.Title or DietFlagReason.Method or DietFlagReason.UnknownWord or DietFlagReason.FoodWord or DietFlagReason.Referral or DietFlagReason.SecondUnread or DietFlagReason.SecondReader or DietFlagReason.Judged))
                         textHeld[(type, f.RecipeId)] = (f.Reason, f.CriterionId);
                     held.UnionWith(recipes.Where(id => !decided.Contains(id)));
                     if (held.Count > 0) unknown[type] = held;
                 }
+                else if (flags.Where(f => f.SetId == set.Id && f.Reason == DietFlagReason.Judged).Select(f => f.RecipeId).ToHashSet() is { Count: > 0 } judgedHeld)
+                {
+                    foreach (var id in judgedHeld) textHeld[(type, id)] = (DietFlagReason.Judged, null);
+                    unknown[type] = judgedHeld;
+                }
             }
             var reading = new PageReading(probes, pending, unknown);
             foreach (var (key, value) in textHeld) reading.TextHeld[key] = value;
+            foreach (var (key, food) in judgedFoods) reading.JudgedFoods[key] = food;
             return reading;
         }
 
@@ -316,8 +330,9 @@ namespace Nom.Orch.Services.Support
     /// <param name="RecipesByReferral">Of the unknown recipes, those a line sends to another recipe or page of the book (<see cref="DietFlagReason.Referral"/>).</param>
     /// <param name="RecipesNotReadBySecondReader">Of the unknown recipes, those the rules find clear and the second reader's pair has not read yet (<see cref="DietFlagReason.SecondUnread"/>, while its gate setting is on).</param>
     /// <param name="RecipesHeldBySecondReader">Of the unknown recipes, those the rules find clear and a stored reading of the pair does not call clearly free (<see cref="DietFlagReason.SecondReader"/>).</param>
+    /// <param name="RecipesJudged">Of the flagged recipes, those people judged to hold a food of the type while the rules do not flag them (<see cref="DietFlagReason.Judged"/>).</param>
     public sealed record DietStoredTypeCount(long TypeId, string Name, string Reading, int Severity, bool Severe, long SetId, string State, int Foods, int RecipesByFood, int RecipesByText, int RecipesUnknown, int RecipesNotDecided, int RecipesHeld, int RecipesHeldOnlyForUnknown,
-        int RecipesNoLine, int RecipesUnknownFood, int RecipesByTitle, int RecipesByMethod, int RecipesUnknownWord = 0, int RecipesByFoodWord = 0, int RecipesByReferral = 0, int RecipesNotReadBySecondReader = 0, int RecipesHeldBySecondReader = 0);
+        int RecipesNoLine, int RecipesUnknownFood, int RecipesByTitle, int RecipesByMethod, int RecipesUnknownWord = 0, int RecipesByFoodWord = 0, int RecipesByReferral = 0, int RecipesNotReadBySecondReader = 0, int RecipesHeldBySecondReader = 0, int RecipesJudged = 0);
 
     /// <summary>The count of every set of the active build over the live recipes, with the build it was read from; <see cref="Types"/> is empty before the first build is complete.</summary>
     public sealed record DietStoredCountsReport(int Recipes, long? BuildId, string? Version, DateTime? CompletedAt, DateTime? LastCycleAt, IReadOnlyList<DietStoredTypeCount> Types);
@@ -370,7 +385,8 @@ namespace Nom.Orch.Services.Support
                     severities.GetValueOrDefault(set.RestrictionTypeId), set.Severe, set.Id, set.State, foods.GetValueOrDefault(set.Id), byFood, byText, unknown, notDecided, byFood + byText + onlyUnknown, onlyUnknown,
                     Unknown(DietFlagReason.NoLine), Unknown(DietFlagReason.UnknownFood), Unknown(DietFlagReason.Title), Unknown(DietFlagReason.Method), Unknown(DietFlagReason.UnknownWord),
                     mine.Where(f => f.Verdict == DietVerdict.Contains && f.Reason == DietFlagReason.FoodWord).Sum(f => f.Count), Unknown(DietFlagReason.Referral),
-                    Unknown(DietFlagReason.SecondUnread), Unknown(DietFlagReason.SecondReader)));
+                    Unknown(DietFlagReason.SecondUnread), Unknown(DietFlagReason.SecondReader),
+                    mine.Where(f => f.Verdict == DietVerdict.Contains && f.Reason == DietFlagReason.Judged).Sum(f => f.Count)));
 
                 int Unknown(DietFlagReason reason) => mine.Where(f => f.Verdict == DietVerdict.Unknown && f.Reason == reason).Sum(f => f.Count);
             }

@@ -9,7 +9,8 @@ namespace Nom.Api.Services
     /// <summary>
     /// The one gate every model lane in the API passes before each batch. In order it checks:
     /// the pause switches (platform features ai-pause-all and ai-pause-{lane}, toggled on Admin,
-    /// Platform features; no row means running), the quiet hours (<see cref="AiQuietHours"/>), the
+    /// Platform features; no row means running; ai-pause-all does not hold a lane that only reads,
+    /// <see cref="AiLanes.ReadingLanes"/>), the quiet hours (<see cref="AiQuietHours"/>), the
     /// shared host breaker (<see cref="AiHostMonitor"/>), and the lane's daily cap
     /// Ai:Lanes:{lane}:MaxItemsPerDay (default 0, no cap; counted over the last 24 hours from the
     /// lane's own rows, see <see cref="AiLaneLedger"/>). A blocked lane waits and re-checks every
@@ -205,7 +206,7 @@ namespace Nom.Api.Services
             {
                 using var scope = _scopeFactory.CreateScope();
                 var features = scope.ServiceProvider.GetRequiredService<IPlatformFeatureService>();
-                if (await features.IsEnabledAsync(AiLanes.PauseAllKey)) return AiLanes.PauseAllKey;
+                if (AiLanes.HeldByPauseAll(lane) && await features.IsEnabledAsync(AiLanes.PauseAllKey)) return AiLanes.PauseAllKey;
                 var key = AiLanes.PauseKey(lane);
                 return await features.IsEnabledAsync(key) ? key : null;
             }

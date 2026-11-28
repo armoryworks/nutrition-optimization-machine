@@ -1,0 +1,99 @@
+recipe	type	food	judged_by	judged_at	evidence
+18293	Celiac Disease	spaghetti	agent-checkpoint6-op1	2026-11-24	checkpoint6-log.md
+18293	Wheat Allergy	spaghetti	agent-ck23-second-reader-review	2026-11-28	ck23-second-reader.md
+18888	Egg Allergy	eggs	agent-checkpoint6-op1	2026-11-24	checkpoint6-log.md
+21945	Milk Allergy	pie crust	agent-ck17-diet-proof	2026-11-25	ck17-diet-proof.draws.tsv
+25437	Fish Allergy	whiting	agent-checkpoint6-op1	2026-11-24	checkpoint6-log.md
+26393	Wheat Allergy	grain granules	agent-ck21-approved-pool	2026-11-27	ck21-approved-pool.draw24.judged.tsv
+26718	Wheat Allergy	white sauce	agent-ck17-diet-proof	2026-11-25	ck17-diet-proof.draws.tsv
+27570	Milk Allergy	vanilla ice cream	agent-checkpoint7-op1	2026-11-25	checkpoint7-log.md
+28458	Celiac Disease	flour for frying	agent-ck17-diet-proof	2026-11-25	ck17-diet-proof.draws.tsv
+28458	Wheat Allergy	flour for frying	agent-ck23-second-reader-review	2026-11-28	ck23-second-reader.md
+28948	Celiac Disease	cake	agent-ck17-diet-proof	2026-11-25	ck17-diet-proof.draws.tsv
+28948	Wheat Allergy	cake	agent-ck23-second-reader-review	2026-11-28	ck23-second-reader.md
+29073	Milk Allergy	rich crust	agent-ck19-diet	2026-11-26	ck19-diet.draws.tsv
+29760	Shellfish Allergy	oysters	agent-checkpoint6-op1	2026-11-24	checkpoint6-log.md
+31363	Milk Allergy	pie crust	agent-ck17-diet-proof	2026-11-25	ck17-diet-proof.draws.tsv
+31416	Sulfite Sensitivity	dried figs	agent-checkpoint8-op1	2026-11-26	ck8-op1-diet-reading-verdicts.tsv
+40144	Tree Nut Allergy	vegan parmesan (cashews)	agent-ck18-composites	2026-11-25	ck18-composites.draws.tsv
+50089	Celiac Disease	pie crust	agent-checkpoint6-op1	2026-11-24	checkpoint6-log.md
+50089	Wheat Allergy	pie crust	agent-ck23-second-reader-review	2026-11-28	ck23-second-reader.md
+51930	Celiac Disease	cake	agent-ck17-diet-proof	2026-11-25	ck17-diet-proof.draws.tsv
+51930	Wheat Allergy	cake	agent-ck23-second-reader-review	2026-11-28	ck23-second-reader.md
+57550	Milk Allergy	milk pudding base	agent-checkpoint7-op1	2026-11-25	checkpoint7-log.md
+63813	Celiac Disease	meatless meatballs	agent-ck18-composites	2026-11-25	ck18-composites.draws.tsv
+63813	Wheat Allergy	meatless meatballs	agent-ck23-second-reader-review	2026-11-28	ck23-second-reader.md
+68410	Celiac Disease	pie paste	agent-ck16-diet-known	2026-11-25	ck16-diet-known.md
+68410	Wheat Allergy	pie paste	agent-ck16-diet-known	2026-11-25	ck16-diet-known.md
+69143	Milk Allergy	biscuit dough	agent-ck18-composites	2026-11-25	ck18-composites.draws.tsv
+72353	Wheat Allergy	flour	agent-ck17-diet-proof	2026-11-25	ck17-diet-proof.draws.tsv
+74411	Milk Allergy	pie crust	agent-ck17-diet-proof	2026-11-25	ck17-diet-proof.draws.tsv
+77479	Celiac Disease	patty shells	agent-ck16-diet-known	2026-11-25	ck16-diet-known.md
+77479	Wheat Allergy	patty shells	agent-ck16-diet-known	2026-11-25	ck16-diet-known.md
+78157	Celiac Disease	bread	agent-ck16-diet-known	2026-11-25	ck16-diet-known.md
+78157	Milk Allergy	cream	agent-ck16-diet-known	2026-11-25	ck16-diet-known.md
+78157	Wheat Allergy	bread	agent-ck16-diet-known	2026-11-25	ck16-diet-known.md
+79705	Celiac Disease	bread dressing	agent-ck17-diet-proof	2026-11-25	ck17-diet-proof.draws.tsv
+79705	Wheat Allergy	bread dressing	agent-ck23-second-reader-review	2026-11-28	ck23-second-reader.md
+84469	Sulfite Sensitivity	vinaigrette	agent-checkpoint6-op1	2026-11-24	checkpoint6-log.md
+85722	Celiac Disease	Madeira sauce	agent-ck17-diet-proof	2026-11-25	ck17-diet-proof.draws.tsv
+85722	Wheat Allergy	Madeira sauce	agent-ck23-second-reader-review	2026-11-28	ck23-second-reader.md
+86455	Egg Allergy	eggs	agent-checkpoint6-op1	2026-11-24	checkpoint6-log.md
+88465	Fish Allergy	salmon	agent-checkpoint6-op1	2026-11-24	checkpoint6-log.md
+92138	Celiac Disease	melted butter sauce	agent-ck17-diet-proof	2026-11-25	ck17-diet-proof.draws.tsv
+92138	Wheat Allergy	melted butter sauce	agent-ck23-second-reader-review	2026-11-28	ck23-second-reader.md
+95285	Celiac Disease	flour	agent-checkpoint7-op1	2026-11-25	checkpoint7-log.md
+95285	Wheat Allergy	flour	agent-ck23-second-reader-review	2026-11-28	ck23-second-reader.md
+95487	Egg Allergy	salad dressing	agent-ck18-composites	2026-11-25	ck18-composites.draws.tsv
+96827	Sulfite Sensitivity	prunes	agent-checkpoint8-op1	2026-11-26	ck8-op1-diet-reading-verdicts.tsv
+96979	Milk Allergy	pie crust	agent-ck17-diet-proof	2026-11-25	ck17-diet-proof.draws.tsv
+97393	Peanut Allergy	nuts	agent-ck18-composites	2026-11-25	ck18-composites.draws.tsv
+97533	Wheat Allergy	protose	agent-ck17-diet-proof	2026-11-25	ck17-diet-proof.draws.tsv
+101944	Milk Allergy	butter	agent-ck21-approved-pool	2026-11-27	ck21-approved-pool.draw24.judged.tsv
+105291	Egg Allergy	pudding batter	agent-ck17-diet-proof	2026-11-25	ck17-diet-proof.draws.tsv
+105702	Wheat Allergy	shells of paste	agent-ck19-diet	2026-11-26	ck19-diet.draws.tsv
+108140	Milk Allergy	caper sauce	agent-checkpoint6-op1	2026-11-24	checkpoint6-log.md
+108310	Milk Allergy	fontage cups	agent-ck19-diet	2026-11-26	ck19-diet.draws.tsv
+109291	Wheat Allergy	paste	agent-ck17-diet-proof	2026-11-25	ck17-diet-proof.draws.tsv
+111536	Egg Allergy	egg yolk	agent-ck17-diet-proof	2026-11-25	ck17-diet-proof.draws.tsv
+113558	Milk Allergy	milk and butter	agent-ck19-diet	2026-11-26	ck19-diet.draws.tsv
+113713	Wheat Allergy	pastry	agent-checkpoint6-op1	2026-11-24	checkpoint6-log.md
+113768	Celiac Disease	toast	agent-ck19-diet	2026-11-26	ck19-diet.draws.tsv
+113768	Wheat Allergy	toast	agent-ck23-second-reader-review	2026-11-28	ck23-second-reader.md
+118325	Wheat Allergy	Madeira sauce	agent-checkpoint6-op1	2026-11-24	checkpoint6-log.md
+118616	Wheat Allergy	toast	agent-checkpoint6-op1	2026-11-24	checkpoint6-log.md
+120284	Wheat Allergy	fish croquettes	agent-ck17-diet-proof	2026-11-25	ck17-diet-proof.draws.tsv
+122491	Celiac Disease	bread crumbs	agent-ck17-diet-proof	2026-11-25	ck17-diet-proof.draws.tsv
+122491	Wheat Allergy	bread crumbs	agent-ck23-second-reader-review	2026-11-28	ck23-second-reader.md
+123166	Celiac Disease	dumplings	agent-checkpoint6-op1	2026-11-24	checkpoint6-log.md
+123166	Wheat Allergy	dumplings	agent-ck23-second-reader-review	2026-11-28	ck23-second-reader.md
+123227	Wheat Allergy	cake flour	agent-checkpoint7-op1	2026-11-25	checkpoint7-log.md
+123641	Wheat Allergy	cake	agent-ck17-diet-proof	2026-11-25	ck17-diet-proof.draws.tsv
+123664	Soy Allergy	Spry shortening	agent-checkpoint7-op1	2026-11-25	checkpoint7-log.md
+124035	Celiac Disease	condensed cream soup	agent-ck17-diet-proof	2026-11-25	ck17-diet-proof.draws.tsv
+124035	Wheat Allergy	condensed cream soup	agent-ck23-second-reader-review	2026-11-28	ck23-second-reader.md
+124919	Sulfite Sensitivity	dried figs	agent-ck21-approved-pool	2026-11-27	ck21-approved-pool.draw24.judged.tsv
+125694	Wheat Allergy	sponge fingers	agent-checkpoint7-op1	2026-11-25	checkpoint7-log.md
+126259	Wheat Allergy	flour	agent-checkpoint7-op1	2026-11-25	checkpoint7-log.md
+127188	Egg Allergy	eggs	agent-checkpoint8-op1	2026-11-26	ck8-op1-diet-reading-verdicts.tsv
+129719	Celiac Disease	veal gravy	agent-checkpoint8-op1	2026-11-26	ck8-op1-diet-reading-verdicts.tsv
+129719	Wheat Allergy	veal gravy	agent-ck23-second-reader-review	2026-11-28	ck23-second-reader.md
+130715	Tree Nut Allergy	walnuts	agent-ck21-approved-pool	2026-11-27	ck21-approved-pool.draw24.judged.tsv
+130737	Wheat Allergy	dough	agent-ck19-diet	2026-11-26	ck19-diet.draws.tsv
+131676	Sulfite Sensitivity	vinegar	agent-checkpoint8-op1	2026-11-26	ck8-op1-diet-reading-verdicts.tsv
+132576	Sulfite Sensitivity	dried currants	agent-checkpoint7-op1	2026-11-25	checkpoint7-log.md
+133979	Milk Allergy	risotto	agent-ck16-diet-known	2026-11-25	ck16-diet-known.md
+135065	Wheat Allergy	gaufrettes	agent-checkpoint7-op1	2026-11-25	checkpoint7-log.md
+135829	Milk Allergy	milk and butter	agent-checkpoint7-op1	2026-11-25	checkpoint7-log.md
+136193	Celiac Disease	wheat gluten	agent-ck17-diet-proof	2026-11-25	ck17-diet-proof.draws.tsv
+136193	Wheat Allergy	wheat gluten	agent-ck23-second-reader-review	2026-11-28	ck23-second-reader.md
+136338	Celiac Disease	toast	agent-checkpoint6-op1	2026-11-24	checkpoint6-log.md
+136338	Wheat Allergy	toast	agent-ck23-second-reader-review	2026-11-28	ck23-second-reader.md
+136351	Celiac Disease	brown bread	agent-checkpoint6-op1	2026-11-24	checkpoint6-log.md
+136351	Wheat Allergy	brown bread	agent-ck23-second-reader-review	2026-11-28	ck23-second-reader.md
+136668	Celiac Disease	wafers	agent-checkpoint6-op1	2026-11-24	checkpoint6-log.md
+136668	Wheat Allergy	wafers	agent-ck23-second-reader-review	2026-11-28	ck23-second-reader.md
+136675	Celiac Disease	bread	agent-checkpoint6-op1	2026-11-24	checkpoint6-log.md
+136675	Wheat Allergy	bread	agent-ck23-second-reader-review	2026-11-28	ck23-second-reader.md
+136720	Wheat Allergy	soy sauce	agent-ck17-diet-proof	2026-11-25	ck17-diet-proof.draws.tsv
+139833	Peanut Allergy	nuts	agent-checkpoint7-op1	2026-11-25	checkpoint7-log.md

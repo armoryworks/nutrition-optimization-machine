@@ -123,3 +123,37 @@ recipe not yet read is held as not yet read. The auto-approval lane waits for bo
 understand a recipe before it approves it. The reader never releases an unknown hold. The prompt is version 1 as measured
 here; a `num_predict` cap or any other change is a new signature, which must be measured again before the setting is
 turned on, and makes every reading stale.
+
+## Batches, its own pause and readings that travel (plan item ck23)
+
+Built in `cleanup2/ck23-second-reader` (see `diet-gate.md`, "The second reader in the stored gate" and "Judged holds").
+Checkpoint 9 could not run the lane: `ai-pause-all`, which the operator steps keep on, held it, and by its code it read each
+recipe with both models in turn, a model swap per recipe on a host that holds one model at a time (U4). The lane only reads
+and stores readings; it never writes to a recipe, so it is no writing lane and `ai-pause-all` no longer holds it (its own
+switch `ai-pause-diet-second-reader`, quiet hours and the host breaker do). The Pipeline page says so beside "Pause all AI
+lanes" (the lanes it does not stop, from `heldByPauseAll`) and on the lane while it runs with that switch on, so an operator
+who frees the host for a scoring run pauses the reader as well. Its endpoint's readings of the last 24 hours and latest
+reading come from the lane's decision journal, so an imported reading is current but not counted as read. A pass reads a batch of 100 recipes with
+mistral-small and then the same batch with phi4, and resumes with phi4 when it was stopped between them.
+
+**Readings that travel.** A reading costs about 35 s of model time a recipe (both models), so a reading made once is
+taken again where it matches exactly instead of spending the hours twice:
+
+- `GET /api/DietAdmin/second-reader/readings?after=&recipes=` exports the stored readings page by page (recipe id, model,
+  prompt and text signatures, the answer word and carrier food per type); `currentOnly` (default) leaves out unreadable
+  readings and readings of another prompt.
+- `POST /api/DietAdmin/second-reader/readings/import?apply=` takes a reading only where the model is of the pair, the
+  prompt signature is the reader's current one, the recipe is live and in the lane's scope, its text signature now equals
+  the reading's (the text it was made of, signed as the lane signs it), every type has a known answer word, and no current
+  readable reading of that recipe and model exists here; every other reading is left and counted by its reason. A dry run
+  unless `apply=true`; every reading taken is a `DietReadingImport` entry in `audit."AuditLogEntry"` with the row before and
+  after, under the import's stamp, and `POST .../import/undo?stamp=` puts the row before back (or removes the row) where the
+  reading is unchanged since.
+- The offline scorer (`--golden-score --lane diet-second-reader --answers`) now writes on each line the model, the prompt
+  signature and the text signature of the recipe it was shown, so its answers import the same way. An older answers file
+  (the ck22 and checkpoint 9 runs) carries none of these: `ops/diet-readings.py import --model --prompt --set` sends the
+  set's title, lines and method as the text, and nom-api signs them; a recipe whose text on the target copy is not the
+  text the scorer read is left (`text signature differs`).
+
+A reading carries verdict words and food words only, never a nutrition number, and an imported reading is decided by the
+gate as the lane's own would be: only while `diet-second-reader-gate` is on.

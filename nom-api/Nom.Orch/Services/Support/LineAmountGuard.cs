@@ -12,7 +12,8 @@ namespace Nom.Orch.Services.Support
     /// grounded when it stands there (A1, <see cref="ReprocessRuleAudit.GroundedIn"/>); a new amount when it
     /// stands there with a unit sane for the line (A3). A rebuilt row with no amount never replaces a stored
     /// row that has one, whatever the grounding says, but for a stored amount that is only the number of the recipe or
-    /// page the line refers to (<see cref="IngredientLineParser.IsReferredNumber"/>), which is no amount: it keeps a stored amount the line itself grounds and
+    /// page the line refers to (<see cref="IngredientLineParser.IsReferredNumber"/>), which is no amount even where a method
+    /// sentence states the same number (staging checkpoint 9, U8): it keeps a stored amount the line itself grounds and
     /// holds any other, one only a method sentence grounds too, since that sentence's number may be another
     /// food's.
     /// A grounded new amount replaces the stored one only where the stored one contradicts the source: it is
@@ -111,7 +112,7 @@ namespace Nom.Orch.Services.Support
 
             if (proposed.Quantity <= 0)
             {
-                if (!storedGrounded && IngredientLineParser.IsReferredNumber(stored.Quantity, FirstPart(raw))) return new Decision(Verdict.Replace, Reasons.Referral);
+                if (IngredientLineParser.IsReferredNumber(stored.Quantity, FirstPart(raw))) return new Decision(Verdict.Replace, Reasons.Referral);
                 if (!storedGrounded) return new Decision(Verdict.Hold, Reasons.RebuiltEmpty);
                 return !Failures(raw, stored, steps, fromMethod: false).Contains(ReprocessRuleAudit.Grounded)
                     ? new Decision(Verdict.Keep, Reasons.StoredGrounded)

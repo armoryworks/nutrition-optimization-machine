@@ -113,6 +113,25 @@ written. "claret" and "claret wine" both go to red table wine.
 its own ("Potatoes, raw, skin") as part of the food's lead words, so no name rule gives "potatoes"
 to the skin. The fix promoted five `known` rows of `link-pairs.tsv`.
 
+### `link-gate/15` (staging checkpoint 9, U3)
+
+Two of 45 fresh accepts were wrong: `large, smooth oyster shells` (the shells Oysters au Gratin is baked in) on Fresh
+Oysters, and `Whites of 3 eggs beaten dry` on Egg, white, dried.
+
+- **A shell, husk, cob or pit is not eaten and is not the food** (`part`, any answer, readers' too): the wording's head
+  noun is one of them, the food's words do not name it, and the word before it is no food it is the shape of
+  ("pastry shells", "taco shells", "pasta shells" and the like pass). "Oysters on the half shell", "peanuts in the
+  shell", "corn on the cob" and "corn in the husk" name the food.
+- **The wording as it names its food:** leading comma parts that hold only qualifiers ("large, ") are left out, so a
+  wording whose first part is a size no longer has no identity words at all (the containment and head-noun rules read
+  "smooth oyster shells"); a state the recipe brings the food to, said after its verb ("beaten dry", "whipped stiff",
+  "patted dry"), is left out of the forms and states, so it never meets the dried form of a food. Headings, aliases
+  and the alcohol sense read the wording as written.
+- Records re-scored: `scores/link-gate.json` (3,744 of 7,664 agreeing, 2,358 accepted, 99.6 % judged right, the same
+  10 false accepts; two judged-right pairs, `large, ripe peaches` and `large, ripe pineapple`, are now held by the
+  one-generic-word rule, as `ripe peaches` already was), `scores/wording-tiers.json`, `scores/link-recheck-classes.json`
+  (proven classes unchanged).
+
 ## Signature
 
 `LinkGate.Signature` is a hash of `LinkGate.Version` and every table the rules read: the gate's own

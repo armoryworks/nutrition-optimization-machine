@@ -105,7 +105,7 @@ namespace Nom.Api.Tests.Services.MealPlan
             var objects = File.ReadAllText(RepoFile("db/custom-objects.sql"));
             var schema = File.ReadAllText(RepoFile("db/schema.sql"));
             var queried = await DietGateReadingTables.QueriedAsync();
-            queried.Should().Contain(new[] { "recipe.RecipeIngredient", "recipe.Ingredient", "recipe.IngredientWording", "curation.FoodCatalogProposal", "plan.RecipeDietReading", "auth.PlatformFeature" },
+            queried.Should().Contain(new[] { "recipe.RecipeIngredient", "recipe.Ingredient", "recipe.IngredientWording", "curation.FoodCatalogProposal", "plan.RecipeDietReading", "auth.PlatformFeature", "plan.RecipeDietJudgedHold" },
                 "the list is taken from the reading's own queries, so it reaches every table the reading depends on");
             var wanted = queried.ToDictionary(t => t, t => new[] { "INSERT", "UPDATE", "DELETE" }.Where(e => !NoTriggerNeeded.ContainsKey((t, e))).ToArray());
             foreach (var (text, file) in new[] { (objects, "db/custom-objects.sql"), (schema, "db/schema.sql") })

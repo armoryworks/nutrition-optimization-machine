@@ -306,7 +306,8 @@ namespace Nom.Orch.Services
         /// food's alcohol per 100 g: the drinks' grams per serving as written and after cooking, the basis of the
         /// drink line with the most alcohol, the flavourings and the drink lines that cannot be counted; null when
         /// no line carries alcohol. A line is named by its food, or by its text; for a recipe of a facts-only source by
-        /// NOM's own wording of it (<see cref="Support.ProseWithholding.LineName(RecipeEntity, RecipeIngredientEntity)"/>), never the publisher's line.
+        /// NOM's own wording of it (<see cref="Support.ProseWithholding.LineName(RecipeEntity, RecipeIngredientEntity)"/>), never the publisher's line;
+        /// a line's text is served as a reader sees it, its HTML entities read (<see cref="Support.ProseWithholding.Shown"/>; staging checkpoint 9, U15).
         /// </summary>
         public static RecipeAlcoholNoteModel? AlcoholNote(RecipeEntity recipe, IReadOnlyDictionary<long, decimal> alcoholPer100g)
         {
@@ -323,12 +324,12 @@ namespace Nom.Orch.Services
             var main = counted.OrderByDescending(d => d.AsWritten).FirstOrDefault();
             var basis = Support.AlcoholRetention.ReadBasis(main?.RetentionBasis);
             var row = basis == null ? null : Support.AlcoholRetention.RowFor(basis.Value.Kind, basis.Value.Method, basis.Value.Minutes);
-            static string Shown(Support.AlcoholDrinkLine d) => !string.IsNullOrWhiteSpace(d.FoodName) ? d.FoodName!.Trim() : (d.Label ?? d.RawLine ?? string.Empty).Trim();
+            static string Shown(Support.AlcoholDrinkLine d) => !string.IsNullOrWhiteSpace(d.FoodName) ? d.FoodName!.Trim() : (d.Label ?? Support.ProseWithholding.Shown(d.RawLine) ?? string.Empty).Trim();
             return new RecipeAlcoholNoteModel
             {
                 Drinks = counted.Select(Shown).Distinct(StringComparer.OrdinalIgnoreCase).ToList(),
                 Flavourings = count.Flavourings.ToList(),
-                Uncounted = count.Uncounted.Select(d => d.Label ?? (!string.IsNullOrWhiteSpace(d.RawLine) ? d.RawLine!.Trim() : Shown(d))).Distinct(StringComparer.OrdinalIgnoreCase).ToList(),
+                Uncounted = count.Uncounted.Select(d => d.Label ?? (!string.IsNullOrWhiteSpace(d.RawLine) ? Support.ProseWithholding.Shown(d.RawLine)!.Trim() : Shown(d))).Distinct(StringComparer.OrdinalIgnoreCase).ToList(),
                 AsWrittenGrams = Math.Round(count.AsWrittenPerServing, 2),
                 RetainedGrams = Math.Round(count.RetainedPerServing, 2),
                 FlavouringGrams = Math.Round(count.FlavouringPerServing, 2),

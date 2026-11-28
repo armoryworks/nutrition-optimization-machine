@@ -35,11 +35,14 @@ namespace Nom.Api.Controllers
         private readonly IContainerSizeService? _containerSizes;
         private readonly ISourceAdmissionService? _sources;
         private readonly ISourceRightsService? _rights;
+        private readonly IRecipeAutoCurationService? _autoCuration;
 
         public PipelineController(IPipelineStatusService pipeline, IAiLaneStatus lanes, IPlatformFeatureService features, IConfiguration configuration,
             ILaneFrameService frame, IOptions<LaneModelRoster> roster, IReprocessLaneService? reprocess = null, ILinkRecheckService? recheck = null,
-            IContainerSizeService? containerSizes = null, ISourceAdmissionService? sources = null, ISourceRightsService? rights = null)
+            IContainerSizeService? containerSizes = null, ISourceAdmissionService? sources = null, ISourceRightsService? rights = null,
+            IRecipeAutoCurationService? autoCuration = null)
         {
+            _autoCuration = autoCuration;
             _sources = sources;
             _rights = rights;
             _reprocess = reprocess;
@@ -82,6 +85,19 @@ namespace Nom.Api.Controllers
             return report == null ? NotFound(new { error = $"Lane '{lane}/{tier}' has no state or no undo." }) : Ok(report);
         }
 
+        /// <summary>
+        /// A dry run of recipe auto-approval (plan item ck23, U7): every candidate's reason under the configured options, as the
+        /// sweep would decide it now, also while the sweep is paused: refused by the policy or vetting by rule, waiting for the
+        /// diet check (not yet decided, held as unknown by a severe type, not yet read by the second reader), or approvable,
+        /// with counts and up to <paramref name="sample"/> recipe ids each. Writes nothing.
+        /// </summary>
+        [HttpGet("auto-approve/waiting")]
+        public async Task<ActionResult<AutoApproveWaitingReport>> AutoApproveWaiting([FromQuery] int sample = 20, CancellationToken cancellationToken = default)
+        {
+            if (_autoCuration == null) return NotFound();
+            return Ok(await _autoCuration.WaitingAsync(sample, cancellationToken));
+        }
+
         /// <summary>Turns the pause switch of one model lane, of all of them ("all") or of recipe auto-approval ("auto-approve") on or off; turning one off needs CanManageUserRoles.</summary>
         [HttpPut("pause/{lane}")]
         public async Task<ActionResult<PipelineGateStatus>> SetPause(string lane, [FromBody] SetPipelinePauseRequest request)
@@ -112,7 +128,7 @@ namespace Nom.Api.Controllers
             foreach (var (lane, label) in AiLanes.All)
             {
                 lanes.Add(new PipelineGateLane(lane, label, await _features.IsEnabledAsync(AiLanes.PauseKey(lane)),
-                    states.GetValueOrDefault(lane) ?? new AiLaneStatusModel { Lane = lane }));
+                    states.GetValueOrDefault(lane) ?? new AiLaneStatusModel { Lane = lane }, AiLanes.HeldByPauseAll(lane)));
             }
             return new PipelineGateStatus(await _features.IsEnabledAsync(AiLanes.PauseAllKey), lanes, _lanes.GetHosts(),
                 await _features.IsEnabledAsync(IPlatformFeatureService.Keys.AutoApprovePause));

@@ -9,10 +9,12 @@ using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.Logging.Abstractions;
 using Moq;
 using Nom.Data;
+using Nom.Data.Plan;
 using Nom.Data.Recipe;
 using Nom.Orch.Extensions;
 using Nom.Orch.Interfaces;
 using Nom.Orch.Models.MealPlan;
+using Nom.Orch.Models.Plan;
 using Nom.Orch.Models.Recipe;
 using Nom.Orch.Services;
 using Nom.Orch.Services.Support;
@@ -40,7 +42,7 @@ namespace Nom.Api.Tests.Services.MealPlan
     /// answers under a second and no slower than with none, and the gate's part of a plan shuffle (the household set and
     /// the filtered random draw) answers under a second. The figures are written to the test output.
     /// </summary>
-    public class DietGateStorePostgresTests
+    public partial class DietGateStorePostgresTests
     {
         public const string Variable = "NOM_DIET_STORE_PG";
         private const int FoodCount = 88_000, RecipeCount = 122_000, LineCount = 850_000, TypeCount = 79, Lineless = 26, AliasCount = 44_000, StatementCount = 2_000;
@@ -868,6 +870,53 @@ namespace Nom.Api.Tests.Services.MealPlan
             (await SecondFlagsAsync()).Should().Be(0, "with the setting off again the build decides as before");
             await ExecAsync(connection, $"DELETE FROM auth.\"PlatformFeature\" WHERE \"Key\" = '{DietSecondGate.FeatureKey}'");
             await CycleAsync();
+        }
+
+        [DietStorePostgresFact]
+        [Trait("Category", "Performance")]
+        public async Task A_judged_hold_holds_its_recipe_from_its_commit_is_flagged_by_the_next_cycle_and_its_undo_releases_it()
+        {
+            await SeedAsync();
+            var build = await ActiveBuildAsync();
+            var builder = new DietGateStoreBuilder();
+            await using var connection = new NpgsqlConnection(ConnectionString);
+            await connection.OpenAsync();
+            await ExecAsync(connection, "DELETE FROM plan.\"RecipeDietJudgedHold\"");
+            await using (var db = NewContext()) await builder.RunAsync(db);
+            async Task CycleAsync()
+            {
+                await using var db = NewContext();
+                await builder.RunChangesAsync(db);
+            }
+            var type = await ScalarAsync(connection, "SELECT r.\"Id\" FROM reference.\"Reference\" r WHERE r.\"Name\" = 'Celiac Disease'");
+            var recipe = await ScalarAsync(connection,
+                $"SELECT r.\"Id\" FROM recipe.\"Recipe\" r WHERE NOT r.\"IsDeleted\" AND NOT EXISTS (SELECT 1 FROM plan.\"DietRecipeFlag\" f JOIN plan.\"DietGateSet\" s ON s.\"Id\" = f.\"SetId\" " +
+                $"WHERE s.\"BuildId\" = {build} AND s.\"RestrictionTypeId\" = {type} AND f.\"RecipeId\" = r.\"Id\") ORDER BY r.\"Id\" LIMIT 1");
+            async Task<long> JudgedFlagsAsync() => await ScalarAsync(connection,
+                $"SELECT count(*) FROM plan.\"DietRecipeFlag\" f JOIN plan.\"DietGateSet\" s ON s.\"Id\" = f.\"SetId\" WHERE s.\"BuildId\" = {build} AND f.\"RecipeId\" = {recipe} AND f.\"Reason\" = {(int)DietFlagReason.Judged}");
+
+            await ExecAsync(connection, "DELETE FROM plan.\"DietGateWrite\"");
+            DietJudgedHoldLoadReport loaded;
+            await using (var db = NewContext())
+                loaded = await new DietJudgedHoldService(db, NullLogger<DietJudgedHoldService>.Instance).LoadAsync(new[]
+                {
+                    new DietJudgedHoldInput { RecipeId = recipe, Type = "Celiac Disease", Food = "toast", JudgedBy = "agent-ck23-test", JudgedAt = DateTime.UtcNow.Date, Evidence = "ck23-test.tsv" },
+                }, apply: true, 1);
+            loaded.Added.Should().Be(1 + loaded.Implied, "the Celiac hold, and the other gluten types' it implies");
+            (await StandingCountAsync(build, new[] { recipe })).Should().Be(0, "a judged hold holds its recipe through the write log from its commit");
+            await CycleAsync();
+            (await StandingCountAsync(build, new[] { recipe })).Should().Be(1);
+            (await JudgedFlagsAsync()).Should().BeGreaterThan(0, "the cycle over the changes flags the recipe for every set of the type");
+
+            await ExecAsync(connection, $"UPDATE plan.\"RecipeDietJudgedHold\" SET \"Food\" = 'bread' WHERE \"RecipeId\" = {recipe}");
+            (await StandingCountAsync(build, new[] { recipe })).Should().Be(1, "a write to the food word changes no verdict and holds nothing");
+
+            await using (var db = NewContext())
+                (await new DietJudgedHoldService(db, NullLogger<DietJudgedHoldService>.Instance).UndoAsync(loaded.Stamp, apply: true, 1)).Skipped.Should().Be(loaded.Added, "a hold changed since its load is not taken back");
+            await ExecAsync(connection, $"DELETE FROM plan.\"RecipeDietJudgedHold\" WHERE \"RecipeId\" = {recipe}");
+            (await StandingCountAsync(build, new[] { recipe })).Should().Be(0);
+            await CycleAsync();
+            (await JudgedFlagsAsync()).Should().Be(0, "with the hold gone the recipe is decided by its rules again");
         }
 
         private static ApplicationDbContext NewClearingContext() =>

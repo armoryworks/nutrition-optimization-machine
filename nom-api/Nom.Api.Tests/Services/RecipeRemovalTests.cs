@@ -43,8 +43,11 @@ namespace Nom.Api.Tests.Services
     /// and is undone by that stamp. Stage 2, purge: refused without a backup, irreversible, and no column of a purged recipe
     /// holds source text afterwards. A removed address is refused by URL import and by the staged import the harvester uses.
     /// </summary>
+    [Collection(RecipeRemovalTests.Gate)]
     public class RecipeRemovalTests
     {
+        public const string Gate = "recipe removal gate";
+
         private const long Admin = 7, Member = 70, HouseholdId = 7;
         private const string Marker = "PUBLISHER-WORDS";
         private static readonly DateTime T0 = new(2026, 11, 24, 12, 0, 0, DateTimeKind.Utc);
@@ -878,6 +881,30 @@ namespace Nom.Api.Tests.Services
             (await db.IngredientAliases.IgnoreQueryFilters().Where(a => a.IngredientId == w.CatalogFood).Select(a => a.AliasName).ToListAsync())
                 .Should().Equal(new[] { $"1 pound beef, {Marker} trimmed" }, "a recipe not removed still holds that wording");
             (await db.Ingredients.SingleAsync(i => i.Id == w.CatalogFood)).Name.Should().Be("Beef Stew Meat");
+        }
+
+        [Fact]
+        public async Task A_purge_deletes_an_alias_named_by_a_purged_lines_normalised_wording_unless_another_recipes_line_holds_it()
+        {
+            await using var db = NewContext();
+            var w = await SeedAsync(db);
+            db.RecipeIngredients.Add(new RecipeIngredientEntity { RecipeId = w.Stew, IngredientId = w.CatalogFood, RawLine = "1 yellow NORMALIAS pepper, chopped or sliced", Quantity = 1, SortOrder = 2 });
+            db.RecipeIngredients.Add(new RecipeIngredientEntity { RecipeId = w.Stew, IngredientId = w.CatalogFood, RawLine = "2 green NORMALIAS pepper, chopped or sliced", Quantity = 2, SortOrder = 3 });
+            db.RecipeIngredients.Add(new RecipeIngredientEntity { RecipeId = w.Open, IngredientId = w.CatalogFood, RawLine = "3 green NORMALIAS pepper, chopped or sliced", Quantity = 3, SortOrder = 2 });
+            db.IngredientAliases.Add(new IngredientAliasEntity { IngredientId = w.CatalogFood, AliasName = "yellow NORMALIAS pepper, chopped or sliced", IsDeleted = true, DeletedAt = T0.AddDays(-3) });
+            db.IngredientAliases.Add(new IngredientAliasEntity { IngredientId = w.CatalogFood, AliasName = "green NORMALIAS pepper, chopped or sliced" });
+            await db.SaveChangesAsync();
+            await Removal(db).RetireAsync(null, apply: true, Admin, null);
+            db.ChangeTracker.Clear();
+
+            var dry = await Removal(db).PurgeAsync(null, apply: false, backupTaken: false, Admin);
+            await Removal(db).PurgeAsync(null, apply: true, backupTaken: true, Admin);
+            db.ChangeTracker.Clear();
+
+            dry.Targets.Single(t => t.Table == "recipe.IngredientAlias").Rows.Should().Be(1);
+            (await db.IngredientAliases.IgnoreQueryFilters().Where(a => a.IngredientId == w.CatalogFood && a.AliasName.Contains("NORMALIAS")).Select(a => a.AliasName).ToListAsync())
+                .Should().Equal(new[] { "green NORMALIAS pepper, chopped or sliced" },
+                    "staging checkpoint 9, U14: the deleted alias \"yellow pepper, chopped or sliced\" kept the wording of a purged line \"1 yellow pepper, chopped or sliced\"; a wording another recipe's line holds stays");
         }
 
         [Fact]

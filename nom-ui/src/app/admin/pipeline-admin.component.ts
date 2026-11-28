@@ -95,6 +95,13 @@ export class PipelineAdmin implements OnInit {
 
   status = computed(() => this.data()?.status ?? null);
 
+  notHeldByPauseAll = computed(() =>
+    (this.data()?.gate.lanes ?? [])
+      .filter((l) => l.heldByPauseAll === false)
+      .map((l) => l.lane)
+      .join(', '),
+  );
+
   stuckLists = computed<StuckList[]>(() => {
     const stuck = this.status()?.stuck;
     if (!stuck) return [];

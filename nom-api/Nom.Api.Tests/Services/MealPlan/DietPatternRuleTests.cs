@@ -95,9 +95,33 @@ namespace Nom.Api.Tests.Services.MealPlan
         [InlineData("%egg%", "6 egg free-run", true)]
         [InlineData("%chicken%", "1 whole chicken free range", true)]
         [InlineData("%chicken%", "chicken-free broth", false)]
+        [InlineData("%flour%", "1 cup garbanzo flour", true)]
+        [InlineData("%cream%", "1/2 cup creamy or crunchy peanut butter", false)]
+        [InlineData("%cream%", "1 cup creamy natural peanut butter", false)]
+        [InlineData("%cream%", "1 cup heavy cream", true)]
+        [InlineData("%noix%", "noix de veau", false)]
+        [InlineData("%noix%", "1 cup noix", true)]
+        [InlineData("% nut%", "rye nuts + rye nuts", false)]
+        [InlineData("% nut%", "rye bread with nuts", true)]
         public void A_term_counts_where_it_begins_a_word_or_is_a_whole_compound_part_and_not_in_a_named_exception(string pattern, string text, bool expected)
         {
             DietPatternRule.For(pattern).IsMatch(text).Should().Be(expected, $"{pattern} on \"{text}\"");
+        }
+
+        [Fact]
+        public void Garbanzo_flour_is_no_gluten_flour_but_stays_a_legume_for_the_types_that_exclude_legumes()
+        {
+            DietPatternRule.For("%flour%", "Celiac Disease").IsMatch("1 cup garbanzo flour").Should().BeFalse("staging checkpoint 9, U2: garbanzo flour was flagged for Celiac by its flour");
+            DietPatternRule.For("%flour%", "Wheat Allergy").IsMatch("1 cup garbanzo bean flour").Should().BeFalse();
+            DietPatternRule.For("%flour%", "Paleo").IsMatch("1 cup garbanzo flour").Should().BeTrue("Paleo excludes legumes and names no garbanzo");
+            DietPatternRule.For("%flour%", "Celiac Disease").IsMatch("1 cup garbanzo flour and 1 cup flour").Should().BeTrue();
+        }
+
+        [Fact]
+        public void A_nondairy_milk_written_as_one_word_is_no_milk_for_the_types_that_restrict_milk()
+        {
+            DietPatternRule.For("%milk%", "Milk Allergy").IsMatch("1/2 cup almond milk (or any nondairy milk)").Should().BeFalse("staging checkpoint 9, U13: the line was named as the milk");
+            DietPatternRule.For("%milk%", "Milk Allergy").IsMatch("1 cup nondairy milk and 1 cup milk").Should().BeTrue();
         }
 
         [Fact]

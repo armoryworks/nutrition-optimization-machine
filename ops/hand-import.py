@@ -1160,9 +1160,72 @@ def _columns(rows: list[list[Word]], height: float, middle: float) -> list[list[
     return out
 
 
+COLUMNS_REFUSED = f"{cookbook.UNREAD} the rows of this page's two columns cannot be told apart"
+COLUMN_ROWS = 3
+COLUMN_CROSSING = 6
+
+
+@dataclass
+class Layout:
+    kind: str
+    gutter: float = 0.0
+    heading: list[Word] | None = None
+    left: list[Word] | None = None
+    right: list[Word] | None = None
+
+
+def page_layout(words: list[Word], height: float) -> Layout:
+    """How a page's words are laid out (staging checkpoint 9, U17: an index read across its two columns gave "Waffles 26"
+    where the book prints 16). A page is set in two columns when a gutter at least two letters wide runs down its middle
+    (between four and six tenths of its width, the one nearest the middle) that no word crosses, with at least COLUMN_ROWS rows on each side and
+    most rows of the right side starting with a letter, as an index's names or a column of prose do (an ingredient
+    table's right side holds its amounts, which start with a figure, and is one column). Rows above the first row that
+    has words on both sides (a running head, a centred title) may cross the gutter and are read first. A page whose
+    gutter a few other rows cross (at most one in COLUMN_CROSSING of them) is "mixed": those rows cannot be assigned to
+    one column, and the page is refused. Any other page, also one whose lines run across the middle (prose, a table set
+    with leaders), is one column."""
+    left = min(w.left for w in words)
+    right = max(w.left + w.width for w in words)
+    width = right - left
+    if width <= 0:
+        return Layout("one")
+    best: tuple[int, float] | None = None
+    x = left + 0.4 * width
+    while x <= left + 0.6 * width:
+        crossing = sum(1 for w in words if w.left - height < x < w.left + w.width + height)
+        if best is None or crossing < best[0] or (crossing == best[0] and abs(x - left - width / 2) < abs(best[1] - left - width / 2)):
+            best = (crossing, x)
+        x += height / 2
+    if best is None:
+        return Layout("one")
+    gutter = best[1]
+    rows = _rows(words, height)
+    sides = [(any(w.left + w.width <= gutter for w in row), any(w.left >= gutter for w in row),
+              any(w.left < gutter < w.left + w.width for w in row)) for row in rows]
+    lefts = [row for row in rows if any(w.left + w.width <= gutter for w in row)]
+    rights = [[w for w in row if w.left >= gutter] for row in rows]
+    rights = [r for r in rights if r]
+    lettered = sum(1 for r in rights if re.match(r"[^\W\d_]", r[0].text))
+    if len(lefts) < COLUMN_ROWS or len(rights) < COLUMN_ROWS or lettered * 2 <= len(rights):
+        return Layout("one")
+    both = next((i for i, (l, r, _) in enumerate(sides) if l and r), None)
+    if both is None:
+        return Layout("one")
+    crossing = sum(1 for _, _, c in sides[both:] if c)
+    if crossing * COLUMN_CROSSING > len(sides) - both:
+        return Layout("one")
+    if crossing:
+        return Layout("mixed", gutter)
+    heading = [w for row in rows[:both] for w in row]
+    body = [w for row in rows[both:] for w in row]
+    return Layout("two", gutter, heading, [w for w in body if w.left + w.width <= gutter], [w for w in body if w.left >= gutter])
+
+
 def table_text(words: list[Word], bar: float = OCR_BAR, dictionary: frozenset[str] | set[str] | None = None,
-               reread: Callable[[list[Word]], str | None] | None = None) -> str:
-    """A page's words set back into lines, top to bottom: a row of an ingredient table as one line (table_row), any
+               reread: Callable[[list[Word]], str | None] | None = None, columns: bool = True) -> str:
+    """A page's words set back into lines, top to bottom; a page set in two columns (page_layout) is read column by
+    column, its heading first, then the left column and then the right one, each as a page of its own, and a page whose
+    rows cannot be assigned to one column is refused (COLUMNS_REFUSED). A row of an ingredient table is one line (table_row), any
     other line as its words, a word read with confidence below the bar replaced by the unread mark where it may be or
     cut an amount: one that holds a figure or a sign that is no letter or punctuation (a fraction read as "%" or "Y%"),
     stands next to a word with a figure, or starts the line; and, read with confidence or not, an old-style one read as
@@ -1171,11 +1234,21 @@ def table_text(words: list[Word], bar: float = OCR_BAR, dictionary: frozenset[st
     starts where a neighbouring table row starts and ends left of the middle, between two table rows or beside one with
     no sentence end, is a table row whose amount was not read at all, and gets the unread mark as its amount. A blank
     line goes before a centred line (a title) and after it, before an indented line that is not a table row (a
-    paragraph's first line) and at a wide gap."""
+    paragraph's first line) and at a wide gap; a wide gap inside a paragraph (the line before it goes on with no sentence
+    end, ends with a hyphen, or the line after it starts in lower case) is a line the reading lost, and its place gets a
+    line of the unread mark, never nothing (staging checkpoint 9, U17: "gether and bake on hot, well greased griddle.
+    Serve im-" dropped with no mark)."""
     if not words:
         return ""
     lettered = [w.height for w in words if re.search(r"[^\W\d_]{2,}", w.text) and w.conf >= bar] or [w.height for w in words]
     height = sorted(lettered)[len(lettered) // 2]
+    if columns:
+        layout = page_layout(words, height)
+        if layout.kind == "mixed":
+            return COLUMNS_REFUSED + "\n"
+        if layout.kind == "two":
+            parts = [table_text(part, bar, dictionary, reread, columns=False) for part in (layout.heading, layout.left, layout.right) if part]
+            return "\n".join(part.strip("\n") for part in parts if part.strip()) + "\n"
     left, right = min(w.left for w in words), max(w.left + w.width for w in words)
     middle = left + (right - left) / 2
     rows = _columns(_rows(words, height), height, middle)
@@ -1192,18 +1265,24 @@ def table_text(words: list[Word], bar: float = OCR_BAR, dictionary: frozenset[st
     pitch = gaps[len(gaps) // 2]
     lines: list[str] = []
     previous = None
+    previous_prose = False
     for row, centre, table in zip(rows, centres, tabled):
         start, end = row[0].left, row[-1].left + row[-1].width
         centred = table is None and start - left > 2 * height and right - end > 2 * height and abs((start - left) - (right - end)) < 2 * height
         indented = table is None and not centred and start - left > height
         wide = previous is not None and centre - previous > 1.6 * pitch
-        if lines and lines[-1] and (centred or indented or wide):
+        text = table if table is not None else " ".join(cookbook.UNREAD if _unsure(row, i, bar, height, reread) else w.text for i, w in enumerate(row))
+        lost = wide and table is None and previous_prose and not centred and lines and lines[-1] \
+            and (not re.search(r"[.!?:]$", lines[-1]) or lines[-1].endswith("-") or re.match(r"[a-z]", text) is not None)
+        if lost:
+            lines.append(cookbook.UNREAD)
+        elif lines and lines[-1] and (centred or indented or wide):
             lines.append("")
-        lines.append(table if table is not None else
-                     " ".join(cookbook.UNREAD if _unsure(row, i, bar, height, reread) else w.text for i, w in enumerate(row)))
+        lines.append(text)
         if centred:
             lines.append("")
         previous = centre
+        previous_prose = table is None and not centred
     return "\n".join(lines).strip("\n") + "\n"
 
 
@@ -1229,7 +1308,7 @@ def loc_pages(path: str, words: frozenset[str] | set[str] | None = None, images:
     whose image is gone takes its stored reading (earlier, the page as the earlier text step wrote it) instead. The
     more readable of the two texts is the page's: loc-image-ocr when the image's reading has fewer garbled short lines
     (a line that only carries the unread mark is not garbled: staging checkpoint 8, T18, p. 25 kept the Library's
-    garbled table though the image named every row), the Library's otherwise; both readings' counts are kept on the page. A stored reading always stays on its
+    garbled table though the image named every row), the Library's otherwise, and always the Library's when the image reading refused the page (imageRefused: its rows of two columns cannot be told apart, page_layout); both readings' counts are kept on the page. A stored reading always stays on its
     page, so the image is never fetched again: with no word list the page keeps the earlier step's choice, and a page
     that no longer fails the test keeps the reading beside the Library's text."""
     with open(path, encoding="utf-8") as handle:
@@ -1261,7 +1340,9 @@ def loc_pages(path: str, words: frozenset[str] | set[str] | None = None, images:
                     image = page_reading(read, words)
                     page["imageReading"] = image
                     page["imageText"] = read
-                    if read.strip() and image["unreadable"] - image["marked"] < library["unreadable"]:
+                    if read.startswith(COLUMNS_REFUSED):
+                        page["imageRefused"] = "columns"
+                    elif read.strip() and image["unreadable"] - image["marked"] < library["unreadable"]:
                         page.update(method="loc-image-ocr", text=read, needsImage=cookbook.unreadable_block(read, words))
         if stored is not None and "imageText" not in page:
             page["imageText"] = stored

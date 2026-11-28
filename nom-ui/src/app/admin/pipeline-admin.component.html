@@ -329,8 +329,13 @@
                           data-testid="pipeline-pause-all-toggle">
           Pause all AI lanes
         </mat-slide-toggle>
-        <span class="nom-pipeline__hint">Stops every model lane within about 30 seconds; nothing is lost.</span>
+        <span class="nom-pipeline__hint">Stops every model lane that writes within about 30 seconds; nothing is lost.</span>
       </div>
+      @if (notHeldByPauseAll()) {
+        <p class="nom-pipeline__hint" [class.nom-pipeline__warn]="d.gate.pauseAll" data-testid="pipeline-pause-all-not-held">
+          Not stopped by it, because they only read: {{ notHeldByPauseAll() }}. Pause them on their own to free the model host.
+        </p>
+      }
       @if (pauseError()) {
         <p class="nom-pipeline__error" role="alert" data-testid="pipeline-pause-error">{{ pauseError() }}</p>
       }
@@ -381,6 +386,11 @@
               @if (gate.status.lastError) {
                 <p class="nom-pipeline__lane-line nom-pipeline__warn" [attr.data-testid]="'pipeline-lane-' + lane.key + '-last-error'">
                   Last error {{ gate.status.lastErrorAt | date: 'MMM d, HH:mm' }}: {{ gate.status.lastError }}
+                </p>
+              }
+              @if (gate.heldByPauseAll === false && d.gate.pauseAll && !gate.paused) {
+                <p class="nom-pipeline__lane-line nom-pipeline__warn" [attr.data-testid]="'pipeline-lane-' + lane.key + '-not-held'">
+                  Still running while all AI lanes are paused: this lane only reads and has its own switch.
                 </p>
               }
               <mat-slide-toggle [checked]="gate.paused" [disabled]="pauseBusy() !== null" (change)="setPause(gate.lane, $event.checked, $event.source)"

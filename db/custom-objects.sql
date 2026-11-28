@@ -213,34 +213,40 @@ DECLARE
     foods bigint[];
 BEGIN
     IF TG_OP = 'INSERT' THEN
-        wordings := ARRAY(SELECT DISTINCT lower(n."Wording") FROM new_rows n);
-        foods := ARRAY(SELECT DISTINCT n."IngredientId" FROM new_rows n WHERE n."IngredientId" IS NOT NULL);
+        wordings := ARRAY(SELECT DISTINCT lower(n."Wording") FROM new_rows n WHERE n."Verdict" = 'category' AND NOT n."IsDeleted");
+        foods := ARRAY(SELECT DISTINCT n."IngredientId" FROM new_rows n WHERE n."Verdict" = 'food' AND n."IngredientId" IS NOT NULL AND NOT n."IsDeleted");
     ELSIF TG_OP = 'DELETE' THEN
-        wordings := ARRAY(SELECT DISTINCT lower(o."Wording") FROM old_rows o);
-        foods := ARRAY(SELECT DISTINCT o."IngredientId" FROM old_rows o WHERE o."IngredientId" IS NOT NULL);
+        wordings := ARRAY(SELECT DISTINCT lower(o."Wording") FROM old_rows o WHERE o."Verdict" = 'category' AND NOT o."IsDeleted");
+        foods := ARRAY(SELECT DISTINCT o."IngredientId" FROM old_rows o WHERE o."Verdict" = 'food' AND o."IngredientId" IS NOT NULL AND NOT o."IsDeleted");
     ELSE
         wordings := ARRAY(
             SELECT DISTINCT lower(x."Wording") FROM new_rows n JOIN old_rows o ON o."Id" = n."Id"
-                CROSS JOIN LATERAL (VALUES (o."Wording", o."IngredientId"), (n."Wording", n."IngredientId")) x("Wording", "IngredientId")
-            WHERE (o."Wording", o."Verdict", o."IngredientId", o."FdcCategoryId", o."CategoryHead", o."IsDeleted")
+                CROSS JOIN LATERAL (VALUES (o."Wording", o."Verdict", o."IsDeleted"), (n."Wording", n."Verdict", n."IsDeleted")) x("Wording", "Verdict", "IsDeleted")
+            WHERE x."Verdict" = 'category' AND NOT x."IsDeleted"
+              AND (o."Wording", o."Verdict", o."IngredientId", o."FdcCategoryId", o."CategoryHead", o."IsDeleted")
                   IS DISTINCT FROM (n."Wording", n."Verdict", n."IngredientId", n."FdcCategoryId", n."CategoryHead", n."IsDeleted"));
         foods := ARRAY(
             SELECT DISTINCT x."IngredientId" FROM new_rows n JOIN old_rows o ON o."Id" = n."Id"
-                CROSS JOIN LATERAL (VALUES (o."IngredientId"), (n."IngredientId")) x("IngredientId")
-            WHERE x."IngredientId" IS NOT NULL
+                CROSS JOIN LATERAL (VALUES (o."IngredientId", o."Verdict", o."IsDeleted"), (n."IngredientId", n."Verdict", n."IsDeleted")) x("IngredientId", "Verdict", "IsDeleted")
+            WHERE x."Verdict" = 'food' AND x."IngredientId" IS NOT NULL AND NOT x."IsDeleted"
               AND (o."Wording", o."Verdict", o."IngredientId", o."FdcCategoryId", o."CategoryHead", o."IsDeleted")
                   IS DISTINCT FROM (n."Wording", n."Verdict", n."IngredientId", n."FdcCategoryId", n."CategoryHead", n."IsDeleted"));
     END IF;
-    IF cardinality(wordings) = 0 THEN
+    IF coalesce(current_setting('nom.diet_wording_holds', true), '') = 'writer' THEN
+        foods := '{}';
+    ELSE
+        foods := ARRAY(
+            SELECT f FROM unnest(foods) f
+            WHERE EXISTS (SELECT 1 FROM curation."FoodCatalogProposal" p
+                          WHERE p."ProposedValue" = f::text AND p."Field" = 'fdc_link' AND p."Status" = 4 AND p."Source" LIKE 'ai:%' AND NOT p."IsDeleted"));
+    END IF;
+    IF cardinality(wordings) = 0 AND cardinality(foods) = 0 THEN
         RETURN NULL;
     END IF;
-    foods := ARRAY(
-        SELECT f FROM unnest(foods) f
-        WHERE EXISTS (SELECT 1 FROM curation."FoodCatalogProposal" p
-                      WHERE p."ProposedValue" = f::text AND p."Field" = 'fdc_link' AND p."Status" = 4 AND p."Source" LIKE 'ai:%' AND NOT p."IsDeleted"));
     PERFORM plan."DietGateHoldRecipes"(ARRAY(
-        SELECT ri."RecipeId" FROM recipe."RecipeIngredient" ri JOIN recipe."Ingredient" i ON i."Id" = ri."IngredientId"
-        WHERE lower(i."Name") = ANY (wordings)
+        SELECT ri."RecipeId" FROM unnest(wordings) w("Wording")
+            JOIN recipe."Ingredient" i ON i."Name" ILIKE replace(replace(replace(w."Wording", '\', '\\'), '%', '\%'), '_', '\_') AND lower(i."Name") = w."Wording"
+            JOIN recipe."RecipeIngredient" ri ON ri."IngredientId" = i."Id"
         UNION
         SELECT ri."RecipeId" FROM recipe."RecipeIngredient" ri WHERE ri."IngredientId" = ANY (foods)));
     RETURN NULL;
@@ -299,6 +305,25 @@ BEGIN
             UNION
             SELECT o."RecipeId" FROM old_rows o
             WHERE NOT EXISTS (SELECT 1 FROM new_rows n WHERE n."RecipeId" = o."RecipeId" AND n."Model" = o."Model")));
+    END IF;
+    RETURN NULL;
+END;
+$$;
+
+CREATE OR REPLACE FUNCTION plan."DietGateJudgedHoldsWritten"() RETURNS trigger
+    LANGUAGE plpgsql AS $$
+BEGIN
+    IF TG_OP = 'INSERT' THEN
+        PERFORM plan."DietGateHoldRecipes"(ARRAY(SELECT n."RecipeId" FROM new_rows n));
+    ELSIF TG_OP = 'DELETE' THEN
+        PERFORM plan."DietGateHoldRecipes"(ARRAY(SELECT o."RecipeId" FROM old_rows o));
+    ELSE
+        PERFORM plan."DietGateHoldRecipes"(ARRAY(
+            SELECT n."RecipeId" FROM new_rows n JOIN old_rows o ON o."Id" = n."Id"
+            WHERE (o."RecipeId", o."RestrictionTypeId") IS DISTINCT FROM (n."RecipeId", n."RestrictionTypeId")
+            UNION
+            SELECT o."RecipeId" FROM new_rows n JOIN old_rows o ON o."Id" = n."Id"
+            WHERE (o."RecipeId", o."RestrictionTypeId") IS DISTINCT FROM (n."RecipeId", n."RestrictionTypeId")));
     END IF;
     RETURN NULL;
 END;
@@ -466,3 +491,13 @@ CREATE TRIGGER "DietGateFeaturesUpdated" AFTER UPDATE ON auth."PlatformFeature"
 DROP TRIGGER IF EXISTS "DietGateFeaturesDeleted" ON auth."PlatformFeature";
 CREATE TRIGGER "DietGateFeaturesDeleted" AFTER DELETE ON auth."PlatformFeature"
     REFERENCING OLD TABLE AS old_rows FOR EACH STATEMENT EXECUTE FUNCTION plan."DietGateFeaturesWritten"();
+
+DROP TRIGGER IF EXISTS "DietGateJudgedHoldsInserted" ON plan."RecipeDietJudgedHold";
+CREATE TRIGGER "DietGateJudgedHoldsInserted" AFTER INSERT ON plan."RecipeDietJudgedHold"
+    REFERENCING NEW TABLE AS new_rows FOR EACH STATEMENT EXECUTE FUNCTION plan."DietGateJudgedHoldsWritten"();
+DROP TRIGGER IF EXISTS "DietGateJudgedHoldsUpdated" ON plan."RecipeDietJudgedHold";
+CREATE TRIGGER "DietGateJudgedHoldsUpdated" AFTER UPDATE ON plan."RecipeDietJudgedHold"
+    REFERENCING OLD TABLE AS old_rows NEW TABLE AS new_rows FOR EACH STATEMENT EXECUTE FUNCTION plan."DietGateJudgedHoldsWritten"();
+DROP TRIGGER IF EXISTS "DietGateJudgedHoldsDeleted" ON plan."RecipeDietJudgedHold";
+CREATE TRIGGER "DietGateJudgedHoldsDeleted" AFTER DELETE ON plan."RecipeDietJudgedHold"
+    REFERENCING OLD TABLE AS old_rows FOR EACH STATEMENT EXECUTE FUNCTION plan."DietGateJudgedHoldsWritten"();

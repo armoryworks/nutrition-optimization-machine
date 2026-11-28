@@ -53,6 +53,7 @@ namespace Nom.Orch.Services
         public const string FoodEntityType = "Ingredient";
         public const string FoodCreateChangeType = "ReprocessFoodCreate";
         public const string FoodCreateUndoneChangeType = "ReprocessFoodCreateUndone";
+        private const int FreedNameMinutes = 10;
         public const string RuleRejectIssue = "Rejected by rule: neither the source nor the rebuilt recipe is a recipe";
         public const int MaxRecipesPerCall = 500;
 
@@ -162,6 +163,7 @@ namespace Nom.Orch.Services
                     case RecipeReprocessOutcome.Failed: result.Failed++; break;
                     default:
                         result.Held++;
+                        result.Counts.ReferralsCleared += one.Counts.ReferralsCleared;
                         result.HeldByReason[one.Reason ?? string.Empty] = result.HeldByReason.GetValueOrDefault(one.Reason ?? string.Empty) + 1;
                         break;
                 }
@@ -178,7 +180,67 @@ namespace Nom.Orch.Services
             return one;
         }
 
+        private static readonly HashSet<string> KeepsReferrals = new(StringComparer.Ordinal)
+        {
+            RecipeReprocessHold.NotFound, RecipeReprocessHold.Rejected, RecipeReprocessHold.PersonEdit,
+        };
+
         private async Task<RecipeReprocessRecipeResult> RebuildOneAsync(long recipeId, bool apply, string batchId, DateTime stamp)
+        {
+            var one = await RebuildCoreAsync(recipeId, apply, batchId, stamp);
+            return one.Outcome == RecipeReprocessOutcome.Held && !KeepsReferrals.Contains(one.Reason ?? string.Empty) ? await ReferralsAsync(one, apply, batchId) : one;
+        }
+
+        /// <summary>
+        /// On a recipe the rebuild holds whole (no stored source, a compound split, an approved recipe the rebuild would
+        /// make worse ...), the one change that never waits: a stored amount that is only the number of the recipe or page
+        /// its line refers to (<see cref="IngredientLineParser.IsReferredNumber"/>: "composto N. 374" stored as 374 pieces)
+        /// is emptied, and nothing else (staging checkpoint 9, U8). The recipe stays held with its reason; the lines are
+        /// listed in <see cref="RecipeReprocessRecipeResult.ReferralLines"/>, and on an apply written with a journal entry of
+        /// kind <see cref="RecipeReprocessKind.Referral"/>, which the undo of a rebuild takes back. A rejected recipe or one a
+        /// person edited is left as it is.
+        /// </summary>
+        private async Task<RecipeReprocessRecipeResult> ReferralsAsync(RecipeReprocessRecipeResult one, bool apply, string batchId)
+        {
+            var rows = await RowsAsync(one.RecipeId);
+            var cleared = rows.Where(r => !r.IsDeleted && r.Quantity > 0 && IngredientLineParser.IsReferredNumber(r.Quantity, r.RawLine)).ToList();
+            if (cleared.Count == 0) return one;
+            one.Counts.ReferralsCleared += cleared.Count;
+            one.ReferralLines = cleared.Select(r => new RecipeReprocessLineDiff
+            {
+                SortOrder = r.SortOrder, RawLine = r.RawLine, OldSortOrder = r.SortOrder, OldIngredientId = r.IngredientId, NewIngredientId = r.IngredientId,
+                OldQuantity = r.Quantity, NewQuantity = 0m, OldMeasurementId = r.MeasurementId, NewMeasurementId = r.MeasurementId,
+                OldLineKind = r.LineKind, NewLineKind = r.LineKind,
+                Guard = nameof(LineAmountGuard.Verdict.Replace).ToLowerInvariant(), GuardReason = LineAmountGuard.Reasons.Referral,
+                Changes = new List<string> { "amount" },
+            }).ToList();
+            if (!apply) return one;
+
+            var by = _currentUser.PersonIdOrSystem;
+            await using var tx = _db.Database.IsRelational() ? await _db.Database.BeginTransactionAsync() : null;
+            var now = DateTime.UtcNow;
+            var written = rows.Select(r => cleared.Contains(r) ? r with { Quantity = 0m, LastModifiedDate = now, LastModifiedByPersonId = SystemConstants.SystemPersonId } : r).ToList();
+            await ReplaceRowsAsync(one.RecipeId, written);
+            var journal = new RecipeReprocessJournalEntity
+            {
+                RecipeId = one.RecipeId,
+                BatchId = batchId,
+                Kind = RecipeReprocessKind.Referral,
+                RuleVersion = RecipeLineBuilder.Version,
+                SourceDocumentId = one.SourceDocumentId,
+                OldRows = JsonSerializer.Serialize(rows, Json),
+                NewRows = JsonSerializer.Serialize(written, Json),
+                CreatedDate = now,
+                CreatedByPersonId = by,
+            };
+            await JournalAsync(journal, by, now, rejected: false);
+            if (tx != null) await tx.CommitAsync();
+            one.JournalId = journal.Id;
+            await RecalculateAsync(one.RecipeId);
+            return one;
+        }
+
+        private async Task<RecipeReprocessRecipeResult> RebuildCoreAsync(long recipeId, bool apply, string batchId, DateTime stamp)
         {
             var one = new RecipeReprocessRecipeResult { RecipeId = recipeId };
             var recipe = await _db.Recipes.FirstOrDefaultAsync(r => r.Id == recipeId);
@@ -690,7 +752,7 @@ namespace Nom.Orch.Services
             List<RecipeStepEntity> steps, List<RecipeStepEntity> newSteps, List<string> newIssues)
         {
             bool Curated(IngredientEntity? food) => food is { IsDeleted: false } && food.CurationStatusId == (long)CurationStatusEnum.Curated;
-            if (built.Count(b => b.Quantity > 0) < live.Count(r => r.Quantity > 0)) return RecipeReprocessHold.ApprovedFewerAmounts;
+            if (built.Count(b => b.Quantity > 0) < live.Count(r => r.Quantity > 0 && !IngredientLineParser.IsReferredNumber(r.Quantity, r.RawLine))) return RecipeReprocessHold.ApprovedFewerAmounts;
             if (built.Count(b => Curated(b.Food)) < live.Count(r => Curated(oldFoods.GetValueOrDefault(r.IngredientId)))) return RecipeReprocessHold.ApprovedFewerCurated;
 
             var before = new RecipeEntity
@@ -1108,7 +1170,7 @@ namespace Nom.Orch.Services
 
         private sealed record UndoBatchRecord(
             long LastEntryId, int Entries, int Restored, int Skipped, int PositionsFollowed, int StateKept, int FoodsRemoved, int FoodsKept,
-            Dictionary<string, int> RestoredByKind, int AlreadyUndone = 0, double Seconds = 0);
+            Dictionary<string, int> RestoredByKind, int AlreadyUndone = 0, double Seconds = 0, int NamesRestored = 0);
 
         private sealed record UndoRunHandle(CancellationTokenSource Stop, bool LaneOnly);
 
@@ -1273,7 +1335,7 @@ namespace Nom.Orch.Services
             var query = _db.RecipeReprocessJournals.AsNoTracking().Where(j => j.UndoneAt == null);
             if (filter.SinceUtc != null) query = query.Where(j => j.CreatedDate >= filter.SinceUtc.Value);
             if (!string.IsNullOrWhiteSpace(filter.BatchId)) query = query.Where(j => j.BatchId == filter.BatchId);
-            if (filter.Kind == RecipeReprocessKind.Rebuild) query = query.Where(j => j.Kind == RecipeReprocessKind.Rebuild || j.Kind == RecipeReprocessKind.RuleReject);
+            if (filter.Kind == RecipeReprocessKind.Rebuild) query = query.Where(j => j.Kind == RecipeReprocessKind.Rebuild || j.Kind == RecipeReprocessKind.RuleReject || j.Kind == RecipeReprocessKind.Referral);
             else if (!string.IsNullOrWhiteSpace(filter.Kind)) query = query.Where(j => j.Kind == filter.Kind);
             if (filter.LaneOnly) query = query.Where(j => j.BatchId.StartsWith(LaneBatchPrefix));
             if (FollowedWriteId(filter.BatchId) == null) query = query.Where(j => !j.BatchId.StartsWith(OrderFollowPrefix));
@@ -1300,7 +1362,7 @@ namespace Nom.Orch.Services
         private async Task UndoBatchAsync(long[] ids, UndoState state, RecipeReprocessUndoResult result, bool apply, long by, string? runId, int batchNumber)
         {
             var clock = Stopwatch.StartNew();
-            var counted = (result.Restored, result.Skipped, result.PositionsFollowed, result.StateKept, result.FoodsRemoved, result.FoodsKept, result.AlreadyUndone,
+            var counted = (result.Restored, result.Skipped, result.PositionsFollowed, result.StateKept, result.FoodsRemoved, result.FoodsKept, result.AlreadyUndone, result.NamesRestored,
                 Kinds: new Dictionary<string, int>(result.RestoredByKind, StringComparer.Ordinal));
             await using var tx = apply && _db.Database.IsRelational() ? await _db.Database.BeginTransactionAsync() : null;
 
@@ -1334,6 +1396,7 @@ namespace Nom.Orch.Services
             var writeSteps = new Dictionary<long, List<StepRow>>();
             var recalculate = new HashSet<long>();
             var foodsGone = new List<AuditLogEntryEntity>();
+            var namesBack = new List<(AuditLogEntryEntity Created, AuditLogEntryEntity Freed)>();
             var linkIds = new List<long>();
             var follows = new List<RecipeReprocessJournalEntity>();
             var rebuildsUndone = new HashSet<long>();
@@ -1461,6 +1524,12 @@ namespace Nom.Orch.Services
                         else result.FoodsKept++;
                     }
                     result.FoodsRemoved += removable.Count;
+                    foreach (var created in removable)
+                    {
+                        if (await FreedNameAsync(created) is not { } freed) continue;
+                        result.NamesRestored++;
+                        namesBack.Add((created, freed));
+                    }
                 }
                 if (!apply) continue;
 
@@ -1535,6 +1604,7 @@ namespace Nom.Orch.Services
             }
             await LineGuardHolds.ResolveAsync(_db, LineGuardHoldOrigin.Rebuild, rebuildsUndone, LineGuardHolds.Undone, DateTime.UtcNow);
             await _db.SaveChangesAsync();
+            await RestoreFreedNamesAsync(namesBack, by);
             _db.ChangeTracker.Clear();
             await RecalculateLabelsAsync(recalculate, tx);
             if (runId != null)
@@ -1545,7 +1615,8 @@ namespace Nom.Orch.Services
                     .ToDictionary(k => k.Key, k => k.Count, StringComparer.Ordinal);
                 var record = new UndoBatchRecord(ids[^1], ids.Length, result.Restored - counted.Restored, result.Skipped - counted.Skipped,
                     result.PositionsFollowed - counted.PositionsFollowed, result.StateKept - counted.StateKept, result.FoodsRemoved - counted.FoodsRemoved,
-                    result.FoodsKept - counted.FoodsKept, kinds, result.AlreadyUndone - counted.AlreadyUndone, Math.Round(clock.Elapsed.TotalSeconds, 3));
+                    result.FoodsKept - counted.FoodsKept, kinds, result.AlreadyUndone - counted.AlreadyUndone, Math.Round(clock.Elapsed.TotalSeconds, 3),
+                    result.NamesRestored - counted.NamesRestored);
                 _db.AuditLogEntries.Add(UndoRunRow(runId, batchNumber, UndoBatchChangeType, null, JsonSerializer.Serialize(record, Json), DateTime.UtcNow, by));
                 await _db.SaveChangesAsync();
             }
@@ -1741,6 +1812,7 @@ namespace Nom.Orch.Services
                 progress.PositionsFollowed += batch.PositionsFollowed;
                 progress.StateKept += batch.StateKept;
                 progress.FoodsRemoved += batch.FoodsRemoved;
+                progress.NamesRestored += batch.NamesRestored;
                 progress.FoodsKept += batch.FoodsKept;
                 progress.AlreadyUndone += batch.AlreadyUndone;
                 progress.WorkingSeconds += batch.Seconds;
@@ -1844,6 +1916,60 @@ namespace Nom.Orch.Services
                 followed.Add(row with { SortOrder = place });
             }
             return followed.OrderBy(r => r.SortOrder).ThenBy(r => r.IngredientId).ToList();
+        }
+
+        /// <summary>
+        /// The name a rebuild freed for a food it created: the line builder renames a soft-deleted food that holds the name to
+        /// "name (deleted #id)" and journals it (<see cref="RecipeScrapingService.NameFreedChangeType"/>) before the new food
+        /// takes the name. The entry written for that rebuild (after the rebuild's time and before its food entry) whose
+        /// food still has the freed name, when no food but the created one and that one holds the name; null otherwise.
+        /// </summary>
+        private async Task<AuditLogEntryEntity?> FreedNameAsync(AuditLogEntryEntity created)
+        {
+            var name = created.NewValue;
+            if (string.IsNullOrEmpty(name)) return null;
+            var latest = created.Timestamp.AddMinutes(FreedNameMinutes);
+            var freed = await _db.AuditLogEntries.AsNoTracking()
+                .Where(a => a.EntityType == RecipeScrapingService.NameFreedEntityType && a.ChangeType == RecipeScrapingService.NameFreedChangeType
+                    && a.OldValue == name && a.Id < created.Id && a.Timestamp >= created.Timestamp && a.Timestamp <= latest)
+                .OrderByDescending(a => a.Id)
+                .FirstOrDefaultAsync();
+            if (freed == null) return null;
+            var holder = await _db.Ingredients.IgnoreQueryFilters().AsNoTracking().FirstOrDefaultAsync(i => i.Id == freed.EntityId);
+            if (holder == null || !holder.IsDeleted || holder.Name != freed.NewValue) return null;
+            var others = await _db.Ingredients.IgnoreQueryFilters().AnyAsync(i => i.Name == name && i.Id != created.EntityId && i.Id != holder.Id);
+            return others ? null : freed;
+        }
+
+        /// <summary>
+        /// Gives each food whose name a rebuild freed its name back once the undo has taken the created food away (staging
+        /// checkpoint 9, U10: six soft-deleted foods kept "(deleted #id)" after the rebuild's undo). The created food, now
+        /// deleted, takes the "(deleted #id)" form itself first, journaled as a freed name, since the name is unique among
+        /// deleted rows too; the holder's own freed-name entry is taken out.
+        /// </summary>
+        private async Task RestoreFreedNamesAsync(List<(AuditLogEntryEntity Created, AuditLogEntryEntity Freed)> names, long by)
+        {
+            foreach (var (created, freed) in names)
+            {
+                var food = await _db.Ingredients.IgnoreQueryFilters().FirstOrDefaultAsync(i => i.Id == created.EntityId);
+                var holder = await _db.Ingredients.IgnoreQueryFilters().FirstOrDefaultAsync(i => i.Id == freed.EntityId);
+                if (holder == null || holder.Name != freed.NewValue || (food != null && (!food.IsDeleted || food.Name != freed.OldValue))) continue;
+                if (food != null)
+                {
+                    var tombstone = $"{food.Name} (deleted #{food.Id.ToString(CultureInfo.InvariantCulture)})";
+                    if (tombstone.Length > 2000) tombstone = tombstone[..2000];
+                    _db.AuditLogEntries.Add(new AuditLogEntryEntity
+                    {
+                        EntityType = RecipeScrapingService.NameFreedEntityType, EntityId = food.Id, ChangeType = RecipeScrapingService.NameFreedChangeType,
+                        PropertyName = nameof(IngredientEntity.Name), OldValue = food.Name, NewValue = tombstone, Timestamp = DateTime.UtcNow, ChangedByPersonId = by,
+                    });
+                    food.Name = tombstone;
+                    await _db.SaveChangesAsync();
+                }
+                holder.Name = freed.OldValue!;
+                _db.AuditLogEntries.Remove(await _db.AuditLogEntries.SingleAsync(a => a.Id == freed.Id));
+                await _db.SaveChangesAsync();
+            }
         }
 
         /// <summary>

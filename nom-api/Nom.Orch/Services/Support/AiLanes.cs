@@ -35,10 +35,21 @@ namespace Nom.Orch.Services.Support
             (WordingTiers, "deterministic wording tiers, with the link auditor and reader B"),
             (ContainerSizes, "container sizes scored against the stated sizes they would replace"),
             (WordingReaders, "two blind wording readers of different families, with their lexicon, the alcohol fixed readings and the link auditor"),
-            (DietSecondReader, "second diet reader in shadow: mistral-small and phi4 read the approved and waiting recipes for the severe diet types"),
+            (DietSecondReader, "second diet reader in shadow: mistral-small and phi4 read the approved and waiting recipes for the severe diet types (reads only; held by its own switch, not by ai-pause-all)"),
         };
 
         public const string PauseAllKey = "ai-pause-all";
+
+        /// <summary>
+        /// The lanes that only read and store their readings and never write to a recipe, a line or a food (plan item ck23,
+        /// U4): the second diet reader. ai-pause-all, the switch every operator step keeps on while a writing lane must not
+        /// write, does not hold them; their own switch ai-pause-{lane}, quiet hours and the host breaker do, so an operator can
+        /// let such a lane read while every lane that writes stays paused.
+        /// </summary>
+        public static readonly IReadOnlySet<string> ReadingLanes = new HashSet<string>(System.StringComparer.OrdinalIgnoreCase) { DietSecondReader };
+
+        /// <summary>Whether ai-pause-all holds the lane: every lane but a <see cref="ReadingLanes"/> one.</summary>
+        public static bool HeldByPauseAll(string lane) => !ReadingLanes.Contains(lane);
 
         public static string PauseKey(string lane) => "ai-pause-" + lane;
 
